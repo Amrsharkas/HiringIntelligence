@@ -88,11 +88,19 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
     });
   };
 
-  const formatSalary = (min?: number, max?: number) => {
-    if (!min && !max) return "Salary not specified";
-    if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
-    if (min) return `From $${min.toLocaleString()}`;
-    if (max) return `Up to $${max.toLocaleString()}`;
+  const formatSalary = (job: any) => {
+    if (job.salaryRange) {
+      return job.salaryRange;
+    }
+    if (job.salaryMin && job.salaryMax) {
+      return `$${job.salaryMin.toLocaleString()} - $${job.salaryMax.toLocaleString()}`;
+    }
+    if (job.salaryMin) {
+      return `From $${job.salaryMin.toLocaleString()}`;
+    }
+    if (job.salaryMax) {
+      return `Up to $${job.salaryMax.toLocaleString()}`;
+    }
     return "Salary not specified";
   };
 
@@ -169,7 +177,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
                         <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-4 h-4" />
-                            {formatSalary(job.salaryMin, job.salaryMax)}
+                            {formatSalary(job)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />

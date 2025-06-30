@@ -127,6 +127,8 @@ Changelog:
 - June 30, 2025. Enhanced job posting modal with modern UI, location field, salary range dropdown, and dynamic skills selection
 - June 30, 2025. Fixed technical skills dropdown to show AI-suggested skills based on job title/description
 - June 30, 2025. Fixed AI job description generation to use actual location from location field instead of placeholder text
+- June 30, 2025. Fixed job editing modal to properly populate all fields with existing job data
+- June 30, 2025. Fixed salary display in active job postings to show selected salary range instead of "not specified"
 ```
 
 ## User Preferences

@@ -74,15 +74,44 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   const form = useForm<JobFormData>({
     resolver: zodResolver(jobFormSchema),
     defaultValues: {
-      title: editJob?.title || "",
-      description: editJob?.description || "",
-      requirements: editJob?.requirements || "",
-      location: editJob?.location || "",
-      salaryRange: editJob?.salaryRange || "",
-      softSkills: editJob?.softSkills || [],
-      technicalSkills: editJob?.technicalSkills || [],
+      title: "",
+      description: "",
+      requirements: "",
+      location: "",
+      salaryRange: "",
+      softSkills: [],
+      technicalSkills: [],
     },
   });
+
+  // Reset form when editJob changes
+  useEffect(() => {
+    if (editJob) {
+      form.reset({
+        title: editJob.title || "",
+        description: editJob.description || "",
+        requirements: editJob.requirements || "",
+        location: editJob.location || "",
+        salaryRange: editJob.salaryRange || "",
+        softSkills: editJob.softSkills || [],
+        technicalSkills: editJob.technicalSkills || [],
+      });
+      setSelectedSoftSkills(editJob.softSkills || []);
+      setSelectedTechnicalSkills(editJob.technicalSkills || []);
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        requirements: "",
+        location: "",
+        salaryRange: "",
+        softSkills: [],
+        technicalSkills: [],
+      });
+      setSelectedSoftSkills([]);
+      setSelectedTechnicalSkills([]);
+    }
+  }, [editJob, form]);
 
   const { data: organization } = useQuery({
     queryKey: ["/api/organizations/current"],
