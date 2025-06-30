@@ -1,0 +1,119 @@
+Prompt:
+Create a standalone employer-facing web application that makes hiring more efficient, smarter, and faster for employers. This is one part of a two-platform system, and will only include employer functionalities. Build the platform using a 3D interactive website structure, where the UI responds to scrolling, clicking, and hovering. The website must look extremely professional, aesthetically pleasing, and feature 3D/animated design similar to Zypsy.com to reflect an advanced tech brand.
+
+📄 Pages to Build
+1. Homepage (Public Landing Page for Employers Only)
+Explain the problems with modern hiring (e.g., wasted time, poor candidate fits, inefficient filtering).
+
+Highlight our innovation: using AI to assess candidates through interviews and generate detailed user profiles that are matched to job postings with a 1–100 rating.
+
+Include CTA buttons:
+
+"Post a Job Now" → Leads to sign-up
+
+"Login"
+
+Should feature rich 3D visuals, scroll-activated animations, and interaction on hover or scroll.
+
+2. Login / Signup Flow
+Allow employers to create an account with fields like:
+
+Name
+
+Company Name
+
+Email + Password
+
+After sign-up, assign the user a "role": employer and never ask again.
+
+On login, direct them to their Employer Dashboard.
+
+🧠 Employer Dashboard (Core Functionality)
+Build a clean, animated, 3D interactive dashboard. This page should never route users away when interacting with features — all features open in modals or slide-in popouts.
+
+Features/Modals:
+✅ 1. Post a Job Modal
+Form fields:
+
+Job Title
+
+Salary Range
+
+Job Description (Text Box + “AI Generate” button)
+
+Job Requirements (Text Box + “AI Generate” button)
+
+Skills Section:
+
+Soft Skills Dropdown: static options (e.g., communication, leadership, teamwork)
+
+Technical Skills Dropdown: dynamic and AI-powered, based on job title and description.
+
+This should update live every 0.1 seconds as the job title/description is typed.
+
+Once submitted:
+
+Store job in:
+
+The company's personal job list
+
+The platform’s global job postings database
+
+✅ 2. Active Jobs Modal
+Automatically updates when new jobs are posted.
+
+Shows a list of the company’s job postings.
+
+Each entry includes:
+
+📝 Edit Icon → reopens the Post Job modal pre-filled with current info
+
+🗑️ Delete Icon → removes job posting
+
+✅ 3. Candidate Viewer Modal
+For each posted job, a "View Candidates" button appears.
+
+Clicking it opens a modal showing all matched candidates with:
+
+Their AI-generated match rating (1–100)
+
+A short summary of their user profile
+
+A "View Full Profile" button
+
+Note: You do not need to implement the full profile here, only the interface for pulling matched candidates by job from the database.
+
+💾 Database & AI Integration Guidelines
+Use a clean schema with two main models:
+
+Jobs: includes employer ID, job title, description, salary, skills (soft + technical)
+
+Candidates: read-only from this platform, but can be queried for ratings/matches
+
+Store job postings in both:
+
+The company’s specific job list
+
+The platform-wide job index (for matchmaking)
+
+AI usage:
+
+Use OpenAI API for:
+
+Generating job descriptions & requirements
+
+Extracting dynamic technical skills from job title/description
+
+Use existing matching algorithm API (I will provide API key) to rate candidates for jobs
+
+🔐 Security/Permissions
+Only logged-in employers should be able to view and interact with the dashboard.
+
+Each employer can only access their own job postings and candidate matches.
+
+🎨 Style Guide
+Match the branding of a top-tier AI recruiting platform.
+
+Use 3D graphics, animated transitions, and dark/light mode toggle.
+
+Mobile responsiveness is not required at MVP but preferred.
