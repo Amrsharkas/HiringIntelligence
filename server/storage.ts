@@ -102,6 +102,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(organizationMembers.organizationId, organizationId));
   }
 
+  async addOrganizationMember(memberData: { organizationId: number; userId: string; role: string }): Promise<OrganizationMember> {
+    const [member] = await db
+      .insert(organizationMembers)
+      .values(memberData)
+      .returning();
+    return member;
+  }
+
   // Job operations
   async createJob(jobData: InsertJob): Promise<Job> {
     const [job] = await db.insert(jobs).values(jobData).returning();
