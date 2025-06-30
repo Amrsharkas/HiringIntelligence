@@ -40,7 +40,10 @@ export const users = pgTable("users", {
 // Organizations/Companies
 export const organizations = pgTable("organizations", {
   id: serial("id").primaryKey(),
-  name: varchar("name").notNull(),
+  companyName: varchar("company_name").notNull(),
+  industry: varchar("industry"),
+  companySize: varchar("company_size"),
+  description: text("description"),
   ownerId: varchar("owner_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
