@@ -27,6 +27,7 @@ export interface IStorage {
   createOrganization(org: InsertOrganization): Promise<Organization>;
   getOrganizationByUser(userId: string): Promise<Organization | undefined>;
   getOrganizationMembers(organizationId: number): Promise<OrganizationMember[]>;
+  addOrganizationMember(member: { organizationId: number; userId: string; role: string }): Promise<OrganizationMember>;
   
   // Job operations
   createJob(job: InsertJob): Promise<Job>;

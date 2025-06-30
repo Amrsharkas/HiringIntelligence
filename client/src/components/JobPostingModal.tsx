@@ -470,10 +470,26 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Add technical skills" />
+                      <SelectValue placeholder={dynamicTechnicalSkills.length > 0 ? "Add AI-suggested skills" : "Add technical skills"} />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {TECHNICAL_SKILLS.filter(skill => !selectedTechnicalSkills.includes(skill)).map((skill) => (
+                      {dynamicTechnicalSkills.length > 0 ? (
+                        <>
+                          {dynamicTechnicalSkills.filter(skill => !selectedTechnicalSkills.includes(skill)).map((skill) => (
+                            <SelectItem key={skill} value={skill} className="bg-blue-50 dark:bg-blue-900/20">
+                              <div className="flex items-center gap-2">
+                                <Sparkles className="w-3 h-3 text-blue-500" />
+                                {skill}
+                              </div>
+                            </SelectItem>
+                          ))}
+                          <div className="border-t my-1"></div>
+                        </>
+                      ) : null}
+                      {TECHNICAL_SKILLS.filter(skill => 
+                        !selectedTechnicalSkills.includes(skill) && 
+                        !dynamicTechnicalSkills.includes(skill)
+                      ).map((skill) => (
                         <SelectItem key={skill} value={skill}>
                           {skill}
                         </SelectItem>
@@ -481,24 +497,36 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                     </SelectContent>
                   </Select>
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {selectedTechnicalSkills.map((skill) => (
-                      <Badge key={skill} variant="secondary" className="flex items-center gap-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-                        {skill}
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-purple-600" 
-                          onClick={() => {
-                            const newSkills = selectedTechnicalSkills.filter(s => s !== skill);
-                            setSelectedTechnicalSkills(newSkills);
-                            form.setValue("technicalSkills", newSkills);
-                          }}
-                        />
-                      </Badge>
-                    ))}
+                    {selectedTechnicalSkills.map((skill) => {
+                      const isAiSuggested = dynamicTechnicalSkills.includes(skill);
+                      return (
+                        <Badge 
+                          key={skill} 
+                          variant="secondary" 
+                          className={`flex items-center gap-1 ${
+                            isAiSuggested 
+                              ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700' 
+                              : 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                          }`}
+                        >
+                          {isAiSuggested && <Sparkles className="w-3 h-3" />}
+                          {skill}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-purple-600" 
+                            onClick={() => {
+                              const newSkills = selectedTechnicalSkills.filter(s => s !== skill);
+                              setSelectedTechnicalSkills(newSkills);
+                              form.setValue("technicalSkills", newSkills);
+                            }}
+                          />
+                        </Badge>
+                      );
+                    })}
                   </div>
-                  {dynamicTechnicalSkills.length > 0 && (
+                  {(form.watch("title") || form.watch("description")) && dynamicTechnicalSkills.length === 0 && (
                     <div className="flex items-center justify-center pt-2">
                       <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                      <span className="text-xs text-blue-500 ml-2">Auto-updating...</span>
+                      <span className="text-xs text-blue-500 ml-2">Analyzing skills...</span>
                     </div>
                   )}
                 </div>

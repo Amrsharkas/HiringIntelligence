@@ -49,6 +49,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/organizations/join', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { organizationId } = req.body;
+      
+      // Add user as member to the organization
+      const member = await storage.addOrganizationMember({
+        organizationId: parseInt(organizationId),
+        userId,
+        role: 'member'
+      });
+      
+      res.json({ message: "Successfully joined organization", member });
+    } catch (error) {
+      console.error("Error joining organization:", error);
+      res.status(500).json({ message: "Failed to join organization" });
+    }
+  });
+
   app.get('/api/organizations/current', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
