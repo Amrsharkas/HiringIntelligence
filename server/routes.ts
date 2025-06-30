@@ -36,16 +36,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/organizations', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log("Creating organization for user:", userId);
+      console.log("Request body:", req.body);
+      
       const orgData = insertOrganizationSchema.parse({
         ...req.body,
         ownerId: userId
       });
       
+      console.log("Parsed org data:", orgData);
       const organization = await storage.createOrganization(orgData);
+      console.log("Created organization:", organization);
       res.json(organization);
     } catch (error) {
       console.error("Error creating organization:", error);
-      res.status(500).json({ message: "Failed to create organization" });
+      console.error("Error details:", error instanceof Error ? error.message : error);
+      res.status(500).json({ message: "Failed to create organization", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
