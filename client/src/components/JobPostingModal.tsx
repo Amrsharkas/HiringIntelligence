@@ -84,21 +84,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     },
   });
 
-  const { data: organization } = useQuery<any>({
+  const { data: organization } = useQuery({
     queryKey: ["/api/organizations/current"],
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
+    retry: false,
   });
 
   const createJobMutation = useMutation({
@@ -184,7 +172,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     try {
       const response = await apiRequest("POST", "/api/ai/generate-description", {
         jobTitle,
-        companyName: organization?.name,
+        companyName: organization?.companyName || "Our Company",
       });
       const data = await response.json();
       form.setValue("description", data.description);

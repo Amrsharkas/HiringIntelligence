@@ -61,6 +61,8 @@ export const jobs = pgTable("jobs", {
   title: varchar("title").notNull(),
   description: text("description").notNull(),
   requirements: text("requirements").notNull(),
+  location: varchar("location").notNull(),
+  salaryRange: varchar("salary_range"),
   salaryMin: integer("salary_min"),
   salaryMax: integer("salary_max"),
   softSkills: text("soft_skills").array(),
