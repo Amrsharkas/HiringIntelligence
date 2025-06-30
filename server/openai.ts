@@ -1,0 +1,132 @@
+import OpenAI from "openai";
+
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
+
+export async function generateJobDescription(jobTitle: string, companyName?: string): Promise<string> {
+  try {
+    const prompt = `Generate a compelling job description for a ${jobTitle} position${companyName ? ` at ${companyName}` : ''}. 
+    Include key responsibilities, day-to-day tasks, and what makes this role exciting. 
+    Keep it professional but engaging, around 150-200 words.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 300,
+    });
+
+    return response.choices[0].message.content || "";
+  } catch (error) {
+    throw new Error("Failed to generate job description: " + (error as Error).message);
+  }
+}
+
+export async function generateJobRequirements(jobTitle: string, jobDescription?: string): Promise<string> {
+  try {
+    const prompt = `Generate job requirements for a ${jobTitle} position. 
+    ${jobDescription ? `Context: ${jobDescription}` : ''}
+    Include required skills, experience levels, education, and qualifications.
+    Format as a clear, bulleted list. Keep it concise but comprehensive.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 300,
+    });
+
+    return response.choices[0].message.content || "";
+  } catch (error) {
+    throw new Error("Failed to generate job requirements: " + (error as Error).message);
+  }
+}
+
+export async function extractTechnicalSkills(jobTitle: string, jobDescription: string): Promise<string[]> {
+  try {
+    const prompt = `Based on this job title: "${jobTitle}" and description: "${jobDescription}", 
+    extract the most relevant technical skills that would be required. 
+    Return only a JSON array of skill names, focusing on programming languages, frameworks, tools, and technologies.
+    Limit to 10 most important skills.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are a technical recruiter expert. Extract technical skills and respond with only a JSON array of strings.",
+        },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{"skills": []}');
+    return result.skills || [];
+  } catch (error) {
+    // Fallback to basic skills if OpenAI fails
+    const commonSkills = [
+      "JavaScript", "TypeScript", "React", "Node.js", "Python", "SQL", 
+      "Git", "HTML", "CSS", "Docker", "AWS", "MongoDB", "PostgreSQL"
+    ];
+    return commonSkills.slice(0, 6);
+  }
+}
+
+export async function generateCandidateMatchRating(
+  candidate: any,
+  job: any
+): Promise<{ score: number; reasoning: string; skillGaps: string[] }> {
+  try {
+    const prompt = `Analyze this candidate against the job requirements and provide a match score from 1-100.
+    
+    Job: ${job.title}
+    Job Requirements: ${job.requirements}
+    Required Skills: ${[...(job.technicalSkills || []), ...(job.softSkills || [])].join(', ')}
+    
+    Candidate: ${candidate.firstName} ${candidate.lastName}
+    Title: ${candidate.title}
+    Summary: ${candidate.summary}
+    Skills: ${candidate.skills?.join(', ') || 'Not specified'}
+    Experience: ${candidate.experience}
+    
+    Provide a detailed analysis in JSON format with:
+    - score (1-100)
+    - reasoning (2-3 sentences explaining the match)
+    - skillGaps (array of missing skills)`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert recruiter. Analyze candidate-job fit and respond with JSON.",
+        },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{"score": 50, "reasoning": "Analysis unavailable", "skillGaps": []}');
+    
+    return {
+      score: Math.max(1, Math.min(100, result.score || 50)),
+      reasoning: result.reasoning || "Match analysis completed",
+      skillGaps: result.skillGaps || []
+    };
+  } catch (error) {
+    // Fallback scoring based on simple skill matching
+    const candidateSkills = candidate.skills || [];
+    const requiredSkills = [...(job.technicalSkills || []), ...(job.softSkills || [])];
+    const matchingSkills = candidateSkills.filter((skill: string) => 
+      requiredSkills.some(req => req.toLowerCase().includes(skill.toLowerCase()))
+    );
+    const score = Math.min(95, Math.max(30, (matchingSkills.length / requiredSkills.length) * 100));
+    
+    return {
+      score: Math.round(score),
+      reasoning: `Candidate matches ${matchingSkills.length} out of ${requiredSkills.length} key requirements.`,
+      skillGaps: requiredSkills.filter(skill => 
+        !candidateSkills.some((cSkill: string) => cSkill.toLowerCase().includes(skill.toLowerCase()))
+      )
+    };
+  }
+}

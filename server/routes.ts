@@ -1,0 +1,288 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
+import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      res.json({
+        ...user,
+        organization
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Organization routes
+  app.post('/api/organizations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const orgData = insertOrganizationSchema.parse({
+        ...req.body,
+        ownerId: userId
+      });
+      
+      const organization = await storage.createOrganization(orgData);
+      res.json(organization);
+    } catch (error) {
+      console.error("Error creating organization:", error);
+      res.status(500).json({ message: "Failed to create organization" });
+    }
+  });
+
+  app.get('/api/organizations/current', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "No organization found" });
+      }
+      
+      res.json(organization);
+    } catch (error) {
+      console.error("Error fetching organization:", error);
+      res.status(500).json({ message: "Failed to fetch organization" });
+    }
+  });
+
+  app.get('/api/companies/team', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json([]);
+      }
+      
+      const members = await storage.getOrganizationMembers(organization.id);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team:", error);
+      res.status(500).json({ message: "Failed to fetch team" });
+    }
+  });
+
+  // Job posting routes
+  app.post('/api/job-postings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(400).json({ message: "No organization found. Please create one first." });
+      }
+      
+      const jobData = insertJobSchema.parse({
+        ...req.body,
+        organizationId: organization.id,
+        createdById: userId
+      });
+      
+      const job = await storage.createJob(jobData);
+      res.json(job);
+    } catch (error) {
+      console.error("Error creating job:", error);
+      res.status(500).json({ message: "Failed to create job posting" });
+    }
+  });
+
+  app.get('/api/job-postings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json([]);
+      }
+      
+      const jobs = await storage.getJobsByOrganization(organization.id);
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+      res.status(500).json({ message: "Failed to fetch job postings" });
+    }
+  });
+
+  app.get('/api/job-postings/count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json({ active: 0 });
+      }
+      
+      const count = await storage.getActiveJobsCount(organization.id);
+      res.json({ active: count });
+    } catch (error) {
+      console.error("Error fetching job count:", error);
+      res.status(500).json({ message: "Failed to fetch job count" });
+    }
+  });
+
+  app.put('/api/job-postings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const jobData = insertJobSchema.partial().parse(req.body);
+      
+      const job = await storage.updateJob(jobId, jobData);
+      res.json(job);
+    } catch (error) {
+      console.error("Error updating job:", error);
+      res.status(500).json({ message: "Failed to update job posting" });
+    }
+  });
+
+  app.delete('/api/job-postings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      await storage.deleteJob(jobId);
+      res.json({ message: "Job deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      res.status(500).json({ message: "Failed to delete job posting" });
+    }
+  });
+
+  // AI-powered job content generation
+  app.post('/api/ai/generate-description', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, companyName } = req.body;
+      const description = await generateJobDescription(jobTitle, companyName);
+      res.json({ description });
+    } catch (error) {
+      console.error("Error generating description:", error);
+      res.status(500).json({ message: "Failed to generate job description" });
+    }
+  });
+
+  app.post('/api/ai/generate-requirements', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, jobDescription } = req.body;
+      const requirements = await generateJobRequirements(jobTitle, jobDescription);
+      res.json({ requirements });
+    } catch (error) {
+      console.error("Error generating requirements:", error);
+      res.status(500).json({ message: "Failed to generate job requirements" });
+    }
+  });
+
+  app.post('/api/ai/extract-skills', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, jobDescription } = req.body;
+      const skills = await extractTechnicalSkills(jobTitle, jobDescription || "");
+      res.json({ skills });
+    } catch (error) {
+      console.error("Error extracting skills:", error);
+      res.status(500).json({ message: "Failed to extract technical skills" });
+    }
+  });
+
+  // Candidate and matching routes
+  app.get('/api/candidates', isAuthenticated, async (req: any, res) => {
+    try {
+      const candidates = await storage.getCandidates();
+      res.json(candidates);
+    } catch (error) {
+      console.error("Error fetching candidates:", error);
+      res.status(500).json({ message: "Failed to fetch candidates" });
+    }
+  });
+
+  app.get('/api/job-postings/:id/candidates', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const candidates = await storage.getCandidatesByJob(jobId);
+      const matches = await storage.getMatchesByJob(jobId);
+      
+      // Combine candidate data with match scores
+      const candidatesWithScores = candidates.map(candidate => {
+        const match = matches.find(m => m.candidateId === candidate.id);
+        return {
+          ...candidate,
+          matchScore: match?.matchScore || 0,
+          matchReasoning: match?.matchReasoning || "",
+          skillGaps: match?.skillGaps || []
+        };
+      });
+      
+      res.json(candidatesWithScores);
+    } catch (error) {
+      console.error("Error fetching candidates for job:", error);
+      res.status(500).json({ message: "Failed to fetch candidates" });
+    }
+  });
+
+  app.get('/api/companies/matches', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json([]);
+      }
+      
+      const matches = await storage.getMatchesByOrganization(organization.id);
+      res.json(matches);
+    } catch (error) {
+      console.error("Error fetching matches:", error);
+      res.status(500).json({ message: "Failed to fetch matches" });
+    }
+  });
+
+  // Generate matches for a job (simulate AI matching)
+  app.post('/api/job-postings/:id/generate-matches', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const job = await storage.getJobById(jobId);
+      const candidates = await storage.getCandidates();
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Generate matches for top candidates
+      const matches = [];
+      for (const candidate of candidates.slice(0, 10)) {
+        const matchAnalysis = await generateCandidateMatchRating(candidate, job);
+        
+        const match = await storage.createMatch({
+          jobId,
+          candidateId: candidate.id,
+          matchScore: matchAnalysis.score,
+          matchReasoning: matchAnalysis.reasoning
+        });
+        
+        matches.push(match);
+      }
+      
+      res.json(matches);
+    } catch (error) {
+      console.error("Error generating matches:", error);
+      res.status(500).json({ message: "Failed to generate matches" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
