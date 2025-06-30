@@ -159,6 +159,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
 
   const generateDescription = async () => {
     const jobTitle = form.getValues("title");
+    const location = form.getValues("location");
     if (!jobTitle) {
       toast({
         title: "Missing Information",
@@ -172,6 +173,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     try {
       const response = await apiRequest("POST", "/api/ai/generate-description", {
         jobTitle,
+        location: location || "Remote",
         companyName: organization?.companyName || "Our Company",
       });
       const data = await response.json();

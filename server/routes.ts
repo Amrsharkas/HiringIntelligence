@@ -192,8 +192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered job content generation
   app.post('/api/ai/generate-description', isAuthenticated, async (req: any, res) => {
     try {
-      const { jobTitle, companyName } = req.body;
-      const description = await generateJobDescription(jobTitle, companyName);
+      const { jobTitle, companyName, location } = req.body;
+      const description = await generateJobDescription(jobTitle, companyName, location);
       res.json({ description });
     } catch (error) {
       console.error("Error generating description:", error);

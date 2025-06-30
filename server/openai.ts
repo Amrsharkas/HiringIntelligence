@@ -3,11 +3,12 @@ import OpenAI from "openai";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
 
-export async function generateJobDescription(jobTitle: string, companyName?: string): Promise<string> {
+export async function generateJobDescription(jobTitle: string, companyName?: string, location?: string): Promise<string> {
   try {
-    const prompt = `Generate a compelling job description for a ${jobTitle} position${companyName ? ` at ${companyName}` : ''}. 
+    const prompt = `Generate a compelling job description for a ${jobTitle} position${companyName ? ` at ${companyName}` : ''}${location ? ` in ${location}` : ''}. 
     Include key responsibilities, day-to-day tasks, and what makes this role exciting. 
-    Keep it professional but engaging, around 150-200 words.`;
+    Keep it professional but engaging, around 150-200 words.
+    ${location ? `Make sure to mention the location as ${location} in the description.` : ''}`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

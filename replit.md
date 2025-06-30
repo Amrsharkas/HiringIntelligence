@@ -126,6 +126,7 @@ Changelog:
 - June 30, 2025. Implemented dynamic organization name display on dashboard
 - June 30, 2025. Enhanced job posting modal with modern UI, location field, salary range dropdown, and dynamic skills selection
 - June 30, 2025. Fixed technical skills dropdown to show AI-suggested skills based on job title/description
+- June 30, 2025. Fixed AI job description generation to use actual location from location field instead of placeholder text
 ```
 
 ## User Preferences
