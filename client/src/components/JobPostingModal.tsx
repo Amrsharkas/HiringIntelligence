@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { X, Sparkles, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { X, Sparkles, Loader2, MapPin, DollarSign, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -17,30 +19,48 @@ const jobFormSchema = z.object({
   title: z.string().min(1, "Job title is required"),
   description: z.string().min(1, "Job description is required"),
   requirements: z.string().min(1, "Job requirements are required"),
-  salaryMin: z.number().min(0).optional(),
-  salaryMax: z.number().min(0).optional(),
+  location: z.string().min(1, "Location is required"),
+  salaryRange: z.string().optional(),
   softSkills: z.array(z.string()).default([]),
   technicalSkills: z.array(z.string()).default([]),
 });
 
 type JobFormData = z.infer<typeof jobFormSchema>;
 
+const SALARY_RANGES = [
+  "$30,000 - $50,000",
+  "$50,000 - $75,000", 
+  "$75,000 - $100,000",
+  "$100,000 - $125,000",
+  "$125,000 - $150,000",
+  "$150,000 - $200,000",
+  "$200,000+",
+  "Competitive",
+  "To be discussed"
+];
+
+const TECHNICAL_SKILLS = [
+  "JavaScript", "TypeScript", "React", "Node.js", "Python", "Java", "C++", "C#",
+  "PHP", "Ruby", "Go", "Rust", "Swift", "Kotlin", "HTML", "CSS", "SQL", "MongoDB",
+  "PostgreSQL", "MySQL", "Redis", "Docker", "Kubernetes", "AWS", "Azure", "GCP",
+  "Git", "Linux", "Windows", "macOS", "Android", "iOS", "Flutter", "React Native",
+  "Vue.js", "Angular", "Django", "Flask", "Express.js", "Spring", "Laravel", "Rails",
+  "TensorFlow", "PyTorch", "Machine Learning", "Data Science", "DevOps", "CI/CD"
+];
+
+const SOFT_SKILLS = [
+  "Communication", "Leadership", "Problem Solving", "Critical Thinking", "Creativity",
+  "Teamwork", "Adaptability", "Time Management", "Project Management", "Mentoring",
+  "Public Speaking", "Negotiation", "Conflict Resolution", "Emotional Intelligence",
+  "Strategic Thinking", "Innovation", "Analytical Skills", "Attention to Detail",
+  "Customer Focus", "Cultural Awareness", "Decision Making", "Collaboration"
+];
+
 interface JobPostingModalProps {
   isOpen: boolean;
   onClose: () => void;
   editJob?: any;
 }
-
-const softSkillOptions = [
-  "Communication",
-  "Leadership", 
-  "Teamwork",
-  "Problem Solving",
-  "Adaptability",
-  "Creativity",
-  "Time Management",
-  "Critical Thinking"
-];
 
 export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalProps) {
   const { toast } = useToast();
@@ -57,8 +77,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       title: editJob?.title || "",
       description: editJob?.description || "",
       requirements: editJob?.requirements || "",
-      salaryMin: editJob?.salaryMin || undefined,
-      salaryMax: editJob?.salaryMax || undefined,
+      location: editJob?.location || "",
+      salaryRange: editJob?.salaryRange || "",
       softSkills: editJob?.softSkills || [],
       technicalSkills: editJob?.technicalSkills || [],
     },
@@ -310,23 +330,41 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="salaryMin">Salary Range (Min)</Label>
+                <Label className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  Location
+                </Label>
                 <Input
-                  id="salaryMin"
-                  type="number"
-                  {...form.register("salaryMin", { valueAsNumber: true })}
-                  placeholder="50000"
+                  {...form.register("location")}
+                  placeholder="e.g., Remote, New York, NY, or San Francisco, CA"
                   className="mt-2"
                 />
+                {form.formState.errors.location && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.location.message}</p>
+                )}
               </div>
               <div>
-                <Label htmlFor="salaryMax">Salary Range (Max)</Label>
-                <Input
-                  id="salaryMax"
-                  type="number"
-                  {...form.register("salaryMax", { valueAsNumber: true })}
-                  placeholder="100000"
-                  className="mt-2"
+                <Label className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                  Salary Range
+                </Label>
+                <Controller
+                  name="salaryRange"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select salary range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SALARY_RANGES.map((range) => (
+                          <SelectItem key={range} value={range}>
+                            {range}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
               </div>
             </div>
@@ -392,41 +430,83 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <Label>Soft Skills</Label>
-                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                  {softSkillOptions.map((skill) => (
-                    <label key={skill} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedSoftSkills.includes(skill)}
-                        onChange={() => handleSoftSkillToggle(skill)}
-                        className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-slate-700 dark:text-slate-300">{skill}</span>
-                    </label>
-                  ))}
+                <div className="mt-2">
+                  <Select
+                    onValueChange={(value) => {
+                      if (!selectedSoftSkills.includes(value)) {
+                        const newSkills = [...selectedSoftSkills, value];
+                        setSelectedSoftSkills(newSkills);
+                        form.setValue("softSkills", newSkills);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Add soft skills" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SOFT_SKILLS.filter(skill => !selectedSoftSkills.includes(skill)).map((skill) => (
+                        <SelectItem key={skill} value={skill}>
+                          {skill}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {selectedSoftSkills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                        {skill}
+                        <X 
+                          className="w-3 h-3 cursor-pointer hover:text-blue-600" 
+                          onClick={() => {
+                            const newSkills = selectedSoftSkills.filter(s => s !== skill);
+                            setSelectedSoftSkills(newSkills);
+                            form.setValue("softSkills", newSkills);
+                          }}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div>
                 <Label>Technical Skills</Label>
-                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                  {dynamicTechnicalSkills.length > 0 ? (
-                    dynamicTechnicalSkills.map((skill) => (
-                      <label key={skill} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedTechnicalSkills.includes(skill)}
-                          onChange={() => handleTechnicalSkillToggle(skill)}
-                          className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                <div className="mt-2">
+                  <Select
+                    onValueChange={(value) => {
+                      if (!selectedTechnicalSkills.includes(value)) {
+                        const newSkills = [...selectedTechnicalSkills, value];
+                        setSelectedTechnicalSkills(newSkills);
+                        form.setValue("technicalSkills", newSkills);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Add technical skills" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {TECHNICAL_SKILLS.filter(skill => !selectedTechnicalSkills.includes(skill)).map((skill) => (
+                        <SelectItem key={skill} value={skill}>
+                          {skill}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {selectedTechnicalSkills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="flex items-center gap-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                        {skill}
+                        <X 
+                          className="w-3 h-3 cursor-pointer hover:text-purple-600" 
+                          onClick={() => {
+                            const newSkills = selectedTechnicalSkills.filter(s => s !== skill);
+                            setSelectedTechnicalSkills(newSkills);
+                            form.setValue("technicalSkills", newSkills);
+                          }}
                         />
-                        <span className="text-sm text-slate-700 dark:text-slate-300">{skill}</span>
-                      </label>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-                      Enter job title and description to see AI-suggested skills
-                    </p>
-                  )}
+                      </Badge>
+                    ))}
+                  </div>
                   {dynamicTechnicalSkills.length > 0 && (
                     <div className="flex items-center justify-center pt-2">
                       <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
