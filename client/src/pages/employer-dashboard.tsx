@@ -83,7 +83,7 @@ const LiveOrganizationName = memo(() => {
       }
     },
   });
-  return <span>{organization?.name || "Your Organization"}</span>;
+  return <span>{organization?.companyName || "Your Organization"}</span>;
 });
 
 const StatNumber = memo(({ value }: { value: number }) => (

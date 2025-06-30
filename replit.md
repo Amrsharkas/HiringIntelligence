@@ -122,6 +122,10 @@ This is a standalone employer-facing web application designed to make hiring mor
 ```
 Changelog:
 - June 30, 2025. Initial setup
+- June 30, 2025. Added organization setup flow for new users
+- June 30, 2025. Implemented dynamic organization name display on dashboard
+- June 30, 2025. Enhanced job posting modal with modern UI, location field, salary range dropdown, and dynamic skills selection
+- June 30, 2025. Fixed technical skills dropdown to show AI-suggested skills based on job title/description
 ```
 
 ## User Preferences
