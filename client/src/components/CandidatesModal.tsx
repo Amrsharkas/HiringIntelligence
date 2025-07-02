@@ -37,10 +37,13 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   });
 
   const filteredCandidates = candidates.filter(candidate =>
-    candidate.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.previousRole?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     candidate.skills?.some((skill: string) => 
+      skill.toLowerCase().includes(searchTerm.toLowerCase())
+    ) ||
+    candidate.technicalSkills?.some((skill: string) => 
       skill.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -136,13 +139,13 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-slate-200 dark:bg-slate-600 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold">
-                          {candidate.firstName?.charAt(0)}{candidate.lastName?.charAt(0)}
+                          {candidate.name?.split(' ').map((n: string) => n.charAt(0)).join('') || 'C'}
                         </div>
                         <div>
                           <h3 className="font-semibold text-slate-900 dark:text-white">
-                            {candidate.firstName} {candidate.lastName}
+                            {candidate.name || 'Unknown Candidate'}
                           </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">{candidate.title}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">{candidate.previousRole || 'Previous role not specified'}</p>
                         </div>
                       </div>
                       
@@ -162,24 +165,61 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       {candidate.summary || "Experienced professional with strong technical and soft skills."}
                     </p>
                     
-                    {candidate.skills && candidate.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {candidate.skills.slice(0, 4).map((skill: string) => (
-                          <Badge
-                            key={skill}
-                            variant="secondary"
-                            className="text-xs bg-white/60 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
-                          >
-                            {skill}
-                          </Badge>
-                        ))}
-                        {candidate.skills.length > 4 && (
-                          <Badge variant="secondary" className="text-xs bg-white/60 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400">
-                            +{candidate.skills.length - 4} more
-                          </Badge>
+                    <div className="space-y-2 mb-4">
+                      {/* Technical Skills */}
+                      {candidate.technicalSkills && candidate.technicalSkills.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Tech:</span>
+                          {candidate.technicalSkills.slice(0, 3).map((skill: string) => (
+                            <Badge
+                              key={skill}
+                              variant="secondary"
+                              className="text-xs bg-blue-100/60 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                          {candidate.technicalSkills.length > 3 && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100/60 dark:bg-blue-900/60 text-blue-500 dark:text-blue-400">
+                              +{candidate.technicalSkills.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* General Skills (fallback) */}
+                      {candidate.skills && candidate.skills.length > 0 && !candidate.technicalSkills && (
+                        <div className="flex flex-wrap gap-2">
+                          {candidate.skills.slice(0, 4).map((skill: string) => (
+                            <Badge
+                              key={skill}
+                              variant="secondary"
+                              className="text-xs bg-white/60 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                          {candidate.skills.length > 4 && (
+                            <Badge variant="secondary" className="text-xs bg-white/60 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400">
+                              +{candidate.skills.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Experience and Salary */}
+                      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                        {candidate.yearsExperience && (
+                          <span>📅 {candidate.yearsExperience} years exp</span>
+                        )}
+                        {candidate.salaryExpectation && (
+                          <span>💰 {candidate.salaryExpectation}</span>
+                        )}
+                        {candidate.interviewScore && (
+                          <span>⭐ Interview: {candidate.interviewScore}/10</span>
                         )}
                       </div>
-                    )}
+                    </div>
                     
                     <div className="flex items-center justify-between pt-4 border-t border-white/30 dark:border-slate-600/30">
                       <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">

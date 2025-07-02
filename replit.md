@@ -42,10 +42,12 @@ This is a standalone employer-facing web application designed to make hiring mor
 - **Analytics**: Job performance tracking and metrics
 
 ### Candidate Matching
-- **AI Matching Engine**: OpenAI-powered candidate-to-job matching with 1-100 rating system
-- **Match Reasoning**: Detailed explanations for match scores
-- **Candidate Profiles**: Comprehensive candidate information display
-- **Interview Management**: Scheduling and tracking candidate interviews
+- **Airtable Integration**: Direct connection to external candidate database via Airtable API
+- **AI Matching Engine**: OpenAI GPT-4o powered candidate-to-job matching with 1-100 rating system
+- **Real-time Analysis**: Live AI analysis of candidate profiles against job requirements
+- **Match Reasoning**: Detailed explanations for match scores and skill gap analysis
+- **Comprehensive Profiles**: Interview scores, salary expectations, and experience data from Airtable
+- **Cross-platform Integration**: Seamless linking between employer and candidate platforms
 
 ### Organization Management
 - **Company Setup**: Organization creation and management
@@ -129,6 +131,9 @@ Changelog:
 - June 30, 2025. Fixed AI job description generation to use actual location from location field instead of placeholder text
 - June 30, 2025. Fixed job editing modal to properly populate all fields with existing job data
 - June 30, 2025. Fixed salary display in active job postings to show selected salary range instead of "not specified"
+- July 02, 2025. Integrated Airtable API for candidate data sourcing with comprehensive AI-powered matching
+- July 02, 2025. Enhanced candidate matching system with real-time AI analysis using OpenAI GPT-4o
+- July 02, 2025. Updated candidate display to show Airtable profile data, interview scores, and match reasoning
 ```
 
 ## User Preferences

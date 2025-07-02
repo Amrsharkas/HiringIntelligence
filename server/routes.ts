@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
+import { airtableMatchingService } from "./airtableMatchingService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -223,38 +224,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Candidate and matching routes
-  app.get('/api/candidates', isAuthenticated, async (req: any, res) => {
+  // Airtable discovery and testing routes
+  app.get('/api/airtable/discover', isAuthenticated, async (req: any, res) => {
     try {
-      const candidates = await storage.getCandidates();
-      res.json(candidates);
+      const structure = await airtableMatchingService.discoverAirtableStructure();
+      res.json(structure);
     } catch (error) {
-      console.error("Error fetching candidates:", error);
-      res.status(500).json({ message: "Failed to fetch candidates" });
+      console.error("Error discovering Airtable structure:", error);
+      res.status(500).json({ message: "Failed to discover Airtable structure" });
     }
   });
 
+  // Get all Airtable candidates (for general viewing)
+  app.get('/api/candidates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json([]);
+      }
+
+      const candidates = await airtableMatchingService.getAllCandidatesWithScores(organization.id);
+      res.json(candidates);
+    } catch (error) {
+      console.error("Error fetching Airtable candidates:", error);
+      res.status(500).json({ message: "Failed to fetch candidates from Airtable" });
+    }
+  });
+
+  // NEW: Airtable-based candidate matching for specific job
   app.get('/api/job-postings/:id/candidates', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
-      const candidates = await storage.getCandidatesByJob(jobId);
-      const matches = await storage.getMatchesByJob(jobId);
       
-      // Combine candidate data with match scores
-      const candidatesWithScores = candidates.map(candidate => {
-        const match = matches.find(m => m.candidateId === candidate.id);
-        return {
-          ...candidate,
-          matchScore: match?.matchScore || 0,
-          matchReasoning: match?.matchReasoning || "",
-          skillGaps: match?.skillGaps || []
-        };
-      });
+      // Fetch candidates from Airtable and generate AI match scores
+      const matchedCandidates = await airtableMatchingService.getCandidatesForJob(jobId);
       
-      res.json(candidatesWithScores);
+      res.json(matchedCandidates);
     } catch (error) {
-      console.error("Error fetching candidates for job:", error);
-      res.status(500).json({ message: "Failed to fetch candidates" });
+      console.error("Error fetching Airtable candidates for job:", error);
+      res.status(500).json({ message: "Failed to fetch candidates from Airtable" });
     }
   });
 
