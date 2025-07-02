@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,21 @@ import { Badge } from "@/components/ui/badge";
 import { X, Search, MapPin, Star, Users, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+
+interface CandidateData {
+  id: string;
+  name?: string;
+  previousRole?: string;
+  summary?: string;
+  location?: string;
+  technicalSkills?: string[];
+  skills?: string[];
+  yearsExperience?: number;
+  salaryExpectation?: string;
+  interviewScore?: number;
+  matchScore?: number;
+  matchReasoning?: string;
+}
 
 interface CandidatesModalProps {
   isOpen: boolean;
@@ -18,23 +33,25 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: candidates = [], isLoading } = useQuery<any[]>({
+  const { data: candidates = [], isLoading, error } = useQuery<CandidateData[]>({
     queryKey: jobId ? [`/api/job-postings/${jobId}/candidates`] : ["/api/candidates"],
     enabled: isOpen,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
+    retry: false,
   });
+
+  // Handle unauthorized errors
+  React.useEffect(() => {
+    if (error && isUnauthorizedError(error as Error)) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [error, toast]);
 
   const filteredCandidates = candidates.filter(candidate =>
     candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -48,7 +65,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
     )
   );
 
-  const handleViewProfile = (candidateId: number) => {
+  const handleViewProfile = (candidateId: string) => {
     toast({
       title: "Coming Soon",
       description: "Full profile view will be implemented soon.",
@@ -229,13 +246,13 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       <Button
                         onClick={() => handleViewProfile(candidate.id)}
                         className={`px-4 py-2 ${
-                          candidate.matchScore >= 90 
+                          (candidate.matchScore || 0) >= 90 
                             ? "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600" 
-                            : candidate.matchScore >= 80 
+                            : (candidate.matchScore || 0) >= 80 
                             ? "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-                            : candidate.matchScore >= 70
+                            : (candidate.matchScore || 0) >= 70
                             ? "bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600"
-                            : candidate.matchScore >= 60
+                            : (candidate.matchScore || 0) >= 60
                             ? "bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
                             : "bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
                         } text-white rounded-lg text-sm transition-colors duration-200`}

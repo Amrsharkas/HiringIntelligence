@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { JobPostingModal } from "./JobPostingModal";
+import { CandidatesModal } from "./CandidatesModal";
 
 interface ActiveJobsModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
   const queryClient = useQueryClient();
   const [editingJob, setEditingJob] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [isCandidatesModalOpen, setIsCandidatesModalOpen] = useState(false);
 
   const { data: jobs = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/job-postings"],
@@ -81,11 +84,8 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
   };
 
   const handleViewCandidates = (jobId: number) => {
-    // TODO: Implement view candidates functionality
-    toast({
-      title: "Coming Soon",
-      description: "Candidate viewing will be implemented soon.",
-    });
+    setSelectedJobId(jobId);
+    setIsCandidatesModalOpen(true);
   };
 
   const formatSalary = (job: any) => {
@@ -274,6 +274,15 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
           setEditingJob(null);
         }}
         editJob={editingJob}
+      />
+      
+      <CandidatesModal
+        isOpen={isCandidatesModalOpen}
+        onClose={() => {
+          setIsCandidatesModalOpen(false);
+          setSelectedJobId(null);
+        }}
+        jobId={selectedJobId || undefined}
       />
     </AnimatePresence>
   );
