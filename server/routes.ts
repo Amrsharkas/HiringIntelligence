@@ -336,6 +336,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get candidate info from request body
       const { candidateName, matchScore, matchReasoning } = req.body;
       
+      // Get job details to update Airtable
+      const job = await storage.getJobById(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
       // Check if application already exists
       let application = await storage.getApplication(jobId, candidateId);
       
@@ -354,6 +360,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reviewedBy: userId,
           reviewedAt: new Date(),
         });
+      }
+      
+      // Update Airtable with job details when candidate is accepted
+      try {
+        await airtableService.updateCandidateJobDetails(
+          'app3tA4UpKQCT2s17', // platouserprofiles base ID
+          candidateId, // This is the Airtable record ID
+          job.title,
+          job.description || '',
+          'Table 1'
+        );
+        console.log(`Updated Airtable record ${candidateId} with job: ${job.title}`);
+      } catch (airtableError) {
+        console.error('Failed to update Airtable, but candidate was accepted:', airtableError);
+        // Don't fail the entire operation if Airtable update fails
       }
       
       res.json({ success: true, application });

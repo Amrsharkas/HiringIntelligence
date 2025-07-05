@@ -53,6 +53,7 @@ export class AirtableService {
           return {
             id: record.id,
             name: record.fields.Name || record.fields.name || 'Unknown',
+            userId: record.fields['User ID'] || record.fields['user id'] || record.fields['userId'] || null,
             userProfile: userProfile,
             // Extract structured data from the user profile text
             location: this.extractFromProfile(userProfile, 'location'),
@@ -178,6 +179,43 @@ export class AirtableService {
       return data.tables || [];
     } catch (error) {
       console.error('Error fetching Airtable tables:', error);
+      throw error;
+    }
+  }
+
+  // Update candidate's job details when accepted by employer
+  async updateCandidateJobDetails(
+    baseId: string, 
+    recordId: string, 
+    jobTitle: string, 
+    jobDescription: string,
+    tableName: string = 'Table 1'
+  ): Promise<void> {
+    try {
+      const url = `${this.baseUrl}/${baseId}/${tableName}/${recordId}`;
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: {
+            'Job title': jobTitle,
+            'Job description': jobDescription,
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Airtable update error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      console.log(`Successfully updated Airtable record ${recordId} with job details`);
+    } catch (error) {
+      console.error('Error updating candidate job details in Airtable:', error);
       throw error;
     }
   }

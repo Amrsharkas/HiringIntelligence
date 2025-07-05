@@ -12,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 interface CandidateData {
   id: string;
   name?: string;
+  userId?: string; // Internal User ID from Airtable, not displayed
   userProfile?: string;
   location?: string;
   background?: string;
