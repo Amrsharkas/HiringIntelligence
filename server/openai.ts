@@ -43,32 +43,51 @@ export async function generateJobRequirements(jobTitle: string, jobDescription?:
 
 export async function extractTechnicalSkills(jobTitle: string, jobDescription: string): Promise<string[]> {
   try {
-    const prompt = `Based on this job title: "${jobTitle}" and description: "${jobDescription}", 
-    extract the most relevant technical skills that would be required. 
-    Return only a JSON array of skill names, focusing on programming languages, frameworks, tools, and technologies.
-    Limit to 10 most important skills.`;
+    // Optimize prompt for faster response
+    const prompt = `Job: "${jobTitle}"\nDescription: "${jobDescription.slice(0, 500)}"\n\nExtract 6-8 most relevant technical skills. Return JSON array only.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini", // Use faster, cheaper model for simple extraction
       messages: [
         {
           role: "system",
-          content: "You are a technical recruiter expert. Extract technical skills and respond with only a JSON array of strings.",
+          content: "Extract technical skills from job postings. Respond with JSON format: {\"skills\": [\"skill1\", \"skill2\"]}",
         },
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" },
+      max_tokens: 150, // Limit response size for speed
+      temperature: 0.3, // Lower temperature for consistent results
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{"skills": []}');
     return result.skills || [];
   } catch (error) {
-    // Fallback to basic skills if OpenAI fails
-    const commonSkills = [
-      "JavaScript", "TypeScript", "React", "Node.js", "Python", "SQL", 
-      "Git", "HTML", "CSS", "Docker", "AWS", "MongoDB", "PostgreSQL"
-    ];
-    return commonSkills.slice(0, 6);
+    console.error("Skills extraction failed:", error);
+    // Provide intelligent fallback based on job title
+    const title = (jobTitle || "").toLowerCase();
+    
+    if (title.includes('react') || title.includes('frontend')) {
+      return ['React', 'JavaScript', 'TypeScript', 'CSS', 'HTML', 'Git'];
+    }
+    if (title.includes('backend') || title.includes('api') || title.includes('server')) {
+      return ['Node.js', 'Python', 'SQL', 'REST API', 'Git', 'Docker'];
+    }
+    if (title.includes('fullstack') || title.includes('full-stack')) {
+      return ['JavaScript', 'React', 'Node.js', 'SQL', 'Git', 'TypeScript'];
+    }
+    if (title.includes('data') || title.includes('analyst')) {
+      return ['Python', 'SQL', 'Excel', 'Tableau', 'R'];
+    }
+    if (title.includes('devops') || title.includes('cloud')) {
+      return ['AWS', 'Docker', 'Kubernetes', 'Linux', 'Git'];
+    }
+    if (title.includes('mobile')) {
+      return ['React Native', 'Swift', 'Kotlin', 'Flutter'];
+    }
+    
+    // Generic fallback
+    return ['JavaScript', 'Python', 'SQL', 'Git', 'Communication'];
   }
 }
 

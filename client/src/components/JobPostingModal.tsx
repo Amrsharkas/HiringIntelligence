@@ -113,7 +113,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     }
   }, [editJob, form]);
 
-  const { data: organization } = useQuery({
+  const { data: organization } = useQuery<{ id: number; name: string }>({
     queryKey: ["/api/organizations/current"],
     retry: false,
   });
@@ -203,7 +203,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       const response = await apiRequest("POST", "/api/ai/generate-description", {
         jobTitle,
         location: location || "Remote",
-        companyName: organization?.companyName || "Our Company",
+        companyName: (organization as any)?.name || "Our Company",
       });
       const data = await response.json();
       form.setValue("description", data.description);
@@ -250,31 +250,73 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     }
   };
 
-  // Dynamic technical skills extraction
+  // Dynamic technical skills extraction with improved performance
+  const [isExtractingSkills, setIsExtractingSkills] = useState(false);
+  const [lastExtractedText, setLastExtractedText] = useState("");
+
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if ((name === "title" || name === "description") && (value.title || value.description)) {
-        const extractSkills = async () => {
-          try {
-            const response = await apiRequest("POST", "/api/ai/extract-skills", {
-              jobTitle: value.title || "",
-              jobDescription: value.description || "",
-            });
-            const data = await response.json();
-            setDynamicTechnicalSkills(data.skills || []);
-          } catch (error) {
-            // Silently fail for skills extraction
-            console.error("Failed to extract skills:", error);
-          }
-        };
+        const currentText = `${value.title || ""} ${value.description || ""}`;
+        
+        // Only extract if the text has meaningfully changed (avoid unnecessary API calls)
+        if (currentText.length > 10 && currentText !== lastExtractedText) {
+          const extractSkills = async () => {
+            setIsExtractingSkills(true);
+            try {
+              const response = await apiRequest("POST", "/api/ai/extract-skills", {
+                jobTitle: value.title || "",
+                jobDescription: value.description || "",
+              });
+              const data = await response.json();
+              setDynamicTechnicalSkills(data.skills || []);
+              setLastExtractedText(currentText);
+            } catch (error) {
+              console.error("Failed to extract skills:", error);
+              // Provide fallback skills for common job titles
+              if (value.title) {
+                const fallbackSkills = getFallbackSkills(value.title);
+                setDynamicTechnicalSkills(fallbackSkills);
+              }
+            } finally {
+              setIsExtractingSkills(false);
+            }
+          };
 
-        const debounceTimer = setTimeout(extractSkills, 100);
-        return () => clearTimeout(debounceTimer);
+          const debounceTimer = setTimeout(extractSkills, 1500); // Increased from 100ms to 1.5s
+          return () => clearTimeout(debounceTimer);
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, lastExtractedText]);
+
+  // Fallback skills for common job titles
+  const getFallbackSkills = (jobTitle: string): string[] => {
+    const title = jobTitle.toLowerCase();
+    
+    if (title.includes('react') || title.includes('frontend') || title.includes('front-end')) {
+      return ['React', 'JavaScript', 'TypeScript', 'CSS', 'HTML', 'Git'];
+    }
+    if (title.includes('backend') || title.includes('back-end') || title.includes('api')) {
+      return ['Node.js', 'Python', 'SQL', 'REST API', 'Git', 'Docker'];
+    }
+    if (title.includes('fullstack') || title.includes('full-stack')) {
+      return ['JavaScript', 'React', 'Node.js', 'SQL', 'Git', 'TypeScript'];
+    }
+    if (title.includes('data') || title.includes('analyst')) {
+      return ['Python', 'SQL', 'Excel', 'Tableau', 'R', 'Statistics'];
+    }
+    if (title.includes('devops') || title.includes('cloud')) {
+      return ['AWS', 'Docker', 'Kubernetes', 'Linux', 'Git', 'CI/CD'];
+    }
+    if (title.includes('mobile') || title.includes('ios') || title.includes('android')) {
+      return ['React Native', 'Swift', 'Kotlin', 'Flutter', 'Git', 'Mobile Development'];
+    }
+    
+    return ['JavaScript', 'Git', 'Communication', 'Problem Solving']; // Generic fallback
+  };
 
   const handleSoftSkillToggle = (skill: string) => {
     setSelectedSoftSkills(prev => 
@@ -554,10 +596,15 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                       );
                     })}
                   </div>
-                  {(form.watch("title") || form.watch("description")) && dynamicTechnicalSkills.length === 0 && (
+                  {isExtractingSkills && (
                     <div className="flex items-center justify-center pt-2">
                       <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                      <span className="text-xs text-blue-500 ml-2">Analyzing skills...</span>
+                      <span className="text-xs text-blue-500 ml-2">AI analyzing skills...</span>
+                    </div>
+                  )}
+                  {!isExtractingSkills && dynamicTechnicalSkills.length === 0 && (form.watch("title") || form.watch("description")) && (
+                    <div className="text-xs text-slate-400 pt-2 text-center">
+                      Add more job details to get AI skill suggestions
                     </div>
                   )}
                 </div>
