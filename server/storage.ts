@@ -5,6 +5,8 @@ import {
   jobs,
   candidates,
   matches,
+  candidateApplications,
+  interviews,
   type User,
   type UpsertUser,
   type Organization,
@@ -14,6 +16,10 @@ import {
   type Candidate,
   type Match,
   type OrganizationMember,
+  type CandidateApplication,
+  type InsertCandidateApplication,
+  type Interview,
+  type InsertInterview,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -46,6 +52,17 @@ export interface IStorage {
   getMatchesByJob(jobId: number): Promise<Match[]>;
   getMatchesByOrganization(organizationId: number): Promise<Match[]>;
   createMatch(match: { jobId: number; candidateId: number; matchScore: number; matchReasoning?: string }): Promise<Match>;
+  
+  // Application operations
+  createApplication(app: InsertCandidateApplication): Promise<CandidateApplication>;
+  updateApplicationStatus(jobId: number, candidateId: string, status: string, reviewedBy: string): Promise<CandidateApplication>;
+  getApplicationsByJob(jobId: number): Promise<CandidateApplication[]>;
+  getApplication(jobId: number, candidateId: string): Promise<CandidateApplication | undefined>;
+  
+  // Interview operations
+  createInterview(interview: InsertInterview): Promise<Interview>;
+  getInterviewsByJob(jobId: number): Promise<Interview[]>;
+  updateInterview(id: number, interview: Partial<InsertInterview>): Promise<Interview>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -195,7 +212,16 @@ export class DatabaseStorage implements IStorage {
 
   async getMatchesByOrganization(organizationId: number): Promise<Match[]> {
     return await db
-      .select()
+      .select({
+        id: matches.id,
+        jobId: matches.jobId,
+        candidateId: matches.candidateId,
+        matchScore: matches.matchScore,
+        matchReasoning: matches.matchReasoning,
+        skillGaps: matches.skillGaps,
+        culturalFit: matches.culturalFit,
+        createdAt: matches.createdAt,
+      })
       .from(matches)
       .innerJoin(jobs, eq(matches.jobId, jobs.id))
       .where(eq(jobs.organizationId, organizationId))
@@ -205,6 +231,72 @@ export class DatabaseStorage implements IStorage {
   async createMatch(matchData: { jobId: number; candidateId: number; matchScore: number; matchReasoning?: string }): Promise<Match> {
     const [match] = await db.insert(matches).values(matchData).returning();
     return match;
+  }
+
+  // Application operations
+  async createApplication(appData: InsertCandidateApplication): Promise<CandidateApplication> {
+    const [app] = await db.insert(candidateApplications).values(appData).returning();
+    return app;
+  }
+
+  async updateApplicationStatus(jobId: number, candidateId: string, status: string, reviewedBy: string): Promise<CandidateApplication> {
+    const [app] = await db
+      .update(candidateApplications)
+      .set({ 
+        status, 
+        reviewedBy, 
+        reviewedAt: new Date() 
+      })
+      .where(and(
+        eq(candidateApplications.jobId, jobId),
+        eq(candidateApplications.candidateId, candidateId)
+      ))
+      .returning();
+    return app;
+  }
+
+  async getApplicationsByJob(jobId: number): Promise<CandidateApplication[]> {
+    const apps = await db
+      .select()
+      .from(candidateApplications)
+      .where(eq(candidateApplications.jobId, jobId))
+      .orderBy(desc(candidateApplications.createdAt));
+    return apps;
+  }
+
+  async getApplication(jobId: number, candidateId: string): Promise<CandidateApplication | undefined> {
+    const [app] = await db
+      .select()
+      .from(candidateApplications)
+      .where(and(
+        eq(candidateApplications.jobId, jobId),
+        eq(candidateApplications.candidateId, candidateId)
+      ));
+    return app;
+  }
+
+  // Interview operations
+  async createInterview(interviewData: InsertInterview): Promise<Interview> {
+    const [interview] = await db.insert(interviews).values(interviewData).returning();
+    return interview;
+  }
+
+  async getInterviewsByJob(jobId: number): Promise<Interview[]> {
+    const interviewList = await db
+      .select()
+      .from(interviews)
+      .where(eq(interviews.jobId, jobId))
+      .orderBy(desc(interviews.createdAt));
+    return interviewList;
+  }
+
+  async updateInterview(id: number, interviewData: Partial<InsertInterview>): Promise<Interview> {
+    const [interview] = await db
+      .update(interviews)
+      .set({ ...interviewData, updatedAt: new Date() })
+      .where(eq(interviews.id, id))
+      .returning();
+    return interview;
   }
 }
 

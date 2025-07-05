@@ -105,6 +105,38 @@ export const matches = pgTable("matches", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Candidate application status for specific jobs
+export const candidateApplications = pgTable("candidate_applications", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  candidateId: varchar("candidate_id").notNull(), // Airtable candidate ID
+  candidateName: varchar("candidate_name").notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, accepted, declined
+  matchScore: integer("match_score"),
+  matchReasoning: text("match_reasoning"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Interview scheduling
+export const interviews = pgTable("interviews", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull().references(() => candidateApplications.id, { onDelete: "cascade" }),
+  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  candidateId: varchar("candidate_id").notNull(), // Airtable candidate ID
+  candidateName: varchar("candidate_name").notNull(),
+  scheduledDate: timestamp("scheduled_date"),
+  scheduledTime: varchar("scheduled_time"),
+  interviewType: varchar("interview_type").default("video"), // video, phone, in-person
+  meetingLink: text("meeting_link"),
+  notes: text("notes"),
+  status: varchar("status").default("scheduled"), // scheduled, completed, cancelled, rescheduled
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   ownedOrganizations: many(organizations),
@@ -138,6 +170,18 @@ export const matchesRelations = relations(matches, ({ one }) => ({
   candidate: one(candidates, { fields: [matches.candidateId], references: [candidates.id] }),
 }));
 
+export const candidateApplicationsRelations = relations(candidateApplications, ({ one, many }) => ({
+  job: one(jobs, { fields: [candidateApplications.jobId], references: [jobs.id] }),
+  reviewer: one(users, { fields: [candidateApplications.reviewedBy], references: [users.id] }),
+  interviews: many(interviews),
+}));
+
+export const interviewsRelations = relations(interviews, ({ one }) => ({
+  application: one(candidateApplications, { fields: [interviews.applicationId], references: [candidateApplications.id] }),
+  job: one(jobs, { fields: [interviews.jobId], references: [jobs.id] }),
+  createdBy: one(users, { fields: [interviews.createdBy], references: [users.id] }),
+}));
+
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -162,3 +206,7 @@ export type Job = typeof jobs.$inferSelect;
 export type Candidate = typeof candidates.$inferSelect;
 export type Match = typeof matches.$inferSelect;
 export type OrganizationMember = typeof organizationMembers.$inferSelect;
+export type CandidateApplication = typeof candidateApplications.$inferSelect;
+export type InsertCandidateApplication = typeof candidateApplications.$inferInsert;
+export type Interview = typeof interviews.$inferSelect;
+export type InsertInterview = typeof interviews.$inferInsert;

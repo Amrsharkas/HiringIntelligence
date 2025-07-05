@@ -299,10 +299,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch candidates from Airtable and generate AI match scores
       const matchedCandidates = await airtableMatchingService.getCandidatesForJob(jobId);
       
-      res.json(matchedCandidates);
+      // Filter out declined candidates
+      const applications = await storage.getApplicationsByJob(jobId);
+      const declinedCandidateIds = applications
+        .filter(app => app.status === 'declined')
+        .map(app => app.candidateId);
+      
+      const filteredCandidates = matchedCandidates.filter(
+        candidate => !declinedCandidateIds.includes(candidate.id)
+      );
+      
+      // Add application status to candidates
+      const candidatesWithStatus = filteredCandidates.map(candidate => {
+        const application = applications.find(app => app.candidateId === candidate.id);
+        return {
+          ...candidate,
+          applicationStatus: application?.status || 'pending',
+          reviewedAt: application?.reviewedAt,
+        };
+      });
+      
+      res.json(candidatesWithStatus);
     } catch (error) {
       console.error("Error fetching Airtable candidates for job:", error);
       res.status(500).json({ message: "Failed to fetch candidates from Airtable" });
+    }
+  });
+
+  // Accept a candidate (create or update application)
+  app.post('/api/job-postings/:jobId/candidates/:candidateId/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const candidateId = req.params.candidateId;
+      const userId = req.user.claims.sub;
+      
+      // Get candidate info from request body
+      const { candidateName, matchScore, matchReasoning } = req.body;
+      
+      // Check if application already exists
+      let application = await storage.getApplication(jobId, candidateId);
+      
+      if (application) {
+        // Update existing application
+        application = await storage.updateApplicationStatus(jobId, candidateId, 'accepted', userId);
+      } else {
+        // Create new application
+        application = await storage.createApplication({
+          jobId,
+          candidateId,
+          candidateName,
+          status: 'accepted',
+          matchScore,
+          matchReasoning,
+          reviewedBy: userId,
+          reviewedAt: new Date(),
+        });
+      }
+      
+      res.json({ success: true, application });
+    } catch (error) {
+      console.error("Error accepting candidate:", error);
+      res.status(500).json({ message: "Failed to accept candidate" });
+    }
+  });
+
+  // Decline a candidate
+  app.post('/api/job-postings/:jobId/candidates/:candidateId/decline', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const candidateId = req.params.candidateId;
+      const userId = req.user.claims.sub;
+      
+      // Get candidate info from request body
+      const { candidateName, matchScore, matchReasoning } = req.body;
+      
+      // Check if application already exists
+      let application = await storage.getApplication(jobId, candidateId);
+      
+      if (application) {
+        // Update existing application
+        application = await storage.updateApplicationStatus(jobId, candidateId, 'declined', userId);
+      } else {
+        // Create new application with declined status
+        application = await storage.createApplication({
+          jobId,
+          candidateId,
+          candidateName,
+          status: 'declined',
+          matchScore,
+          matchReasoning,
+          reviewedBy: userId,
+          reviewedAt: new Date(),
+        });
+      }
+      
+      res.json({ success: true, application });
+    } catch (error) {
+      console.error("Error declining candidate:", error);
+      res.status(500).json({ message: "Failed to decline candidate" });
+    }
+  });
+
+  // Schedule interview for accepted candidate
+  app.post('/api/job-postings/:jobId/candidates/:candidateId/schedule-interview', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const candidateId = req.params.candidateId;
+      const userId = req.user.claims.sub;
+      
+      const { candidateName, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
+      
+      // Get the application
+      const application = await storage.getApplication(jobId, candidateId);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      // Create interview
+      const interview = await storage.createInterview({
+        applicationId: application.id,
+        jobId,
+        candidateId,
+        candidateName,
+        scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
+        scheduledTime,
+        interviewType: interviewType || 'video',
+        meetingLink,
+        notes,
+        createdBy: userId,
+      });
+      
+      res.json({ success: true, interview });
+    } catch (error) {
+      console.error("Error scheduling interview:", error);
+      res.status(500).json({ message: "Failed to schedule interview" });
+    }
+  });
+
+  // Get interviews for a job
+  app.get('/api/job-postings/:id/interviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const interviews = await storage.getInterviewsByJob(jobId);
+      res.json(interviews);
+    } catch (error) {
+      console.error("Error fetching interviews:", error);
+      res.status(500).json({ message: "Failed to fetch interviews" });
     }
   });
 

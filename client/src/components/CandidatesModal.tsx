@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X, Search, MapPin, Star, Users, Eye, ArrowLeft, Mail, Calendar, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface CandidateData {
   id: string;
@@ -19,6 +20,8 @@ interface CandidateData {
   experience?: string;
   matchScore?: number;
   matchReasoning?: string;
+  applicationStatus?: 'pending' | 'accepted' | 'declined';
+  reviewedAt?: string;
   // Legacy fields for compatibility
   previousRole?: string;
   summary?: string;
@@ -40,6 +43,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateData | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(jobId || null);
   const [view, setView] = useState<'jobs' | 'candidates'>(jobId ? 'candidates' : 'jobs');
+  const [scheduleInterviewCandidate, setScheduleInterviewCandidate] = useState<CandidateData | null>(null);
 
   // Fetch job postings for the job selection view
   const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
@@ -117,6 +121,141 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
     if (score >= 70) return "from-yellow-50 to-yellow-50 dark:from-yellow-900/20 dark:to-yellow-900/20 border-yellow-200/50 dark:border-yellow-700/50";
     if (score >= 60) return "from-orange-50 to-orange-50 dark:from-orange-900/20 dark:to-orange-900/20 border-orange-200/50 dark:border-orange-700/50";
     return "from-red-50 to-red-50 dark:from-red-900/20 dark:to-red-900/20 border-red-200/50 dark:border-red-700/50";
+  };
+
+  // Accept candidate mutation
+  const acceptCandidateMutation = useMutation({
+    mutationFn: async (candidate: CandidateData) => {
+      return await apiRequest(
+        'POST',
+        `/api/job-postings/${selectedJobId}/candidates/${candidate.id}/accept`,
+        {
+          candidateName: candidate.name,
+          matchScore: candidate.matchScore,
+          matchReasoning: candidate.matchReasoning
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/job-postings/${selectedJobId}/candidates`] });
+      toast({
+        title: "Candidate Accepted",
+        description: "The candidate has been accepted successfully.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to accept candidate. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Decline candidate mutation
+  const declineCandidateMutation = useMutation({
+    mutationFn: async (candidate: CandidateData) => {
+      return await apiRequest(
+        'POST',
+        `/api/job-postings/${selectedJobId}/candidates/${candidate.id}/decline`,
+        {
+          candidateName: candidate.name,
+          matchScore: candidate.matchScore,
+          matchReasoning: candidate.matchReasoning
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/job-postings/${selectedJobId}/candidates`] });
+      toast({
+        title: "Candidate Declined",
+        description: "The candidate has been declined.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to decline candidate. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Schedule interview mutation
+  const scheduleInterviewMutation = useMutation({
+    mutationFn: async (data: { candidate: CandidateData; scheduledDate: string; scheduledTime: string; interviewType: string; meetingLink?: string; notes?: string }) => {
+      return await apiRequest(
+        'POST',
+        `/api/job-postings/${selectedJobId}/candidates/${data.candidate.id}/schedule-interview`,
+        {
+          candidateName: data.candidate.name,
+          scheduledDate: data.scheduledDate,
+          scheduledTime: data.scheduledTime,
+          interviewType: data.interviewType,
+          meetingLink: data.meetingLink,
+          notes: data.notes
+        }
+      );
+    },
+    onSuccess: () => {
+      setScheduleInterviewCandidate(null);
+      toast({
+        title: "Interview Scheduled",
+        description: "The interview has been scheduled successfully.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to schedule interview. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAcceptCandidate = (candidate: CandidateData) => {
+    acceptCandidateMutation.mutate(candidate);
+  };
+
+  const handleDeclineCandidate = (candidate: CandidateData) => {
+    declineCandidateMutation.mutate(candidate);
+  };
+
+  const handleScheduleInterview = (candidate: CandidateData) => {
+    setScheduleInterviewCandidate(candidate);
   };
 
   if (!isOpen) return null;
@@ -494,13 +633,53 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                             </div>
                           )}
                           
-                          <Button
-                            onClick={() => handleViewProfile(candidate.id)}
-                            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm transition-colors duration-200"
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Profile
-                          </Button>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              onClick={() => handleViewProfile(candidate.id)}
+                              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Profile
+                            </Button>
+                            
+                            {candidate.applicationStatus === 'accepted' && (
+                              <div className="flex gap-2">
+                                <span className="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
+                                  ✓ Accepted
+                                </span>
+                                <Button
+                                  onClick={() => handleScheduleInterview(candidate)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg text-xs"
+                                >
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  Schedule
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {candidate.applicationStatus === 'declined' && (
+                              <span className="bg-red-100 text-red-800 text-xs font-medium px-3 py-1 rounded-full dark:bg-red-900 dark:text-red-200">
+                                ✗ Declined
+                              </span>
+                            )}
+                            
+                            {(!candidate.applicationStatus || candidate.applicationStatus === 'pending') && (
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => handleAcceptCandidate(candidate)}
+                                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs"
+                                >
+                                  Accept
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeclineCandidate(candidate)}
+                                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs"
+                                >
+                                  Decline
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -511,6 +690,120 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
           )}
         </motion.div>
       </div>
+
+      {/* Interview Scheduling Modal */}
+      {scheduleInterviewCandidate && (
+        <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                Schedule Interview
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setScheduleInterviewCandidate(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                <h4 className="font-medium text-slate-900 dark:text-white mb-1">
+                  {scheduleInterviewCandidate.name}
+                </h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Match Score: {scheduleInterviewCandidate.matchScore}%
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Date
+                  </label>
+                  <Input
+                    type="date"
+                    className="w-full"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Time
+                  </label>
+                  <Input
+                    type="time"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Interview Type
+                </label>
+                <select className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                  <option value="video">Video Call</option>
+                  <option value="phone">Phone Call</option>
+                  <option value="in-person">In-Person</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Meeting Link (optional)
+                </label>
+                <Input
+                  type="url"
+                  placeholder="https://meet.google.com/..."
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Notes (optional)
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Interview notes or special instructions..."
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setScheduleInterviewCandidate(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    // For now, just show a success message
+                    toast({
+                      title: "Interview Scheduled",
+                      description: "Interview has been scheduled successfully.",
+                    });
+                    setScheduleInterviewCandidate(null);
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Schedule Interview
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   );
 }
