@@ -189,6 +189,7 @@ export class AirtableService {
     userId: string,
     jobTitle: string,
     jobDescription: string,
+    companyName: string,
     baseId: string = 'app1u4N2W46jD43mP', // platojobmatches base ID
     tableName: string = 'Table 1'
   ): Promise<void> {
@@ -201,6 +202,7 @@ export class AirtableService {
         'User ID': userId,
         'Job title': jobTitle,
         'Job Description': jobDescription,
+        'Company name': companyName,
       });
       
       const response = await fetch(url, {
@@ -215,6 +217,7 @@ export class AirtableService {
             'User ID': userId,
             'Job title': jobTitle,
             'Job Description': jobDescription, // Note: capital D for Description
+            'Company name': companyName, // Note: lowercase 'n' for name
           }
         }),
       });

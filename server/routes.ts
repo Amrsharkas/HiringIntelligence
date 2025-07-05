@@ -342,6 +342,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Job not found" });
       }
       
+      // Get organization details for company name
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
       // Check if application already exists
       let application = await storage.getApplication(jobId, candidateId);
       
@@ -376,7 +382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             candidateData.name || candidateName, // Use name from Airtable or fallback to provided name
             candidateData.userId, // User ID from the candidate profile
             job.title,
-            job.description || ''
+            job.description || '',
+            organization.companyName // Company name from organization
           );
           console.log(`✅ Successfully created job match record for ${candidateData.name} (User ID: ${candidateData.userId})`);
         } else {
