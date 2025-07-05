@@ -45,18 +45,22 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const [view, setView] = useState<'jobs' | 'candidates'>(jobId ? 'candidates' : 'jobs');
   const [scheduleInterviewCandidate, setScheduleInterviewCandidate] = useState<CandidateData | null>(null);
 
-  // Fetch job postings for the job selection view
+  // Fetch job postings for the job selection view with auto-refresh
   const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
     queryKey: ["/api/job-postings"],
     enabled: isOpen && view === 'jobs',
     retry: false,
+    refetchInterval: 60000, // Auto-refresh every 60 seconds (1 minute)
+    refetchIntervalInBackground: true, // Continue polling even when tab is not active
   });
 
-  // Fetch candidates for selected job
-  const { data: candidates = [], isLoading: candidatesLoading, error: candidatesError } = useQuery<CandidateData[]>({
+  // Fetch candidates for selected job with auto-refresh every minute
+  const { data: candidates = [], isLoading: candidatesLoading, error: candidatesError, dataUpdatedAt, isFetching } = useQuery<CandidateData[]>({
     queryKey: selectedJobId ? [`/api/job-postings/${selectedJobId}/candidates`] : ["/api/candidates"],
     enabled: isOpen && view === 'candidates' && !!selectedJobId,
     retry: false,
+    refetchInterval: 60000, // Auto-refresh every 60 seconds (1 minute)
+    refetchIntervalInBackground: true, // Continue polling even when tab is not active
   });
 
   const isLoading = view === 'jobs' ? jobsLoading : candidatesLoading;
@@ -497,9 +501,24 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </Button>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                      Matched Candidates
-                    </h2>
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                        Matched Candidates
+                      </h2>
+                      <div className="flex items-center gap-3 mt-1">
+                        {isFetching && (
+                          <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                            <span>Checking for new candidates...</span>
+                          </div>
+                        )}
+                        {!isFetching && dataUpdatedAt && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                            Last updated: {new Date(dataUpdatedAt).toLocaleTimeString()} • Auto-refreshes every minute
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
@@ -534,11 +553,19 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       <Users className="w-8 h-8 text-slate-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                      {searchTerm ? "No matching candidates found" : "No candidates available"}
+                      {searchTerm ? "No matching candidates found" : "No candidates yet"}
                     </h3>
                     <p className="text-slate-600 dark:text-slate-400">
-                      {searchTerm ? "Try adjusting your search terms." : "Candidates will appear here once they join the platform."}
+                      {searchTerm 
+                        ? "Try adjusting your search terms." 
+                        : "The system automatically monitors your Airtable database and checks for new candidates every minute."}
                     </p>
+                    {!searchTerm && (
+                      <div className="mt-4 flex items-center justify-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        <span>Monitoring for new applicants...</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">

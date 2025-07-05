@@ -138,6 +138,8 @@ Changelog:
 - July 05, 2025. Enhanced AI matching to use specific numerical ratings (avoid round numbers like 70, 80, 90)
 - July 05, 2025. Added detailed profile view modal with complete candidate information and full AI analysis
 - July 05, 2025. Implemented short AI analysis preview in candidate cards with "View Profile" for full details
+- July 05, 2025. Added comprehensive candidate application management with accept/decline functionality and interview scheduling
+- July 05, 2025. Implemented auto-refresh system that monitors Airtable database every minute for new candidates with visual indicators
 ```
 
 ## User Preferences
