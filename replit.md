@@ -134,6 +134,10 @@ Changelog:
 - July 02, 2025. Integrated Airtable API for candidate data sourcing with comprehensive AI-powered matching
 - July 02, 2025. Enhanced candidate matching system with real-time AI analysis using OpenAI GPT-4o
 - July 02, 2025. Updated candidate display to show Airtable profile data, interview scores, and match reasoning
+- July 05, 2025. Redesigned candidates modal with horizontal stacked layout for better UX
+- July 05, 2025. Enhanced AI matching to use specific numerical ratings (avoid round numbers like 70, 80, 90)
+- July 05, 2025. Added detailed profile view modal with complete candidate information and full AI analysis
+- July 05, 2025. Implemented short AI analysis preview in candidate cards with "View Profile" for full details
 ```
 
 ## User Preferences

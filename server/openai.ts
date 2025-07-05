@@ -106,15 +106,18 @@ Analyze the candidate's full profile against the job requirements, considering:
 6. Industry experience and transferable skills
 
 Provide a comprehensive match analysis with:
-- score: 1-100 rating where:
-  * 90-100: Exceptional match, ideal candidate
-  * 80-89: Strong match, well-qualified
-  * 70-79: Good match, qualified with minor gaps
-  * 60-69: Moderate match, some relevant experience
-  * 50-59: Basic match, limited alignment
-  * Below 50: Poor match, significant gaps
+- score: Precise rating from 1-100 (use specific numbers like 73, 84, 92, not round numbers like 70, 80, 90) where:
+  * 95-100: Exceptional match, ideal candidate with perfect alignment
+  * 85-94: Strong match, well-qualified with excellent fit
+  * 75-84: Good match, qualified with minor gaps or areas for growth
+  * 65-74: Moderate match, some relevant experience but notable gaps
+  * 55-64: Basic match, limited alignment with several concerns
+  * 45-54: Weak match, significant gaps in key requirements
+  * Below 45: Poor match, fundamental misalignment
 
-- reasoning: 2-3 sentences explaining the match quality, key strengths, and any concerns (keep concise but specific)
+- reasoning: 2-3 concise sentences explaining match quality, highlighting specific strengths and key concerns
+
+Be specific with numbers - avoid common scores like 70, 75, 80, 85, 90. Use precise values like 73, 78, 82, 87, 91.
 
 Respond with JSON in this exact format: { "score": number, "reasoning": "explanation" }`;
 
