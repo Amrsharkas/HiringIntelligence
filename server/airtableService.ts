@@ -183,33 +183,38 @@ export class AirtableService {
     }
   }
 
-  // Update candidate's job details when accepted by employer
-  async updateCandidateJobDetails(
-    baseId: string, 
-    recordId: string, 
-    jobTitle: string, 
+  // Create a new job match record when candidate is accepted
+  async createJobMatch(
+    candidateName: string,
+    userId: string,
+    jobTitle: string,
     jobDescription: string,
+    baseId: string = 'app1u4N2W46jD43mP', // platojobmatches base ID
     tableName: string = 'Table 1'
   ): Promise<void> {
     try {
-      const url = `${this.baseUrl}/${baseId}/${tableName}/${recordId}`;
+      const url = `${this.baseUrl}/${baseId}/${tableName}`;
       
-      console.log(`🔄 Updating Airtable record at: ${url}`);
+      console.log(`🔄 Creating job match record at: ${url}`);
       console.log(`📝 Data being sent:`, {
-        'Job Title': jobTitle,
+        'Name': candidateName,
+        'User ID': userId,
+        'Job title': jobTitle,
         'Job Description': jobDescription,
       });
       
       const response = await fetch(url, {
-        method: 'PATCH',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           fields: {
-            'Job Title': jobTitle,
-            'Job Description': jobDescription,
+            'Name': candidateName,
+            'User ID': userId,
+            'Job title': jobTitle,
+            'Job Description': jobDescription, // Note: capital D for Description
           }
         }),
       });
@@ -217,13 +222,13 @@ export class AirtableService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ Airtable API Error Response: ${errorText}`);
-        throw new Error(`Airtable update error: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(`Airtable job match creation error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const responseData = await response.json();
-      console.log(`✅ Successfully updated Airtable record ${recordId}:`, responseData);
+      console.log(`✅ Successfully created job match record:`, responseData);
     } catch (error) {
-      console.error('❌ Error updating candidate job details in Airtable:', error);
+      console.error('❌ Error creating job match in Airtable:', error);
       throw error;
     }
   }

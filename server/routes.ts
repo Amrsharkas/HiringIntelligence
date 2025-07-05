@@ -362,21 +362,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Update Airtable with job details when candidate is accepted
+      // Create job match record in Airtable when candidate is accepted
       try {
-        console.log(`Attempting to update Airtable record ${candidateId} with job: ${job.title}`);
+        console.log(`Creating job match record for candidate ${candidateId} with job: ${job.title}`);
         console.log(`Job description: ${job.description}`);
         
-        await airtableService.updateCandidateJobDetails(
-          'app3tA4UpKQCT2s17', // platouserprofiles base ID
-          candidateId, // This is the Airtable record ID
-          job.title,
-          job.description || '',
-          'Table 1'
-        );
-        console.log(`✅ Successfully updated Airtable record ${candidateId} with job: ${job.title}`);
+        // We need to get the candidate details to extract the User ID and Name
+        const candidates = await airtableMatchingService.getCandidatesForJob(jobId);
+        const candidateData = candidates.find(c => c.id === candidateId);
+        
+        if (candidateData && candidateData.userId) {
+          await airtableService.createJobMatch(
+            candidateData.name || candidateName, // Use name from Airtable or fallback to provided name
+            candidateData.userId, // User ID from the candidate profile
+            job.title,
+            job.description || ''
+          );
+          console.log(`✅ Successfully created job match record for ${candidateData.name} (User ID: ${candidateData.userId})`);
+        } else {
+          console.warn(`⚠️ Could not find User ID for candidate ${candidateId}, skipping Airtable job match creation`);
+        }
       } catch (airtableError) {
-        console.error('❌ Failed to update Airtable, but candidate was accepted:', airtableError);
+        console.error('❌ Failed to create Airtable job match, but candidate was accepted:', airtableError);
         // Don't fail the entire operation if Airtable update fails
       }
       

@@ -152,7 +152,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
       queryClient.invalidateQueries({ queryKey: [`/api/job-postings/${selectedJobId}/candidates`] });
       toast({
         title: "Candidate Accepted ✓",
-        description: "The candidate has been accepted and job details have been sent to their profile.",
+        description: "The candidate has been accepted and their job match has been recorded in your database.",
       });
     },
     onError: (error, candidate) => {

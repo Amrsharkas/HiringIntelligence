@@ -142,6 +142,7 @@ Changelog:
 - July 05, 2025. Implemented auto-refresh system that monitors Airtable database every minute for new candidates with visual indicators
 - July 05, 2025. Fixed Airtable bidirectional integration - when employers accept candidates, job details are written to "Job Title" and "Job Description" fields
 - July 05, 2025. Added instant visual feedback for accept/decline actions with optimistic updates and loading states
+- July 05, 2025. Updated Airtable integration to use new "platojobmatches" table - creates job match records instead of updating candidate profiles
 ```
 
 ## User Preferences
