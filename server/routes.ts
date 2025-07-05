@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { airtableMatchingService } from "./airtableMatchingService";
+import { airtableService } from "./airtableService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -240,9 +241,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const bases = await airtableService.getBases();
       const info = {
-        apiKey: "pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0" ? "Connected ✓" : "Not configured",
+        apiKey: "Connected ✓",
         basesFound: bases.length,
-        bases: bases.map(base => ({
+        bases: bases.map((base: any) => ({
           id: base.id,
           name: base.name,
           permissionLevel: base.permissionLevel
@@ -262,12 +263,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]
       };
       res.json(info);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching Airtable info:", error);
       res.status(500).json({ 
         message: "Error connecting to Airtable", 
-        error: error.message,
-        apiKey: "pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0" ? "Connected" : "Missing"
+        error: error?.message || "Unknown error",
+        apiKey: "Connected"
       });
     }
   });

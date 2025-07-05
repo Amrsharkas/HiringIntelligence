@@ -3,9 +3,9 @@ import { generateCandidateMatchRating } from './openai';
 import { storage } from './storage';
 
 export class AirtableMatchingService {
-  // You'll need to set these based on your Airtable setup
-  private baseId: string = ''; // Will be set via environment or discovery
-  private tableName: string = 'Candidates'; // Default table name
+  // Set to user's specific Airtable configuration
+  private baseId: string = 'app3tA4UpKQCT2s17'; // platouserprofiles base
+  private tableName: string = 'Table 1'; // User's candidate table
 
   async discoverAirtableStructure() {
     try {

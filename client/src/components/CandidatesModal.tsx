@@ -11,16 +11,21 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 interface CandidateData {
   id: string;
   name?: string;
+  userProfile?: string;
+  location?: string;
+  background?: string;
+  skills?: string;
+  interests?: string;
+  experience?: string;
+  matchScore?: number;
+  matchReasoning?: string;
+  // Legacy fields for compatibility
   previousRole?: string;
   summary?: string;
-  location?: string;
   technicalSkills?: string[];
-  skills?: string[];
   yearsExperience?: number;
   salaryExpectation?: string;
   interviewScore?: number;
-  matchScore?: number;
-  matchReasoning?: string;
 }
 
 interface CandidatesModalProps {
@@ -55,14 +60,14 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
 
   const filteredCandidates = candidates.filter(candidate =>
     candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.background?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.userProfile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.skills?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.interests?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Legacy field support
     candidate.previousRole?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.skills?.some((skill: string) => 
-      skill.toLowerCase().includes(searchTerm.toLowerCase())
-    ) ||
-    candidate.technicalSkills?.some((skill: string) => 
-      skill.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    candidate.summary?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleViewProfile = (candidateId: string) => {
@@ -162,7 +167,9 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                           <h3 className="font-semibold text-slate-900 dark:text-white">
                             {candidate.name || 'Unknown Candidate'}
                           </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">{candidate.previousRole || 'Previous role not specified'}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {candidate.background || candidate.previousRole || 'Background not specified'}
+                          </p>
                         </div>
                       </div>
                       
@@ -179,48 +186,45 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                     </div>
                     
                     <p className="text-sm text-slate-700 dark:text-slate-300 mb-4 line-clamp-3">
-                      {candidate.summary || "Experienced professional with strong technical and soft skills."}
+                      {candidate.userProfile?.substring(0, 150) || candidate.background || candidate.summary || "Professional candidate profile available."}
                     </p>
                     
                     <div className="space-y-2 mb-4">
-                      {/* Technical Skills */}
-                      {candidate.technicalSkills && candidate.technicalSkills.length > 0 && (
+                      {/* Skills from user profile */}
+                      {candidate.skills && typeof candidate.skills === 'string' && (
                         <div className="flex flex-wrap gap-2">
-                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Tech:</span>
-                          {candidate.technicalSkills.slice(0, 3).map((skill: string) => (
-                            <Badge
-                              key={skill}
-                              variant="secondary"
-                              className="text-xs bg-blue-100/60 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300"
-                            >
-                              {skill}
-                            </Badge>
-                          ))}
-                          {candidate.technicalSkills.length > 3 && (
-                            <Badge variant="secondary" className="text-xs bg-blue-100/60 dark:bg-blue-900/60 text-blue-500 dark:text-blue-400">
-                              +{candidate.technicalSkills.length - 3} more
-                            </Badge>
-                          )}
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Skills:</span>
+                          {candidate.skills.split(/[,;\n]/).slice(0, 4).map((skill: string, index: number) => {
+                            const trimmedSkill = skill.trim();
+                            return trimmedSkill ? (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-xs bg-blue-100/60 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300"
+                              >
+                                {trimmedSkill}
+                              </Badge>
+                            ) : null;
+                          })}
                         </div>
                       )}
                       
-                      {/* General Skills (fallback) */}
-                      {candidate.skills && candidate.skills.length > 0 && !candidate.technicalSkills && (
+                      {/* Interests */}
+                      {candidate.interests && typeof candidate.interests === 'string' && (
                         <div className="flex flex-wrap gap-2">
-                          {candidate.skills.slice(0, 4).map((skill: string) => (
-                            <Badge
-                              key={skill}
-                              variant="secondary"
-                              className="text-xs bg-white/60 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
-                            >
-                              {skill}
-                            </Badge>
-                          ))}
-                          {candidate.skills.length > 4 && (
-                            <Badge variant="secondary" className="text-xs bg-white/60 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400">
-                              +{candidate.skills.length - 4} more
-                            </Badge>
-                          )}
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Interests:</span>
+                          {candidate.interests.split(/[,;\n]/).slice(0, 3).map((interest: string, index: number) => {
+                            const trimmedInterest = interest.trim();
+                            return trimmedInterest ? (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-xs bg-green-100/60 dark:bg-green-900/60 text-green-700 dark:text-green-300"
+                              >
+                                {trimmedInterest}
+                              </Badge>
+                            ) : null;
+                          })}
                         </div>
                       )}
                       

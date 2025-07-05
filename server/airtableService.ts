@@ -19,7 +19,7 @@ export class AirtableService {
     this.apiKey = apiKey;
   }
 
-  async getAllCandidateProfiles(baseId: string, tableName: string = 'Candidates'): Promise<any[]> {
+  async getAllCandidateProfiles(baseId: string, tableName: string = 'Table 1'): Promise<any[]> {
     try {
       let allRecords: AirtableRecord[] = [];
       let offset: string | undefined;
@@ -44,36 +44,81 @@ export class AirtableService {
 
       } while (offset);
 
-      // Transform Airtable records to candidate profiles
-      return allRecords.map(record => ({
-        id: record.id,
-        name: record.fields.Name || record.fields.FullName || record.fields.name || 'Unknown',
-        email: record.fields.Email || record.fields.email,
-        phone: record.fields.Phone || record.fields.phone,
-        skills: this.parseSkills(record.fields.Skills || record.fields.skills),
-        experience: record.fields.Experience || record.fields.experience || record.fields.WorkExperience,
-        education: record.fields.Education || record.fields.education,
-        summary: record.fields.Summary || record.fields.Bio || record.fields.summary,
-        previousRole: record.fields.PreviousRole || record.fields['Previous Role'] || record.fields.currentRole,
-        yearsExperience: record.fields.YearsExperience || record.fields['Years Experience'] || record.fields.yearsOfExperience,
-        location: record.fields.Location || record.fields.location,
-        availability: record.fields.Availability || record.fields.availability || true,
-        salaryExpectation: record.fields.SalaryExpectation || record.fields['Salary Expectation'],
-        interviewScore: record.fields.InterviewScore || record.fields['Interview Score'],
-        technicalSkills: this.parseSkills(record.fields.TechnicalSkills || record.fields['Technical Skills']),
-        softSkills: this.parseSkills(record.fields.SoftSkills || record.fields['Soft Skills']),
-        portfolio: record.fields.Portfolio || record.fields.portfolio,
-        linkedin: record.fields.LinkedIn || record.fields.linkedin,
-        github: record.fields.GitHub || record.fields.github,
-        notes: record.fields.Notes || record.fields.notes,
-        createdTime: record.createdTime,
-        // Include all original fields for comprehensive analysis
-        rawData: record.fields,
-      }));
+      // Filter out empty records and transform to candidate profiles
+      return allRecords
+        .filter(record => Object.keys(record.fields).length > 0) // Only records with data
+        .map(record => {
+          const userProfile = record.fields['User profile'] || record.fields['user profile'] || '';
+          
+          return {
+            id: record.id,
+            name: record.fields.Name || record.fields.name || 'Unknown',
+            userProfile: userProfile,
+            // Extract structured data from the user profile text
+            location: this.extractFromProfile(userProfile, 'location'),
+            background: this.extractFromProfile(userProfile, 'background'),
+            skills: this.extractFromProfile(userProfile, 'skills'),
+            interests: this.extractFromProfile(userProfile, 'interests'),
+            experience: this.extractFromProfile(userProfile, 'experience'),
+            createdTime: record.createdTime,
+            // Keep all original fields for AI analysis
+            rawData: record.fields,
+          };
+        });
 
     } catch (error) {
       console.error('Error fetching candidates from Airtable:', error);
       throw error;
+    }
+  }
+
+  private extractFromProfile(profile: string, field: string): string {
+    if (!profile) return '';
+    
+    const lines = profile.split('\n').map(line => line.trim());
+    
+    switch (field.toLowerCase()) {
+      case 'location':
+        const locationLine = lines.find(line => line.toLowerCase().startsWith('location:'));
+        return locationLine ? locationLine.replace(/^location:\s*/i, '').trim() : '';
+      
+      case 'background':
+        const backgroundLine = lines.find(line => line.toLowerCase().startsWith('background:'));
+        return backgroundLine ? backgroundLine.replace(/^background:\s*/i, '').trim() : '';
+      
+      case 'skills':
+        const skillsIndex = lines.findIndex(line => line.toLowerCase().includes('skills:'));
+        if (skillsIndex !== -1) {
+          // Get everything after "Skills:" until the next section or end
+          let skillsText = '';
+          for (let i = skillsIndex; i < lines.length; i++) {
+            const line = lines[i];
+            if (i === skillsIndex) {
+              // First line with "Skills:"
+              skillsText += line.replace(/^.*skills:\s*/i, '').trim();
+            } else if (line.includes(':') && !line.toLowerCase().includes('skills')) {
+              // Hit another section, stop
+              break;
+            } else {
+              // Continuation of skills section
+              skillsText += ' ' + line.trim();
+            }
+          }
+          return skillsText.trim();
+        }
+        return '';
+      
+      case 'interests':
+        const interestsLine = lines.find(line => line.toLowerCase().includes('interests:'));
+        return interestsLine ? interestsLine.replace(/^.*interests:\s*/i, '').trim() : '';
+      
+      case 'experience':
+        // Look for years of experience mentioned in background or elsewhere
+        const expMatch = profile.match(/(\d+)\+?\s*years?\s*(of\s*)?(experience|exp)/i);
+        return expMatch ? expMatch[1] + ' years' : '';
+      
+      default:
+        return '';
     }
   }
 

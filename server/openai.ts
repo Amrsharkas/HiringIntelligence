@@ -75,93 +75,79 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
 export async function generateCandidateMatchRating(
   candidate: any,
   job: any
-): Promise<{ score: number; reasoning: string; skillGaps: string[]; strengths?: string[] }> {
+): Promise<{ score: number; reasoning: string; skillGaps?: string[]; strengths?: string[] }> {
   try {
-    // Build comprehensive candidate profile for analysis
-    const candidateProfile = `
-    Name: ${candidate.name}
-    Previous Role: ${candidate.previousRole || 'Not specified'}
-    Years of Experience: ${candidate.yearsExperience || 'Not specified'}
-    Location: ${candidate.location || 'Not specified'}
-    Summary/Bio: ${candidate.summary || 'Not provided'}
-    Technical Skills: ${candidate.technicalSkills?.join(', ') || candidate.skills?.join(', ') || 'Not specified'}
-    Soft Skills: ${candidate.softSkills?.join(', ') || 'Not specified'}
-    Education: ${candidate.education || 'Not specified'}
-    Previous Experience: ${candidate.experience || 'Not specified'}
-    Interview Score: ${candidate.interviewScore || 'Not available'}
-    Salary Expectation: ${candidate.salaryExpectation || 'Not specified'}
-    Portfolio: ${candidate.portfolio || 'Not provided'}
-    Additional Notes: ${candidate.notes || 'None'}
-    `;
+    // Use the complete user profile from Airtable for comprehensive analysis
+    const userProfile = candidate.userProfile || candidate.rawData?.['User profile'] || '';
+    
+    const prompt = `You are an expert recruiter analyzing candidate-job fit. Rate this candidate for the job posting on a scale of 1-100.
 
-    const jobProfile = `
-    Job Title: ${job.title}
-    Location: ${job.location || 'Not specified'}
-    Salary Range: ${job.salaryRange || 'Not specified'}
-    Job Description: ${job.description}
-    Job Requirements: ${job.requirements}
-    Required Technical Skills: ${job.technicalSkills?.join(', ') || 'Not specified'}
-    Required Soft Skills: ${job.softSkills?.join(', ') || 'Not specified'}
-    `;
+JOB POSTING DETAILS:
+- Title: ${job.title}
+- Description: ${job.description}
+- Requirements: ${job.requirements || 'Not specified'}
+- Location: ${job.location || 'Not specified'}
+- Technical Skills Required: ${job.technicalSkills?.join(', ') || 'Not specified'}
+- Salary Range: ${job.salaryRange || 'Not specified'}
 
-    const prompt = `You are an expert recruiter analyzing candidate-job fit. Rate this candidate for the job on a scale of 1-100.
+CANDIDATE PROFILE:
+Name: ${candidate.name}
 
-    JOB DETAILS:
-    ${jobProfile}
+Complete User Profile:
+${userProfile}
 
-    CANDIDATE PROFILE:
-    ${candidateProfile}
+ANALYSIS INSTRUCTIONS:
+Analyze the candidate's full profile against the job requirements, considering:
+1. Background and experience relevance to the role
+2. Skills alignment (both technical and soft skills)
+3. Location compatibility and remote work considerations
+4. Career interests and growth trajectory
+5. Educational background and qualifications
+6. Industry experience and transferable skills
 
-    Analyze the following factors:
-    1. Skills alignment (technical and soft skills match)
-    2. Experience level and relevance
-    3. Location compatibility
-    4. Salary expectations vs. job offer
-    5. Overall profile quality and interview performance
-    6. Cultural fit indicators
+Provide a comprehensive match analysis with:
+- score: 1-100 rating where:
+  * 90-100: Exceptional match, ideal candidate
+  * 80-89: Strong match, well-qualified
+  * 70-79: Good match, qualified with minor gaps
+  * 60-69: Moderate match, some relevant experience
+  * 50-59: Basic match, limited alignment
+  * Below 50: Poor match, significant gaps
 
-    Provide a detailed analysis in JSON format with:
-    - score (1-100, where 90+ is exceptional match, 70-89 is good match, 50-69 is moderate match, 30-49 is poor match, below 30 is not suitable)
-    - reasoning (3-4 sentences explaining the match quality, highlighting strengths and concerns)
-    - skillGaps (array of specific missing or weak skills/qualifications)
-    - strengths (array of candidate's key strengths for this role)`;
+- reasoning: 2-3 sentences explaining the match quality, key strengths, and any concerns (keep concise but specific)
+
+Respond with JSON in this exact format: { "score": number, "reasoning": "explanation" }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
-          content: "You are an expert recruiter. Analyze candidate-job fit and respond with JSON.",
+          content: "You are an expert recruiter and hiring manager with deep experience in candidate assessment. Analyze candidates thoroughly considering both technical fit and growth potential. Be objective but recognize transferable skills."
         },
-        { role: "user", content: prompt }
+        {
+          role: "user",
+          content: prompt
+        }
       ],
       response_format: { type: "json_object" },
+      temperature: 0.2, // Lower temperature for more consistent scoring
     });
 
-    const result = JSON.parse(response.choices[0].message.content || '{"score": 50, "reasoning": "Analysis unavailable", "skillGaps": [], "strengths": []}');
+    const result = JSON.parse(response.choices[0].message.content || '{"score": 50, "reasoning": "Analysis unavailable"}');
     
     return {
       score: Math.max(1, Math.min(100, result.score || 50)),
-      reasoning: result.reasoning || "Match analysis completed",
+      reasoning: result.reasoning || "Match analysis completed using comprehensive profile review.",
       skillGaps: result.skillGaps || [],
       strengths: result.strengths || []
     };
+
   } catch (error) {
-    // Fallback scoring based on simple skill matching
-    const candidateSkills = candidate.skills || [];
-    const requiredSkills = [...(job.technicalSkills || []), ...(job.softSkills || [])];
-    const matchingSkills = candidateSkills.filter((skill: string) => 
-      requiredSkills.some(req => req.toLowerCase().includes(skill.toLowerCase()))
-    );
-    const score = Math.min(95, Math.max(30, (matchingSkills.length / requiredSkills.length) * 100));
-    
+    console.error("Error generating candidate match rating:", error);
     return {
-      score: Math.round(score),
-      reasoning: `Candidate matches ${matchingSkills.length} out of ${requiredSkills.length} key requirements.`,
-      skillGaps: requiredSkills.filter(skill => 
-        !candidateSkills.some((cSkill: string) => cSkill.toLowerCase().includes(skill.toLowerCase()))
-      ),
-      strengths: matchingSkills
+      score: 50,
+      reasoning: "Error occurred during candidate analysis. Manual review recommended."
     };
   }
 }
