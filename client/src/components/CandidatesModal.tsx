@@ -38,12 +38,25 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateData | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(jobId || null);
+  const [view, setView] = useState<'jobs' | 'candidates'>(jobId ? 'candidates' : 'jobs');
 
-  const { data: candidates = [], isLoading, error } = useQuery<CandidateData[]>({
-    queryKey: jobId ? [`/api/job-postings/${jobId}/candidates`] : ["/api/candidates"],
-    enabled: isOpen,
+  // Fetch job postings for the job selection view
+  const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
+    queryKey: ["/api/job-postings"],
+    enabled: isOpen && view === 'jobs',
     retry: false,
   });
+
+  // Fetch candidates for selected job
+  const { data: candidates = [], isLoading: candidatesLoading, error: candidatesError } = useQuery<CandidateData[]>({
+    queryKey: selectedJobId ? [`/api/job-postings/${selectedJobId}/candidates`] : ["/api/candidates"],
+    enabled: isOpen && view === 'candidates' && !!selectedJobId,
+    retry: false,
+  });
+
+  const isLoading = view === 'jobs' ? jobsLoading : candidatesLoading;
+  const error = view === 'jobs' ? jobsError : candidatesError;
 
   // Handle unauthorized errors
   React.useEffect(() => {
@@ -76,6 +89,18 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
     if (candidate) {
       setSelectedCandidate(candidate);
     }
+  };
+
+  const handleViewCandidates = (jobId: number) => {
+    setSelectedJobId(jobId);
+    setView('candidates');
+  };
+
+  const handleBackToJobs = () => {
+    setView('jobs');
+    setSelectedJobId(null);
+    setSelectedCandidate(null);
+    setSearchTerm("");
   };
 
   const getMatchScoreColor = (score: number) => {
@@ -233,14 +258,110 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                 </div>
               </div>
             </div>
+          ) : view === 'jobs' ? (
+            /* Job Selection View */
+            <div>
+              <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-6 rounded-t-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Select Job to View Candidates
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="ml-3 text-slate-600 dark:text-slate-400">Loading jobs...</span>
+                  </div>
+                ) : jobs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                      No job postings found
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400">
+                      Create some job postings first to view matched candidates.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {jobs.map((job, index) => (
+                      <motion.div
+                        key={job.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-white dark:bg-slate-700/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                              {job.title}
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-slate-600 dark:text-slate-400 mb-4">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                <span>{job.location || 'Remote'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Eye className="w-4 h-4" />
+                                <span>{job.views || 0} views</span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">
+                              {job.description}
+                            </p>
+                          </div>
+                          <div className="ml-6">
+                            <Button
+                              onClick={() => handleViewCandidates(job.id)}
+                              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm transition-colors duration-200"
+                            >
+                              <Users className="w-4 h-4 mr-2" />
+                              View Candidates
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             /* Candidate List View */
             <div>
               <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-6 rounded-t-2xl">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {jobId ? "Matched Candidates" : "All Candidates"}
-                  </h2>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleBackToJobs}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                      Matched Candidates
+                    </h2>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"

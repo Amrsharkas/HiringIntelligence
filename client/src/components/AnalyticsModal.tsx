@@ -1,3 +1,4 @@
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -14,53 +15,72 @@ interface AnalyticsModalProps {
 export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
   const { toast } = useToast();
 
-  const { data: matches = [], isLoading: matchesLoading } = useQuery<any[]>({
+  const { data: matches = [], isLoading: matchesLoading, error: matchesError } = useQuery<any[]>({
     queryKey: ["/api/companies/matches"],
     enabled: isOpen,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
+    retry: false,
   });
 
-  const { data: jobs = [], isLoading: jobsLoading } = useQuery<any[]>({
+  const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
     queryKey: ["/api/job-postings"],
     enabled: isOpen,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
+    retry: false,
   });
 
-  // Calculate analytics metrics
-  const totalViews = jobs.reduce((sum, job) => sum + (job.views || 0), 0);
-  const averageMatchScore = matches.length > 0 
-    ? Math.round(matches.reduce((sum, match) => sum + (match.matchScore || 0), 0) / matches.length)
+  // Handle errors with useEffect
+  React.useEffect(() => {
+    if (matchesError && isUnauthorizedError(matchesError as Error)) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [matchesError, toast]);
+
+  React.useEffect(() => {
+    if (jobsError && isUnauthorizedError(jobsError as Error)) {
+      toast({
+        title: "Unauthorized", 
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [jobsError, toast]);
+
+  // Calculate analytics metrics with proper type safety
+  const matchesArray = Array.isArray(matches) ? matches : [];
+  const jobsArray = Array.isArray(jobs) ? jobs : [];
+  
+  const totalViews = jobsArray.reduce((sum: number, job: any) => sum + (job.views || 0), 0);
+  const averageMatchScore = matchesArray.length > 0 
+    ? Math.round(matchesArray.reduce((sum: number, match: any) => sum + (match.matchScore || 0), 0) / matchesArray.length)
     : 0;
-  const highQualityMatches = matches.filter(match => (match.matchScore || 0) >= 80).length;
-  const thisMonthMatches = matches.filter(match => {
+  const highQualityMatches = matchesArray.filter((match: any) => (match.matchScore || 0) >= 80).length;
+  const thisMonthMatches = matchesArray.filter((match: any) => {
     const matchDate = new Date(match.createdAt);
     const now = new Date();
     return matchDate.getMonth() === now.getMonth() && matchDate.getFullYear() === now.getFullYear();
   }).length;
+
+  // Calculate real growth metrics
+  const lastMonthMatches = matchesArray.filter((match: any) => {
+    const matchDate = new Date(match.createdAt);
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    return matchDate >= lastMonth && matchDate < thisMonth;
+  }).length;
+
+  const matchGrowth = lastMonthMatches > 0 
+    ? Math.round(((thisMonthMatches - lastMonthMatches) / lastMonthMatches) * 100)
+    : thisMonthMatches > 0 ? 100 : 0;
 
   const analyticsCards = [
     {
@@ -68,32 +88,28 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
       value: totalViews,
       icon: Eye,
       color: "blue",
-      change: "+12% from last month",
-      trending: "up"
+      description: `Across ${jobsArray.length} job postings`
     },
     {
       title: "Average Match Score",
       value: `${averageMatchScore}%`,
       icon: Target,
       color: "green",
-      change: "+5% from last month",
-      trending: "up"
+      description: `Based on ${matchesArray.length} matches`
     },
     {
       title: "High-Quality Matches",
       value: highQualityMatches,
       icon: Award,
       color: "purple",
-      change: "+18% from last month",
-      trending: "up"
+      description: `${Math.round((highQualityMatches / Math.max(matchesArray.length, 1)) * 100)}% of all matches`
     },
     {
       title: "Monthly Matches",
       value: thisMonthMatches,
       icon: TrendingUp,
       color: "orange",
-      change: "+25% from last month",
-      trending: "up"
+      description: matchGrowth > 0 ? `+${matchGrowth}% from last month` : 'No previous data'
     }
   ];
 
@@ -154,11 +170,8 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{card.title}</p>
-                            <p className={`text-xs flex items-center gap-1 ${
-                              card.trending === 'up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                            }`}>
-                              <TrendingUp className="w-3 h-3" />
-                              {card.change}
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {card.description}
                             </p>
                           </div>
                         </CardContent>
@@ -182,7 +195,7 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {jobs.slice(0, 5).map((job, index) => (
+                        {jobsArray.slice(0, 5).map((job: any, index: number) => (
                           <div key={job.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                             <div className="flex-1">
                               <h4 className="font-medium text-slate-900 dark:text-white">{job.title}</h4>
@@ -197,13 +210,13 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
                               </div>
                               <div className="text-center">
                                 <div className="font-bold text-green-600 dark:text-green-400">
-                                  {matches.filter(m => m.jobId === job.id).length}
+                                  {matchesArray.filter((m: any) => m.jobId === job.id).length}
                                 </div>
                                 <div className="text-slate-500 dark:text-slate-400">Matches</div>
                               </div>
                               <div className="text-center">
                                 <div className="font-bold text-purple-600 dark:text-purple-400">
-                                  {matches.filter(m => m.jobId === job.id && m.matchScore >= 80).length}
+                                  {matchesArray.filter((m: any) => m.jobId === job.id && m.matchScore >= 80).length}
                                 </div>
                                 <div className="text-slate-500 dark:text-slate-400">Quality</div>
                               </div>
@@ -231,10 +244,10 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                          { range: "90-100%", count: matches.filter(m => m.matchScore >= 90).length, color: "green" },
-                          { range: "80-89%", count: matches.filter(m => m.matchScore >= 80 && m.matchScore < 90).length, color: "blue" },
-                          { range: "70-79%", count: matches.filter(m => m.matchScore >= 70 && m.matchScore < 80).length, color: "yellow" },
-                          { range: "60-69%", count: matches.filter(m => m.matchScore >= 60 && m.matchScore < 70).length, color: "orange" },
+                          { range: "90-100%", count: matchesArray.filter((m: any) => m.matchScore >= 90).length, color: "green" },
+                          { range: "80-89%", count: matchesArray.filter((m: any) => m.matchScore >= 80 && m.matchScore < 90).length, color: "blue" },
+                          { range: "70-79%", count: matchesArray.filter((m: any) => m.matchScore >= 70 && m.matchScore < 80).length, color: "yellow" },
+                          { range: "60-69%", count: matchesArray.filter((m: any) => m.matchScore >= 60 && m.matchScore < 70).length, color: "orange" },
                         ].map((bucket, index) => (
                           <div key={bucket.range} className={`text-center p-4 bg-${bucket.color}-50 dark:bg-${bucket.color}-900/20 rounded-lg border border-${bucket.color}-200/50 dark:border-${bucket.color}-700/50`}>
                             <div className={`text-2xl font-bold text-${bucket.color}-600 dark:text-${bucket.color}-400`}>
@@ -268,7 +281,7 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
                           <div>
                             <p className="text-sm font-medium text-slate-900 dark:text-white">High-Quality Candidate Pool</p>
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                              {Math.round((highQualityMatches / Math.max(matches.length, 1)) * 100)}% of your matches score 80+ points, indicating excellent candidate quality.
+                              {Math.round((highQualityMatches / Math.max(matchesArray.length, 1)) * 100)}% of your matches score 80+ points, indicating excellent candidate quality.
                             </p>
                           </div>
                         </div>
