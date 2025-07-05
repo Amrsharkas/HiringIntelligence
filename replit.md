@@ -141,6 +141,7 @@ Changelog:
 - July 05, 2025. Added comprehensive candidate application management with accept/decline functionality and interview scheduling
 - July 05, 2025. Implemented auto-refresh system that monitors Airtable database every minute for new candidates with visual indicators
 - July 05, 2025. Fixed Airtable bidirectional integration - when employers accept candidates, job details are written to "Job Title" and "Job Description" fields
+- July 05, 2025. Added instant visual feedback for accept/decline actions with optimistic updates and loading states
 ```
 
 ## User Preferences

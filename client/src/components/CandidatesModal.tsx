@@ -45,6 +45,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const [selectedJobId, setSelectedJobId] = useState<number | null>(jobId || null);
   const [view, setView] = useState<'jobs' | 'candidates'>(jobId ? 'candidates' : 'jobs');
   const [scheduleInterviewCandidate, setScheduleInterviewCandidate] = useState<CandidateData | null>(null);
+  const [pendingActions, setPendingActions] = useState<Record<string, 'accepting' | 'declining' | null>>({});
 
   // Fetch job postings for the job selection view with auto-refresh
   const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
@@ -141,14 +142,22 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
         }
       );
     },
-    onSuccess: () => {
+    onMutate: async (candidate) => {
+      // Optimistic update - show accepting state immediately
+      setPendingActions(prev => ({ ...prev, [candidate.id]: 'accepting' }));
+    },
+    onSuccess: (data, candidate) => {
+      // Clear pending state and update cache
+      setPendingActions(prev => ({ ...prev, [candidate.id]: null }));
       queryClient.invalidateQueries({ queryKey: [`/api/job-postings/${selectedJobId}/candidates`] });
       toast({
-        title: "Candidate Accepted",
-        description: "The candidate has been accepted successfully.",
+        title: "Candidate Accepted ✓",
+        description: "The candidate has been accepted and job details have been sent to their profile.",
       });
     },
-    onError: (error) => {
+    onError: (error, candidate) => {
+      // Clear pending state and show error
+      setPendingActions(prev => ({ ...prev, [candidate.id]: null }));
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -181,14 +190,22 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
         }
       );
     },
-    onSuccess: () => {
+    onMutate: async (candidate) => {
+      // Optimistic update - show declining state immediately
+      setPendingActions(prev => ({ ...prev, [candidate.id]: 'declining' }));
+    },
+    onSuccess: (data, candidate) => {
+      // Clear pending state and update cache
+      setPendingActions(prev => ({ ...prev, [candidate.id]: null }));
       queryClient.invalidateQueries({ queryKey: [`/api/job-postings/${selectedJobId}/candidates`] });
       toast({
-        title: "Candidate Declined",
+        title: "Candidate Declined ✗",
         description: "The candidate has been declined.",
       });
     },
-    onError: (error) => {
+    onError: (error, candidate) => {
+      // Clear pending state and show error
+      setPendingActions(prev => ({ ...prev, [candidate.id]: null }));
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -670,7 +687,32 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                               View Profile
                             </Button>
                             
-                            {candidate.applicationStatus === 'accepted' && (
+                            {/* Show immediate accepting state */}
+                            {pendingActions[candidate.id] === 'accepting' && (
+                              <div className="flex gap-2">
+                                <span className="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full dark:bg-green-900 dark:text-green-200 animate-pulse">
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                                    Accepting...
+                                  </div>
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Show immediate declining state */}
+                            {pendingActions[candidate.id] === 'declining' && (
+                              <div className="flex gap-2">
+                                <span className="bg-red-100 text-red-800 text-xs font-medium px-3 py-1 rounded-full dark:bg-red-900 dark:text-red-200 animate-pulse">
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                                    Declining...
+                                  </div>
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Show accepted state (when not pending) */}
+                            {!pendingActions[candidate.id] && candidate.applicationStatus === 'accepted' && (
                               <div className="flex gap-2">
                                 <span className="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
                                   ✓ Accepted
@@ -685,23 +727,27 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                               </div>
                             )}
                             
-                            {candidate.applicationStatus === 'declined' && (
+                            {/* Show declined state (when not pending) */}
+                            {!pendingActions[candidate.id] && candidate.applicationStatus === 'declined' && (
                               <span className="bg-red-100 text-red-800 text-xs font-medium px-3 py-1 rounded-full dark:bg-red-900 dark:text-red-200">
                                 ✗ Declined
                               </span>
                             )}
                             
-                            {(!candidate.applicationStatus || candidate.applicationStatus === 'pending') && (
+                            {/* Show action buttons (when not pending and no status) */}
+                            {!pendingActions[candidate.id] && (!candidate.applicationStatus || candidate.applicationStatus === 'pending') && (
                               <div className="flex gap-2">
                                 <Button
                                   onClick={() => handleAcceptCandidate(candidate)}
-                                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs"
+                                  disabled={acceptCandidateMutation.isPending}
+                                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs transition-all duration-200"
                                 >
                                   Accept
                                 </Button>
                                 <Button
                                   onClick={() => handleDeclineCandidate(candidate)}
-                                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs"
+                                  disabled={declineCandidateMutation.isPending}
+                                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs transition-all duration-200"
                                 >
                                   Decline
                                 </Button>
