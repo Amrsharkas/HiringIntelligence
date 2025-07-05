@@ -235,6 +235,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Show Airtable database information (public endpoint for exploration)
+  app.get('/api/airtable/info', async (req: any, res) => {
+    try {
+      const bases = await airtableService.getBases();
+      const info = {
+        apiKey: "pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0" ? "Connected ✓" : "Not configured",
+        basesFound: bases.length,
+        bases: bases.map(base => ({
+          id: base.id,
+          name: base.name,
+          permissionLevel: base.permissionLevel
+        })),
+        expectedFields: [
+          "Name or FullName - candidate's full name",
+          "Email - candidate's email address", 
+          "Skills - list of general skills",
+          "TechnicalSkills - list of technical skills",
+          "Experience - work experience description",
+          "YearsExperience - number of years experience",
+          "PreviousRole - most recent job title",
+          "Location - candidate location",
+          "SalaryExpectation - expected salary",
+          "InterviewScore - score from interview (1-10)",
+          "Summary or Bio - candidate summary"
+        ]
+      };
+      res.json(info);
+    } catch (error) {
+      console.error("Error fetching Airtable info:", error);
+      res.status(500).json({ 
+        message: "Error connecting to Airtable", 
+        error: error.message,
+        apiKey: "pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0" ? "Connected" : "Missing"
+      });
+    }
+  });
+
   // Get all Airtable candidates (for general viewing)
   app.get('/api/candidates', isAuthenticated, async (req: any, res) => {
     try {
