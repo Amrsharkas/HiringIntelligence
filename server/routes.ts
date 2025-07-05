@@ -364,6 +364,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update Airtable with job details when candidate is accepted
       try {
+        console.log(`Attempting to update Airtable record ${candidateId} with job: ${job.title}`);
+        console.log(`Job description: ${job.description}`);
+        
         await airtableService.updateCandidateJobDetails(
           'app3tA4UpKQCT2s17', // platouserprofiles base ID
           candidateId, // This is the Airtable record ID
@@ -371,9 +374,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           job.description || '',
           'Table 1'
         );
-        console.log(`Updated Airtable record ${candidateId} with job: ${job.title}`);
+        console.log(`✅ Successfully updated Airtable record ${candidateId} with job: ${job.title}`);
       } catch (airtableError) {
-        console.error('Failed to update Airtable, but candidate was accepted:', airtableError);
+        console.error('❌ Failed to update Airtable, but candidate was accepted:', airtableError);
         // Don't fail the entire operation if Airtable update fails
       }
       
@@ -516,6 +519,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating matches:", error);
       res.status(500).json({ message: "Failed to generate matches" });
+    }
+  });
+
+  // Test Airtable connection and field structure
+  app.get('/api/test-airtable', async (req, res) => {
+    try {
+      const candidates = await airtableService.getAllCandidateProfiles('app3tA4UpKQCT2s17', 'Table 1');
+      
+      if (candidates.length > 0) {
+        const firstCandidate = candidates[0];
+        console.log('📋 Sample candidate structure:', firstCandidate);
+        console.log('📋 Raw Airtable fields:', firstCandidate.rawData);
+        
+        res.json({
+          message: 'Airtable connection successful',
+          candidateCount: candidates.length,
+          sampleCandidate: {
+            id: firstCandidate.id,
+            name: firstCandidate.name,
+            userId: firstCandidate.userId,
+            availableFields: Object.keys(firstCandidate.rawData)
+          }
+        });
+      } else {
+        res.json({
+          message: 'Airtable connected but no candidates found',
+          candidateCount: 0
+        });
+      }
+    } catch (error) {
+      console.error('❌ Airtable test failed:', error);
+      res.status(500).json({
+        message: 'Airtable connection failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

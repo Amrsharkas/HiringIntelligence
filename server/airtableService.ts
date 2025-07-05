@@ -194,6 +194,12 @@ export class AirtableService {
     try {
       const url = `${this.baseUrl}/${baseId}/${tableName}/${recordId}`;
       
+      console.log(`🔄 Updating Airtable record at: ${url}`);
+      console.log(`📝 Data being sent:`, {
+        'Job Title': jobTitle,
+        'Job Description': jobDescription,
+      });
+      
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
@@ -202,20 +208,22 @@ export class AirtableService {
         },
         body: JSON.stringify({
           fields: {
-            'Job title': jobTitle,
-            'Job description': jobDescription,
+            'Job Title': jobTitle,
+            'Job Description': jobDescription,
           }
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`❌ Airtable API Error Response: ${errorText}`);
         throw new Error(`Airtable update error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      console.log(`Successfully updated Airtable record ${recordId} with job details`);
+      const responseData = await response.json();
+      console.log(`✅ Successfully updated Airtable record ${recordId}:`, responseData);
     } catch (error) {
-      console.error('Error updating candidate job details in Airtable:', error);
+      console.error('❌ Error updating candidate job details in Airtable:', error);
       throw error;
     }
   }
