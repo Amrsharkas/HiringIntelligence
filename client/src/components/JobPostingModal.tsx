@@ -283,7 +283,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
             }
           };
 
-          const debounceTimer = setTimeout(extractSkills, 1500); // Increased from 100ms to 1.5s
+          const debounceTimer = setTimeout(extractSkills, 200); // 200ms debounce delay
           return () => clearTimeout(debounceTimer);
         }
       }
