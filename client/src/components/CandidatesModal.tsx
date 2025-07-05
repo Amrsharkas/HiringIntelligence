@@ -46,6 +46,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const [view, setView] = useState<'jobs' | 'candidates'>(jobId ? 'candidates' : 'jobs');
   const [scheduleInterviewCandidate, setScheduleInterviewCandidate] = useState<CandidateData | null>(null);
   const [pendingActions, setPendingActions] = useState<Record<string, 'accepting' | 'declining' | null>>({});
+  const [removingCandidates, setRemovingCandidates] = useState<Set<string>>(new Set());
 
   // Fetch job postings for the job selection view with auto-refresh
   const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
@@ -195,9 +196,24 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
       setPendingActions(prev => ({ ...prev, [candidate.id]: 'declining' }));
     },
     onSuccess: (data, candidate) => {
-      // Clear pending state and update cache
-      setPendingActions(prev => ({ ...prev, [candidate.id]: null }));
-      queryClient.invalidateQueries({ queryKey: [`/api/job-postings/${selectedJobId}/candidates`] });
+      // Start fade-out animation
+      setRemovingCandidates(prev => {
+        const newSet = new Set(prev);
+        newSet.add(candidate.id);
+        return newSet;
+      });
+      
+      // Remove from UI after animation completes
+      setTimeout(() => {
+        setPendingActions(prev => ({ ...prev, [candidate.id]: null }));
+        setRemovingCandidates(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(candidate.id);
+          return newSet;
+        });
+        queryClient.invalidateQueries({ queryKey: [`/api/job-postings/${selectedJobId}/candidates`] });
+      }, 300); // Quick 300ms animation
+      
       toast({
         title: "Candidate Declined ✗",
         description: "The candidate has been declined.",
@@ -591,8 +607,15 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       <motion.div
                         key={candidate.id}
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
+                        animate={{ 
+                          opacity: removingCandidates.has(candidate.id) ? 0 : 1, 
+                          y: removingCandidates.has(candidate.id) ? -20 : 0,
+                          scale: removingCandidates.has(candidate.id) ? 0.95 : 1
+                        }}
+                        transition={{ 
+                          delay: removingCandidates.has(candidate.id) ? 0 : index * 0.1,
+                          duration: removingCandidates.has(candidate.id) ? 0.3 : 0.3
+                        }}
                         className={`bg-gradient-to-r ${getMatchScoreBg(candidate.matchScore || 75)} rounded-xl p-6 border flex items-center gap-6`}
                       >
                         {/* Left side - Avatar and basic info */}
