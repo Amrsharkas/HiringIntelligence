@@ -223,7 +223,7 @@ export default function EmployerDashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setLocation("/employer-dashboard")}
-              className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              className="text-2xl font-bold text-black dark:text-white"
             >
               Plato
             </motion.button>
