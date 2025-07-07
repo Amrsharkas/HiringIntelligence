@@ -93,31 +93,36 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
 
 export async function formatUserProfile(rawProfile: string): Promise<string> {
   try {
-    const prompt = `Take this raw candidate profile data and transform it into a beautifully formatted, professional profile. The input may be in JSON format or unstructured text.
+    const prompt = `Transform this raw candidate profile data into a clean, professional format. The input contains JSON-structured information that needs to be converted to readable text.
 
 Raw Data:
-"${rawProfile}"
+${rawProfile}
 
-Requirements:
-- Extract and organize all information into clear, professional sections
-- Use **bold** for section headers (Summary, Experience, Skills, etc.)
-- Use *italics* for company names, job titles, and key achievements
-- Create clean bullet points for skills and responsibilities
-- Remove any JSON formatting, brackets, quotes, and technical syntax
-- Present years of experience and education prominently
-- Make it highly readable and visually appealing
-- Include all original information but in a polished format
-- Maximum 350 words
+INSTRUCTIONS:
+1. **Extract** all information from the JSON structure
+2. **Remove** all JSON syntax: brackets {}, quotes "", commas, technical formatting
+3. **Create** clean sections with proper formatting:
+   - **Summary**: Main professional overview
+   - **Skills**: Clean bullet points (use - for each skill)
+   - **Experience**: Job details with company and role
+   - **Personality**: Professional traits and approach
+4. **Format** with markdown:
+   - **Bold** for section headers
+   - *Italics* for company names and job titles
+   - Clean bullet points for skills and responsibilities
+5. **Maximum 300 words** - be concise but comprehensive
 
-Transform this into a professional candidate profile that an employer would want to read. Focus on clarity, visual appeal, and highlighting the candidate's strengths.`;
+Transform this into a professional profile that looks clean and is easy to read. Focus on making it visually appealing and highlighting strengths.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 500,
+      max_tokens: 400,
     });
 
-    return response.choices[0].message.content || rawProfile;
+    const formatted = response.choices[0].message.content || rawProfile;
+    console.log("AI Formatted Profile:", formatted); // Debug log
+    return formatted;
   } catch (error) {
     console.error("Failed to format user profile:", error);
     return rawProfile; // Return original if formatting fails

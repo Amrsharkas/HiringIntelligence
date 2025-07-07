@@ -329,6 +329,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   // Auto-format profiles when detailed view is opened
   React.useEffect(() => {
     if (selectedCandidate && selectedCandidate.userProfile && !formattedProfiles[selectedCandidate.id] && !formatProfileMutation.isPending) {
+      console.log("Auto-formatting profile for:", selectedCandidate.name);
       getFormattedProfile(selectedCandidate);
     }
   }, [selectedCandidate]);
@@ -434,8 +435,20 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                             </div>
                           </div>
                         ) : (
-                          <div className="whitespace-pre-wrap">
-                            {selectedCandidate.userProfile || 'No detailed profile available.'}
+                          <div>
+                            <div className="whitespace-pre-wrap mb-4">
+                              {selectedCandidate.userProfile || 'No detailed profile available.'}
+                            </div>
+                            {selectedCandidate.userProfile && (
+                              <Button 
+                                onClick={() => getFormattedProfile(selectedCandidate)}
+                                className="text-xs"
+                                variant="outline"
+                                size="sm"
+                              >
+                                ✨ Format with AI
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>

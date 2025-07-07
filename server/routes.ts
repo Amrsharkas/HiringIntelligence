@@ -545,8 +545,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Raw profile is required" });
       }
       
+      console.log("Raw profile received:", rawProfile.substring(0, 200) + "...");
+      
       const { formatUserProfile } = await import('./openai');
       const formattedProfile = await formatUserProfile(rawProfile);
+      
+      console.log("Formatted profile result:", formattedProfile.substring(0, 200) + "...");
       
       res.json({ formattedProfile });
     } catch (error) {
