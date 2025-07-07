@@ -91,6 +91,36 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
   }
 }
 
+export async function formatUserProfile(rawProfile: string): Promise<string> {
+  try {
+    const prompt = `Take this raw candidate profile and format it professionally with proper styling:
+
+"${rawProfile}"
+
+Requirements:
+- Use **bold** for important sections like experience, skills, education
+- Use *italics* for emphasis on key achievements or specializations  
+- Use clear sections with line breaks
+- Highlight years of experience, key technologies, and achievements
+- Make it scannable and professional
+- Keep all original information but improve readability
+- Maximum 300 words
+
+Return only the formatted profile text with markdown styling.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 400,
+    });
+
+    return response.choices[0].message.content || rawProfile;
+  } catch (error) {
+    console.error("Failed to format user profile:", error);
+    return rawProfile; // Return original if formatting fails
+  }
+}
+
 export async function generateCandidateMatchRating(
   candidate: any,
   job: any

@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, MapPin, Star, Users, Eye, ArrowLeft, Mail, Calendar, Target } from "lucide-react";
+import { X, Search, MapPin, Star, Users, Eye, ArrowLeft, Mail, Calendar, Target, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -47,6 +47,8 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const [scheduleInterviewCandidate, setScheduleInterviewCandidate] = useState<CandidateData | null>(null);
   const [pendingActions, setPendingActions] = useState<Record<string, 'accepting' | 'declining' | null>>({});
   const [removingCandidates, setRemovingCandidates] = useState<Set<string>>(new Set());
+  const [showRatingCriteria, setShowRatingCriteria] = useState(false);
+  const [formattedProfiles, setFormattedProfiles] = useState<Record<string, string>>({});
 
   // Fetch job postings for the job selection view with auto-refresh
   const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
@@ -296,6 +298,34 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
     setScheduleInterviewCandidate(candidate);
   };
 
+  // Format profile mutation
+  const formatProfileMutation = useMutation({
+    mutationFn: async (rawProfile: string) => {
+      return await apiRequest('POST', '/api/format-profile', { rawProfile });
+    },
+  });
+
+  // Function to get formatted profile
+  const getFormattedProfile = async (candidate: CandidateData) => {
+    if (formattedProfiles[candidate.id]) {
+      return formattedProfiles[candidate.id];
+    }
+    
+    if (candidate.userProfile) {
+      try {
+        const result = await formatProfileMutation.mutateAsync(candidate.userProfile);
+        const formatted = result.formattedProfile;
+        setFormattedProfiles(prev => ({ ...prev, [candidate.id]: formatted }));
+        return formatted;
+      } catch (error) {
+        console.error('Failed to format profile:', error);
+        return candidate.userProfile;
+      }
+    }
+    
+    return candidate.userProfile || "Profile information not available.";
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -373,8 +403,40 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                 {/* Complete User Profile */}
                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-6">
                   <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Complete Profile</h4>
-                  <div className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">
-                    {selectedCandidate.userProfile || 'No detailed profile available.'}
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {formattedProfiles[selectedCandidate.id] ? (
+                      <div dangerouslySetInnerHTML={{ 
+                        __html: formattedProfiles[selectedCandidate.id]
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                          .replace(/\n/g, '<br />') 
+                      }} />
+                    ) : (
+                      <div>
+                        {formatProfileMutation.isPending ? (
+                          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            Formatting profile...
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="whitespace-pre-wrap">
+                              {selectedCandidate.userProfile || 'No detailed profile available.'}
+                            </div>
+                            {selectedCandidate.userProfile && (
+                              <Button 
+                                onClick={() => getFormattedProfile(selectedCandidate)}
+                                className="mt-3 text-xs"
+                                variant="outline"
+                                size="sm"
+                              >
+                                Format with AI
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -385,8 +447,22 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       <Star className="w-5 h-5 text-blue-500" />
                       AI Match Analysis
                     </h4>
-                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-4">
                       {selectedCandidate.matchReasoning}
+                    </p>
+                  </div>
+                )}
+
+                {/* Match Score Explanation */}
+                {selectedCandidate.matchScore && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-6">
+                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-amber-500" />
+                      Match Score: {selectedCandidate.matchScore}%
+                    </h4>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                      This score reflects the candidate's overall fit for the position based on our AI analysis of their background, skills, experience, and alignment with job requirements. 
+                      Scores above 75% indicate strong potential candidates, while scores above 85% represent exceptional matches.
                     </p>
                   </div>
                 )}
@@ -554,14 +630,25 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowRatingCriteria(true)}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      title="Rating Criteria"
+                    >
+                      <Info className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onClose}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                      <X className="w-5 h-5" />
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="relative">
@@ -896,6 +983,98 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                 >
                   Schedule Interview
                 </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Rating Criteria Modal */}
+      {showRatingCriteria && (
+        <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Info className="w-5 h-5 text-blue-500" />
+                Candidate Rating Criteria
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowRatingCriteria(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="text-slate-600 dark:text-slate-400">
+                Our AI matching system evaluates candidates using a comprehensive weighted scoring system:
+              </div>
+
+              <div className="space-y-4">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Technical Skills (30%)</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Relevance and proficiency in required programming languages, frameworks, and tools
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Experience Level (25%)</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Years of experience in similar roles and industry alignment
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Education & Background (20%)</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Relevant educational qualifications and career trajectory
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-orange-500 pl-4">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Project Portfolio (15%)</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Quality and relevance of past projects and achievements
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-amber-500 pl-4">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Cultural Fit (10%)</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Communication style, interests, and alignment with company values
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                <h5 className="font-medium text-slate-900 dark:text-white mb-2">Score Interpretation:</h5>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">85-100%:</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">Exceptional Match</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">75-84%:</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium">Strong Match</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">60-74%:</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-medium">Good Match</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">Below 60%:</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">Limited Match</span>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>

@@ -536,6 +536,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Format user profile with AI
+  app.post('/api/format-profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const { rawProfile } = req.body;
+      
+      if (!rawProfile) {
+        return res.status(400).json({ message: "Raw profile is required" });
+      }
+      
+      const { formatUserProfile } = await import('./openai');
+      const formattedProfile = await formatUserProfile(rawProfile);
+      
+      res.json({ formattedProfile });
+    } catch (error) {
+      console.error("Error formatting profile:", error);
+      res.status(500).json({ message: "Failed to format profile" });
+    }
+  });
+
   // Test Airtable connection and field structure
   app.get('/api/test-airtable', async (req, res) => {
     try {
