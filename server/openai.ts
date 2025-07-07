@@ -93,25 +93,28 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
 
 export async function formatUserProfile(rawProfile: string): Promise<string> {
   try {
-    const prompt = `Take this raw candidate profile and format it professionally with proper styling:
+    const prompt = `Take this raw candidate profile data and transform it into a beautifully formatted, professional profile. The input may be in JSON format or unstructured text.
 
+Raw Data:
 "${rawProfile}"
 
 Requirements:
-- Use **bold** for important sections like experience, skills, education
-- Use *italics* for emphasis on key achievements or specializations  
-- Use clear sections with line breaks
-- Highlight years of experience, key technologies, and achievements
-- Make it scannable and professional
-- Keep all original information but improve readability
-- Maximum 300 words
+- Extract and organize all information into clear, professional sections
+- Use **bold** for section headers (Summary, Experience, Skills, etc.)
+- Use *italics* for company names, job titles, and key achievements
+- Create clean bullet points for skills and responsibilities
+- Remove any JSON formatting, brackets, quotes, and technical syntax
+- Present years of experience and education prominently
+- Make it highly readable and visually appealing
+- Include all original information but in a polished format
+- Maximum 350 words
 
-Return only the formatted profile text with markdown styling.`;
+Transform this into a professional candidate profile that an employer would want to read. Focus on clarity, visual appeal, and highlighting the candidate's strengths.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 400,
+      max_tokens: 500,
     });
 
     return response.choices[0].message.content || rawProfile;
