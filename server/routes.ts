@@ -6,6 +6,7 @@ import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { airtableMatchingService } from "./airtableMatchingService";
 import { airtableService } from "./airtableService";
+import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -126,6 +127,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const job = await storage.createJob(jobData);
+      
+      // Automatically sync new job to Airtable (async, don't wait for completion)
+      jobPostingsAirtableService.syncJobPostingsToAirtable()
+        .catch(error => console.error("Error auto-syncing job to Airtable:", error));
+      
       res.json(job);
     } catch (error) {
       console.error("Error creating job:", error);
@@ -188,6 +194,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting job:", error);
       res.status(500).json({ message: "Failed to delete job posting" });
+    }
+  });
+
+  // Job postings sync to Airtable
+  app.post('/api/job-postings/sync-to-airtable', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await jobPostingsAirtableService.syncJobPostingsToAirtable();
+      res.json({ 
+        message: "Job postings sync completed", 
+        synced: result.synced,
+        total: result.total 
+      });
+    } catch (error) {
+      console.error("Error syncing job postings to Airtable:", error);
+      res.status(500).json({ message: "Failed to sync job postings to Airtable" });
     }
   });
 

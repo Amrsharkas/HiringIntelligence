@@ -47,6 +47,24 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Set up periodic job postings sync to Airtable (every 1 minute)
+  const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
+  
+  const syncJobPostingsPeriodically = async () => {
+    try {
+      console.log('Running periodic job postings sync to Airtable...');
+      await jobPostingsAirtableService.syncJobPostingsToAirtable();
+    } catch (error) {
+      console.error('Periodic job postings sync failed:', error);
+    }
+  };
+
+  // Initial sync on server start
+  setTimeout(syncJobPostingsPeriodically, 5000); // Wait 5 seconds after server start
+  
+  // Set up periodic sync every 60 seconds (1 minute)
+  setInterval(syncJobPostingsPeriodically, 60000);
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
