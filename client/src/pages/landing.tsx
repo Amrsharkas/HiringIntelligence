@@ -201,7 +201,41 @@ export default function Landing() {
             transition={{ duration: 0.8, delay: 0.8 }}
             className="mt-32 mb-24"
           >
-            <div className="text-center mb-12">
+            {/* Success Stats */}
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.0 }}
+                className="text-center"
+              >
+                <div className="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">95%</div>
+                <div className="text-gray-600 dark:text-gray-400">Hiring Success Rate</div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.2 }}
+                className="text-center"
+              >
+                <div className="text-3xl md:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">60%</div>
+                <div className="text-gray-600 dark:text-gray-400">Time Reduction</div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.4 }}
+                className="text-center"
+              >
+                <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">98%</div>
+                <div className="text-gray-600 dark:text-gray-400">Client Satisfaction</div>
+              </motion.div>
+            </div>
+
+            {/* Logo Carousel Section - Moved after stats */}
+            <div className="mt-20 text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
                 Trusted by Industry Leaders
               </h2>
@@ -211,13 +245,14 @@ export default function Landing() {
             </div>
 
             {/* Logo Carousel - Podium Style */}
-            <div className="relative w-full max-w-6xl mx-auto">
+            <div className="relative w-full max-w-6xl mx-auto mb-20">
               <div className="flex items-center justify-center h-96 relative">
                 {/* Left Logo */}
                 <motion.div
                   initial={{ opacity: 0, x: -100 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  whileInView={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8 }}
+                  viewport={{ once: true }}
                   className="absolute left-0 z-10"
                 >
                   <div className="w-80 h-56 flex items-center justify-center bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/40 dark:border-slate-700/40 transform scale-75 filter blur-sm opacity-70">
@@ -243,8 +278,9 @@ export default function Landing() {
                 {/* Center Logo (Main Focus) */}
                 <motion.div
                   initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
+                  viewport={{ once: true }}
                   className="z-20"
                 >
                   <div className="w-96 h-64 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-slate-200/60 dark:border-slate-700/60">
@@ -274,8 +310,9 @@ export default function Landing() {
                 {/* Right Logo */}
                 <motion.div
                   initial={{ opacity: 0, x: 100 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  whileInView={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8 }}
+                  viewport={{ once: true }}
                   className="absolute right-0 z-10"
                 >
                   <div className="w-80 h-56 flex items-center justify-center bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/40 dark:border-slate-700/40 transform scale-75 filter blur-sm opacity-70">
@@ -328,39 +365,6 @@ export default function Landing() {
                   <span>Proven Results</span>
                 </div>
               </div>
-            </div>
-
-            {/* Success Stats */}
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 1.0 }}
-                className="text-center"
-              >
-                <div className="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">95%</div>
-                <div className="text-gray-600 dark:text-gray-400">Hiring Success Rate</div>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 1.2 }}
-                className="text-center"
-              >
-                <div className="text-3xl md:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">60%</div>
-                <div className="text-gray-600 dark:text-gray-400">Time Reduction</div>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 1.4 }}
-                className="text-center"
-              >
-                <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">98%</div>
-                <div className="text-gray-600 dark:text-gray-400">Client Satisfaction</div>
-              </motion.div>
             </div>
           </motion.div>
 

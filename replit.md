@@ -160,6 +160,7 @@ Changelog:
 - July 08, 2025. Expanded company logo carousel to include 11 total client logos (added Monument, Skillcreds, Jaugmentor, and AiCanSell) strengthening the persuasive messaging about diverse successful partnerships across different industries
 - July 08, 2025. Massively expanded company logo carousel to showcase 21 total client logos with additional variations of existing companies - creates highly persuasive visual impact demonstrating widespread adoption across diverse industries and company sizes
 - July 08, 2025. Redesigned carousel with podium-style layout featuring center focus logo (largest), left/right preview logos (smaller and blurred), slower 5-second transitions, larger overall size, and full-screen width design matching modern industry standards
+- July 08, 2025. Repositioned carousel below the 3 success stats section (95% hiring success, 60% time reduction, 98% client satisfaction) for improved page flow and visual hierarchy
 ```
 
 ## User Preferences
