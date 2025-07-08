@@ -27,6 +27,10 @@ import neuroSignalsLogo from "@assets/image_1752003689944.png";
 import polygonLogo from "@assets/image_1752003694043.png";
 import groveLogo from "@assets/image_1752003699461.png";
 import melaniteLogo from "@assets/image_1752003765140.png";
+import monumentLogo from "@assets/image_1752003880641.png";
+import skillcredsLogo from "@assets/image_1752003885271.png";
+import jaugmentorLogo from "@assets/image_1752003889182.png";
+import aiCanSellLogo from "@assets/image_1752003892804.png";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -44,7 +48,11 @@ export default function Landing() {
     { name: "Neuro Signals", logo: neuroSignalsLogo },
     { name: "Polygon", logo: polygonLogo },
     { name: "Grove", logo: groveLogo },
-    { name: "Melanite", logo: melaniteLogo }
+    { name: "Melanite", logo: melaniteLogo },
+    { name: "Monument", logo: monumentLogo },
+    { name: "Skillcreds", logo: skillcredsLogo },
+    { name: "Jaugmentor", logo: jaugmentorLogo },
+    { name: "AiCanSell", logo: aiCanSellLogo }
   ];
 
   // Auto-cycle through logos every 3 seconds
