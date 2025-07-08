@@ -46,10 +46,17 @@ export class JobPostingsAirtableService {
         return { synced: 0, total: allJobs.length };
       }
       
-      // Create records for new jobs with single field approach first to establish structure
+      // Create records for new jobs using exact field names from Airtable
       const recordsToCreate = newJobs.map(job => ({
         fields: {
-          'Name': job.title || 'Untitled Position'
+          'Job title': job.title || 'Untitled Position',
+          'Job ID': job.id.toString(),
+          'Job description': job.description || 'No description provided',
+          'Date Posted': job.createdAt ? new Date(job.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          'Company': job.companyName || 'Unknown Company',
+          'Job type': job.employmentType || 'Full-time',
+          'Salary': job.salaryRange || 'Not specified',
+          'Location': job.location || 'Remote'
         }
       }));
       
