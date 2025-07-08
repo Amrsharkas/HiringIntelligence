@@ -27,6 +27,10 @@ export class JobPostingsAirtableService {
     try {
       console.log('Starting job postings sync to Airtable...');
       
+      // First discover the table structure to see what fields exist
+      console.log('🔍 Discovering Airtable table structure...');
+      await this.discoverAirtableStructure();
+      
       // Get all active job postings from our database
       const allJobs = await this.getAllActiveJobs();
       
@@ -42,21 +46,10 @@ export class JobPostingsAirtableService {
         return { synced: 0, total: allJobs.length };
       }
       
-      // Create records for new jobs
+      // Create records for new jobs with single field approach first to establish structure
       const recordsToCreate = newJobs.map(job => ({
         fields: {
-          'Job ID': job.id.toString(),
-          'Title': job.title || 'Untitled Position',
-          'Company': job.companyName || 'Unknown Company',
-          'Location': job.location || 'Remote',
-          'Description': job.description || 'No description provided',
-          'Requirements': job.requirements || 'No requirements specified',
-          'Salary Range': job.salaryRange || 'Not specified',
-          'Employment Type': job.employmentType || 'Full-time',
-          'Technical Skills': Array.isArray(job.technicalSkills) ? job.technicalSkills.join(', ') : (job.technicalSkills || ''),
-          'Status': job.status || 'active',
-          'Posted Date': job.createdAt ? new Date(job.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          'Organization ID': job.organizationId?.toString() || ''
+          'Name': job.title || 'Untitled Position'
         }
       }));
       
@@ -104,35 +97,19 @@ export class JobPostingsAirtableService {
     try {
       const { storage } = await import('./storage');
       
-      // Use storage method to get all organizations first
-      const { db } = await import('./db');
-      const { jobs, organizations } = await import('../shared/schema');
-      const { eq } = await import('drizzle-orm');
+      // Get all active jobs using the storage interface
+      const allJobs = await storage.getJobsByOrganization(1); // Get all jobs for org 1
+      const activeJobs = allJobs.filter(job => job.isActive === true);
       
-      // Simple query to get all active jobs with organization data
-      const result = await db
-        .select()
-        .from(jobs)
-        .innerJoin(organizations, eq(jobs.organizationId, organizations.id))
-        .where(eq(jobs.status, 'active'));
+      // Get organization data
+      const org = await storage.getOrganizationByUser('19545039'); // Current user ID
+      const companyName = org?.companyName || 'Unknown Company';
       
-      // Map the result to flat structure
-      const flattenedJobs = result.map(row => ({
-        id: row.jobs.id,
-        title: row.jobs.title,
-        description: row.jobs.description,
-        requirements: row.jobs.requirements,
-        location: row.jobs.location,
-        salaryRange: row.jobs.salaryRange,
-        employmentType: row.jobs.employmentType,
-        technicalSkills: row.jobs.technicalSkills,
-        status: row.jobs.status,
-        createdAt: row.jobs.createdAt,
-        organizationId: row.jobs.organizationId,
-        companyName: row.organizations.companyName
+      // Return jobs with company name
+      return activeJobs.map(job => ({
+        ...job,
+        companyName
       }));
-      
-      return flattenedJobs;
       
     } catch (error) {
       console.error('Error fetching active jobs:', error);
