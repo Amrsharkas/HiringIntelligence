@@ -102,35 +102,37 @@ export class JobPostingsAirtableService {
   
   private async getAllActiveJobs() {
     try {
-      // Get all organizations and their jobs
-      const allJobs = [];
+      const { storage } = await import('./storage');
       
-      // We need to get jobs across all organizations
-      // Since we don't have a direct method, we'll query the database directly
+      // Use storage method to get all organizations first
       const { db } = await import('./db');
       const { jobs, organizations } = await import('../shared/schema');
       const { eq } = await import('drizzle-orm');
       
-      const jobsWithOrg = await db
-        .select({
-          id: jobs.id,
-          title: jobs.title,
-          description: jobs.description,
-          requirements: jobs.requirements,
-          location: jobs.location,
-          salaryRange: jobs.salaryRange,
-          employmentType: jobs.employmentType,
-          technicalSkills: jobs.technicalSkills,
-          status: jobs.status,
-          createdAt: jobs.createdAt,
-          organizationId: jobs.organizationId,
-          companyName: organizations.companyName
-        })
+      // Simple query to get all active jobs with organization data
+      const result = await db
+        .select()
         .from(jobs)
-        .leftJoin(organizations, eq(jobs.organizationId, organizations.id))
+        .innerJoin(organizations, eq(jobs.organizationId, organizations.id))
         .where(eq(jobs.status, 'active'));
       
-      return jobsWithOrg;
+      // Map the result to flat structure
+      const flattenedJobs = result.map(row => ({
+        id: row.jobs.id,
+        title: row.jobs.title,
+        description: row.jobs.description,
+        requirements: row.jobs.requirements,
+        location: row.jobs.location,
+        salaryRange: row.jobs.salaryRange,
+        employmentType: row.jobs.employmentType,
+        technicalSkills: row.jobs.technicalSkills,
+        status: row.jobs.status,
+        createdAt: row.jobs.createdAt,
+        organizationId: row.jobs.organizationId,
+        companyName: row.organizations.companyName
+      }));
+      
+      return flattenedJobs;
       
     } catch (error) {
       console.error('Error fetching active jobs:', error);
@@ -204,6 +206,84 @@ export class JobPostingsAirtableService {
   setAirtableConfig(baseId: string, tableName: string = 'Table 1') {
     this.baseId = baseId;
     this.tableName = tableName;
+  }
+
+  async deleteJobPostingByJobId(jobId: number): Promise<void> {
+    try {
+      console.log(`Deleting job posting for job ${jobId} from platojobpostings table...`);
+      
+      let allRecords: AirtableJobRecord[] = [];
+      let offset: string | undefined;
+      
+      // Get all records for this job
+      do {
+        const params = new URLSearchParams();
+        if (offset) params.append('offset', offset);
+        
+        // Filter by Job ID field
+        params.append('filterByFormula', `{Job ID} = "${jobId}"`);
+        
+        const response = await fetch(
+          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data: AirtableJobResponse = await response.json();
+        allRecords = allRecords.concat(data.records);
+        offset = data.offset;
+      } while (offset);
+
+      if (allRecords.length === 0) {
+        console.log(`No job posting found for job ${jobId}`);
+        return;
+      }
+
+      // Delete records in batches (Airtable allows up to 10 records per request)
+      const batchSize = 10;
+      
+      for (let i = 0; i < allRecords.length; i += batchSize) {
+        const batch = allRecords.slice(i, i + batchSize);
+        const recordIds = batch.map(record => record.id);
+        
+        const params = new URLSearchParams();
+        recordIds.forEach(id => params.append('records[]', id));
+        
+        const response = await fetch(
+          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to delete job posting: ${response.status} ${response.statusText}`);
+        }
+        
+        // Add delay between batches to respect rate limits
+        if (i + batchSize < allRecords.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+      
+      console.log(`Successfully deleted ${allRecords.length} job posting records for job ${jobId}`);
+      
+    } catch (error) {
+      console.error('Error deleting job posting:', error);
+      throw error;
+    }
   }
 }
 

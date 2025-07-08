@@ -236,6 +236,87 @@ export class AirtableService {
       throw error;
     }
   }
+
+  async deleteJobMatchesByJobId(jobId: number): Promise<void> {
+    try {
+      console.log(`Deleting job matches for job ${jobId} from platojobmatches table...`);
+      
+      const baseId = 'app1u4N2W46jD43mP'; // platojobmatches base
+      const tableName = 'Table 1';
+      
+      let allRecords: AirtableRecord[] = [];
+      let offset: string | undefined;
+      
+      // Get all records for this job
+      do {
+        const params = new URLSearchParams();
+        if (offset) params.append('offset', offset);
+        
+        // Filter by Job ID (this will be added to the table)
+        params.append('filterByFormula', `{Job ID} = "${jobId}"`);
+        
+        const response = await fetch(
+          `${this.baseUrl}/${baseId}/${encodeURIComponent(tableName)}?${params}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data: AirtableResponse = await response.json();
+        allRecords = allRecords.concat(data.records);
+        offset = data.offset;
+      } while (offset);
+
+      if (allRecords.length === 0) {
+        console.log(`No job matches found for job ${jobId}`);
+        return;
+      }
+
+      // Delete records in batches (Airtable allows up to 10 records per request)
+      const batchSize = 10;
+      
+      for (let i = 0; i < allRecords.length; i += batchSize) {
+        const batch = allRecords.slice(i, i + batchSize);
+        const recordIds = batch.map(record => record.id);
+        
+        const params = new URLSearchParams();
+        recordIds.forEach(id => params.append('records[]', id));
+        
+        const response = await fetch(
+          `${this.baseUrl}/${baseId}/${encodeURIComponent(tableName)}?${params}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to delete job matches: ${response.status} ${response.statusText}`);
+        }
+        
+        // Add delay between batches to respect rate limits
+        if (i + batchSize < allRecords.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+      
+      console.log(`Successfully deleted ${allRecords.length} job matches for job ${jobId}`);
+      
+    } catch (error) {
+      console.error('Error deleting job matches:', error);
+      throw error;
+    }
+  }
 }
 
 export const airtableService = new AirtableService("pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0");

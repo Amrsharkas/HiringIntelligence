@@ -189,7 +189,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/job-postings/:id', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
+      
+      // Delete from all Airtable tables (async, don't wait for completion)
+      const deleteFromAirtable = async () => {
+        try {
+          const { applicantsAirtableService } = await import('./applicantsAirtableService');
+          const { airtableService } = await import('./airtableService');
+          const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
+          
+          // Delete applicants for this job
+          await applicantsAirtableService.deleteApplicantsByJobId(jobId);
+          
+          // Delete job matches (platojobmatches table)
+          await airtableService.deleteJobMatchesByJobId(jobId);
+          
+          // Delete job posting (platojobpostings table)
+          await jobPostingsAirtableService.deleteJobPostingByJobId(jobId);
+          
+          console.log(`Successfully deleted job ${jobId} from all Airtable tables`);
+        } catch (error) {
+          console.error(`Error deleting job ${jobId} from Airtable tables:`, error);
+        }
+      };
+      
+      // Delete from database first
       await storage.deleteJob(jobId);
+      
+      // Then delete from Airtable (async, don't wait)
+      deleteFromAirtable();
+      
       res.json({ message: "Job deleted successfully" });
     } catch (error) {
       console.error("Error deleting job:", error);
@@ -209,6 +237,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error syncing job postings to Airtable:", error);
       res.status(500).json({ message: "Failed to sync job postings to Airtable" });
+    }
+  });
+
+  // Applicants routes
+  app.get('/api/applicants', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json([]);
+      }
+
+      const { applicantsAirtableService } = await import('./applicantsAirtableService');
+      const applicants = await applicantsAirtableService.getAllApplicantsByOrganization(organization.id);
+      res.json(applicants);
+    } catch (error) {
+      console.error("Error fetching applicants:", error);
+      res.status(500).json({ message: "Failed to fetch applicants" });
+    }
+  });
+
+  app.get('/api/applicants/:jobId', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const { applicantsAirtableService } = await import('./applicantsAirtableService');
+      const applicants = await applicantsAirtableService.getApplicantsForJob(jobId);
+      res.json(applicants);
+    } catch (error) {
+      console.error("Error fetching job applicants:", error);
+      res.status(500).json({ message: "Failed to fetch job applicants" });
+    }
+  });
+
+  app.post('/api/applicants/:id/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { applicantsAirtableService } = await import('./applicantsAirtableService');
+      
+      await applicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
+      res.json({ message: "Applicant accepted successfully" });
+    } catch (error) {
+      console.error("Error accepting applicant:", error);
+      res.status(500).json({ message: "Failed to accept applicant" });
+    }
+  });
+
+  app.post('/api/applicants/:id/decline', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { applicantsAirtableService } = await import('./applicantsAirtableService');
+      
+      await applicantsAirtableService.updateApplicantStatus(applicantId, 'declined');
+      res.json({ message: "Applicant declined successfully" });
+    } catch (error) {
+      console.error("Error declining applicant:", error);
+      res.status(500).json({ message: "Failed to decline applicant" });
+    }
+  });
+
+  app.post('/api/applicants/:id/schedule-interview', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { jobId, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
+      const userId = req.user.claims.sub;
+      
+      const interviewData = {
+        jobId,
+        candidateId: applicantId,
+        candidateName: `Applicant ${applicantId}`,
+        scheduledDate,
+        scheduledTime,
+        interviewType,
+        meetingLink,
+        notes,
+        scheduledBy: userId
+      };
+      
+      const interview = await storage.createInterview(interviewData);
+      res.json(interview);
+    } catch (error) {
+      console.error("Error scheduling interview:", error);
+      res.status(500).json({ message: "Failed to schedule interview" });
     }
   });
 

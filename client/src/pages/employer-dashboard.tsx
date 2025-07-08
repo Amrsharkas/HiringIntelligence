@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
 import { ActiveJobsModal } from "@/components/ActiveJobsModal";
 import { CandidatesModal } from "@/components/CandidatesModal";
+import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { TeamManagementModal } from "@/components/TeamManagementModal";
 import { MessagingModal } from "@/components/MessagingModal";
@@ -130,6 +131,7 @@ export default function EmployerDashboard() {
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [isActiveJobsModalOpen, setIsActiveJobsModalOpen] = useState(false);
   const [isCandidatesModalOpen, setIsCandidatesModalOpen] = useState(false);
+  const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isMessagingModalOpen, setIsMessagingModalOpen] = useState(false);
@@ -407,6 +409,14 @@ export default function EmployerDashboard() {
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-left hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                  onClick={() => setIsApplicantsModalOpen(true)}
+                >
+                  <Users className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-3" />
+                  View Applicants
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-left hover:bg-purple-50 dark:hover:bg-purple-900/30"
                   onClick={() => setIsAnalyticsModalOpen(true)}
                 >
                   <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-3" />
@@ -462,6 +472,10 @@ export default function EmployerDashboard() {
       <CandidatesModal 
         isOpen={isCandidatesModalOpen} 
         onClose={() => setIsCandidatesModalOpen(false)} 
+      />
+      <ApplicantsModal 
+        isOpen={isApplicantsModalOpen} 
+        onClose={() => setIsApplicantsModalOpen(false)} 
       />
       <AnalyticsModal 
         isOpen={isAnalyticsModalOpen} 
