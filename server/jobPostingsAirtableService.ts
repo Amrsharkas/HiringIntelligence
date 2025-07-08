@@ -104,13 +104,22 @@ export class JobPostingsAirtableService {
     try {
       const { storage } = await import('./storage');
       
-      // Get all active jobs using the storage interface
-      const allJobs = await storage.getJobsByOrganization(1); // Get all jobs for org 1
-      const activeJobs = allJobs.filter(job => job.is_active === true);
+      // Get all active jobs across all organizations
+      const allOrgs = await storage.getOrganizationByUser('43108970'); // Current user ID from logs
+      if (!allOrgs) {
+        console.log('No organization found for user');
+        return [];
+      }
+      
+      const allJobs = await storage.getJobsByOrganization(allOrgs.id);
+      const activeJobs = allJobs.filter(job => job.is_active !== false);
+      
+      console.log(`📊 Found ${allJobs.length} total jobs, ${activeJobs.length} active jobs for org ${allOrgs.id}`);
+      console.log('All jobs with is_active values:', allJobs.map(j => ({ id: j.id, title: j.title, isActive: j.is_active, type: typeof j.is_active })));
+      console.log('Active jobs:', activeJobs.map(j => ({ id: j.id, title: j.title, isActive: j.is_active })));
       
       // Get organization data
-      const org = await storage.getOrganizationByUser('19545039'); // Current user ID
-      const companyName = org?.companyName || 'Unknown Company';
+      const companyName = allOrgs.companyName || 'Unknown Company';
       
       // Return jobs with company name
       return activeJobs.map(job => ({

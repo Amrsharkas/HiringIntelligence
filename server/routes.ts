@@ -128,9 +128,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const job = await storage.createJob(jobData);
       
+      // Get organization info for Airtable sync
+      const org = await storage.getOrganizationByUser(userId);
+      const companyName = org?.companyName || 'Unknown Company';
+      
       // Automatically sync new job to Airtable (async, don't wait for completion)
       jobPostingsAirtableService.syncJobPostingsToAirtable()
         .catch(error => console.error("Error auto-syncing job to Airtable:", error));
+      
+      // Auto-fill job applications table with AI-enhanced information
+      const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
+      jobApplicationsAutoFill.autoFillJobApplication(job, companyName)
+        .catch(error => console.error("Error auto-filling job application:", error));
       
       res.json(job);
     } catch (error) {
@@ -222,6 +231,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting job:", error);
       res.status(500).json({ message: "Failed to delete job posting" });
+    }
+  });
+
+  // Test auto-fill endpoint (no auth required)
+  app.post('/api/test-auto-fill', async (req, res) => {
+    try {
+      const { jobId } = req.body;
+      const job = await storage.getJobById(jobId);
+      if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      
+      const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
+      await jobApplicationsAutoFill.autoFillJobApplication(job, 'Plato');
+      res.json({ message: 'Auto-fill completed successfully', jobId, jobTitle: job.title });
+    } catch (error) {
+      console.error('Auto-fill error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Debug endpoint (no auth required)
+  app.get('/api/debug-jobs', async (req, res) => {
+    try {
+      const org = await storage.getOrganizationByUser('43108970');
+      if (!org) {
+        return res.json({ error: 'No org found' });
+      }
+      
+      const allJobs = await storage.getJobsByOrganization(org.id);
+      const jobsWithDetails = allJobs.map(job => ({
+        id: job.id,
+        title: job.title,
+        is_active: job.is_active,
+        is_active_type: typeof job.is_active,
+        organization_id: job.organizationId || job.organization_id
+      }));
+      
+      res.json({ 
+        organization: org,
+        jobs: jobsWithDetails,
+        totalJobs: allJobs.length
+      });
+    } catch (error) {
+      res.json({ error: error.message });
     }
   });
 

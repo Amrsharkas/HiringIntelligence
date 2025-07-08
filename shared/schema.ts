@@ -72,7 +72,7 @@ export const jobs = pgTable("jobs", {
   technicalSkills: text("technical_skills").array(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   createdById: varchar("created_by_id").notNull().references(() => users.id),
-  isActive: boolean("is_active").notNull().default(true),
+  is_active: boolean("is_active").notNull().default(true),
   views: integer("views").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
