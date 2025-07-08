@@ -48,7 +48,6 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
   const [pendingActions, setPendingActions] = useState<Record<string, 'accepting' | 'declining' | null>>({});
   const [removingCandidates, setRemovingCandidates] = useState<Set<string>>(new Set());
   const [showRatingCriteria, setShowRatingCriteria] = useState(false);
-  const [formattedProfiles, setFormattedProfiles] = useState<Record<string, string>>({});
 
   // Fetch job postings for the job selection view with auto-refresh
   const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
@@ -298,34 +297,6 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
     setScheduleInterviewCandidate(candidate);
   };
 
-  // Format profile mutation
-  const formatProfileMutation = useMutation({
-    mutationFn: async (rawProfile: string) => {
-      return await apiRequest('POST', '/api/format-profile', { rawProfile });
-    },
-  });
-
-  // Function to get formatted profile
-  const getFormattedProfile = async (candidate: CandidateData) => {
-    if (formattedProfiles[candidate.id]) {
-      return formattedProfiles[candidate.id];
-    }
-    
-    if (candidate.userProfile) {
-      try {
-        const result = await formatProfileMutation.mutateAsync(candidate.userProfile);
-        const formatted = result.formattedProfile;
-        setFormattedProfiles(prev => ({ ...prev, [candidate.id]: formatted }));
-        return formatted;
-      } catch (error) {
-        console.error('Failed to format profile:', error);
-        return candidate.userProfile;
-      }
-    }
-    
-    return candidate.userProfile || "Profile information not available.";
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -403,40 +374,8 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                 {/* Complete User Profile */}
                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-6">
                   <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Complete Profile</h4>
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed">
-                    {formattedProfiles[selectedCandidate.id] ? (
-                      <div dangerouslySetInnerHTML={{ 
-                        __html: formattedProfiles[selectedCandidate.id]
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                          .replace(/\n/g, '<br />') 
-                      }} />
-                    ) : (
-                      <div>
-                        {formatProfileMutation.isPending ? (
-                          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                            Formatting profile...
-                          </div>
-                        ) : (
-                          <div>
-                            <div className="whitespace-pre-wrap">
-                              {selectedCandidate.userProfile || 'No detailed profile available.'}
-                            </div>
-                            {selectedCandidate.userProfile && (
-                              <Button 
-                                onClick={() => getFormattedProfile(selectedCandidate)}
-                                className="mt-3 text-xs"
-                                variant="outline"
-                                size="sm"
-                              >
-                                Format with AI
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                  <div className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {selectedCandidate.userProfile || 'No detailed profile available.'}
                   </div>
                 </div>
 
