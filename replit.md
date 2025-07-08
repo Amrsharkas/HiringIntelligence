@@ -150,6 +150,9 @@ Changelog:
 - July 08, 2025. Implemented "platojobapplications" table integration (Base ID: appEYs1fTytFXoJ7x) with separate applicants modal for direct job applications, complete with accept/decline workflow and interview scheduling
 - July 08, 2025. Enhanced job deletion to cascade across all Airtable tables - when employers delete jobs, corresponding records are automatically removed from platojobpostings, platojobmatches, and platojobapplications tables
 - July 08, 2025. Successfully resolved job posting sync to "platojobpostings" Airtable table - fixed field mapping to match exact Airtable field names (Job title, Job ID, Job description, Date Posted, Company, Job type, Salary, Location) and confirmed 2 job postings synced successfully
+- July 08, 2025. Cleaned up unwanted test job postings from database and Airtable - removed "Psychologist" and "Business Analyst" test entries, keeping only employer-created jobs
+- July 08, 2025. Updated sync frequency from 60 seconds to 15 seconds for faster real-time updates between platform and Airtable tables
+- July 08, 2025. Fixed database field reference issue (isActive vs is_active) for proper job querying and sync functionality
 ```
 
 ## User Preferences

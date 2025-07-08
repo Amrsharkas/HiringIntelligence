@@ -106,7 +106,7 @@ export class JobPostingsAirtableService {
       
       // Get all active jobs using the storage interface
       const allJobs = await storage.getJobsByOrganization(1); // Get all jobs for org 1
-      const activeJobs = allJobs.filter(job => job.isActive === true);
+      const activeJobs = allJobs.filter(job => job.is_active === true);
       
       // Get organization data
       const org = await storage.getOrganizationByUser('19545039'); // Current user ID
