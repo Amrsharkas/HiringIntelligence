@@ -12,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 interface CandidateData {
   id: string;
   name?: string;
+  email?: string; // Email address for contacting the candidate
   userId?: string; // Internal User ID from Airtable, not displayed
   userProfile?: string;
   location?: string;
@@ -350,6 +351,13 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                       {selectedCandidate.name}
                     </h3>
+                    {selectedCandidate.email && (
+                      <div className="mb-3">
+                        <span className="inline-flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                          📧 {selectedCandidate.email}
+                        </span>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                       <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                         <MapPin className="w-4 h-4" />
@@ -842,6 +850,11 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                 <h4 className="font-medium text-slate-900 dark:text-white mb-1">
                   {scheduleInterviewCandidate.name}
                 </h4>
+                {scheduleInterviewCandidate.email && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                    📧 {scheduleInterviewCandidate.email}
+                  </p>
+                )}
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Match Score: {scheduleInterviewCandidate.matchScore}%
                 </p>

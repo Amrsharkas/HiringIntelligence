@@ -53,6 +53,7 @@ export class AirtableService {
           return {
             id: record.id,
             name: record.fields.Name || record.fields.name || 'Unknown',
+            email: record.fields.Email || record.fields.email || null,
             userId: record.fields['User ID'] || record.fields['user id'] || record.fields['userId'] || null,
             userProfile: userProfile,
             // Extract structured data from the user profile text

@@ -144,6 +144,7 @@ Changelog:
 - July 05, 2025. Added instant visual feedback for accept/decline actions with optimistic updates and loading states
 - July 05, 2025. Updated Airtable integration to use new "platojobmatches" table - creates job match records instead of updating candidate profiles
 - July 05, 2025. Enhanced job match records to include company name field - now populates all 5 fields (Name, User ID, Job title, Job Description, Company name)
+- July 08, 2025. Added email field support from Airtable "platouserprofiles" table - email addresses now displayed in interview scheduling modal and detailed profile view for easier candidate contact
 ```
 
 ## User Preferences
