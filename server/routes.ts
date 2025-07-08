@@ -234,50 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test auto-fill endpoint (no auth required)
-  app.post('/api/test-auto-fill', async (req, res) => {
-    try {
-      const { jobId } = req.body;
-      const job = await storage.getJobById(jobId);
-      if (!job) {
-        return res.status(404).json({ error: 'Job not found' });
-      }
-      
-      const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
-      await jobApplicationsAutoFill.autoFillJobApplication(job, 'Plato');
-      res.json({ message: 'Auto-fill completed successfully', jobId, jobTitle: job.title });
-    } catch (error) {
-      console.error('Auto-fill error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
 
-  // Debug endpoint (no auth required)
-  app.get('/api/debug-jobs', async (req, res) => {
-    try {
-      const org = await storage.getOrganizationByUser('43108970');
-      if (!org) {
-        return res.json({ error: 'No org found' });
-      }
-      
-      const allJobs = await storage.getJobsByOrganization(org.id);
-      const jobsWithDetails = allJobs.map(job => ({
-        id: job.id,
-        title: job.title,
-        is_active: job.is_active,
-        is_active_type: typeof job.is_active,
-        organization_id: job.organizationId || job.organization_id
-      }));
-      
-      res.json({ 
-        organization: org,
-        jobs: jobsWithDetails,
-        totalJobs: allJobs.length
-      });
-    } catch (error) {
-      res.json({ error: error.message });
-    }
-  });
 
   // Job postings sync to Airtable
   app.post('/api/job-postings/sync-to-airtable', isAuthenticated, async (req: any, res) => {
