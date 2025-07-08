@@ -93,36 +93,28 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
 
 export async function formatUserProfile(rawProfile: string): Promise<string> {
   try {
-    const prompt = `Transform this raw candidate profile data into a clean, professional format. The input contains JSON-structured information that needs to be converted to readable text.
+    const prompt = `Take this raw candidate profile and format it professionally with proper styling:
 
-Raw Data:
-${rawProfile}
+"${rawProfile}"
 
-INSTRUCTIONS:
-1. **Extract** all information from the JSON structure
-2. **Remove** all JSON syntax: brackets {}, quotes "", commas, technical formatting
-3. **Create** clean sections with proper formatting:
-   - **Summary**: Main professional overview
-   - **Skills**: Clean bullet points (use - for each skill)
-   - **Experience**: Job details with company and role
-   - **Personality**: Professional traits and approach
-4. **Format** with markdown:
-   - **Bold** for section headers
-   - *Italics* for company names and job titles
-   - Clean bullet points for skills and responsibilities
-5. **Maximum 300 words** - be concise but comprehensive
+Requirements:
+- Use **bold** for important sections like experience, skills, education
+- Use *italics* for emphasis on key achievements or specializations  
+- Use clear sections with line breaks
+- Highlight years of experience, key technologies, and achievements
+- Make it scannable and professional
+- Keep all original information but improve readability
+- Maximum 300 words
 
-Transform this into a professional profile that looks clean and is easy to read. Focus on making it visually appealing and highlighting strengths.`;
+Return only the formatted profile text with markdown styling.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 400,
     });
 
-    const formatted = response.choices[0].message.content || rawProfile;
-    console.log("AI Formatted Profile:", formatted); // Debug log
-    return formatted;
+    return response.choices[0].message.content || rawProfile;
   } catch (error) {
     console.error("Failed to format user profile:", error);
     return rawProfile; // Return original if formatting fails

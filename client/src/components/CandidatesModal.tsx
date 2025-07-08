@@ -326,14 +326,6 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
     return candidate.userProfile || "Profile information not available.";
   };
 
-  // Auto-format profiles when detailed view is opened
-  React.useEffect(() => {
-    if (selectedCandidate && selectedCandidate.userProfile && !formattedProfiles[selectedCandidate.id] && !formatProfileMutation.isPending) {
-      console.log("Auto-formatting profile for:", selectedCandidate.name);
-      getFormattedProfile(selectedCandidate);
-    }
-  }, [selectedCandidate]);
-
   if (!isOpen) return null;
 
   return (
@@ -413,40 +405,32 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                   <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Complete Profile</h4>
                   <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed">
                     {formattedProfiles[selectedCandidate.id] ? (
-                      <div 
-                        className="formatted-profile"
-                        dangerouslySetInnerHTML={{ 
-                          __html: formattedProfiles[selectedCandidate.id]
-                            .replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-900 dark:text-white font-semibold">$1</strong>')
-                            .replace(/\*(.*?)\*/g, '<em class="text-slate-600 dark:text-slate-400">$1</em>')
-                            .replace(/^- (.+)$/gm, '<div class="flex items-start gap-2 my-1"><span class="text-blue-500 mt-1">•</span><span>$1</span></div>')
-                            .replace(/\n\n/g, '<div class="my-4"></div>')
-                            .replace(/\n/g, '<br />') 
-                        }} 
-                      />
+                      <div dangerouslySetInnerHTML={{ 
+                        __html: formattedProfiles[selectedCandidate.id]
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                          .replace(/\n/g, '<br />') 
+                      }} />
                     ) : (
                       <div>
                         {formatProfileMutation.isPending ? (
-                          <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400 py-8">
-                            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                            <div>
-                              <div className="font-medium">Enhancing profile formatting...</div>
-                              <div className="text-sm text-slate-500 dark:text-slate-400">Using AI to improve readability and presentation</div>
-                            </div>
+                          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            Formatting profile...
                           </div>
                         ) : (
                           <div>
-                            <div className="whitespace-pre-wrap mb-4">
+                            <div className="whitespace-pre-wrap">
                               {selectedCandidate.userProfile || 'No detailed profile available.'}
                             </div>
                             {selectedCandidate.userProfile && (
                               <Button 
                                 onClick={() => getFormattedProfile(selectedCandidate)}
-                                className="text-xs"
+                                className="mt-3 text-xs"
                                 variant="outline"
                                 size="sm"
                               >
-                                ✨ Format with AI
+                                Format with AI
                               </Button>
                             )}
                           </div>
