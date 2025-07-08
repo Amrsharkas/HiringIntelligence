@@ -31,6 +31,16 @@ import monumentLogo from "@assets/image_1752003880641.png";
 import skillcredsLogo from "@assets/image_1752003885271.png";
 import jaugmentorLogo from "@assets/image_1752003889182.png";
 import aiCanSellLogo from "@assets/image_1752003892804.png";
+import fridgenoMore2Logo from "@assets/image_1752004479413.png";
+import quanta2Logo from "@assets/image_1752004485103.png";
+import implef2Logo from "@assets/image_1752004496691.png";
+import neuroSignals2Logo from "@assets/image_1752004504429.png";
+import polygon2Logo from "@assets/image_1752004514079.png";
+import grove2Logo from "@assets/image_1752004524180.png";
+import melanite2Logo from "@assets/image_1752004532230.png";
+import monument2Logo from "@assets/image_1752004540355.png";
+import skillcreds2Logo from "@assets/image_1752004548842.png";
+import jaugmentor2Logo from "@assets/image_1752004558896.png";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -52,7 +62,17 @@ export default function Landing() {
     { name: "Monument", logo: monumentLogo },
     { name: "Skillcreds", logo: skillcredsLogo },
     { name: "Jaugmentor", logo: jaugmentorLogo },
-    { name: "AiCanSell", logo: aiCanSellLogo }
+    { name: "AiCanSell", logo: aiCanSellLogo },
+    { name: "Fridge No More", logo: fridgenoMore2Logo },
+    { name: "Quanta", logo: quanta2Logo },
+    { name: "Implef", logo: implef2Logo },
+    { name: "Neuro Signals", logo: neuroSignals2Logo },
+    { name: "Polygon", logo: polygon2Logo },
+    { name: "Grove", logo: grove2Logo },
+    { name: "Melanite", logo: melanite2Logo },
+    { name: "Monument", logo: monument2Logo },
+    { name: "Skillcreds", logo: skillcreds2Logo },
+    { name: "Jaugmentor", logo: jaugmentor2Logo }
   ];
 
   // Auto-cycle through logos every 3 seconds
