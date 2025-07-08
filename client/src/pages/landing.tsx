@@ -75,13 +75,13 @@ export default function Landing() {
     { name: "Jaugmentor", logo: jaugmentor2Logo }
   ];
 
-  // Auto-cycle through logos every 3 seconds
+  // Auto-cycle through logos every 5 seconds (slower)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentLogoIndex((prevIndex) => 
         prevIndex === companyLogos.length - 1 ? 0 : prevIndex + 1
       );
-    }, 3000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -210,31 +210,93 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Logo Carousel */}
-            <div className="relative">
-              <div className="flex items-center justify-center">
-                <div className="w-96 h-40 flex items-center justify-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 dark:border-slate-700/60">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentLogoIndex}
-                      initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                      exit={{ opacity: 0, scale: 0.8, rotateY: -90 }}
-                      transition={{ 
-                        duration: 0.6, 
-                        ease: "easeInOut",
-                        rotateY: { duration: 0.8 }
-                      }}
-                      className="flex items-center justify-center"
-                    >
-                      <img
-                        src={companyLogos[currentLogoIndex].logo}
-                        alt={companyLogos[currentLogoIndex].name}
-                        className="max-w-[200px] max-h-[80px] object-contain filter contrast-75 dark:brightness-90"
-                      />
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
+            {/* Logo Carousel - Podium Style */}
+            <div className="relative w-full max-w-6xl mx-auto">
+              <div className="flex items-center justify-center h-96 relative">
+                {/* Left Logo */}
+                <motion.div
+                  initial={{ opacity: 0, x: -100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="absolute left-0 z-10"
+                >
+                  <div className="w-80 h-56 flex items-center justify-center bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/40 dark:border-slate-700/40 transform scale-75 filter blur-sm opacity-70">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`left-${currentLogoIndex}`}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.8, ease: "easeInOut" }}
+                        className="flex items-center justify-center"
+                      >
+                        <img
+                          src={companyLogos[currentLogoIndex === 0 ? companyLogos.length - 1 : currentLogoIndex - 1].logo}
+                          alt={companyLogos[currentLogoIndex === 0 ? companyLogos.length - 1 : currentLogoIndex - 1].name}
+                          className="max-w-[160px] max-h-[60px] object-contain filter contrast-75 dark:brightness-90"
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+
+                {/* Center Logo (Main Focus) */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  className="z-20"
+                >
+                  <div className="w-96 h-64 flex items-center justify-center bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-slate-200/60 dark:border-slate-700/60">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`center-${currentLogoIndex}`}
+                        initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
+                        animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, rotateY: -90 }}
+                        transition={{ 
+                          duration: 0.8, 
+                          ease: "easeInOut",
+                          rotateY: { duration: 1 }
+                        }}
+                        className="flex items-center justify-center"
+                      >
+                        <img
+                          src={companyLogos[currentLogoIndex].logo}
+                          alt={companyLogos[currentLogoIndex].name}
+                          className="max-w-[240px] max-h-[100px] object-contain filter contrast-100 dark:brightness-100"
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+
+                {/* Right Logo */}
+                <motion.div
+                  initial={{ opacity: 0, x: 100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="absolute right-0 z-10"
+                >
+                  <div className="w-80 h-56 flex items-center justify-center bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/40 dark:border-slate-700/40 transform scale-75 filter blur-sm opacity-70">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`right-${currentLogoIndex}`}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.8, ease: "easeInOut" }}
+                        className="flex items-center justify-center"
+                      >
+                        <img
+                          src={companyLogos[currentLogoIndex === companyLogos.length - 1 ? 0 : currentLogoIndex + 1].logo}
+                          alt={companyLogos[currentLogoIndex === companyLogos.length - 1 ? 0 : currentLogoIndex + 1].name}
+                          className="max-w-[160px] max-h-[60px] object-contain filter contrast-75 dark:brightness-90"
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
               </div>
 
               {/* Carousel Indicators */}
