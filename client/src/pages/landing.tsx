@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -19,13 +19,44 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
+// Import company logos
+import fridgenoMoreLogo from "@assets/image_1752003678355.png";
+import quantaLogo from "@assets/image_1752003682343.png";
+import implefLogo from "@assets/image_1752003686195.png";
+import neuroSignalsLogo from "@assets/image_1752003689944.png";
+import polygonLogo from "@assets/image_1752003694043.png";
+import groveLogo from "@assets/image_1752003699461.png";
+import melaniteLogo from "@assets/image_1752003765140.png";
+
 export default function Landing() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
 
   const handleLogin = () => {
     window.location.href = "/api/login";
   };
+
+  const companyLogos = [
+    { name: "Fridge No More", logo: fridgenoMoreLogo },
+    { name: "Quanta", logo: quantaLogo },
+    { name: "Implef", logo: implefLogo },
+    { name: "Neuro Signals", logo: neuroSignalsLogo },
+    { name: "Polygon", logo: polygonLogo },
+    { name: "Grove", logo: groveLogo },
+    { name: "Melanite", logo: melaniteLogo }
+  ];
+
+  // Auto-cycle through logos every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentLogoIndex((prevIndex) => 
+        prevIndex === companyLogos.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const floatAnimation = {
     y: [0, -20, 0],
@@ -132,6 +163,114 @@ export default function Landing() {
               >
                 Login
               </Button>
+            </div>
+          </motion.div>
+
+          {/* Client Success Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="mt-32 mb-24"
+          >
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                Trusted by Industry Leaders
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                Join successful companies who've transformed their hiring process and discovered exceptional talent with our AI-powered platform. From startups to enterprises, they trust our technology to find the perfect match.
+              </p>
+            </div>
+
+            {/* Logo Carousel */}
+            <div className="relative">
+              <div className="flex items-center justify-center">
+                <div className="w-96 h-40 flex items-center justify-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 dark:border-slate-700/60">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentLogoIndex}
+                      initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
+                      animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, rotateY: -90 }}
+                      transition={{ 
+                        duration: 0.6, 
+                        ease: "easeInOut",
+                        rotateY: { duration: 0.8 }
+                      }}
+                      className="flex items-center justify-center"
+                    >
+                      <img
+                        src={companyLogos[currentLogoIndex].logo}
+                        alt={companyLogos[currentLogoIndex].name}
+                        className="max-w-[200px] max-h-[80px] object-contain filter contrast-75 dark:brightness-90"
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Carousel Indicators */}
+              <div className="flex justify-center mt-6 space-x-2">
+                {companyLogos.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentLogoIndex(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      currentLogoIndex === index
+                        ? 'bg-blue-600 dark:bg-blue-400 scale-125 shadow-lg'
+                        : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Floating Success Indicators */}
+              <div className="absolute -top-4 -left-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Active Partners</span>
+                </div>
+              </div>
+              
+              <div className="absolute -top-4 -right-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span>Proven Results</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Success Stats */}
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.0 }}
+                className="text-center"
+              >
+                <div className="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">95%</div>
+                <div className="text-gray-600 dark:text-gray-400">Hiring Success Rate</div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.2 }}
+                className="text-center"
+              >
+                <div className="text-3xl md:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">60%</div>
+                <div className="text-gray-600 dark:text-gray-400">Time Reduction</div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.4 }}
+                className="text-center"
+              >
+                <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">98%</div>
+                <div className="text-gray-600 dark:text-gray-400">Client Satisfaction</div>
+              </motion.div>
             </div>
           </motion.div>
 
