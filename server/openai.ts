@@ -203,3 +203,80 @@ Respond with JSON in this exact format: { "score": number, "reasoning": "explana
     };
   }
 }
+
+export async function analyzeApplicantProfile(
+  applicantData: {
+    name: string;
+    email: string;
+    experience?: string;
+    skills?: string;
+    resume?: string;
+    coverLetter?: string;
+    location?: string;
+    salaryExpectation?: string;
+  },
+  jobTitle: string,
+  jobDescription: string,
+  requiredSkills?: string
+): Promise<{ profileScore: number; analysis: string; strengths: string[]; improvements: string[] }> {
+  try {
+    const profile = `
+    Name: ${applicantData.name}
+    Email: ${applicantData.email}
+    Location: ${applicantData.location || 'Not specified'}
+    Experience: ${applicantData.experience || 'Not provided'}
+    Skills: ${applicantData.skills || 'Not listed'}
+    Salary Expectation: ${applicantData.salaryExpectation || 'Not specified'}
+    Resume/Background: ${applicantData.resume || 'Not provided'}
+    Cover Letter: ${applicantData.coverLetter || 'Not provided'}
+    `;
+
+    const prompt = `
+    Analyze this job applicant's profile and provide a comprehensive assessment for the given position.
+    
+    JOB DETAILS:
+    Position: ${jobTitle}
+    Description: ${jobDescription}
+    Required Skills: ${requiredSkills || 'Not specified'}
+    
+    APPLICANT PROFILE:
+    ${profile}
+    
+    Please provide:
+    1. Profile Score: Rate from 1-100 based on overall qualification for this specific role (avoid round numbers like 70, 80, 90)
+    2. Analysis: 2-3 sentence summary of the applicant's fit for this role
+    3. Strengths: Top 3-4 strengths that make them a good candidate (array of strings)
+    4. Improvements: 2-3 areas for development or concerns (array of strings)
+    
+    Respond in JSON format: {
+      "profileScore": number,
+      "analysis": "detailed analysis text",
+      "strengths": ["strength1", "strength2", "strength3"],
+      "improvements": ["improvement1", "improvement2"]
+    }
+    `;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{}');
+    
+    return {
+      profileScore: Math.max(1, Math.min(100, result.profileScore || 50)),
+      analysis: result.analysis || "Analysis unavailable",
+      strengths: Array.isArray(result.strengths) ? result.strengths : ["Profile analysis pending"],
+      improvements: Array.isArray(result.improvements) ? result.improvements : ["Assessment in progress"]
+    };
+  } catch (error) {
+    console.error("Error analyzing applicant profile:", error);
+    return {
+      profileScore: 50,
+      analysis: "Error analyzing applicant profile",
+      strengths: ["Unable to analyze at this time"],
+      improvements: ["Profile analysis failed"]
+    };
+  }
+}

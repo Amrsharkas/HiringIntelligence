@@ -368,6 +368,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI-powered applicant profile analysis
+  app.post('/api/ai/analyze-applicant-profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const { applicantData, jobTitle, jobDescription, requiredSkills } = req.body;
+      const { analyzeApplicantProfile } = await import('./openai');
+      const analysis = await analyzeApplicantProfile(applicantData, jobTitle, jobDescription, requiredSkills);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing applicant profile:", error);
+      res.status(500).json({ message: "Failed to analyze applicant profile" });
+    }
+  });
+
   // Airtable discovery and testing routes
   app.get('/api/airtable/discover', isAuthenticated, async (req: any, res) => {
     try {

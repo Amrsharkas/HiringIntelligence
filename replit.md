@@ -155,6 +155,7 @@ Changelog:
 - July 08, 2025. Fixed database field reference issue (isActive vs is_active) for proper job querying and sync functionality
 - July 08, 2025. Successfully implemented complete auto-sync and auto-fill workflow - job postings now automatically sync to "platojobpostings" table and trigger AI-powered auto-fill of "platojobapplications" table when employers create new jobs
 - July 08, 2025. Resolved all Drizzle ORM field mapping issues and SQL syntax errors - system now properly detects active jobs and syncs them to Airtable with 15-second real-time updates
+- July 08, 2025. Added "View Profile" button to ApplicantsModal with comprehensive AI-powered profile analysis featuring 1-100 scoring system, detailed candidate assessment, key strengths identification, and development areas analysis using OpenAI GPT-4o
 ```
 
 ## User Preferences

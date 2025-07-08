@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video } from 'lucide-react';
+import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,9 @@ interface ApplicantsModalProps {
 export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps) {
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantData | null>(null);
   const [showInterviewScheduler, setShowInterviewScheduler] = useState(false);
+  const [showProfileAnalysis, setShowProfileAnalysis] = useState(false);
+  const [profileAnalysis, setProfileAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [interviewData, setInterviewData] = useState({
     scheduledDate: '',
     scheduledTime: '',
@@ -177,6 +180,57 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const handleScheduleInterview = (applicant: ApplicantData) => {
     setSelectedApplicant(applicant);
     setShowInterviewScheduler(true);
+  };
+
+  const handleViewProfile = async (applicant: ApplicantData) => {
+    setSelectedApplicant(applicant);
+    setShowProfileAnalysis(true);
+    setIsAnalyzing(true);
+    
+    try {
+      const response = await apiRequest("POST", "/api/ai/analyze-applicant-profile", {
+        applicantData: {
+          name: applicant.name,
+          email: applicant.email,
+          experience: applicant.experience,
+          skills: applicant.skills,
+          resume: applicant.resume,
+          coverLetter: applicant.coverLetter,
+          location: applicant.location,
+          salaryExpectation: applicant.salaryExpectation,
+        },
+        jobTitle: applicant.jobTitle,
+        jobDescription: applicant.jobDescription,
+        requiredSkills: applicant.skills,
+      });
+      const analysis = await response.json();
+      setProfileAnalysis(analysis);
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to analyze profile. Please try again.",
+        variant: "destructive",
+      });
+      setProfileAnalysis({
+        profileScore: 0,
+        analysis: "Unable to analyze profile at this time",
+        strengths: [],
+        improvements: []
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleSubmitInterview = () => {
@@ -326,33 +380,43 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                     )}
 
                     {/* Actions */}
-                    <div className="flex space-x-2">
-                      {applicant.status === 'pending' && (
-                        <>
+                    <div className="flex flex-col space-y-2">
+                      <button
+                        onClick={() => handleViewProfile(applicant)}
+                        className="w-full bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 flex items-center justify-center space-x-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>View Profile</span>
+                      </button>
+                      
+                      <div className="flex space-x-2">
+                        {applicant.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleAcceptApplicant(applicant)}
+                              disabled={acceptApplicantMutation.isPending}
+                              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {acceptApplicantMutation.isPending ? 'Accepting...' : 'Accept'}
+                            </button>
+                            <button
+                              onClick={() => handleDeclineApplicant(applicant)}
+                              disabled={declineApplicantMutation.isPending}
+                              className="flex-1 bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {declineApplicantMutation.isPending ? 'Declining...' : 'Decline'}
+                            </button>
+                          </>
+                        )}
+                        {applicant.status === 'accepted' && (
                           <button
-                            onClick={() => handleAcceptApplicant(applicant)}
-                            disabled={acceptApplicantMutation.isPending}
-                            className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => handleScheduleInterview(applicant)}
+                            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
                           >
-                            {acceptApplicantMutation.isPending ? 'Accepting...' : 'Accept'}
+                            Schedule Interview
                           </button>
-                          <button
-                            onClick={() => handleDeclineApplicant(applicant)}
-                            disabled={declineApplicantMutation.isPending}
-                            className="flex-1 bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {declineApplicantMutation.isPending ? 'Declining...' : 'Decline'}
-                          </button>
-                        </>
-                      )}
-                      {applicant.status === 'accepted' && (
-                        <button
-                          onClick={() => handleScheduleInterview(applicant)}
-                          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                        >
-                          Schedule Interview
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -462,6 +526,216 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                     className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {scheduleInterviewMutation.isPending ? 'Scheduling...' : 'Schedule Interview'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Profile Analysis Modal */}
+        <AnimatePresence>
+          {showProfileAnalysis && selectedApplicant && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60"
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full h-[90vh] mx-4 flex flex-col"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {selectedApplicant.name}
+                      </h2>
+                      <p className="text-gray-500 dark:text-gray-400">{selectedApplicant.jobTitle}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowProfileAnalysis(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {isAnalyzing ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Brain className="w-16 h-16 mx-auto text-blue-500 animate-pulse mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                          AI Analyzing Profile
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          Our AI is analyzing the candidate's profile for this position...
+                        </p>
+                      </div>
+                    </div>
+                  ) : profileAnalysis ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Left Column - Profile Details */}
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                            Profile Information
+                          </h3>
+                          <div className="space-y-4">
+                            <div className="flex items-center space-x-3">
+                              <Mail className="w-5 h-5 text-gray-400" />
+                              <span className="text-gray-600 dark:text-gray-300">{selectedApplicant.email}</span>
+                            </div>
+                            
+                            {selectedApplicant.location && (
+                              <div className="flex items-center space-x-3">
+                                <span className="text-gray-600 dark:text-gray-300">{selectedApplicant.location}</span>
+                              </div>
+                            )}
+
+                            {selectedApplicant.salaryExpectation && (
+                              <div>
+                                <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Salary Expectation</h4>
+                                <p className="text-gray-600 dark:text-gray-400">{selectedApplicant.salaryExpectation}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {selectedApplicant.skills && (
+                          <div>
+                            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Skills</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedApplicant.skills.split(/[,;\n]/).map((skill, index) => {
+                                const trimmedSkill = skill.trim();
+                                return trimmedSkill ? (
+                                  <span
+                                    key={index}
+                                    className="px-2 py-1 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-md text-sm"
+                                  >
+                                    {trimmedSkill}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedApplicant.experience && (
+                          <div>
+                            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</h4>
+                            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                              {selectedApplicant.experience}
+                            </p>
+                          </div>
+                        )}
+
+                        {selectedApplicant.coverLetter && (
+                          <div>
+                            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Cover Letter</h4>
+                            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                              {selectedApplicant.coverLetter}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Column - AI Analysis */}
+                      <div className="space-y-6">
+                        {/* AI Score */}
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                              <Brain className="w-5 h-5 text-blue-600" />
+                              <span>AI Profile Score</span>
+                            </h3>
+                            <div className="flex items-center space-x-2">
+                              <Star className="w-5 h-5 text-yellow-500" />
+                              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                                {profileAnalysis.profileScore}/100
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                            {profileAnalysis.analysis}
+                          </p>
+                        </div>
+
+                        {/* Strengths */}
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+                            <TrendingUp className="w-5 h-5 text-green-600" />
+                            <span>Key Strengths</span>
+                          </h4>
+                          <div className="space-y-2">
+                            {profileAnalysis.strengths.map((strength, index) => (
+                              <div
+                                key={index}
+                                className="flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
+                              >
+                                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-green-700 dark:text-green-300 text-sm">
+                                  {strength}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Areas for Improvement */}
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+                            <AlertTriangle className="w-5 h-5 text-orange-600" />
+                            <span>Development Areas</span>
+                          </h4>
+                          <div className="space-y-2">
+                            {profileAnalysis.improvements.map((improvement, index) => (
+                              <div
+                                key={index}
+                                className="flex items-start space-x-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg"
+                              >
+                                <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-orange-700 dark:text-orange-300 text-sm">
+                                  {improvement}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <AlertTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                          Analysis Failed
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          Unable to analyze the profile. Please try again.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex justify-end p-6 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowProfileAnalysis(false)}
+                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  >
+                    Close
                   </button>
                 </div>
               </motion.div>
