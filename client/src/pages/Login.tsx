@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Eye, EyeOff, Building2, Users, TrendingUp } from "lucide-react";
 
 export default function Login() {
@@ -22,6 +22,10 @@ export default function Login() {
       return await apiRequest("POST", "/api/auth/login", credentials);
     },
     onSuccess: () => {
+      // Invalidate auth queries to refresh authentication state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
+      
       toast({
         title: "Login successful",
         description: "Welcome back to your hiring dashboard",

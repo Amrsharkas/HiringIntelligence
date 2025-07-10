@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Eye, EyeOff, Building2, Users, TrendingUp, CheckCircle2 } from "lucide-react";
 
 export default function Signup() {
@@ -31,6 +31,10 @@ export default function Signup() {
       return await apiRequest("POST", "/api/auth/signup", userData);
     },
     onSuccess: () => {
+      // Invalidate auth queries to refresh authentication state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
+      
       toast({
         title: "Account created successfully",
         description: "Welcome to your hiring platform",
