@@ -28,10 +28,7 @@ export default function Signup() {
       lastName: string;
       password: string;
     }) => {
-      return await apiRequest("/api/auth/signup", {
-        method: "POST",
-        body: userData,
-      });
+      return await apiRequest("POST", "/api/auth/signup", userData);
     },
     onSuccess: () => {
       toast({
