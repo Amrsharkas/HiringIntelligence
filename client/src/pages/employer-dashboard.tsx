@@ -31,6 +31,7 @@ import { InterviewsModal } from "@/components/InterviewsModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 // Live components that refresh only their specific data without page reload
 const LiveJobCount = memo(() => {
@@ -193,9 +194,14 @@ export default function EmployerDashboard() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "GET" });
+      await apiRequest("POST", "/api/auth/logout", {});
+      // Clear all queries to ensure clean logout state
+      queryClient.clear();
       window.location.href = "/";
     } catch (error) {
+      console.error("Logout error:", error);
+      // Clear queries and redirect even on error
+      queryClient.clear();
       window.location.href = "/";
     }
   };
