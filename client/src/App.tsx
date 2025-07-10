@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
 import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
 import NotFound from "@/pages/not-found";
@@ -33,6 +35,8 @@ function Router() {
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
+          <Route path="/login" component={Login} />
+          <Route path="/signup" component={Signup} />
           <Route path="/employer-dashboard" component={Landing} />
           <Route path="/organization-setup" component={Landing} />
         </>

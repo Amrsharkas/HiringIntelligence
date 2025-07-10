@@ -48,7 +48,11 @@ export default function Landing() {
   const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    setLocation("/login");
+  };
+
+  const handleSignup = () => {
+    setLocation("/signup");
   };
 
   const companyLogos = [
@@ -129,7 +133,7 @@ export default function Landing() {
                 Login
               </Button>
               <Button
-                onClick={handleLogin}
+                onClick={handleSignup}
                 className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
                 Post a Job Now
@@ -177,7 +181,7 @@ export default function Landing() {
             </p>
             <div className="flex items-center justify-center space-x-6">
               <Button
-                onClick={handleLogin}
+                onClick={handleSignup}
                 size="lg"
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
               >
