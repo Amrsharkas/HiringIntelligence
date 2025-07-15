@@ -21,16 +21,27 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    name: 'connect.sid', // Explicitly set session name
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // Always false for development and local testing
       maxAge: sessionTtl,
+      sameSite: 'lax', // Helps with cookie handling
+      domain: undefined, // Let browser determine domain
+      path: '/', // Explicitly set path
     },
   });
 }
 
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
+  
+  // Debug middleware to check cookies
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path} - Cookies:`, req.headers.cookie);
+    next();
+  });
+  
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
@@ -87,6 +98,14 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = (req, res, next) => {
+  console.log('Session debug:', {
+    sessionID: req.sessionID,
+    session: req.session,
+    user: req.user,
+    isAuthenticated: req.isAuthenticated(),
+    cookies: req.headers.cookie
+  });
+
   if (req.isAuthenticated()) {
     return next();
   }
