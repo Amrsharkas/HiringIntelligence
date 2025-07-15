@@ -1,9 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, hashPassword, generateUserId } from "./auth";
-import passport from "passport";
-import { z } from "zod";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { airtableMatchingService } from "./airtableMatchingService";
@@ -15,110 +13,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Auth routes
-  const signupSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-    firstName: z.string().min(1),
-    lastName: z.string().min(1),
-  });
-
-  const loginSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(1),
-  });
-
-  app.post('/api/auth/signup', async (req, res) => {
-    try {
-      const { email, password, firstName, lastName } = signupSchema.parse(req.body);
-      
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: 'User already exists with this email' });
-      }
-
-      // Hash password and create user
-      const hashedPassword = await hashPassword(password);
-      const userId = generateUserId();
-      
-      const user = await storage.createUser({
-        id: userId,
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: 'employer',
-      });
-
-      // Log user in automatically
-      req.login(user, (err) => {
-        if (err) {
-          console.error('Login error:', err);
-          return res.status(500).json({ message: 'Error logging in after signup' });
-        }
-        res.json({ message: 'Account created successfully', user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
-      });
-    } catch (error) {
-      console.error('Signup error:', error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: 'Invalid input', errors: error.errors });
-      }
-      res.status(500).json({ message: 'Failed to create account' });
-    }
-  });
-
-  app.post('/api/auth/login', (req, res, next) => {
-    try {
-      loginSchema.parse(req.body);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: 'Invalid input', errors: error.errors });
-      }
-    }
-
-    passport.authenticate('local', (err: any, user: any, info: any) => {
-      if (err) {
-        console.error('Login error:', err);
-        return res.status(500).json({ message: 'Login failed' });
-      }
-      if (!user) {
-        return res.status(401).json({ message: info?.message || 'Invalid credentials' });
-      }
-      
-      req.login(user, (err) => {
-        if (err) {
-          console.error('Session error:', err);
-          return res.status(500).json({ message: 'Session creation failed' });
-        }
-        res.json({ message: 'Login successful', user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
-      });
-    })(req, res, next);
-  });
-
-  // Support both GET and POST for logout
-  const logoutHandler = (req: any, res: any) => {
-    req.logout((err: any) => {
-      if (err) {
-        console.error('Logout error:', err);
-        return res.status(500).json({ message: 'Logout failed' });
-      }
-      // Clear session completely
-      req.session.destroy((err: any) => {
-        if (err) {
-          console.error('Session destroy error:', err);
-        }
-        res.clearCookie('connect.sid');
-        res.json({ message: 'Logout successful' });
-      });
-    });
-  };
-
-  app.post('/api/auth/logout', logoutHandler);
-  app.get('/api/logout', logoutHandler);
-
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -141,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Organization routes
   app.post('/api/organizations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       console.log("Creating organization for user:", userId);
       console.log("Request body:", req.body);
       
@@ -163,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/organizations/join', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const { organizationId } = req.body;
       
       // Add user as member to the organization
@@ -182,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/organizations/current', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -198,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/companies/team', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -216,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Job posting routes
   app.post('/api/job-postings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -253,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/job-postings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -270,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/job-postings/count', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -357,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Applicants routes
   app.get('/api/applicants', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -415,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const applicantId = req.params.id;
       const { jobId, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       
       const interviewData = {
         jobId,
@@ -535,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all Airtable candidates (for general viewing)
   app.get('/api/candidates', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -590,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       
       // Get candidate info from request body
       const { candidateName, matchScore, matchReasoning } = req.body;
@@ -665,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       
       // Get candidate info from request body
       const { candidateName, matchScore, matchReasoning } = req.body;
@@ -702,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       
       const { candidateName, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
       
@@ -747,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/companies/matches', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
