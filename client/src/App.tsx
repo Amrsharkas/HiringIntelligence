@@ -15,13 +15,25 @@ import NotFound from "@/pages/not-found";
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
-  // Check if user has an organization
-  const { data: organization, isLoading: orgLoading } = useQuery({
+  // Check if user has an organization - only run if authenticated
+  const { data: organization, isLoading: orgLoading, error: orgError } = useQuery({
     queryKey: ["/api/organizations/current"],
     enabled: isAuthenticated && !!user,
     retry: false,
+    staleTime: 0, // Always refetch to ensure fresh data
   });
 
+  // Debug logging
+  console.log("Router state:", {
+    isAuthenticated,
+    isLoading,
+    user: user?.email,
+    organization: organization?.companyName,
+    orgLoading,
+    orgError
+  });
+
+  // Show loading while checking authentication or organization
   if (isLoading || (isAuthenticated && orgLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
