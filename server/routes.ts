@@ -7,6 +7,7 @@ import { generateJobDescription, generateJobRequirements, extractTechnicalSkills
 import { airtableMatchingService } from "./airtableMatchingService";
 import { airtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
+import { fullCleanup } from "./cleanupCandidates";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -742,6 +743,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         message: 'Airtable connection failed',
         error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Cleanup route for testing - removes all candidates but keeps job postings
+  app.post('/api/cleanup-candidates', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('🧹 Starting cleanup process...');
+      await fullCleanup();
+      res.json({ 
+        success: true, 
+        message: 'All candidates, job matches, and job applications have been cleared. Job postings remain unchanged.' 
+      });
+    } catch (error) {
+      console.error('❌ Cleanup failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Cleanup failed', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
   });
