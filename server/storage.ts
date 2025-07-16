@@ -137,7 +137,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(jobs)
-      .where(eq(jobs.organizationId, organizationId))
+      .where(and(eq(jobs.organizationId, organizationId), eq(jobs.isActive, true)))
       .orderBy(desc(jobs.createdAt));
   }
 
@@ -170,7 +170,7 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db
       .select({ count: sql<number>`count(*)` })
       .from(jobs)
-      .where(eq(jobs.organizationId, organizationId));
+      .where(and(eq(jobs.organizationId, organizationId), eq(jobs.isActive, true)));
     
     return result?.count || 0;
   }

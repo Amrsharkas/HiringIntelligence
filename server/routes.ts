@@ -199,6 +199,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/job-postings/:id', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      
+      console.log(`🗑️  User ${userId} attempting to delete job ${jobId}`);
+      
+      // Validate job ID
+      if (isNaN(jobId) || jobId <= 0) {
+        console.error('Invalid job ID:', req.params.id);
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+      
+      // Check if job exists and belongs to user's organization
+      const job = await storage.getJobById(jobId);
+      if (!job) {
+        console.error('Job not found:', jobId);
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Verify user has permission to delete this job
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization || job.organizationId !== organization.id) {
+        console.error('User does not have permission to delete this job');
+        return res.status(403).json({ message: "You don't have permission to delete this job" });
+      }
+      
+      console.log(`✅ Job ${jobId} found and user has permission. Proceeding with deletion...`);
+      
+      // Delete from database first (mark as inactive)
+      await storage.deleteJob(jobId);
+      console.log(`✅ Job ${jobId} marked as inactive in database`);
       
       // Delete from all Airtable tables (async, don't wait for completion)
       const deleteFromAirtable = async () => {
@@ -209,28 +238,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Delete applicants for this job
           await applicantsAirtableService.deleteApplicantsByJobId(jobId);
+          console.log(`✅ Deleted applicants for job ${jobId} from Airtable`);
           
           // Delete job matches (platojobmatches table)
           await airtableService.deleteJobMatchesByJobId(jobId);
+          console.log(`✅ Deleted job matches for job ${jobId} from Airtable`);
           
           // Delete job posting (platojobpostings table)
           await jobPostingsAirtableService.deleteJobPostingByJobId(jobId);
+          console.log(`✅ Deleted job posting ${jobId} from Airtable`);
           
-          console.log(`Successfully deleted job ${jobId} from all Airtable tables`);
+          console.log(`🎉 Successfully deleted job ${jobId} from all Airtable tables`);
         } catch (error) {
-          console.error(`Error deleting job ${jobId} from Airtable tables:`, error);
+          console.error(`❌ Error deleting job ${jobId} from Airtable tables:`, error);
         }
       };
       
-      // Delete from database first
-      await storage.deleteJob(jobId);
-      
-      // Then delete from Airtable (async, don't wait)
+      // Start Airtable deletion (async, don't wait)
       deleteFromAirtable();
       
       res.json({ message: "Job deleted successfully" });
     } catch (error) {
-      console.error("Error deleting job:", error);
+      console.error("❌ Error deleting job:", error);
       res.status(500).json({ message: "Failed to delete job posting" });
     }
   });

@@ -111,12 +111,10 @@ export class JobPostingsAirtableService {
         return [];
       }
       
-      const allJobs = await storage.getJobsByOrganization(allOrgs.id);
-      const activeJobs = allJobs.filter(job => job.is_active !== false);
+      const activeJobs = await storage.getJobsByOrganization(allOrgs.id);
       
-      console.log(`📊 Found ${allJobs.length} total jobs, ${activeJobs.length} active jobs for org ${allOrgs.id}`);
-      console.log('All jobs with is_active values:', allJobs.map(j => ({ id: j.id, title: j.title, isActive: j.is_active, type: typeof j.is_active })));
-      console.log('Active jobs:', activeJobs.map(j => ({ id: j.id, title: j.title, isActive: j.is_active })));
+      console.log(`📊 Found ${activeJobs.length} active jobs for org ${allOrgs.id}`);
+      console.log('Active jobs:', activeJobs.map(j => ({ id: j.id, title: j.title, isActive: j.isActive })));
       
       // Get organization data
       const companyName = allOrgs.companyName || 'Unknown Company';
