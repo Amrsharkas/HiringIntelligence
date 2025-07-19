@@ -577,6 +577,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔄 Creating job match for ${applicantData.name} -> ${jobMatchData.title} at ${companyName}`);
       await jobMatchesService.createJobMatch(applicantData, jobMatchData, companyName);
       
+      // Store accepted applicant locally for interview scheduling
+      if (organization) {
+        // Get candidate email from user profile
+        let candidateEmail = '';
+        try {
+          const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService();
+          const userProfile = await realApplicantsService.getCandidateProfile(applicantData.userId);
+          candidateEmail = userProfile?.Email || '';
+        } catch (error) {
+          console.warn(`Could not fetch email for candidate ${applicantData.userId}:`, error);
+        }
+        
+        await storage.addAcceptedApplicant({
+          candidateId: applicantData.userId,
+          candidateName: applicantData.name,
+          candidateEmail: candidateEmail,
+          jobId: applicant.jobId,
+          jobTitle: jobMatchData.title,
+          organizationId: organization.id,
+          acceptedBy: userId,
+        });
+        console.log(`💾 Stored accepted applicant ${applicantData.name} locally for interview scheduling`);
+      }
+      
       // Update status in applications table instead of deleting
       console.log(`✅ Updating applicant ${applicantId} status to accepted in platojobapplications table...`);
       await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
@@ -779,6 +803,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               'Authorization': `Bearer ${'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0'}`,
             }
           });
+        }
+      }
+      
+      // Remove from local accepted applicants storage
+      const user = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(user);
+      if (organization) {
+        try {
+          await storage.removeAcceptedApplicant(userId, req.params.id, organization.id);
+          console.log(`💾 Removed applicant ${applicantName} from local accepted applicants storage`);
+        } catch (error) {
+          console.warn(`⚠️ Could not remove from local storage: ${error}`);
         }
       }
       
@@ -1550,7 +1586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get accepted applicants from platojobmatches table filtered by company name
+  // Get accepted applicants for CreateInterviewModal (from local database)
   app.get('/api/accepted-applicants', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1560,58 +1596,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const companyName = organization.companyName;
-      console.log(`🔍 Fetching accepted applicants for company: ${companyName}`);
+      console.log(`🔍 Fetching locally stored accepted applicants for organization: ${organization.companyName}`);
       
-      // Fetch from platojobmatches table filtered by company name
-      const jobMatchesService = new (await import('./jobMatchesAirtableService')).JobMatchesAirtableService();
-      const jobMatches = await jobMatchesService.getJobMatches();
+      // Get accepted applicants from local database
+      const acceptedApplicants = await storage.getAcceptedApplicantsByOrganization(organization.id);
       
-      console.log(`📊 Found ${jobMatches.length} total job matches in platojobmatches table`);
-      console.log('Job matches:', jobMatches.map(m => ({ 
-        name: m.fields?.['Name'], 
-        companyName: m.fields?.['Company name'], 
-        jobTitle: m.fields?.['Job title'] 
-      })));
-      
-      // Get profile service to fetch email addresses
-      const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService();
-      
-      // Filter by company name (if field exists) or return all if no company name is set
-      const matchedApplicants = jobMatches.filter(match => {
-        const recordCompanyName = match.fields?.['Company name'];
-        return recordCompanyName === companyName || !recordCompanyName; // Include records without company name
-      });
-      
-      const acceptedApplicants = await Promise.all(
-        matchedApplicants.map(async (match) => {
-          const userId = match.fields?.['User ID'];
-          let email = '';
-          
-          // Fetch email from user profile if userId exists
-          if (userId) {
-            try {
-              const profiles = await realApplicantsService.getAllProfiles();
-              const userProfile = profiles.find(profile => profile.fields?.['User ID'] === userId);
-              email = userProfile?.fields?.['Email'] || '';
-            } catch (error) {
-              console.log(`Failed to fetch email for user ${userId}:`, error);
-            }
-          }
-          
-          return {
-            id: userId || match.id,
-            name: match.fields?.['Name'] || 'Unknown',
-            jobTitle: match.fields?.['Job title'] || 'Unknown Job',
-            userId: userId,
-            jobId: match.fields?.['Job ID'] || '',
-            email: email,
-          };
-        })
-      );
+      console.log(`✅ Found ${acceptedApplicants.length} locally stored accepted applicants`);
 
-      console.log(`✅ Found ${acceptedApplicants.length} accepted applicants for ${companyName}`);
-      res.json(acceptedApplicants);
+      // Transform to expected format for the interview modal
+      const formattedApplicants = acceptedApplicants.map(applicant => ({
+        id: applicant.candidateId,
+        name: applicant.candidateName,
+        jobTitle: applicant.jobTitle,
+        userId: applicant.candidateId,
+        jobId: applicant.jobId,
+        email: applicant.candidateEmail || '',
+      }));
+
+      res.json(formattedApplicants);
     } catch (error) {
       console.error("Error fetching accepted applicants:", error);
       res.status(500).json({ message: "Failed to fetch accepted applicants" });

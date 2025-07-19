@@ -182,6 +182,19 @@ export const interviewsRelations = relations(interviews, ({ one }) => ({
   createdBy: one(users, { fields: [interviews.createdBy], references: [users.id] }),
 }));
 
+// Accepted applicants - Local storage for accepted candidates
+export const acceptedApplicants = pgTable("accepted_applicants", {
+  id: serial("id").primaryKey(),
+  candidateId: varchar("candidate_id").notNull(), // User ID from Airtable
+  candidateName: varchar("candidate_name").notNull(),
+  candidateEmail: varchar("candidate_email"),
+  jobId: varchar("job_id").notNull(),
+  jobTitle: varchar("job_title").notNull(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  acceptedBy: varchar("accepted_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Real interviews table for scheduling
 export const realInterviews = pgTable("real_interviews", {
   id: varchar("id").primaryKey().notNull(),
@@ -205,6 +218,8 @@ export const realInterviews = pgTable("real_interviews", {
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type AcceptedApplicant = typeof acceptedApplicants.$inferSelect;
+export type InsertAcceptedApplicant = typeof acceptedApplicants.$inferInsert;
 export type RealInterview = typeof realInterviews.$inferSelect;
 export type InsertRealInterview = typeof realInterviews.$inferInsert;
 

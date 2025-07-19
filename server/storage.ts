@@ -7,6 +7,7 @@ import {
   matches,
   candidateApplications,
   interviews,
+  acceptedApplicants,
   type User,
   type UpsertUser,
   type Organization,
@@ -20,6 +21,8 @@ import {
   type InsertCandidateApplication,
   type Interview,
   type InsertInterview,
+  type AcceptedApplicant,
+  type InsertAcceptedApplicant,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -64,6 +67,11 @@ export interface IStorage {
   createInterview(interview: InsertInterview): Promise<Interview>;
   getInterviewsByJob(jobId: number): Promise<Interview[]>;
   updateInterview(id: number, interview: Partial<InsertInterview>): Promise<Interview>;
+  
+  // Accepted applicants operations
+  addAcceptedApplicant(applicant: InsertAcceptedApplicant): Promise<AcceptedApplicant>;
+  getAcceptedApplicantsByOrganization(organizationId: number): Promise<AcceptedApplicant[]>;
+  removeAcceptedApplicant(candidateId: string, jobId: string, organizationId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -307,6 +315,31 @@ export class DatabaseStorage implements IStorage {
       .where(eq(interviews.id, id))
       .returning();
     return interview;
+  }
+
+  // Accepted applicants operations
+  async addAcceptedApplicant(applicantData: InsertAcceptedApplicant): Promise<AcceptedApplicant> {
+    const [applicant] = await db.insert(acceptedApplicants).values(applicantData).returning();
+    return applicant;
+  }
+
+  async getAcceptedApplicantsByOrganization(organizationId: number): Promise<AcceptedApplicant[]> {
+    const applicants = await db
+      .select()
+      .from(acceptedApplicants)
+      .where(eq(acceptedApplicants.organizationId, organizationId))
+      .orderBy(desc(acceptedApplicants.createdAt));
+    return applicants;
+  }
+
+  async removeAcceptedApplicant(candidateId: string, jobId: string, organizationId: number): Promise<void> {
+    await db
+      .delete(acceptedApplicants)
+      .where(and(
+        eq(acceptedApplicants.candidateId, candidateId),
+        eq(acceptedApplicants.jobId, jobId),
+        eq(acceptedApplicants.organizationId, organizationId)
+      ));
   }
 }
 
