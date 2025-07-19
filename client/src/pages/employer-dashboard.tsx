@@ -30,6 +30,7 @@ import { TeamManagementModal } from "@/components/TeamManagementModal";
 import { MessagingModal } from "@/components/MessagingModal";
 
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
+import { InterviewManagementModal } from "@/components/InterviewManagementModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -199,6 +200,7 @@ export default function EmployerDashboard() {
   const [isMessagingModalOpen, setIsMessagingModalOpen] = useState(false);
 
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
+  const [isInterviewManagementModalOpen, setIsInterviewManagementModalOpen] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -409,9 +411,9 @@ export default function EmployerDashboard() {
               { 
                 label: "Interviews", 
                 component: <StatNumber value={teamMembers?.length || 0} />,
-                icon: MessageSquare, 
+                icon: Calendar, 
                 color: "orange",
-                onClick: () => setIsCreateInterviewModalOpen(true)
+                onClick: () => setIsInterviewManagementModalOpen(true)
               }
             ], [matches?.length, teamMembers?.length]).map((stat, index) => (
               <InteractiveCard
@@ -476,10 +478,10 @@ export default function EmployerDashboard() {
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-left hover:bg-orange-50 dark:hover:bg-orange-900/30"
-                  onClick={() => setIsCreateInterviewModalOpen(true)}
+                  onClick={() => setIsInterviewManagementModalOpen(true)}
                 >
                   <Calendar className="w-4 h-4 text-orange-600 dark:text-orange-400 mr-3" />
-                  Create Interview
+                  Manage Interviews
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -560,6 +562,10 @@ export default function EmployerDashboard() {
       <CreateInterviewModal 
         isOpen={isCreateInterviewModalOpen} 
         onClose={() => setIsCreateInterviewModalOpen(false)} 
+      />
+      <InterviewManagementModal 
+        isOpen={isInterviewManagementModalOpen} 
+        onClose={() => setIsInterviewManagementModalOpen(false)} 
       />
     </div>
   );

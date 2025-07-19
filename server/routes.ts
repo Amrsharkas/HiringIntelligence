@@ -1611,7 +1611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/interviews/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/interviews/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
@@ -1626,16 +1626,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realInterviews } = await import('@shared/schema');
       const { eq, and } = await import('drizzle-orm');
       
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+      
+      if (scheduledDate !== undefined) updateData.scheduledDate = scheduledDate;
+      if (scheduledTime !== undefined) updateData.scheduledTime = scheduledTime;
+      if (interviewType !== undefined) updateData.interviewType = interviewType;
+      if (meetingLink !== undefined) updateData.meetingLink = meetingLink;
+      if (notes !== undefined) updateData.notes = notes;
+      if (status !== undefined) updateData.status = status;
+
       const [updatedInterview] = await db.update(realInterviews)
-        .set({
-          scheduledDate,
-          scheduledTime,
-          interviewType,
-          meetingLink,
-          notes,
-          status,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(and(
           eq(realInterviews.id, interviewId),
           eq(realInterviews.organizationId, organization.id.toString())
@@ -1644,6 +1647,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!updatedInterview) {
         return res.status(404).json({ message: "Interview not found" });
+      }
+
+      // Update Airtable if date/time or meeting link changed
+      if (scheduledDate !== undefined || scheduledTime !== undefined || meetingLink !== undefined) {
+        try {
+          const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+          const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
+          const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
+          
+          const filterFormula = `AND({User ID}='${updatedInterview.candidateId}', {Job ID}='${updatedInterview.jobId}')`;
+          const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+          
+          const searchResponse = await fetch(searchUrl, {
+            headers: {
+              'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            if (searchData.records && searchData.records.length > 0) {
+              const recordId = searchData.records[0].id;
+              const interviewDateTime = `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime}`;
+              
+              const airtableUpdateData = {
+                fields: {
+                  'Interview date&time': interviewDateTime,
+                  'Interview Link': updatedInterview.meetingLink || ''
+                }
+              };
+
+              await fetch(`${matchesUrl}/${recordId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(airtableUpdateData)
+              });
+
+              console.log(`✅ Updated Airtable record with interview changes`);
+            }
+          }
+        } catch (airtableError) {
+          console.error('❌ Failed to update Airtable with interview changes:', airtableError);
+        }
       }
 
       res.json(updatedInterview);
