@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -53,15 +53,11 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: applicants = [], isLoading, refetch, isFetching } = useQuery({
+  const { data: applicants = [], isLoading, refetch } = useQuery({
     queryKey: jobId ? ['/api/real-applicants', jobId] : ['/api/real-applicants'],
     enabled: isOpen,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 60000, // Refetch every minute
   });
-
-  const handleRefresh = () => {
-    refetch();
-  };
 
   const acceptApplicantMutation = useMutation({
     mutationFn: async (applicant: ApplicantData) => {
@@ -280,42 +276,22 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full h-[90vh] mx-4 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {jobId ? 'Job Applicants' : 'All Applicants'}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Real applications with AI match scores
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              disabled={isFetching}
-              className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {jobId ? 'Job Applicants' : 'All Applicants'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400">Loading applicants...</p>
-              </div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : applicants.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -326,12 +302,6 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
             </div>
           ) : (
             <div className="h-full overflow-y-auto p-6">
-              {isFetching && !isLoading && (
-                <div className="flex items-center justify-center py-2 mb-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400 mr-2" />
-                  <span className="text-sm text-blue-600 dark:text-blue-400">Refreshing applicants...</span>
-                </div>
-              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {applicants.map((applicant: ApplicantData) => (
                   <motion.div
