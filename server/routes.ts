@@ -501,6 +501,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real applicants - Accept candidate (move from platojobapplications to platojobmatches)
+  app.post('/api/real-applicants/:id/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const userId = req.user.claims.sub;
+      
+      console.log(`🎯 Accepting applicant ${applicantId}...`);
+      
+      // Get applicant data from platojobapplications
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
+      
+      if (!applicant) {
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+      
+      // Get job data
+      const job = await storage.getJob(parseInt(applicant.jobId));
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Get organization
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      // Create job match record
+      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
+      const jobMatchesService = new JobMatchesAirtableService();
+      
+      const applicantData = {
+        name: applicant.name,
+        userId: applicant.userId || applicantId,
+        id: applicantId
+      };
+      
+      const jobData = {
+        title: job.title,
+        description: job.description
+      };
+      
+      await jobMatchesService.createJobMatch(applicantData, jobData, organization.companyName);
+      
+      // Delete from applications table
+      await jobMatchesService.deleteFromApplicationsTable(applicantId);
+      
+      console.log(`✅ Successfully accepted applicant ${applicantId}`);
+      res.json({ message: "Applicant accepted and moved to job matches" });
+      
+    } catch (error) {
+      console.error("Error accepting applicant:", error);
+      res.status(500).json({ 
+        message: "Failed to accept applicant",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Real applicants - Decline candidate (delete from platojobapplications)
+  app.post('/api/real-applicants/:id/decline', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      
+      console.log(`❌ Declining applicant ${applicantId}...`);
+      
+      // Delete from applications table
+      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
+      const jobMatchesService = new JobMatchesAirtableService();
+      
+      await jobMatchesService.deleteFromApplicationsTable(applicantId);
+      
+      console.log(`✅ Successfully declined applicant ${applicantId}`);
+      res.json({ message: "Applicant declined and removed from applications" });
+      
+    } catch (error) {
+      console.error("Error declining applicant:", error);
+      res.status(500).json({ 
+        message: "Failed to decline applicant",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // AI-powered applicant profile analysis
   app.post('/api/ai/analyze-applicant-profile', isAuthenticated, async (req: any, res) => {
     try {

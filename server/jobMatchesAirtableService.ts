@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 
 const AIRTABLE_BASE_ID = 'app1u4N2W46jD43mP';
-const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY || 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
 
 if (!AIRTABLE_API_KEY) {
   console.error('AIRTABLE_API_KEY environment variable is not set');
@@ -65,6 +65,73 @@ export class JobMatchesAirtableService {
 
     } catch (error) {
       console.error('Error updating interview details in platojobmatches:', error);
+      throw error;
+    }
+  }
+
+  async createJobMatch(applicantData: any, jobData: any, companyName: string) {
+    try {
+      console.log(`📝 Creating job match record for applicant: ${applicantData.name}`);
+      
+      const jobMatchData = {
+        fields: {
+          'Name': applicantData.name || 'Unknown',
+          'User ID': applicantData.userId || applicantData.id,
+          'Job title': jobData.title,
+          'Job Description': jobData.description || '',
+          'Company name': companyName
+        }
+      };
+
+      console.log('Job match data:', jobMatchData);
+
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(jobMatchData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Airtable API error: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`Failed to create job match: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const createdRecord = await response.json();
+      console.log(`✅ Successfully created job match record with ID: ${createdRecord.id}`);
+      return createdRecord;
+    } catch (error) {
+      console.error('Error creating job match in platojobmatches:', error);
+      throw error;
+    }
+  }
+
+  async deleteFromApplicationsTable(applicantId: string) {
+    try {
+      console.log(`🗑️ Deleting applicant record ${applicantId} from platojobapplications...`);
+      
+      const applicationsUrl = `https://api.airtable.com/v0/appEYs1fTytFXoJ7x/platojobapplications/${applicantId}`;
+      
+      const response = await fetch(applicationsUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Airtable delete error: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`Failed to delete applicant: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      console.log(`✅ Successfully deleted applicant ${applicantId} from platojobapplications`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting applicant from platojobapplications:', error);
       throw error;
     }
   }

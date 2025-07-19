@@ -166,6 +166,51 @@ class RealApplicantsAirtableService {
     }
   }
 
+  async getApplicantById(applicantId: string): Promise<ApplicantWithProfile | null> {
+    try {
+      console.log(`Fetching applicant ${applicantId} from platojobapplications table...`);
+      
+      const response = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${applicantId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+      }
+
+      const record: AirtableApplicantRecord = await response.json();
+      
+      // Transform record to our format
+      const applicant: ApplicantWithProfile = {
+        id: record.id,
+        name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
+        userId: record.fields['User ID'] || '',
+        jobTitle: record.fields['Job title'] || '',
+        jobDescription: record.fields['Job description'] || '',
+        companyName: record.fields['Company name'] || '',
+        jobId: record.fields['Job ID'] || '',
+        userProfile: record.fields['User profile'] || '',
+        notes: record.fields['Notes'] || '',
+        applicationDate: record.createdTime
+      };
+
+      return applicant;
+
+    } catch (error) {
+      console.error('Error fetching applicant by ID from Airtable:', error);
+      throw error;
+    }
+  }
+
   async deleteApplicant(recordId: string): Promise<void> {
     try {
       console.log(`Deleting applicant record ${recordId}...`);
