@@ -498,7 +498,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                       </button>
                       
                       <div className="flex space-x-2">
-                        {applicant.status === 'pending' && (
+                        {(!applicant.status || applicant.status === 'pending') && (
                           <>
                             <button
                               onClick={() => handleAcceptApplicant(applicant)}
