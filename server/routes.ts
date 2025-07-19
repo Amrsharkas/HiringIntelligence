@@ -1540,9 +1540,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`✅ Created interview for ${candidateName} on ${scheduledDate} at ${scheduledTime}`);
 
-      // Note: Interview details are stored in local database only
-      // The platojobmatches Airtable table doesn't have interview fields
-      console.log(`ℹ️  Interview details stored locally in database. Airtable sync skipped as platojobmatches table lacks interview columns.`);
+      // Update the Airtable platojobmatches record with interview details
+      try {
+        const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+        const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
+        const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
+        
+        // Find the platojobmatches record to update
+        const filterFormula = `AND({User ID}='${candidateId}', {Job ID}='${jobId}')`;
+        const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+        
+        console.log(`🔍 Searching for platojobmatches record: User ID=${candidateId}, Job ID=${jobId}`);
+        
+        const searchResponse = await fetch(searchUrl, {
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          if (searchData.records && searchData.records.length > 0) {
+            const recordId = searchData.records[0].id;
+            console.log(`📝 Found record ID: ${recordId}, updating with interview details...`);
+            
+            // Create combined date & time string for Airtable
+            const interviewDateTime = `${scheduledDate} at ${scheduledTime}`;
+            
+            // Update the record with interview details using correct field names
+            const updateData = {
+              fields: {
+                'Interview date&time': interviewDateTime,
+                'Interview Link': meetingLink || ''
+              }
+            };
+
+            console.log(`📋 Updating Airtable with:`, JSON.stringify(updateData, null, 2));
+
+            const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(updateData)
+            });
+
+            if (updateResponse.ok) {
+              console.log(`✅ Successfully updated Airtable platojobmatches record with interview details`);
+            } else {
+              const errorText = await updateResponse.text();
+              console.error(`❌ Failed to update Airtable record: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`);
+            }
+          } else {
+            console.log(`⚠️ No platojobmatches record found for User ID ${candidateId} and Job ID ${jobId}`);
+          }
+        } else {
+          console.error(`❌ Failed to search Airtable records: ${searchResponse.status} ${searchResponse.statusText}`);
+        }
+      } catch (airtableError) {
+        console.error('❌ Failed to update platojobmatches with interview details:', airtableError);
+        // Don't fail the entire operation if Airtable update fails
+      }
 
       res.json(interview);
     } catch (error) {
