@@ -32,8 +32,9 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
   });
 
   // Fetch accepted applicants for the selected job from platojobmatches table
-  const { data: acceptedApplicants = [] } = useQuery({
-    queryKey: [`/api/accepted-applicants/${selectedJob}`],
+  const { data: acceptedApplicants = [], isLoading: isLoadingApplicants } = useQuery({
+    queryKey: ['/api/accepted-applicants', selectedJob],
+    queryFn: () => fetch(`/api/accepted-applicants/${selectedJob}`).then(res => res.json()),
     enabled: isOpen && !!selectedJob,
   });
 
@@ -185,7 +186,12 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
                     </option>
                   ))}
                 </select>
-                {acceptedApplicants.length === 0 && (
+                {isLoadingApplicants && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Loading accepted applicants...
+                  </p>
+                )}
+                {!isLoadingApplicants && acceptedApplicants.length === 0 && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     No accepted applicants found for this job position.
                   </p>

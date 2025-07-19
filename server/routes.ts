@@ -1643,13 +1643,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`🔍 Fetching accepted applicants from platojobmatches table for Job ID: ${jobId}, Organization: ${organization.companyName}`);
+      console.log(`Using Airtable API Key: ${AIRTABLE_API_KEY.substring(0, 10)}...`);
+      console.log(`Using Base ID: ${MATCHES_BASE_ID}`);
       
       // Get accepted applicants from platojobmatches table filtered by Job ID and Company
-      const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-      const MATCHES_BASE_ID = process.env.AIRTABLE_MATCHES_BASE_ID || 'appCjIvd73lvp0oLf';
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP'; // Correct base ID for platojobmatches
       const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
       
-      const response = await fetch(`${matchesUrl}?filterByFormula=AND({Company name}='${organization.companyName}', {Job ID}='${jobId}')`, {
+      const filterFormula = `AND({Company name}='${organization.companyName}', {Job ID}='${jobId}')`;
+      const fullUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+      console.log(`Making request to: ${fullUrl}`);
+      console.log(`Filter formula: ${filterFormula}`);
+
+      const response = await fetch(fullUrl, {
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json'
@@ -1691,8 +1698,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-      const MATCHES_BASE_ID = process.env.AIRTABLE_MATCHES_BASE_ID || 'appCjIvd73lvp0oLf';
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP'; // Correct base ID for platojobmatches  
       const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
       
       // Get first active job to get the correct Job ID
