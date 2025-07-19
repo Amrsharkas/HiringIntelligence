@@ -15,6 +15,7 @@ interface AirtableApplicantRecord {
     'Job ID': string;
     'User profile'?: string;
     'Notes'?: string;
+    'Status'?: string;
   };
   createdTime: string;
 }
@@ -34,6 +35,7 @@ interface ApplicantWithProfile {
   jobId: string;
   userProfile?: string;
   notes?: string;
+  status?: string;
   applicationDate: string;
   matchScore?: number;
   matchSummary?: string;
@@ -61,8 +63,8 @@ class RealApplicantsAirtableService {
         const params = new URLSearchParams();
         if (offset) params.append('offset', offset);
         
-        // Filter by Job ID
-        params.append('filterByFormula', `{Job ID} = "${jobId}"`);
+        // Filter by Job ID and only show pending applicants (not accepted or denied)
+        params.append('filterByFormula', `AND({Job ID} = "${jobId}", OR({Status} = "", {Status} = "pending", {Status} = BLANK()))`);
         
         const response = await fetch(
           `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
@@ -116,10 +118,13 @@ class RealApplicantsAirtableService {
       let allRecords: AirtableApplicantRecord[] = [];
       let offset: string | undefined;
 
-      // Get all records
+      // Get all pending records (not accepted or denied)
       do {
         const params = new URLSearchParams();
         if (offset) params.append('offset', offset);
+        
+        // Filter to only show pending applicants
+        params.append('filterByFormula', `OR({Status} = "", {Status} = "pending", {Status} = BLANK())`);
         
         const response = await fetch(
           `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
@@ -155,6 +160,7 @@ class RealApplicantsAirtableService {
         jobId: record.fields['Job ID'] || '',
         userProfile: record.fields['User profile'] || '',
         notes: record.fields['Notes'] || '',
+        status: record.fields['Status'] || 'pending',
         applicationDate: record.createdTime
       }));
 
@@ -200,6 +206,7 @@ class RealApplicantsAirtableService {
         jobId: record.fields['Job ID'] || '',
         userProfile: record.fields['User profile'] || '',
         notes: record.fields['Notes'] || '',
+        status: record.fields['Status'] || 'pending',
         applicationDate: record.createdTime
       };
 
@@ -207,6 +214,40 @@ class RealApplicantsAirtableService {
 
     } catch (error) {
       console.error('Error fetching applicant by ID from Airtable:', error);
+      throw error;
+    }
+  }
+
+  async updateApplicantStatus(recordId: string, status: 'accepted' | 'denied'): Promise<void> {
+    try {
+      console.log(`Updating applicant ${recordId} status to ${status}...`);
+      
+      const response = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fields: {
+              'Status': status === 'accepted' ? 'Accepted' : 'Denied'
+            }
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update applicant status: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ Successfully updated applicant ${recordId} status to ${status}`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating applicant status:', error);
       throw error;
     }
   }

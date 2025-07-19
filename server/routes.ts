@@ -339,10 +339,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let applicants;
       if (jobId) {
-        console.log(`Fetching applicants for job ${jobId}`);
+        console.log(`Fetching pending applicants for job ${jobId}`);
         applicants = await realApplicantsAirtableService.getApplicantsByJobId(jobId);
       } else {
-        console.log('Fetching all applicants for organization');
+        console.log('Fetching all pending applicants for organization');
         applicants = await realApplicantsAirtableService.getAllApplicants();
         // Filter to only show applicants for this organization's jobs
         const organizationJobs = await storage.getJobsByOrganization(organization.id);
@@ -568,13 +568,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔄 Creating job match for ${applicantData.name} -> ${jobMatchData.title} at ${companyName}`);
       await jobMatchesService.createJobMatch(applicantData, jobMatchData, companyName);
       
-      // Delete from applications table
-      console.log(`🗑️ Removing applicant ${applicantId} from platojobapplications...`);
-      await jobMatchesService.deleteFromApplicationsTable(applicantId);
+      // Update status in applications table instead of deleting
+      console.log(`✅ Updating applicant ${applicantId} status to accepted in platojobapplications table...`);
+      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
       
       console.log(`✅ Successfully accepted applicant ${applicantId}`);
       res.json({ 
-        message: "Applicant accepted and moved to job matches",
+        message: "Applicant accepted - status updated and job match created",
         applicantName: applicantData.name,
         jobTitle: jobMatchData.title,
         undoData: {
@@ -597,7 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Real applicants - Decline candidate (delete from platojobapplications)
+  // Real applicants - Decline candidate (update status in platojobapplications)
   app.post('/api/real-applicants/:id/decline', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
@@ -615,15 +615,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn(`⚠️ Could not fetch applicant name: ${error}`);
       }
       
-      // Delete from applications table
-      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-      const jobMatchesService = new JobMatchesAirtableService();
-      
-      await jobMatchesService.deleteFromApplicationsTable(applicantId);
+      // Update status in applications table instead of deleting
+      console.log(`❌ Updating applicant ${applicantId} status to denied in platojobapplications table...`);
+      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'denied');
       
       console.log(`✅ Successfully declined applicant ${applicantName} (${applicantId})`);
       res.json({ 
-        message: "Applicant declined and removed from applications",
+        message: "Applicant declined - status updated",
         applicantName: applicantName,
         undoData: {
           applicantId,
