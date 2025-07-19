@@ -32,13 +32,7 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
 
   const createInterviewMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('/api/interviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      return apiRequest('POST', '/api/interviews', data);
     },
     onSuccess: () => {
       toast({
