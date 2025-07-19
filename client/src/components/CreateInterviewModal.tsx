@@ -32,10 +32,18 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
   });
 
   // Fetch accepted applicants for the selected job from platojobmatches table
-  const { data: acceptedApplicants = [], isLoading: isLoadingApplicants } = useQuery({
+  const { data: acceptedApplicants = [], isLoading: isLoadingApplicants, error: applicantsError } = useQuery({
     queryKey: ['/api/accepted-applicants', selectedJob],
-    queryFn: () => fetch(`/api/accepted-applicants/${selectedJob}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/accepted-applicants/${selectedJob}`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
     enabled: isOpen && !!selectedJob,
+    retry: false,
   });
 
   const createInterviewMutation = useMutation({
@@ -191,7 +199,12 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
                     Loading accepted applicants...
                   </p>
                 )}
-                {!isLoadingApplicants && acceptedApplicants.length === 0 && (
+                {applicantsError && (
+                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                    Error loading applicants: {applicantsError.message}
+                  </p>
+                )}
+                {!isLoadingApplicants && !applicantsError && acceptedApplicants.length === 0 && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     No accepted applicants found for this job position.
                   </p>

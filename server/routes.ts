@@ -1642,13 +1642,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      console.log(`🔍 Fetching accepted applicants from platojobmatches table for Job ID: ${jobId}, Organization: ${organization.companyName}`);
-      console.log(`Using Airtable API Key: ${AIRTABLE_API_KEY.substring(0, 10)}...`);
-      console.log(`Using Base ID: ${MATCHES_BASE_ID}`);
-      
       // Get accepted applicants from platojobmatches table filtered by Job ID and Company
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       const MATCHES_BASE_ID = 'app1u4N2W46jD43mP'; // Correct base ID for platojobmatches
+      
+      console.log(`🔍 Fetching accepted applicants from platojobmatches table for Job ID: ${jobId}, Organization: ${organization.companyName}`);
+      console.log(`Using Airtable API Key: ${AIRTABLE_API_KEY.substring(0, 10)}...`);
+      console.log(`Using Base ID: ${MATCHES_BASE_ID}`);
       const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
       
       const filterFormula = `AND({Company name}='${organization.companyName}', {Job ID}='${jobId}')`;
@@ -1663,8 +1663,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
+      console.log(`Response status: ${response.status}`);
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch accepted applicants: ${response.status}`);
+        const errorText = await response.text();
+        console.log(`Airtable error response:`, errorText);
+        throw new Error(`Failed to fetch accepted applicants: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
