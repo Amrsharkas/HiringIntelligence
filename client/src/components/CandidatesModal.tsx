@@ -4,27 +4,31 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, MapPin, Star, Users, Eye, ArrowLeft, Mail, Calendar, Target, Info } from "lucide-react";
+import { X, Search, MapPin, Star, Users, Eye, ArrowLeft, Mail, Calendar, Target, Info, Brain, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-interface CandidateData {
+interface EnhancedCandidate {
   id: string;
   name?: string;
-  email?: string; // Email address for contacting the candidate
-  userId?: string; // Internal User ID from Airtable, not displayed
+  email?: string;
+  userId?: string;
   userProfile?: string;
+  aiProfile?: string;
   location?: string;
   background?: string;
   skills?: string;
   interests?: string;
   experience?: string;
   matchScore?: number;
-  matchReasoning?: string;
-  applicationStatus?: 'pending' | 'accepted' | 'declined';
-  reviewedAt?: string;
-  // Legacy fields for compatibility
+  matchSummary?: string;
+  bestMatchJob?: {
+    id: number;
+    title: string;
+    description: string;
+  };
+  // Interview-related fields
   previousRole?: string;
   summary?: string;
   technicalSkills?: string[];
@@ -36,40 +40,21 @@ interface CandidateData {
 interface CandidatesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  jobId?: number;
 }
 
-export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps) {
+export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateData | null>(null);
-  const [selectedJobId, setSelectedJobId] = useState<number | null>(jobId || null);
-  const [view, setView] = useState<'jobs' | 'candidates'>(jobId ? 'candidates' : 'jobs');
-  const [scheduleInterviewCandidate, setScheduleInterviewCandidate] = useState<CandidateData | null>(null);
-  const [pendingActions, setPendingActions] = useState<Record<string, 'accepting' | 'declining' | null>>({});
-  const [removingCandidates, setRemovingCandidates] = useState<Set<string>>(new Set());
-  const [showRatingCriteria, setShowRatingCriteria] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<EnhancedCandidate | null>(null);
 
-  // Fetch job postings for the job selection view with auto-refresh
-  const { data: jobs = [], isLoading: jobsLoading, error: jobsError } = useQuery<any[]>({
-    queryKey: ["/api/job-postings"],
-    enabled: isOpen && view === 'jobs',
+  // Fetch enhanced candidates with match scores > 85
+  const { data: candidates = [], isLoading, error } = useQuery<EnhancedCandidate[]>({
+    queryKey: ["/api/enhanced-candidates"],
+    enabled: isOpen,
     retry: false,
-    refetchInterval: 60000, // Auto-refresh every 60 seconds (1 minute)
-    refetchIntervalInBackground: true, // Continue polling even when tab is not active
+    refetchInterval: 120000, // Auto-refresh every 2 minutes as this is more resource intensive
+    refetchIntervalInBackground: true,
   });
-
-  // Fetch candidates for selected job with auto-refresh every minute
-  const { data: candidates = [], isLoading: candidatesLoading, error: candidatesError, dataUpdatedAt, isFetching } = useQuery<CandidateData[]>({
-    queryKey: selectedJobId ? [`/api/job-postings/${selectedJobId}/candidates`] : ["/api/candidates"],
-    enabled: isOpen && view === 'candidates' && !!selectedJobId,
-    retry: false,
-    refetchInterval: 60000, // Auto-refresh every 60 seconds (1 minute)
-    refetchIntervalInBackground: true, // Continue polling even when tab is not active
-  });
-
-  const isLoading = view === 'jobs' ? jobsLoading : candidatesLoading;
-  const error = view === 'jobs' ? jobsError : candidatesError;
 
   // Handle unauthorized errors
   React.useEffect(() => {

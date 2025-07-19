@@ -279,7 +279,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Applicants routes
+  // Real Applicants routes - from platojobapplications table
+  app.get('/api/real-applicants/:jobId?', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      const jobId = req.params.jobId ? parseInt(req.params.jobId) : null;
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const { applicantScoringService } = await import('./applicantScoringService');
+      
+      let applicants;
+      if (jobId) {
+        console.log(`Fetching applicants for job ${jobId}`);
+        applicants = await realApplicantsAirtableService.getApplicantsByJobId(jobId);
+      } else {
+        console.log('Fetching all applicants for organization');
+        applicants = await realApplicantsAirtableService.getAllApplicants();
+        // Filter to only show applicants for this organization's jobs
+        const organizationJobs = await storage.getJobsByOrganization(organization.id);
+        const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+        applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
+      }
+
+      // Score applicants using OpenAI
+      if (applicants.length > 0) {
+        console.log(`Scoring ${applicants.length} applicants...`);
+        const scoringData = applicants
+          .filter(app => app.userProfile && app.jobDescription)
+          .map(app => ({
+            id: app.id,
+            userProfile: app.userProfile!,
+            jobDescription: app.jobDescription
+          }));
+        
+        if (scoringData.length > 0) {
+          const scores = await applicantScoringService.batchScoreApplicants(scoringData);
+          
+          // Apply scores to applicants
+          const scoresMap = new Map(scores.map(s => [s.applicantId, { score: s.score, summary: s.summary }]));
+          applicants = applicants.map(app => ({
+            ...app,
+            matchScore: scoresMap.get(app.id)?.score || 0,
+            matchSummary: scoresMap.get(app.id)?.summary || 'Unable to score'
+          }));
+        }
+      }
+
+      // Sort by match score (highest first)
+      applicants.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+
+      res.json(applicants);
+    } catch (error) {
+      console.error("Error fetching real applicants:", error);
+      res.status(500).json({ message: "Failed to fetch applicants" });
+    }
+  });
+
+  // Original Applicants routes (now for platojobapplications table)
   app.get('/api/applicants', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -667,6 +728,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching interviews:", error);
       res.status(500).json({ message: "Failed to fetch interviews" });
+    }
+  });
+
+  // Enhanced Candidates route - from platouserprofiles with score > 85
+  app.get('/api/enhanced-candidates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get all organization jobs for scoring candidates against
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      if (organizationJobs.length === 0) {
+        return res.json([]);
+      }
+
+      const { airtableService } = await import('./airtableService');
+      const { applicantScoringService } = await import('./applicantScoringService');
+
+      console.log('Fetching enhanced candidates from platouserprofiles...');
+      
+      // Get all candidates from platouserprofiles
+      const allCandidates = await airtableService.getAllCandidates();
+      
+      if (allCandidates.length === 0) {
+        return res.json([]);
+      }
+
+      console.log(`Found ${allCandidates.length} candidates, evaluating against ${organizationJobs.length} jobs...`);
+
+      // Score each candidate against all active jobs to find their best match
+      const candidatesWithScores = [];
+      
+      for (const candidate of allCandidates) {
+        if (!candidate.aiProfile) {
+          continue;
+        }
+        
+        let bestScore = 0;
+        let bestJobMatch = null;
+        let bestSummary = '';
+        
+        // Score against each job to find the best match
+        for (const job of organizationJobs) {
+          if (!job.description) continue;
+          
+          const result = await applicantScoringService.scoreApplicant(
+            candidate.aiProfile, 
+            job.description
+          );
+          
+          if (result.score > bestScore) {
+            bestScore = result.score;
+            bestJobMatch = job;
+            bestSummary = result.summary;
+          }
+        }
+        
+        // Only include candidates with score > 85
+        if (bestScore > 85 && bestJobMatch) {
+          candidatesWithScores.push({
+            ...candidate,
+            matchScore: bestScore,
+            matchSummary: bestSummary,
+            bestMatchJob: {
+              id: bestJobMatch.id,
+              title: bestJobMatch.title,
+              description: bestJobMatch.description
+            }
+          });
+        }
+        
+        // Small delay to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Sort by match score (highest first)
+      candidatesWithScores.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+
+      console.log(`Found ${candidatesWithScores.length} high-scoring candidates (>85) out of ${allCandidates.length} total`);
+      
+      res.json(candidatesWithScores);
+    } catch (error) {
+      console.error("Error fetching enhanced candidates:", error);
+      res.status(500).json({ message: "Failed to fetch enhanced candidates" });
     }
   });
 

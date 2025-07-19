@@ -22,7 +22,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
 import { ActiveJobsModal } from "@/components/ActiveJobsModal";
-import { CandidatesModal } from "@/components/CandidatesModal";
+import { CandidatesModal } from "@/components/SimpleCandidatesModal";
 import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { TeamManagementModal } from "@/components/TeamManagementModal";
@@ -330,22 +330,22 @@ export default function EmployerDashboard() {
                 onClick: () => setIsActiveJobsModalOpen(true)
               },
               { 
-                label: "Candidates", 
+                label: "Applicants", 
                 component: <StatNumber value={matches?.length || 0} />,
                 icon: Users, 
                 color: "green",
-                onClick: () => setIsCandidatesModalOpen(true)
+                onClick: () => setIsApplicantsModalOpen(true)
               },
               { 
-                label: "Analytics", 
+                label: "Candidates", 
                 component: <StatNumber value={matches?.filter((m: any) => {
                   const matchDate = new Date(m.createdAt);
                   const now = new Date();
                   return matchDate.getMonth() === now.getMonth();
                 }).length || 0} />,
-                icon: TrendingUp, 
+                icon: Target, 
                 color: "purple",
-                onClick: () => setIsAnalyticsModalOpen(true)
+                onClick: () => setIsCandidatesModalOpen(true)
               },
               { 
                 label: "Interviews", 

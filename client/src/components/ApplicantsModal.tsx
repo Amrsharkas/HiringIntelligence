@@ -9,21 +9,26 @@ import { isUnauthorizedError } from '@/lib/authUtils';
 interface ApplicantData {
   id: string;
   name: string;
-  email: string;
+  userId: string;
+  email?: string;
   phone?: string;
   resume?: string;
   coverLetter?: string;
   applicationDate: string;
-  status: 'pending' | 'accepted' | 'declined';
-  jobId: number;
+  jobId: string;
   jobTitle: string;
   jobDescription: string;
   companyName: string;
+  userProfile?: string;
+  notes?: string;
+  matchScore?: number;
+  matchSummary?: string;
+  // Legacy fields for compatibility
   experience?: string;
   skills?: string;
   location?: string;
   salaryExpectation?: string;
-  notes?: string;
+  status?: 'pending' | 'accepted' | 'declined';
 }
 
 interface ApplicantsModalProps {
@@ -49,7 +54,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const queryClient = useQueryClient();
 
   const { data: applicants = [], isLoading, refetch } = useQuery({
-    queryKey: jobId ? ['/api/applicants', jobId] : ['/api/applicants'],
+    queryKey: jobId ? ['/api/real-applicants', jobId] : ['/api/real-applicants'],
     enabled: isOpen,
     refetchInterval: 60000, // Refetch every minute
   });
@@ -316,11 +321,34 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                           <p className="text-sm text-gray-500 dark:text-gray-400">{applicant.jobTitle}</p>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(applicant.status)}`}>
-                        {getStatusIcon(applicant.status)}
-                        <span className="capitalize">{applicant.status}</span>
-                      </span>
+                      <div className="flex flex-col items-end space-y-1">
+                        {applicant.matchScore && (
+                          <div className="flex items-center space-x-1">
+                            <Brain className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <span className="font-bold text-blue-600 dark:text-blue-400">
+                              {applicant.matchScore}%
+                            </span>
+                          </div>
+                        )}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(applicant.status || 'pending')}`}>
+                          {getStatusIcon(applicant.status || 'pending')}
+                          <span className="capitalize">{applicant.status || 'pending'}</span>
+                        </span>
+                      </div>
                     </div>
+
+                    {/* AI Match Summary */}
+                    {applicant.matchSummary && (
+                      <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-700/50">
+                        <div className="flex items-start gap-2">
+                          <Brain className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">AI Analysis</p>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">{applicant.matchSummary}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Applicant Details */}
                     <div className="space-y-2 mb-4">
