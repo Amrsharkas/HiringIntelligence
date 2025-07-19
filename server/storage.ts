@@ -8,6 +8,7 @@ import {
   candidateApplications,
   interviews,
   acceptedApplicants,
+  realInterviews,
   type User,
   type UpsertUser,
   type Organization,
@@ -23,6 +24,8 @@ import {
   type InsertInterview,
   type AcceptedApplicant,
   type InsertAcceptedApplicant,
+  type RealInterview,
+  type InsertRealInterview,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -62,6 +65,11 @@ export interface IStorage {
   updateApplicationStatus(jobId: number, candidateId: string, status: string, reviewedBy: string): Promise<CandidateApplication>;
   getApplicationsByJob(jobId: number): Promise<CandidateApplication[]>;
   getApplication(jobId: number, candidateId: string): Promise<CandidateApplication | undefined>;
+  
+  // Interview operations
+  createRealInterview(interview: InsertRealInterview): Promise<RealInterview>;
+  getRealInterviewsByOrganization(organizationId: string): Promise<RealInterview[]>;
+  updateRealInterview(id: string, interview: Partial<InsertRealInterview>): Promise<RealInterview>;
   
   // Interview operations
   createInterview(interview: InsertInterview): Promise<Interview>;
@@ -313,6 +321,29 @@ export class DatabaseStorage implements IStorage {
       .update(interviews)
       .set({ ...interviewData, updatedAt: new Date() })
       .where(eq(interviews.id, id))
+      .returning();
+    return interview;
+  }
+
+  // Real Interview operations (for the interview scheduling system)
+  async createRealInterview(interviewData: InsertRealInterview): Promise<RealInterview> {
+    const [interview] = await db.insert(realInterviews).values(interviewData).returning();
+    return interview;
+  }
+
+  async getRealInterviewsByOrganization(organizationId: string): Promise<RealInterview[]> {
+    return await db
+      .select()
+      .from(realInterviews)
+      .where(eq(realInterviews.organizationId, organizationId))
+      .orderBy(desc(realInterviews.createdAt));
+  }
+
+  async updateRealInterview(id: string, interviewData: Partial<InsertRealInterview>): Promise<RealInterview> {
+    const [interview] = await db
+      .update(realInterviews)
+      .set({ ...interviewData, updatedAt: new Date() })
+      .where(eq(realInterviews.id, id))
       .returning();
     return interview;
   }
