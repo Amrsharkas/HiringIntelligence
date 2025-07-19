@@ -1626,6 +1626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { realInterviews } = await import('@shared/schema');
       const { eq, and } = await import('drizzle-orm');
+      const { db } = await import('./db');
       
       const updateData: any = {
         updatedAt: new Date(),

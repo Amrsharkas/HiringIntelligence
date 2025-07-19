@@ -170,6 +170,8 @@ Changelog:
 - July 19, 2025. Fixed User ID mapping in job match creation - system now correctly retrieves and uses exact User ID from platojobapplications table when creating records in platojobmatches table, ensuring accurate candidate-to-job matching and proper interview scheduling functionality.
 - July 19, 2025. Enhanced applicant filtering to only display pending applicants in UI - accepted/denied applicants are filtered out from main applicant lists while preserving records in Airtable for data tracking and analysis purposes.
 - July 19, 2025. Updated job match creation to include Job ID field - both JobMatchesAirtableService and AirtableService now include Job ID field when creating records in platojobmatches table, ensuring complete job tracking across all Airtable tables.
+- July 19, 2025. Implemented comprehensive timezone support for interview scheduling - added timezone field to realInterviews database schema, 15-timezone dropdown in interview forms, timezone display in interview cards, and bidirectional Airtable sync with timezone information in "Date at Time (Timezone)" format.
+- July 19, 2025. Fixed interview management API bugs - resolved missing database imports in both interview deletion and update routes, ensuring proper CRUD operations for interview records with complete error handling.
 ```
 
 ## User Preferences
