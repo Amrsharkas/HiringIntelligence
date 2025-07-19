@@ -55,9 +55,9 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
   const interviewMutation = useMutation({
     mutationFn: async (data: any) => {
       if (editingInterview) {
-        return apiRequest(`/api/interviews/${editingInterview.id}`, 'PATCH', data);
+        return apiRequest('PATCH', `/api/interviews/${editingInterview.id}`, data);
       } else {
-        return apiRequest('/api/interviews', 'POST', data);
+        return apiRequest('POST', '/api/interviews', data);
       }
     },
     onSuccess: () => {
@@ -81,9 +81,18 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
   // Delete interview mutation
   const deleteMutation = useMutation({
     mutationFn: async (interviewId: string) => {
-      return apiRequest(`/api/interviews/${interviewId}`, 'DELETE');
+      console.log(`Attempting to delete interview with ID: ${interviewId}`);
+      try {
+        const result = await apiRequest('DELETE', `/api/interviews/${interviewId}`);
+        console.log('Delete response:', result);
+        return result;
+      } catch (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
+      console.log('Interview deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['/api/interviews'] });
       toast({
         title: "Success",
@@ -91,6 +100,7 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
       });
     },
     onError: (error: any) => {
+      console.error('Delete mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete interview",
