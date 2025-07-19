@@ -568,13 +568,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔄 Creating job match for ${applicantData.name} -> ${jobMatchData.title} at ${companyName}`);
       await jobMatchesService.createJobMatch(applicantData, jobMatchData, companyName);
       
-      // Update status in applications table instead of deleting
-      console.log(`✅ Updating applicant ${applicantId} status to accepted in platojobapplications table...`);
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
+      // Delete from applications table after creating job match
+      console.log(`🗑️ Removing applicant ${applicantId} from platojobapplications...`);
+      await realApplicantsAirtableService.deleteApplicant(applicantId);
       
       console.log(`✅ Successfully accepted applicant ${applicantId}`);
       res.json({ 
-        message: "Applicant accepted - status updated and job match created",
+        message: "Applicant accepted and moved to job matches",
         applicantName: applicantData.name,
         jobTitle: jobMatchData.title,
         undoData: {
@@ -615,13 +615,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn(`⚠️ Could not fetch applicant name: ${error}`);
       }
       
-      // Update status in applications table instead of deleting
-      console.log(`❌ Updating applicant ${applicantId} status to denied in platojobapplications table...`);
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'denied');
+      // Delete from applications table
+      console.log(`🗑️ Removing declined applicant ${applicantId} from platojobapplications...`);
+      await realApplicantsAirtableService.deleteApplicant(applicantId);
       
       console.log(`✅ Successfully declined applicant ${applicantName} (${applicantId})`);
       res.json({ 
-        message: "Applicant declined - status updated",
+        message: "Applicant declined and removed from applications",
         applicantName: applicantName,
         undoData: {
           applicantId,

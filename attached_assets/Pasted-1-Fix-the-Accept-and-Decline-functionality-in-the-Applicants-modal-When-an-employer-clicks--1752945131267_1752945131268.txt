@@ -1,0 +1,54 @@
+1. Fix the Accept and Decline functionality in the Applicants modal:
+   - When an employer clicks **Accept**:
+     - Hide the Accept/Decline buttons.
+     - Replace them with a "Schedule Interview" button (same UI as current).
+     - This button must route to the **working Create Interview modal** (from Quick Actions).
+     - Immediately update the **"platojobmatches"** table in Airtable:
+       - Base ID: app1u4N2W46jD43mP
+       - API Key: {{insert actual API key here}}
+       - The data should be pulled directly from the **platojobapplications** and corresponding **platojobpostings** records:
+         - `Name` → from `Applicant Name` in `platojobapplications`
+         - `User ID` → from `User ID` in `platojobapplications` (**this is critical**)
+         - `Job title` → from matching job posting
+         - `Job Description` → from job posting
+         - `Company name` → from job posting
+
+   - When an employer clicks **Decline**:
+     - Immediately delete the record from `platojobapplications`.
+     - Refresh the Applicants and Candidates modals to reflect this change.
+
+2. In the **Applicants modal**:
+   - Only show applicants from the `platojobapplications` table.
+   - Use the field `Applicant Name` to display the name (not "Unknown Applicant").
+   - Show AI match score, job title, analysis summary, and date applied.
+   - Stack applicants horizontally.
+   - Include a refresh button and auto-refresh every 30 seconds.
+
+3. In the **Candidates modal**:
+   - Continue using `platouserprofiles` table.
+   - Only display candidates with an AI score > 85.
+   - Keep layout and UI styling as is.
+   - Add refresh button and auto-refresh every 30 seconds.
+
+4. When **Schedule Interview** is clicked (after acceptance or through Quick Actions):
+   - Show a modal with:
+     - Dropdown to select a user (filter from already accepted users in `platojobmatches`)
+     - Input for date & time
+     - Input for interview link (optional)
+   - On confirmation, update the **existing record** in `platojobmatches`:
+     - `Interview date&time` → selected datetime
+     - `Interview Link` → input link if provided
+
+5. On the **applicant’s dashboard**:
+   - Add an “Interviews” modal.
+   - Pull data from `platojobmatches` table.
+   - Show interviews where `User ID` matches the current logged-in user.
+   - Display:
+     - Job title
+     - Company name
+     - Interview date & time
+     - Interview link (if provided)
+
+6. In the **Employer Dashboard UI**:
+   - Replace the broken "Schedule Interview" button with the working **Create Interview** button (the one in Quick Actions).
+   - Keep the existing visual design of the interview icon/button—just reroute the functionality.
