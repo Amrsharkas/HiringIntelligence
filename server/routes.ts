@@ -229,33 +229,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteJob(jobId);
       console.log(`✅ Job ${jobId} marked as inactive in database`);
       
-      // Delete from all Airtable tables (async, don't wait for completion)
-      const deleteFromAirtable = async () => {
-        try {
-          const { applicantsAirtableService } = await import('./applicantsAirtableService');
-          const { airtableService } = await import('./airtableService');
-          const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
-          
-          // Delete applicants for this job
-          await applicantsAirtableService.deleteApplicantsByJobId(jobId);
-          console.log(`✅ Deleted applicants for job ${jobId} from Airtable`);
-          
-          // Delete job matches (platojobmatches table)
-          await airtableService.deleteJobMatchesByJobId(jobId);
-          console.log(`✅ Deleted job matches for job ${jobId} from Airtable`);
-          
-          // Delete job posting (platojobpostings table)
-          await jobPostingsAirtableService.deleteJobPostingByJobId(jobId);
-          console.log(`✅ Deleted job posting ${jobId} from Airtable`);
-          
-          console.log(`🎉 Successfully deleted job ${jobId} from all Airtable tables`);
-        } catch (error) {
-          console.error(`❌ Error deleting job ${jobId} from Airtable tables:`, error);
-        }
-      };
-      
-      // Start Airtable deletion (async, don't wait)
-      deleteFromAirtable();
+      // Delete from all Airtable tables (wait for completion to ensure it happens)
+      try {
+        console.log(`🚀 Starting Airtable cleanup for job ${jobId}...`);
+        
+        const { applicantsAirtableService } = await import('./applicantsAirtableService');
+        const { airtableService } = await import('./airtableService');
+        const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
+        
+        // Delete applicants for this job
+        await applicantsAirtableService.deleteApplicantsByJobId(jobId);
+        console.log(`✅ Deleted applicants for job ${jobId} from Airtable`);
+        
+        // Delete job matches (platojobmatches table)
+        await airtableService.deleteJobMatchesByJobId(jobId);
+        console.log(`✅ Deleted job matches for job ${jobId} from Airtable`);
+        
+        // Delete job posting (platojobpostings table)
+        await jobPostingsAirtableService.deleteJobPostingByJobId(jobId);
+        console.log(`✅ Deleted job posting ${jobId} from platojobpostings table`);
+        
+        console.log(`🎉 Successfully deleted job ${jobId} from all Airtable tables`);
+      } catch (airtableError) {
+        console.error(`❌ Error deleting job ${jobId} from Airtable tables:`, airtableError);
+        // Don't fail the request if Airtable cleanup fails - job is already deleted from database
+      }
       
       res.json({ message: "Job deleted successfully" });
     } catch (error) {

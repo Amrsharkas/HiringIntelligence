@@ -164,6 +164,8 @@ Changelog:
 - July 16, 2025. Added comprehensive testing and cleanup capabilities - created automated cleanup scripts that clear all candidate data (platouserprofiles, platojobmatches, platojobapplications tables) while preserving job postings for fresh system testing. Includes verification script to confirm cleanup success.
 - July 16, 2025. Fixed database filtering issues for job deletion and active job retrieval - resolved SQL syntax errors with is_active field references and ensured proper job lifecycle management.
 - July 16, 2025. Enhanced Airtable job description sync to include complete information - all job postings now automatically sync with comprehensive descriptions including requirements, technical skills, essential skills, and qualifications to "platojobpostings" table.
+- July 16, 2025. Implemented automatic bidirectional job deletion system - when employers delete jobs from dashboard, records are automatically removed from "platojobpostings" table and all related Airtable tables (platojobmatches, platojobapplications) with comprehensive error handling and logging.
+- July 16, 2025. Added automatic cleanup system to periodic sync that removes inactive job records from Airtable when they're no longer active in the database, ensuring data consistency between platform and external storage.
 ```
 
 ## User Preferences

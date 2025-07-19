@@ -118,6 +118,10 @@ export class JobPostingsAirtableService {
       }
       
       console.log(`Successfully synced ${syncedCount} new job postings to Airtable`);
+      
+      // Also clean up any Airtable records for jobs that are no longer active
+      await this.cleanupInactiveJobs(allJobs);
+      
       return { synced: syncedCount, total: allJobs.length };
       
     } catch (error) {
@@ -223,6 +227,69 @@ export class JobPostingsAirtableService {
   setAirtableConfig(baseId: string, tableName: string = 'Table 1') {
     this.baseId = baseId;
     this.tableName = tableName;
+  }
+
+  private async cleanupInactiveJobs(activeJobs: any[]) {
+    try {
+      console.log('🧹 Cleaning up inactive job records from Airtable...');
+      
+      // Get all existing records from Airtable
+      const existingRecords = await this.getExistingJobRecords();
+      const activeJobIds = new Set(activeJobs.map(job => job.id.toString()));
+      
+      // Find records for jobs that are no longer active
+      const inactiveRecords = existingRecords.filter(record => 
+        record.fields['Job ID'] && !activeJobIds.has(record.fields['Job ID'])
+      );
+      
+      if (inactiveRecords.length === 0) {
+        console.log('No inactive job records found in Airtable');
+        return;
+      }
+      
+      console.log(`Found ${inactiveRecords.length} inactive job records to clean up`);
+      
+      // Delete inactive records in batches
+      const batchSize = 10;
+      let deletedCount = 0;
+      
+      for (let i = 0; i < inactiveRecords.length; i += batchSize) {
+        const batch = inactiveRecords.slice(i, i + batchSize);
+        const recordIds = batch.map(record => record.id);
+        
+        const params = new URLSearchParams();
+        recordIds.forEach(id => params.append('records[]', id));
+        
+        const response = await fetch(
+          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (response.ok) {
+          deletedCount += batch.length;
+          console.log(`✅ Cleaned up batch of ${batch.length} inactive job records`);
+        } else {
+          console.error(`Failed to clean up batch: ${response.status} ${response.statusText}`);
+        }
+        
+        // Small delay to respect rate limits
+        if (i + batchSize < inactiveRecords.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+      
+      console.log(`🎉 Successfully cleaned up ${deletedCount} inactive job records from Airtable`);
+      
+    } catch (error) {
+      console.error('Error cleaning up inactive jobs:', error);
+      // Don't throw - this is a cleanup operation that shouldn't fail the main sync
+    }
   }
 
   async deleteJobPostingByJobId(jobId: number): Promise<void> {
