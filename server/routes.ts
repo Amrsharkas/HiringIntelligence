@@ -1668,7 +1668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
           const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
-          const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/platojobmatches`;
+          const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
           
           // Search for the record using User ID and Job title (as shown in JobMatchesAirtableService)
           const filterFormula = `AND({User ID}='${updatedInterview.candidateId}',{Job title}='${updatedInterview.jobTitle}')`;
@@ -1677,7 +1677,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('🔍 Searching for Airtable record with:', {
             userId: updatedInterview.candidateId,
             jobTitle: updatedInterview.jobTitle,
-            searchUrl: searchUrl
+            searchUrl: searchUrl,
+            filterFormula: filterFormula
           });
           
           const searchResponse = await fetch(searchUrl, {

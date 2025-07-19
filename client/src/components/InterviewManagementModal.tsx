@@ -257,32 +257,12 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
             />
           </div>
           <div>
-            <Label htmlFor="candidateEmail">Candidate Email</Label>
-            <Input
-              id="candidateEmail"
-              type="email"
-              value={formData.candidateEmail}
-              onChange={(e) => setFormData({ ...formData, candidateEmail: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
             <Label htmlFor="jobTitle">Job Title *</Label>
             <Input
               id="jobTitle"
               value={formData.jobTitle}
               onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
               required
-            />
-          </div>
-          <div>
-            <Label htmlFor="jobId">Job ID</Label>
-            <Input
-              id="jobId"
-              value={formData.jobId}
-              onChange={(e) => setFormData({ ...formData, jobId: e.target.value })}
             />
           </div>
         </div>
