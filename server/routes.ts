@@ -503,20 +503,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Real applicants - Accept candidate (move from platojobapplications to platojobmatches)
-  app.post('/api/real-applicants/:id/accept', isAuthenticated, async (req: any, res) => {
+  app.post('/api/real-applicants/:id/accept', async (req: any, res) => {
     try {
-      const applicantId = req.params.id;
-      const userId = req.user.claims.sub;
+      const airtableRecordId = req.params.id; // This is the Airtable record ID like "recTL77B7HtjJyRqA"
       
-      console.log(`🎯 Accepting applicant ${applicantId}...`);
+      console.log(`🎯 Accepting applicant with Airtable record ID: ${airtableRecordId}...`);
       
-      // Step 1: Fetch applicant record from platojobapplications table
+      // Step 1: Fetch applicant record from platojobapplications table using the record ID
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       const APPLICATIONS_BASE_ID = 'appEYs1fTytFXoJ7x';
       const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
       
-      // Get applicant record from platojobapplications
-      const applicantUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201/${applicantId}`;
+      // Get applicant record from platojobapplications using the Airtable record ID
+      const applicantUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201/${airtableRecordId}`;
       const applicantResponse = await fetch(applicantUrl, {
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -526,45 +525,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!applicantResponse.ok) {
         if (applicantResponse.status === 404) {
-          return res.status(404).json({ message: "Applicant not found" });
+          return res.status(404).json({ message: "Applicant not found in platojobapplications table" });
         }
         throw new Error(`Failed to fetch applicant: ${applicantResponse.status} ${applicantResponse.statusText}`);
       }
 
       const applicantData = await applicantResponse.json();
-      const applicant = applicantData.fields;
+      const fields = applicantData.fields;
       
       console.log(`📋 Raw applicant data:`, JSON.stringify(applicantData, null, 2));
-      console.log(`📋 Applicant fields:`, JSON.stringify(applicant, null, 2));
-      console.log(`📋 Found applicant: ${applicant?.Name || 'UNDEFINED'}`);
+      console.log(`📋 Applicant fields:`, JSON.stringify(fields, null, 2));
       
-      // Step 2: Validate required fields
-      const requiredFields = ['Name', 'User ID', 'Job title', 'Job Description', 'Company name'];
-      const missingFields: string[] = [];
+      // Step 2: Extract the actual User ID and other data from the record fields
+      const actualUserId = fields['User ID']; // This is the real User ID, not the record ID
+      const applicantName = fields['Name'];
+      const jobId = fields['Job ID'];
+      const jobTitle = fields['Job title'];
+      const jobDescription = fields['Job Description']; 
+      const companyName = fields['Company name'];
       
-      for (const field of requiredFields) {
-        if (!applicant || !applicant[field]) {
-          missingFields.push(field);
-        }
-      }
+      console.log(`📋 Extracted data - User ID: ${actualUserId}, Name: ${applicantName}, Job: ${jobTitle}`);
       
-      if (missingFields.length > 0) {
+      // Step 3: Validate required fields exist
+      if (!actualUserId || !applicantName || !jobTitle || !jobDescription || !companyName) {
+        const missingFields = [];
+        if (!actualUserId) missingFields.push('User ID');
+        if (!applicantName) missingFields.push('Name');
+        if (!jobTitle) missingFields.push('Job title');
+        if (!jobDescription) missingFields.push('Job Description');
+        if (!companyName) missingFields.push('Company name');
+        
         console.log(`❌ Missing required fields: ${missingFields.join(', ')}`);
         return res.status(400).json({ 
           message: `Missing required fields: ${missingFields.join(', ')}`,
           missingFields: missingFields,
-          availableFields: applicant ? Object.keys(applicant) : []
+          availableFields: fields ? Object.keys(fields) : []
         });
       }
       
-      // Step 3: Create job match record in platojobmatches table
+      // Step 4: Create job match record in platojobmatches table using the REAL User ID
       const jobMatchData = {
         fields: {
-          'Name': applicant.Name,
-          'User ID': applicant['User ID'],
-          'Job title': applicant['Job title'],
-          'Job Description': applicant['Job Description'],
-          'Company name': applicant['Company name']
+          'Name': applicantName,
+          'User ID': actualUserId, // Use the actual User ID from the record, not the Airtable record ID
+          'Job title': jobTitle,
+          'Job Description': jobDescription,
+          'Company name': companyName,
+          'Job ID': jobId // Include Job ID if available
         }
       };
 
@@ -580,16 +587,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!matchResponse.ok) {
         const errorText = await matchResponse.text();
+        console.error(`❌ Failed to create job match:`, errorText);
         throw new Error(`Failed to create job match: ${matchResponse.status} ${matchResponse.statusText} - ${errorText}`);
       }
 
       const createdMatch = await matchResponse.json();
-      console.log(`✅ Created job match record: ${createdMatch.id}`);
+      console.log(`✅ Created job match record with ID: ${createdMatch.id} for User ID: ${actualUserId}`);
       
-      // Step 4: Update applicant status to 'accepted' in platojobapplications
+      // Step 5: Update applicant status to 'Accepted' in platojobapplications
       const statusUpdateData = {
         fields: {
-          'Status': 'accepted'
+          'Status': 'Accepted'
         }
       };
 
@@ -605,39 +613,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!statusUpdateResponse.ok) {
         console.warn(`⚠️ Failed to update applicant status: ${statusUpdateResponse.status}`);
       } else {
-        console.log(`✅ Updated applicant status to 'accepted'`);
+        console.log(`✅ Updated applicant status to 'Accepted' for record ${airtableRecordId}`);
       }
       
-      // Step 5: Store locally for interview scheduling
-      const organization = await storage.getOrganizationByUser(userId);
-      if (organization) {
-        await storage.addAcceptedApplicant({
-          candidateId: applicant['User ID'],
-          candidateName: applicant.Name,
-          candidateEmail: applicant.Email || '',
-          jobId: applicant['Job ID'] || '',
-          jobTitle: applicant['Job title'],
-          organizationId: organization.id,
-          acceptedBy: userId,
-        });
-        console.log(`💾 Stored accepted applicant locally for interview scheduling`);
-      }
-      
-      console.log(`✅ Successfully accepted applicant ${applicantId}`);
+      console.log(`✅ Successfully accepted applicant ${applicantName} (User ID: ${actualUserId})`);
       res.json({ 
         message: "Applicant accepted successfully",
-        applicantName: applicant.Name,
-        jobTitle: applicant['Job title'],
+        applicantName: applicantName,
+        actualUserId: actualUserId,
+        jobTitle: jobTitle,
         matchId: createdMatch.id,
-        undoData: {
-          applicantId,
-          applicantName: applicant.Name,
-          userId: applicant['User ID'],
-          jobTitle: applicant['Job title'],
-          jobDescription: applicant['Job Description'],
-          companyName: applicant['Company name'],
-          action: 'accept'
-        }
+        airtableRecordId: airtableRecordId
       });
       
     } catch (error) {
