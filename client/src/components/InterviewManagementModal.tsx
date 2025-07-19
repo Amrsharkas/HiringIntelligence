@@ -359,7 +359,7 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto relative">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Interview Management</DialogTitle>
         </DialogHeader>
@@ -441,14 +441,16 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
         </Tabs>
 
         {/* Floating Schedule New Interview button */}
-        <Button 
-          onClick={() => setShowCreateForm(true)}
-          className="absolute bottom-4 right-4 z-50 shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
-          size="sm"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule New Interview
-        </Button>
+        <div className="relative">
+          <Button 
+            onClick={() => setShowCreateForm(true)}
+            className="absolute bottom-4 right-4 z-50 shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule New Interview
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
