@@ -176,6 +176,8 @@ Changelog:
 - July 19, 2025. Updated job posting modal with multi-step interface featuring "AI Generate Questions" button - employers can now automatically generate relevant questions or manually add up to 5 custom questions for candidate applications.
 - July 19, 2025. Enhanced Airtable "platojobpostings" table integration (Base ID: appCjIvd73lvp0oLf) - updated sync system to include "Employer Questions" field with auto-sync every 30 seconds, ensuring all job postings sync with complete information including generated questions formatted as numbered list.
 - July 19, 2025. Fixed interview count display with accurate real-time updates - replaced team member count with proper LiveInterviewsCount component that shows actual scheduled interviews and auto-refreshes every 30 seconds using /api/interviews/count endpoint.
+- July 19, 2025. Implemented instant Airtable sync for all job operations - when employers create new jobs or press "update job" button, changes are immediately synced to "platojobpostings" table including all job details and employer questions, providing real-time updates without waiting for periodic sync.
+- July 19, 2025. Fixed Drizzle ORM sync query issues - resolved database field selection errors in periodic sync function to ensure proper job data retrieval and synchronization with Airtable tables.
 ```
 
 ## User Preferences

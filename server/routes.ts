@@ -136,9 +136,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const org = await storage.getOrganizationByUser(userId);
       const companyName = org?.companyName || 'Unknown Company';
       
-      // Automatically sync new job to Airtable (async, don't wait for completion)
-      jobPostingsAirtableService.syncJobPostingsToAirtable()
-        .catch(error => console.error("Error auto-syncing job to Airtable:", error));
+      // Instantly sync new job to Airtable
+      try {
+        await jobPostingsAirtableService.addJobToAirtable({
+          jobId: job.id.toString(),
+          title: job.title,
+          description: `${job.description}\n\nRequirements:\n${job.requirements}`,
+          location: job.location,
+          salary: job.salaryRange || '',
+          company: companyName,
+          employerQuestions: job.employerQuestions || []
+        });
+        console.log(`✅ Instantly synced new job ${job.id} to Airtable`);
+      } catch (syncError) {
+        console.error('Error syncing new job to Airtable:', syncError);
+        // Don't fail the creation if sync fails
+      }
       
       // Auto-fill job applications table with AI-enhanced information
       const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
@@ -192,6 +205,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const jobData = insertJobSchema.partial().parse(req.body);
       
       const job = await storage.updateJob(jobId, jobData);
+      
+      // Instant Airtable sync after job update
+      try {
+        const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
+        const organization = await storage.getOrganizationByUserId(req.user.id);
+        
+        await jobPostingsAirtableService.updateJobInAirtable(jobId.toString(), {
+          title: job.title,
+          description: `${job.description}\n\nRequirements:\n${job.requirements}`,
+          location: job.location,
+          salary: job.salaryRange || '',
+          company: organization?.companyName || 'Unknown Company',
+          employerQuestions: job.employerQuestions || []
+        });
+        
+        console.log(`✅ Instantly synced job update ${jobId} to Airtable`);
+      } catch (syncError) {
+        console.error('Error syncing job update to Airtable:', syncError);
+        // Don't fail the update if sync fails
+      }
+      
       res.json(job);
     } catch (error) {
       console.error("Error updating job:", error);

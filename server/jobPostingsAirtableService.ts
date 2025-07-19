@@ -221,17 +221,7 @@ export class JobPostingsAirtableService {
       
       // Fetch all active jobs from database with organization details
       const activeJobs = await db
-        .select({
-          id: jobs.id,
-          title: jobs.title,
-          description: jobs.description,
-          requirements: jobs.requirements,
-          location: jobs.location,
-          salaryRange: jobs.salaryRange,
-          employerQuestions: jobs.employerQuestions,
-          isActive: jobs.isActive,
-          companyName: organizations.companyName,
-        })
+        .select()
         .from(jobs)
         .leftJoin(organizations, eq(jobs.organizationId, organizations.id))
         .where(eq(jobs.isActive, true));
@@ -249,7 +239,9 @@ export class JobPostingsAirtableService {
       
       let syncedCount = 0;
       
-      for (const job of activeJobs) {
+      for (const result of activeJobs) {
+        const job = result.jobs;
+        const organization = result.organizations;
         const jobId = job.id.toString();
         
         // Skip if job already exists in Airtable
@@ -260,7 +252,7 @@ export class JobPostingsAirtableService {
             description: `${job.description}\n\nRequirements:\n${job.requirements}`,
             location: job.location,
             salary: job.salaryRange || '',
-            company: job.companyName || 'Unknown Company',
+            company: organization?.companyName || 'Unknown Company',
             employerQuestions: job.employerQuestions || []
           });
           continue;
@@ -273,7 +265,7 @@ export class JobPostingsAirtableService {
           description: `${job.description}\n\nRequirements:\n${job.requirements}`,
           location: job.location,
           salary: job.salaryRange || '',
-          company: job.companyName || 'Unknown Company',
+          company: organization?.companyName || 'Unknown Company',
           employerQuestions: job.employerQuestions || []
         });
         
