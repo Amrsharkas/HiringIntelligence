@@ -246,8 +246,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const acceptApplicantMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      const response = await apiRequest('POST', `/api/real-applicants/${applicantId}/accept`);
-      return response.json();
+      return await apiRequest('POST', `/api/real-applicants/${applicantId}/accept`);
     },
     onMutate: (applicantId: string) => {
       setProcessingActions(prev => new Set([...prev, applicantId]));
@@ -313,8 +312,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const declineApplicantMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      const response = await apiRequest('POST', `/api/real-applicants/${applicantId}/decline`);
-      return response.json();
+      return await apiRequest('POST', `/api/real-applicants/${applicantId}/decline`);
     },
     onMutate: (applicantId: string) => {
       setProcessingActions(prev => new Set([...prev, applicantId]));
@@ -380,8 +378,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   // Undo accept mutation
   const undoAcceptMutation = useMutation({
     mutationFn: async (undoData: any) => {
-      const response = await apiRequest('POST', `/api/real-applicants/${undoData.applicantId}/undo-accept`, undoData);
-      return response.json();
+      return await apiRequest('POST', `/api/real-applicants/${undoData.applicantId}/undo-accept`, undoData);
     },
     onSuccess: (data, undoData) => {
       setAcceptedApplicants(prev => {
