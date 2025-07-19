@@ -166,6 +166,9 @@ Changelog:
 - July 16, 2025. Enhanced Airtable job description sync to include complete information - all job postings now automatically sync with comprehensive descriptions including requirements, technical skills, essential skills, and qualifications to "platojobpostings" table.
 - July 16, 2025. Implemented automatic bidirectional job deletion system - when employers delete jobs from dashboard, records are automatically removed from "platojobpostings" table and all related Airtable tables (platojobmatches, platojobapplications) with comprehensive error handling and logging.
 - July 16, 2025. Added automatic cleanup system to periodic sync that removes inactive job records from Airtable when they're no longer active in the database, ensuring data consistency between platform and external storage.
+- July 19, 2025. Implemented status-based applicant management - accept/decline actions now update Status field ("Accepted"/"Denied") in platojobapplications table instead of deleting records, preserving data integrity and maintaining complete application history.
+- July 19, 2025. Fixed User ID mapping in job match creation - system now correctly retrieves and uses exact User ID from platojobapplications table when creating records in platojobmatches table, ensuring accurate candidate-to-job matching and proper interview scheduling functionality.
+- July 19, 2025. Enhanced applicant filtering to only display pending applicants in UI - accepted/denied applicants are filtered out from main applicant lists while preserving records in Airtable for data tracking and analysis purposes.
 ```
 
 ## User Preferences

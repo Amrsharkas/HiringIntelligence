@@ -73,15 +73,22 @@ export class JobMatchesAirtableService {
     try {
       console.log(`📝 Creating job match record for applicant: ${applicantData.name}`);
       
+      // Ensure we have a valid User ID from platojobapplications
+      if (!applicantData.userId) {
+        throw new Error(`Missing User ID for applicant ${applicantData.name}. Cannot create job match without valid User ID.`);
+      }
+
       const jobMatchData = {
         fields: {
           'Name': applicantData.name || 'Unknown',
-          'User ID': applicantData.userId || applicantData.id,
+          'User ID': applicantData.userId, // Use ONLY the User ID from platojobapplications
           'Job title': jobData.title,
           'Job Description': jobData.description || '',
           'Company name': companyName
         }
       };
+
+      console.log(`🔑 Creating job match with User ID: ${applicantData.userId} for ${applicantData.name}`);
 
       console.log('Job match data:', jobMatchData);
 

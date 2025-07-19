@@ -554,11 +554,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
       const jobMatchesService = new JobMatchesAirtableService();
       
+      // Ensure we use the correct User ID from platojobapplications table
+      if (!applicant.userId) {
+        console.error(`❌ No User ID found for applicant ${applicantId}`);
+        return res.status(400).json({ message: "Applicant User ID not found" });
+      }
+
       const applicantData = {
         name: applicant.name || 'Unknown Applicant',
-        userId: applicant.userId || applicant.id || applicantId,
+        userId: applicant.userId, // Use ONLY the User ID from platojobapplications
         id: applicantId
       };
+
+      console.log(`📝 Using User ID: ${applicantData.userId} for applicant: ${applicantData.name}`);
       
       const jobMatchData = {
         title: jobData.title || 'Unknown Job',
