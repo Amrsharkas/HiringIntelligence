@@ -39,6 +39,7 @@ export interface IStorage {
   createJob(job: InsertJob): Promise<Job>;
   getJobsByOrganization(organizationId: number): Promise<Job[]>;
   getJobById(id: number): Promise<Job | undefined>;
+  getJob(id: number): Promise<Job | undefined>;
   updateJob(id: number, job: Partial<InsertJob>): Promise<Job>;
   deleteJob(id: number): Promise<void>;
   incrementJobViews(id: number): Promise<void>;
@@ -145,6 +146,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getJobById(id: number): Promise<Job | undefined> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
+    return job;
+  }
+
+  async getJob(id: number): Promise<Job | undefined> {
     const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
     return job;
   }
