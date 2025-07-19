@@ -622,6 +622,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`✅ Updated applicant status to 'Accepted' for record ${airtableRecordId}`);
       }
       
+      // Step 6: Store accepted applicant locally for interview scheduling
+      const user = req.user as any;
+      const userId = user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (organization) {
+        try {
+          console.log(`🔄 Attempting to store accepted applicant locally:`, {
+            candidateId: actualUserId,
+            candidateName: applicantName,
+            candidateEmail: "",
+            jobId: jobId.toString(),
+            jobTitle: jobTitle,
+            organizationId: organization.id,
+            acceptedBy: userId
+          });
+          
+          await storage.addAcceptedApplicant({
+            candidateId: actualUserId,
+            candidateName: applicantName,
+            candidateEmail: "", // We don't have email from this record  
+            jobId: jobId.toString(),
+            jobTitle: jobTitle,
+            organizationId: organization.id,
+            acceptedBy: userId
+          });
+          console.log(`✅ Stored accepted applicant locally for organization ${organization.id}`);
+        } catch (error) {
+          console.error(`❌ Failed to store accepted applicant locally:`, error);
+        }
+      } else {
+        console.warn(`⚠️ No organization found for user ${userId}`);
+      }
+      
       console.log(`✅ Successfully accepted applicant ${applicantName} (User ID: ${actualUserId})`);
       res.json({ 
         message: "Applicant accepted successfully",
@@ -1597,7 +1631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get accepted applicants for CreateInterviewModal (from local database)
+  // Get accepted applicants for CreateInterviewModal (from Airtable directly)
   app.get('/api/accepted-applicants', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1607,21 +1641,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      console.log(`🔍 Fetching locally stored accepted applicants for organization: ${organization.companyName}`);
+      console.log(`🔍 Fetching accepted applicants from Airtable for organization: ${organization.companyName}`);
       
-      // Get accepted applicants from local database
-      const acceptedApplicants = await storage.getAcceptedApplicantsByOrganization(organization.id);
+      // Get accepted applicants directly from Airtable by filtering status = "Accepted"
+      const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+      const APPLICATIONS_BASE_ID = process.env.AIRTABLE_APPLICATIONS_BASE_ID || 'appEYs1fTytFXoJ7x';
+      const applicationsUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201`;
       
-      console.log(`✅ Found ${acceptedApplicants.length} locally stored accepted applicants`);
+      const response = await fetch(`${applicationsUrl}?filterByFormula=AND({Status}='Accepted', {Company}='${organization.companyName}')`, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch accepted applicants: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Found ${data.records.length} accepted applicants in Airtable`);
 
       // Transform to expected format for the interview modal
-      const formattedApplicants = acceptedApplicants.map(applicant => ({
-        id: applicant.candidateId,
-        name: applicant.candidateName,
-        jobTitle: applicant.jobTitle,
-        userId: applicant.candidateId,
-        jobId: applicant.jobId,
-        email: applicant.candidateEmail || '',
+      const formattedApplicants = data.records.map((record: any) => ({
+        id: record.fields['Applicant User ID'] || record.id,
+        name: record.fields['Applicant Name'] || 'Unknown',
+        jobTitle: record.fields['Job title'] || 'Unknown Position',
+        userId: record.fields['Applicant User ID'] || record.id,
+        jobId: record.fields['Job ID'] || '',
+        email: record.fields['Email'] || '',
+        airtableRecordId: record.id
       }));
 
       res.json(formattedApplicants);
