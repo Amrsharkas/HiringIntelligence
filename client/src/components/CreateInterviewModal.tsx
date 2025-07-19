@@ -249,7 +249,7 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
             </button>
             <button
               onClick={handleSubmit}
-              disabled={createInterviewMutation.isPending || !selectedJob || !selectedApplicant || !interviewData.scheduledDate || !interviewData.scheduledTime}
+              disabled={createInterviewMutation.isPending || !selectedApplicant || !interviewData.scheduledDate || !interviewData.scheduledTime}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {createInterviewMutation.isPending && <Clock className="w-4 h-4 animate-spin" />}
