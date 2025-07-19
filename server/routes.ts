@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import fetch from "node-fetch";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
@@ -509,114 +510,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🎯 Accepting applicant ${applicantId}...`);
       
-      // Get applicant data from platojobapplications
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
+      // Step 1: Fetch applicant record from platojobapplications table
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const APPLICATIONS_BASE_ID = 'appEYs1fTytFXoJ7x';
+      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
       
-      if (!applicant) {
-        return res.status(404).json({ message: "Applicant not found" });
-      }
-      
-      console.log(`📋 Found applicant: ${applicant.name}, Job ID: ${applicant.jobId}`);
-      
-      // Get job data from platojobpostings Airtable table using Job ID
-      const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
-      let jobData = null;
-      
-      try {
-        const jobPostingsService = new jobPostingsAirtableService('pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0');
-        jobData = await jobPostingsService.getJobByJobId(applicant.jobId);
-        console.log(`📄 Found job posting: ${jobData?.title || 'Unknown'}`);
-      } catch (jobError) {
-        console.warn(`⚠️ Could not fetch job from platojobpostings, trying local database:`, jobError);
-        
-        // Fallback to local database
-        const job = await storage.getJob(parseInt(applicant.jobId));
-        if (job) {
-          jobData = {
-            title: job.title,
-            description: job.description,
-            companyName: 'Plato' // Default company name
-          };
-          console.log(`📄 Using local job data: ${job.title}`);
+      // Get applicant record from platojobapplications
+      const applicantUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201/${applicantId}`;
+      const applicantResponse = await fetch(applicantUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
         }
-      }
-      
-      if (!jobData) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-      
-      // Get organization for company name
-      const organization = await storage.getOrganizationByUser(userId);
-      const companyName = organization?.companyName || jobData.companyName || 'Unknown Company';
-      
-      // Create job match record
-      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-      const jobMatchesService = new JobMatchesAirtableService();
-      
-      // Ensure we use the correct User ID from platojobapplications table
-      if (!applicant.userId) {
-        console.error(`❌ No User ID found for applicant ${applicantId}`);
-        return res.status(400).json({ message: "Applicant User ID not found" });
+      });
+
+      if (!applicantResponse.ok) {
+        if (applicantResponse.status === 404) {
+          return res.status(404).json({ message: "Applicant not found" });
+        }
+        throw new Error(`Failed to fetch applicant: ${applicantResponse.status} ${applicantResponse.statusText}`);
       }
 
-      const applicantData = {
-        name: applicant.name || 'Unknown Applicant',
-        userId: applicant.userId, // Use ONLY the User ID from platojobapplications
-        id: applicantId
-      };
-
-      console.log(`📝 Using User ID: ${applicantData.userId} for applicant: ${applicantData.name}`);
+      const applicantData = await applicantResponse.json();
+      const applicant = applicantData.fields;
       
+      console.log(`📋 Found applicant: ${applicant.Name}`);
+      
+      // Step 2: Validate required fields
+      if (!applicant.Name || !applicant['User ID'] || !applicant['Job title'] || !applicant['Job Description'] || !applicant['Company name']) {
+        return res.status(400).json({ 
+          message: "Missing required fields in applicant record",
+          missingFields: {
+            name: !applicant.Name,
+            userId: !applicant['User ID'],
+            jobTitle: !applicant['Job title'],
+            jobDescription: !applicant['Job Description'],
+            companyName: !applicant['Company name']
+          }
+        });
+      }
+      
+      // Step 3: Create job match record in platojobmatches table
       const jobMatchData = {
-        title: jobData.title || 'Unknown Job',
-        description: jobData.description || '',
-        id: applicant.jobId // Include Job ID from applicant data
-      };
-      
-      console.log(`🔄 Creating job match for ${applicantData.name} -> ${jobMatchData.title} at ${companyName}`);
-      await jobMatchesService.createJobMatch(applicantData, jobMatchData, companyName);
-      
-      // Store accepted applicant locally for interview scheduling
-      if (organization) {
-        // Get candidate email from user profile
-        let candidateEmail = '';
-        try {
-          const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService();
-          const userProfile = await realApplicantsService.getCandidateProfile(applicantData.userId);
-          candidateEmail = userProfile?.Email || '';
-        } catch (error) {
-          console.warn(`Could not fetch email for candidate ${applicantData.userId}:`, error);
+        fields: {
+          'Name': applicant.Name,
+          'User ID': applicant['User ID'],
+          'Job title': applicant['Job title'],
+          'Job Description': applicant['Job Description'],
+          'Company name': applicant['Company name']
         }
-        
+      };
+
+      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
+      const matchResponse = await fetch(matchesUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(jobMatchData)
+      });
+
+      if (!matchResponse.ok) {
+        const errorText = await matchResponse.text();
+        throw new Error(`Failed to create job match: ${matchResponse.status} ${matchResponse.statusText} - ${errorText}`);
+      }
+
+      const createdMatch = await matchResponse.json();
+      console.log(`✅ Created job match record: ${createdMatch.id}`);
+      
+      // Step 4: Update applicant status to 'accepted' in platojobapplications
+      const statusUpdateData = {
+        fields: {
+          'Status': 'accepted'
+        }
+      };
+
+      const statusUpdateResponse = await fetch(applicantUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(statusUpdateData)
+      });
+
+      if (!statusUpdateResponse.ok) {
+        console.warn(`⚠️ Failed to update applicant status: ${statusUpdateResponse.status}`);
+      } else {
+        console.log(`✅ Updated applicant status to 'accepted'`);
+      }
+      
+      // Step 5: Store locally for interview scheduling
+      const organization = await storage.getOrganizationByUser(userId);
+      if (organization) {
         await storage.addAcceptedApplicant({
-          candidateId: applicantData.userId,
-          candidateName: applicantData.name,
-          candidateEmail: candidateEmail,
-          jobId: applicant.jobId,
-          jobTitle: jobMatchData.title,
+          candidateId: applicant['User ID'],
+          candidateName: applicant.Name,
+          candidateEmail: applicant.Email || '',
+          jobId: applicant['Job ID'] || '',
+          jobTitle: applicant['Job title'],
           organizationId: organization.id,
           acceptedBy: userId,
         });
-        console.log(`💾 Stored accepted applicant ${applicantData.name} locally for interview scheduling`);
+        console.log(`💾 Stored accepted applicant locally for interview scheduling`);
       }
-      
-      // Update status in applications table instead of deleting
-      console.log(`✅ Updating applicant ${applicantId} status to accepted in platojobapplications table...`);
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
       
       console.log(`✅ Successfully accepted applicant ${applicantId}`);
       res.json({ 
-        message: "Applicant accepted - status updated and job match created",
-        applicantName: applicantData.name,
-        jobTitle: jobMatchData.title,
+        message: "Applicant accepted successfully",
+        applicantName: applicant.Name,
+        jobTitle: applicant['Job title'],
+        matchId: createdMatch.id,
         undoData: {
           applicantId,
-          applicantName: applicantData.name,
-          userId: applicantData.userId,
-          jobTitle: jobMatchData.title,
-          jobDescription: jobMatchData.description,
-          companyName: companyName,
+          applicantName: applicant.Name,
+          userId: applicant['User ID'],
+          jobTitle: applicant['Job title'],
+          jobDescription: applicant['Job Description'],
+          companyName: applicant['Company name'],
           action: 'accept'
         }
       });
