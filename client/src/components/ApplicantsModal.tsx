@@ -415,22 +415,26 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                     key={applicant.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 w-full"
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 w-full"
                   >
                     {/* Applicant Header */}
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div className="flex-grow min-w-0">
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                             {applicant.name || 'Unknown Applicant'}
                           </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">{applicant.jobTitle}</p>
-                          {applicant.companyName && (
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">at {applicant.companyName}</p>
-                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {applicant.email && (
+                              <div className="flex items-center space-x-1">
+                                <Mail className="w-3 h-3 text-gray-400" />
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{applicant.email}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2 flex-shrink-0">
@@ -438,11 +442,11 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                           <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
                             <Brain className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                             <span className="font-bold text-blue-600 dark:text-blue-400 text-sm">
-                              {applicant.matchScore}%
+                              {Math.round(applicant.matchScore)}%
                             </span>
                           </div>
                         )}
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(applicant.status || 'pending')}`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(applicant.status || 'pending')}`}>
                           {getStatusIcon(applicant.status || 'pending')}
                           <span className="capitalize">{applicant.status || 'pending'}</span>
                         </span>
@@ -451,120 +455,46 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
                     {/* AI Match Summary */}
                     {applicant.matchSummary && (
-                      <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-700/50">
+                      <div className="mb-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-700/50">
                         <div className="flex items-start gap-2">
                           <Brain className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">AI Analysis</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-xs font-medium text-blue-900 dark:text-blue-100">AI Analysis</p>
+                              {applicant.matchScore && (
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                                  Score: {Math.round(applicant.matchScore)}/100
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">{applicant.matchSummary}</p>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Applicant Details */}
-                    <div className="space-y-2 mb-4">
-                      {applicant.email && (
-                        <div className="flex items-center space-x-2 text-sm">
-                          <Mail className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600 dark:text-gray-300">{applicant.email}</span>
-                        </div>
-                      )}
+                    {/* Quick Info Row */}
+                    <div className="flex flex-wrap gap-4 mb-3 text-sm text-gray-600 dark:text-gray-300">
                       {applicant.phone && (
-                        <div className="flex items-center space-x-2 text-sm">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600 dark:text-gray-300">{applicant.phone}</span>
+                        <div className="flex items-center space-x-1">
+                          <Phone className="w-3 h-3 text-gray-400" />
+                          <span>{applicant.phone}</span>
                         </div>
                       )}
-                      {applicant.location && (
-                        <div className="flex items-center space-x-2 text-sm">
-                          <span className="text-gray-600 dark:text-gray-300">{applicant.location}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center space-x-2 text-sm">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600 dark:text-gray-300">
-                          Applied: {new Date(applicant.applicationDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Main Content Grid */}
-                    <div className="grid md:grid-cols-3 gap-6 mb-6">
-                      {/* Left Column - Details */}
-                      <div className="md:col-span-2 space-y-4">
-                        {/* Skills and Experience */}
-                        {applicant.skills && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Skills</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{applicant.skills}</p>
-                          </div>
-                        )}
-                        
-                        {applicant.experience && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">{applicant.experience}</p>
-                          </div>
-                        )}
-
-                        {/* Resume Link */}
-                        {applicant.resume && (
-                          <div>
-                            <a
-                              href={applicant.resume}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                            >
-                              <FileText className="w-4 h-4" />
-                              <span>View Resume</span>
-                            </a>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right Column - Contact & Application Info */}
-                      <div className="space-y-4">
-                        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Contact & Application</h4>
-                          <div className="space-y-2">
-                            {applicant.email && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                <span className="text-gray-600 dark:text-gray-300 truncate">{applicant.email}</span>
-                              </div>
-                            )}
-                            {applicant.phone && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                <span className="text-gray-600 dark:text-gray-300">{applicant.phone}</span>
-                              </div>
-                            )}
-                            {applicant.location && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <span className="text-gray-600 dark:text-gray-300">{applicant.location}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center space-x-2 text-sm">
-                              <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                              <span className="text-gray-600 dark:text-gray-300">
-                                {new Date(applicant.applicationDate).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-3 h-3 text-gray-400" />
+                        <span>Applied: {new Date(applicant.applicationDate).toLocaleDateString()}</span>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-600">
                       <button
                         onClick={() => handleViewProfile(applicant)}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center space-x-2 transition-colors"
+                        className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex items-center space-x-1 transition-colors"
                       >
-                        <Eye className="w-4 h-4" />
-                        <span>View Full Profile</span>
+                        <Eye className="w-3 h-3" />
+                        <span>View Profile</span>
                       </button>
                       
                       <div className="flex space-x-2">
@@ -573,17 +503,17 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                             <button
                               onClick={() => handleAcceptApplicant(applicant)}
                               disabled={acceptApplicantMutation.isPending}
-                              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
                             >
-                              <CheckCircle className="w-4 h-4" />
+                              <CheckCircle className="w-3 h-3" />
                               <span>{acceptApplicantMutation.isPending ? 'Accepting...' : 'Accept'}</span>
                             </button>
                             <button
                               onClick={() => handleDeclineApplicant(applicant)}
                               disabled={declineApplicantMutation.isPending}
-                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                              className="bg-red-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
                             >
-                              <XCircle className="w-4 h-4" />
+                              <XCircle className="w-3 h-3" />
                               <span>{declineApplicantMutation.isPending ? 'Declining...' : 'Decline'}</span>
                             </button>
                           </>
@@ -591,9 +521,10 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                         {applicant.status === 'accepted' && (
                           <button
                             onClick={() => handleScheduleInterview(applicant)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                            className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
                           >
-                            Schedule Interview
+                            <Calendar className="w-3 h-3" />
+                            <span>Schedule</span>
                           </button>
                         )}
                       </div>
@@ -842,7 +773,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                             <div className="flex items-center space-x-2">
                               <Star className="w-5 h-5 text-yellow-500" />
                               <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {profileAnalysis.profileScore}/100
+                                {Math.round(selectedApplicant.matchScore || profileAnalysis.profileScore)}/100
                               </span>
                             </div>
                           </div>
