@@ -1567,11 +1567,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const jobMatchesService = new (await import('./jobMatchesAirtableService')).JobMatchesAirtableService();
       const jobMatches = await jobMatchesService.getJobMatches();
       
+      console.log(`📊 Found ${jobMatches.length} total job matches in platojobmatches table`);
+      console.log('Job matches:', jobMatches.map(m => ({ 
+        name: m.fields?.['Name'], 
+        companyName: m.fields?.['Company name'], 
+        jobTitle: m.fields?.['Job title'] 
+      })));
+      
       // Get profile service to fetch email addresses
       const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService();
       
-      // Filter by company name and enhance with email data
-      const matchedApplicants = jobMatches.filter(match => match.fields?.['Company name'] === companyName);
+      // Filter by company name (if field exists) or return all if no company name is set
+      const matchedApplicants = jobMatches.filter(match => {
+        const recordCompanyName = match.fields?.['Company name'];
+        return recordCompanyName === companyName || !recordCompanyName; // Include records without company name
+      });
       
       const acceptedApplicants = await Promise.all(
         matchedApplicants.map(async (match) => {
