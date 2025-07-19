@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, MapPin, Star, Eye, Brain, TrendingUp, Target } from "lucide-react";
+import { X, Search, MapPin, Star, Eye, Brain, TrendingUp, Target, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
@@ -40,13 +40,17 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<EnhancedCandidate | null>(null);
 
   // Fetch enhanced candidates with match scores > 85
-  const { data: candidates = [], isLoading, error } = useQuery<EnhancedCandidate[]>({
+  const { data: candidates = [], isLoading, error, refetch, isFetching } = useQuery<EnhancedCandidate[]>({
     queryKey: ["/api/enhanced-candidates"],
     enabled: isOpen,
     retry: false,
-    refetchInterval: 120000, // Auto-refresh every 2 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
     refetchIntervalInBackground: true,
   });
+
+  const handleRefresh = () => {
+    refetch();
+  };
 
   // Handle unauthorized errors
   React.useEffect(() => {
@@ -117,14 +121,25 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isFetching}
+                    className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
               </div>
 
               {/* Search and Info */}
@@ -161,7 +176,14 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                     <p className="text-slate-500 dark:text-slate-400">Analyzing candidates...</p>
                   </div>
                 ) : filteredCandidates.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    {isFetching && !isLoading && (
+                      <div className="flex items-center justify-center py-2 mb-6 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                        <RefreshCw className="w-4 h-4 animate-spin text-purple-600 dark:text-purple-400 mr-2" />
+                        <span className="text-sm text-purple-600 dark:text-purple-400">Refreshing candidates...</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {filteredCandidates.map((candidate) => (
                       <motion.div
                         key={candidate.id}
