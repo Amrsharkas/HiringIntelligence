@@ -1631,24 +1631,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get accepted applicants for CreateInterviewModal (from platojobmatches table)
-  app.get('/api/accepted-applicants', isAuthenticated, async (req: any, res) => {
+  // Get accepted applicants for CreateInterviewModal (from platojobmatches table filtered by job ID)
+  app.get('/api/accepted-applicants/:jobId', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
+      const jobId = req.params.jobId;
       
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      console.log(`🔍 Fetching accepted applicants from platojobmatches table for organization: ${organization.companyName}`);
+      console.log(`🔍 Fetching accepted applicants from platojobmatches table for Job ID: ${jobId}, Organization: ${organization.companyName}`);
       
-      // Get accepted applicants from platojobmatches table (where accepted applicants are stored)
+      // Get accepted applicants from platojobmatches table filtered by Job ID and Company
       const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
       const MATCHES_BASE_ID = process.env.AIRTABLE_MATCHES_BASE_ID || 'appCjIvd73lvp0oLf';
       const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
       
-      const response = await fetch(`${matchesUrl}?filterByFormula={Company name}='${organization.companyName}'`, {
+      const response = await fetch(`${matchesUrl}?filterByFormula=AND({Company name}='${organization.companyName}', {Job ID}='${jobId}')`, {
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json'
@@ -1660,7 +1661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const data = await response.json();
-      console.log(`✅ Found ${data.records.length} accepted applicants in platojobmatches table`);
+      console.log(`✅ Found ${data.records.length} accepted applicants for Job ID ${jobId} in platojobmatches table`);
 
       // Transform to expected format for the interview modal
       const formattedApplicants = data.records.map((record: any) => ({
@@ -1694,14 +1695,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const MATCHES_BASE_ID = process.env.AIRTABLE_MATCHES_BASE_ID || 'appCjIvd73lvp0oLf';
       const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
       
+      // Get first active job to get the correct Job ID
+      const activeJobs = await storage.getActiveJobPostings(userId);
+      const firstJob = activeJobs[0];
+      
+      if (!firstJob) {
+        return res.status(404).json({ message: "No active jobs found to test with" });
+      }
+
       // Add a test accepted applicant to platojobmatches table
       const testMatch = {
         "Name": "Adam Elshanawany", 
         "User ID": "43108970",
-        "Job title": "Administrative Assistant",
-        "Job description": "Administrative role at our company",
+        "Job title": firstJob.title,
+        "Job description": firstJob.description,
         "Company name": organization.companyName,
-        "Job ID": "5"
+        "Job ID": firstJob.id.toString()
       };
 
       const response = await fetch(matchesUrl, {
