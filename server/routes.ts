@@ -1097,6 +1097,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interview Management Endpoints
+  app.get('/api/interviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { realInterviews } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      const userInterviews = await db.select().from(realInterviews).where(eq(realInterviews.organizationId, organization.id.toString()));
+      
+      res.json(userInterviews);
+    } catch (error) {
+      console.error("Error fetching interviews:", error);
+      res.status(500).json({ message: "Failed to fetch interviews" });
+    }
+  });
+
+  app.post('/api/interviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { candidateName, candidateEmail, candidateId, jobId, jobTitle, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
+      
+      const { realInterviews } = await import('@shared/schema');
+      const { nanoid } = await import('nanoid');
+      
+      const interviewId = nanoid();
+      const interviewer = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || 'Unknown';
+      
+      const [interview] = await db.insert(realInterviews).values({
+        id: interviewId,
+        candidateName,
+        candidateEmail: candidateEmail || '',
+        candidateId,
+        jobId,
+        jobTitle,
+        scheduledDate,
+        scheduledTime,
+        interviewType: interviewType || 'video',
+        meetingLink: meetingLink || '',
+        interviewer,
+        status: 'scheduled',
+        notes: notes || '',
+        organizationId: organization.id.toString(),
+      }).returning();
+
+      console.log(`✅ Created interview for ${candidateName} on ${scheduledDate} at ${scheduledTime}`);
+      res.json(interview);
+    } catch (error) {
+      console.error("Error creating interview:", error);
+      res.status(500).json({ message: "Failed to create interview" });
+    }
+  });
+
+  app.put('/api/interviews/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      const interviewId = req.params.id;
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { scheduledDate, scheduledTime, interviewType, meetingLink, notes, status } = req.body;
+      
+      const { realInterviews } = await import('@shared/schema');
+      const { eq, and } = await import('drizzle-orm');
+      
+      const [updatedInterview] = await db.update(realInterviews)
+        .set({
+          scheduledDate,
+          scheduledTime,
+          interviewType,
+          meetingLink,
+          notes,
+          status,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(realInterviews.id, interviewId),
+          eq(realInterviews.organizationId, organization.id.toString())
+        ))
+        .returning();
+
+      if (!updatedInterview) {
+        return res.status(404).json({ message: "Interview not found" });
+      }
+
+      res.json(updatedInterview);
+    } catch (error) {
+      console.error("Error updating interview:", error);
+      res.status(500).json({ message: "Failed to update interview" });
+    }
+  });
+
+  app.delete('/api/interviews/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      const interviewId = req.params.id;
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { realInterviews } = await import('@shared/schema');
+      const { eq, and } = await import('drizzle-orm');
+      
+      const [deletedInterview] = await db.delete(realInterviews)
+        .where(and(
+          eq(realInterviews.id, interviewId),
+          eq(realInterviews.organizationId, organization.id.toString())
+        ))
+        .returning();
+
+      if (!deletedInterview) {
+        return res.status(404).json({ message: "Interview not found" });
+      }
+
+      res.json({ message: "Interview deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting interview:", error);
+      res.status(500).json({ message: "Failed to delete interview" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

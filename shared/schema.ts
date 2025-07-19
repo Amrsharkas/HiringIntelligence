@@ -182,9 +182,31 @@ export const interviewsRelations = relations(interviews, ({ one }) => ({
   createdBy: one(users, { fields: [interviews.createdBy], references: [users.id] }),
 }));
 
+// Real interviews table for scheduling
+export const realInterviews = pgTable("real_interviews", {
+  id: varchar("id").primaryKey().notNull(),
+  candidateName: varchar("candidate_name").notNull(),
+  candidateEmail: varchar("candidate_email"),
+  candidateId: varchar("candidate_id").notNull(),
+  jobId: varchar("job_id").notNull(),
+  jobTitle: varchar("job_title").notNull(),
+  scheduledDate: varchar("scheduled_date").notNull(),
+  scheduledTime: varchar("scheduled_time").notNull(),
+  interviewType: varchar("interview_type").notNull().default('video'),
+  meetingLink: varchar("meeting_link"),
+  interviewer: varchar("interviewer").notNull(),
+  status: varchar("status").notNull().default('scheduled'),
+  notes: text("notes"),
+  organizationId: varchar("organization_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type RealInterview = typeof realInterviews.$inferSelect;
+export type InsertRealInterview = typeof realInterviews.$inferInsert;
 
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
