@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle } from 'lucide-react';
+import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -53,11 +53,28 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: applicants = [], isLoading, refetch } = useQuery({
+  const { data: applicants = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: jobId ? ['/api/real-applicants', jobId] : ['/api/real-applicants'],
     enabled: isOpen,
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchIntervalInBackground: true,
   });
+
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    refetch();
+  };
+
+  // Auto-refresh every 30 seconds when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, refetch]);
 
   const acceptApplicantMutation = useMutation({
     mutationFn: async (applicant: ApplicantData) => {
@@ -276,15 +293,30 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full h-[90vh] mx-4 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {jobId ? 'Job Applicants' : 'All Applicants'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {jobId ? 'Job Applicants' : 'All Applicants'}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Real applications with AI-powered matching scores
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleManualRefresh}
+              disabled={isFetching}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+              {isFetching ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -302,35 +334,40 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
             </div>
           ) : (
             <div className="h-full overflow-y-auto p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-4 max-w-4xl mx-auto">
                 {applicants.map((applicant: ApplicantData) => (
                   <motion.div
                     key={applicant.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600"
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 w-full"
                   >
                     {/* Applicant Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-start space-x-4">
+                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{applicant.name}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{applicant.jobTitle}</p>
+                        <div className="flex-grow min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                            {applicant.name || 'Unknown Applicant'}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">{applicant.jobTitle}</p>
+                          {applicant.companyName && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">at {applicant.companyName}</p>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end space-y-1">
+                      <div className="flex flex-col items-end space-y-2 flex-shrink-0">
                         {applicant.matchScore && (
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
                             <Brain className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <span className="font-bold text-blue-600 dark:text-blue-400">
+                            <span className="font-bold text-blue-600 dark:text-blue-400 text-sm">
                               {applicant.matchScore}%
                             </span>
                           </div>
                         )}
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(applicant.status || 'pending')}`}>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(applicant.status || 'pending')}`}>
                           {getStatusIcon(applicant.status || 'pending')}
                           <span className="capitalize">{applicant.status || 'pending'}</span>
                         </span>
@@ -377,44 +414,82 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                       </div>
                     </div>
 
-                    {/* Skills and Experience */}
-                    {applicant.skills && (
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Skills:</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{applicant.skills}</p>
-                      </div>
-                    )}
-                    
-                    {applicant.experience && (
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Experience:</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{applicant.experience}</p>
-                      </div>
-                    )}
+                    {/* Main Content Grid */}
+                    <div className="grid md:grid-cols-3 gap-6 mb-6">
+                      {/* Left Column - Details */}
+                      <div className="md:col-span-2 space-y-4">
+                        {/* Skills and Experience */}
+                        {applicant.skills && (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Skills</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{applicant.skills}</p>
+                          </div>
+                        )}
+                        
+                        {applicant.experience && (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">{applicant.experience}</p>
+                          </div>
+                        )}
 
-                    {/* Resume Link */}
-                    {applicant.resume && (
-                      <div className="mb-4">
-                        <a
-                          href={applicant.resume}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          <FileText className="w-4 h-4" />
-                          <span>View Resume</span>
-                        </a>
+                        {/* Resume Link */}
+                        {applicant.resume && (
+                          <div>
+                            <a
+                              href={applicant.resume}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                            >
+                              <FileText className="w-4 h-4" />
+                              <span>View Resume</span>
+                            </a>
+                          </div>
+                        )}
                       </div>
-                    )}
+
+                      {/* Right Column - Contact & Application Info */}
+                      <div className="space-y-4">
+                        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Contact & Application</h4>
+                          <div className="space-y-2">
+                            {applicant.email && (
+                              <div className="flex items-center space-x-2 text-sm">
+                                <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <span className="text-gray-600 dark:text-gray-300 truncate">{applicant.email}</span>
+                              </div>
+                            )}
+                            {applicant.phone && (
+                              <div className="flex items-center space-x-2 text-sm">
+                                <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <span className="text-gray-600 dark:text-gray-300">{applicant.phone}</span>
+                              </div>
+                            )}
+                            {applicant.location && (
+                              <div className="flex items-center space-x-2 text-sm">
+                                <span className="text-gray-600 dark:text-gray-300">{applicant.location}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-2 text-sm">
+                              <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <span className="text-gray-600 dark:text-gray-300">
+                                {new Date(applicant.applicationDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col space-y-2">
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-600">
                       <button
                         onClick={() => handleViewProfile(applicant)}
-                        className="w-full bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 flex items-center justify-center space-x-2"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center space-x-2 transition-colors"
                       >
                         <Eye className="w-4 h-4" />
-                        <span>View Profile</span>
+                        <span>View Full Profile</span>
                       </button>
                       
                       <div className="flex space-x-2">
@@ -423,23 +498,25 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                             <button
                               onClick={() => handleAcceptApplicant(applicant)}
                               disabled={acceptApplicantMutation.isPending}
-                              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
                             >
-                              {acceptApplicantMutation.isPending ? 'Accepting...' : 'Accept'}
+                              <CheckCircle className="w-4 h-4" />
+                              <span>{acceptApplicantMutation.isPending ? 'Accepting...' : 'Accept'}</span>
                             </button>
                             <button
                               onClick={() => handleDeclineApplicant(applicant)}
                               disabled={declineApplicantMutation.isPending}
-                              className="flex-1 bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
                             >
-                              {declineApplicantMutation.isPending ? 'Declining...' : 'Decline'}
+                              <XCircle className="w-4 h-4" />
+                              <span>{declineApplicantMutation.isPending ? 'Declining...' : 'Decline'}</span>
                             </button>
                           </>
                         )}
                         {applicant.status === 'accepted' && (
                           <button
                             onClick={() => handleScheduleInterview(applicant)}
-                            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
                           >
                             Schedule Interview
                           </button>

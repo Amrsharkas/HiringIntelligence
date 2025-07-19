@@ -119,8 +119,68 @@ const InteractiveCard = memo(({ children, onClick, className, index }: {
   </motion.div>
 ));
 
+const LiveApplicantsCount = memo(() => {
+  const { toast } = useToast();
+  const { data: applicantsCount = { count: 0 } } = useQuery<any>({
+    queryKey: ["/api/applicants/count"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+    },
+  });
+  return (
+    <div className="text-3xl font-bold" style={{ minWidth: '60px', textAlign: 'center' }}>
+      {applicantsCount.count}
+    </div>
+  );
+});
+
+const LiveCandidatesCount = memo(() => {
+  const { toast } = useToast();
+  const { data: candidatesCount = { count: 0 } } = useQuery<any>({
+    queryKey: ["/api/candidates/count"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+    },
+  });
+  return (
+    <div className="text-3xl font-bold" style={{ minWidth: '60px', textAlign: 'center' }}>
+      {candidatesCount.count}
+    </div>
+  );
+});
+
 LiveJobCount.displayName = 'LiveJobCount';
 LiveOrganizationName.displayName = 'LiveOrganizationName';
+LiveApplicantsCount.displayName = 'LiveApplicantsCount';
+LiveCandidatesCount.displayName = 'LiveCandidatesCount';
 StatNumber.displayName = 'StatNumber';
 InteractiveCard.displayName = 'InteractiveCard';
 
@@ -331,18 +391,14 @@ export default function EmployerDashboard() {
               },
               { 
                 label: "Applicants", 
-                component: <StatNumber value={matches?.length || 0} />,
+                component: <LiveApplicantsCount />,
                 icon: Users, 
                 color: "green",
                 onClick: () => setIsApplicantsModalOpen(true)
               },
               { 
                 label: "Candidates", 
-                component: <StatNumber value={matches?.filter((m: any) => {
-                  const matchDate = new Date(m.createdAt);
-                  const now = new Date();
-                  return matchDate.getMonth() === now.getMonth();
-                }).length || 0} />,
+                component: <LiveCandidatesCount />,
                 icon: Target, 
                 color: "purple",
                 onClick: () => setIsCandidatesModalOpen(true)

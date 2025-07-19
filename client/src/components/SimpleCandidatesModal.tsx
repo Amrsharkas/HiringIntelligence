@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, MapPin, Star, Eye, Brain, TrendingUp, Target } from "lucide-react";
+import { X, Search, MapPin, Star, Eye, Brain, TrendingUp, Target, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
@@ -40,13 +40,29 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<EnhancedCandidate | null>(null);
 
   // Fetch enhanced candidates with match scores > 85
-  const { data: candidates = [], isLoading, error } = useQuery<EnhancedCandidate[]>({
+  const { data: candidates = [], isLoading, error, refetch, isFetching } = useQuery<EnhancedCandidate[]>({
     queryKey: ["/api/enhanced-candidates"],
     enabled: isOpen,
     retry: false,
-    refetchInterval: 120000, // Auto-refresh every 2 minutes
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
     refetchIntervalInBackground: true,
   });
+
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    refetch();
+  };
+
+  // Auto-refresh every 30 seconds when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, refetch]);
 
   // Handle unauthorized errors
   React.useEffect(() => {
@@ -117,14 +133,25 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleManualRefresh}
+                    disabled={isFetching}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-1 ${isFetching ? 'animate-spin' : ''}`} />
+                    {isFetching ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
               </div>
 
               {/* Search and Info */}

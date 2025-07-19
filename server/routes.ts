@@ -279,6 +279,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Count endpoints for dashboard
+  app.get('/api/applicants/count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json({ count: 0 });
+      }
+
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const applicants = await realApplicantsAirtableService.getAllApplicants();
+      
+      // Filter to only show applicants for this organization's jobs
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+      const filteredApplicants = applicants.filter(app => organizationJobIds.has(app.jobId));
+      
+      res.json({ count: filteredApplicants.length });
+    } catch (error) {
+      console.error("Error counting applicants:", error);
+      res.json({ count: 0 });
+    }
+  });
+
+  app.get('/api/candidates/count', isAuthenticated, async (req: any, res) => {
+    try {
+      const { candidatesAirtableService } = await import('./candidatesAirtableService');
+      const candidates = await candidatesAirtableService.getAllCandidates();
+      
+      // Only count candidates with scores > 85
+      const highScoringCandidates = candidates.filter(candidate => 
+        candidate.bestMatchJob && candidate.bestMatchJob.matchScore > 85
+      );
+      
+      res.json({ count: highScoringCandidates.length });
+    } catch (error) {
+      console.error("Error counting candidates:", error);
+      res.json({ count: 0 });
+    }
+  });
+
   // Real Applicants routes - from platojobapplications table
   app.get('/api/real-applicants/:jobId?', isAuthenticated, async (req: any, res) => {
     try {
