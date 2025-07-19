@@ -70,6 +70,7 @@ export const jobs = pgTable("jobs", {
   salaryMax: integer("salary_max"),
   softSkills: text("soft_skills").array(),
   technicalSkills: text("technical_skills").array(),
+  employerQuestions: text("employer_questions").array(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   createdById: varchar("created_by_id").notNull().references(() => users.id),
   is_active: boolean("is_active").notNull().default(true),

@@ -12,6 +12,7 @@ interface AirtableJobRecord {
     'Job type'?: string;
     'Salary'?: string;
     'Location'?: string;
+    'Employer Questions'?: string;
   };
   createdTime: string;
 }
@@ -35,7 +36,7 @@ interface JobPostingData {
 
 export class JobPostingsAirtableService {
   private baseUrl = 'https://api.airtable.com/v0';
-  private baseId = 'appCjIvd73lvp0oLf'; // platojobpostings base
+  private baseId = 'app1u4N2W46jD43mP'; // platojobpostings base with employer questions support
   private tableName = 'Table 1';
   private apiKey: string;
 
@@ -150,6 +151,63 @@ export class JobPostingsAirtableService {
     }
   }
 
+  // Add/update a job posting in Airtable
+  async addJobToAirtable(jobData: {
+    jobId: string;
+    title: string;
+    description: string;
+    location: string;
+    salary?: string;
+    company: string;
+    employerQuestions?: string[];
+  }): Promise<void> {
+    try {
+      console.log(`Adding job ${jobData.jobId} to Airtable...`);
+      
+      // Format employer questions as multiline string
+      const employerQuestionsText = jobData.employerQuestions && jobData.employerQuestions.length > 0
+        ? jobData.employerQuestions.map((q, index) => `${index + 1}. ${q}`).join('\n')
+        : '';
+
+      const record = {
+        fields: {
+          'Job title': jobData.title,
+          'Job ID': jobData.jobId,
+          'Job description': jobData.description,
+          'Location': jobData.location,
+          'Salary': jobData.salary || '',
+          'Company': jobData.company,
+          'Date Posted': new Date().toISOString().split('T')[0],
+          'Job type': 'Full-time', // Default value
+          'Employer Questions': employerQuestionsText,
+        }
+      };
+
+      const response = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(record)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log(`Successfully added job to Airtable with ID: ${result.id}`);
+
+    } catch (error) {
+      console.error('Error adding job to Airtable:', error);
+      throw error;
+    }
+  }
+
   // Sync method for periodic syncing (placeholder for now)
   async syncJobPostingsToAirtable(): Promise<void> {
     try {
@@ -164,6 +222,6 @@ export class JobPostingsAirtableService {
   }
 }
 
-// Export an instance with environment-based API key
-const airtableApiKey = process.env.AIRTABLE_API_KEY || 'placeholder-key';
+// Export an instance with the provided API key
+const airtableApiKey = process.env.AIRTABLE_API_KEY || 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
 export const jobPostingsAirtableService = new JobPostingsAirtableService(airtableApiKey);

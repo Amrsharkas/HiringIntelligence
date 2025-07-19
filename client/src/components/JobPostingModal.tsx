@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, Sparkles, Loader2, MapPin, DollarSign, Plus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -23,6 +24,7 @@ const jobFormSchema = z.object({
   salaryRange: z.string().optional(),
   softSkills: z.array(z.string()).default([]),
   technicalSkills: z.array(z.string()).default([]),
+  employerQuestions: z.array(z.string()).default([]),
 });
 
 type JobFormData = z.infer<typeof jobFormSchema>;
@@ -70,6 +72,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isGeneratingRequirements, setIsGeneratingRequirements] = useState(false);
   const [dynamicTechnicalSkills, setDynamicTechnicalSkills] = useState<string[]>([]);
+  const [employerQuestions, setEmployerQuestions] = useState<string[]>(['']);
+  const [activeTab, setActiveTab] = useState('details');
 
   const form = useForm<JobFormData>({
     resolver: zodResolver(jobFormSchema),
@@ -84,6 +88,28 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     },
   });
 
+  // Functions for managing employer questions
+  const addEmployerQuestion = () => {
+    if (employerQuestions.length < 5) {
+      setEmployerQuestions([...employerQuestions, '']);
+    }
+  };
+
+  const removeEmployerQuestion = (index: number) => {
+    const newQuestions = employerQuestions.filter((_, i) => i !== index);
+    setEmployerQuestions(newQuestions.length === 0 ? [''] : newQuestions);
+    form.setValue('employerQuestions', newQuestions.filter(q => q.trim() !== ''));
+  };
+
+  const updateEmployerQuestion = (index: number, value: string) => {
+    const newQuestions = [...employerQuestions];
+    newQuestions[index] = value;
+    setEmployerQuestions(newQuestions);
+    // Only include non-empty questions in form data
+    const validQuestions = newQuestions.filter(q => q.trim() !== '');
+    form.setValue('employerQuestions', validQuestions);
+  };
+
   // Reset form when editJob changes
   useEffect(() => {
     if (editJob) {
@@ -95,9 +121,11 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         salaryRange: editJob.salaryRange || "",
         softSkills: editJob.softSkills || [],
         technicalSkills: editJob.technicalSkills || [],
+        employerQuestions: editJob.employerQuestions || [],
       });
       setSelectedSoftSkills(editJob.softSkills || []);
       setSelectedTechnicalSkills(editJob.technicalSkills || []);
+      setEmployerQuestions(editJob.employerQuestions?.length > 0 ? editJob.employerQuestions : ['']);
     } else {
       form.reset({
         title: "",
@@ -107,9 +135,12 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         salaryRange: "",
         softSkills: [],
         technicalSkills: [],
+        employerQuestions: [],
       });
       setSelectedSoftSkills([]);
       setSelectedTechnicalSkills([]);
+      setEmployerQuestions(['']);
+      setActiveTab('details');
     }
   }, [editJob, form]);
 
@@ -375,7 +406,20 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
             </div>
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="p-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="details" className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Job Details
+                </TabsTrigger>
+                <TabsTrigger value="questions" className="flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4" />
+                  Employer Questions
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="space-y-6">
             <div>
               <Label htmlFor="title">Job Title</Label>
               <Input
@@ -610,6 +654,83 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                 </div>
               </div>
             </div>
+              </TabsContent>
+
+              <TabsContent value="questions" className="space-y-6">
+                <div className="space-y-4">
+                  <div className="text-center py-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg">
+                    <HelpCircle className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Employer Questions
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                      Add up to 5 optional questions to ask candidates during the application process.
+                      These help you learn more about candidates beyond their resume.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {employerQuestions.map((question, index) => (
+                      <div key={index} className="flex gap-3 items-start">
+                        <div className="flex-1">
+                          <Label htmlFor={`question-${index}`} className="text-sm font-medium">
+                            Question {index + 1} {index === 0 && employerQuestions.length === 1 ? '(Optional)' : ''}
+                          </Label>
+                          <Textarea
+                            id={`question-${index}`}
+                            value={question}
+                            onChange={(e) => updateEmployerQuestion(index, e.target.value)}
+                            placeholder={`e.g., "What interests you most about this role?" or "Describe a challenging project you've worked on."`}
+                            rows={2}
+                            className="mt-2"
+                          />
+                        </div>
+                        {employerQuestions.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeEmployerQuestion(index)}
+                            className="mt-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+
+                    {employerQuestions.length < 5 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addEmployerQuestion}
+                        className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 dark:border-blue-600"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Question ({employerQuestions.length}/5)
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <HelpCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                          Tips for Great Questions
+                        </h4>
+                        <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                          <li>• Ask about motivation and passion for the role</li>
+                          <li>• Inquire about specific experiences or challenges</li>
+                          <li>• Keep questions open-ended to encourage detailed responses</li>
+                          <li>• Avoid questions that can be answered with yes/no</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             <div className="flex justify-end gap-4 pt-6 border-t border-slate-200 dark:border-slate-700">
               <Button
