@@ -1487,6 +1487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { realInterviews } = await import('@shared/schema');
       const { eq } = await import('drizzle-orm');
+      const { db } = await import('./db');
       
       const userInterviews = await db.select().from(realInterviews).where(eq(realInterviews.organizationId, organization.id.toString()));
       
@@ -1515,6 +1516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { realInterviews } = await import('@shared/schema');
       const { nanoid } = await import('nanoid');
+      const { db } = await import('./db');
       
       const interviewId = nanoid();
       const interviewer = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || 'Unknown';
@@ -1538,14 +1540,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`✅ Created interview for ${candidateName} on ${scheduledDate} at ${scheduledTime}`);
 
-      // Update platojobmatches table with interview details
+      // Update the Airtable platojobmatches record with interview details
       try {
-        // Create ISO8601 formatted datetime
-        const interviewDateTime = `${scheduledDate}T${scheduledTime}:00.000Z`;
+        const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+        const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
+        const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
         
-        console.log(`🔗 Updating platojobmatches for User ID: ${candidateId}, Job title: ${jobTitle}`);
-        await jobMatchesService.updateInterviewDetails(candidateId, jobTitle, interviewDateTime, meetingLink);
-        console.log(`✅ Successfully updated platojobmatches with interview details`);
+        // Find the platojobmatches record to update
+        const filterFormula = `AND({User ID}='${candidateId}', {Job ID}='${jobId}')`;
+        const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+        
+        console.log(`🔍 Searching for platojobmatches record: User ID=${candidateId}, Job ID=${jobId}`);
+        
+        const searchResponse = await fetch(searchUrl, {
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          if (searchData.records && searchData.records.length > 0) {
+            const recordId = searchData.records[0].id;
+            console.log(`📝 Found record ID: ${recordId}, updating with interview details...`);
+            
+            // Update the record with interview details
+            const updateData = {
+              fields: {
+                'Interview Date': scheduledDate,
+                'Interview Time': scheduledTime,
+                'Interview Type': interviewType,
+                'Meeting Link': meetingLink || '',
+                'Interview Notes': notes || '',
+                'Interview Status': 'scheduled'
+              }
+            };
+
+            const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(updateData)
+            });
+
+            if (updateResponse.ok) {
+              console.log(`✅ Successfully updated Airtable platojobmatches record with interview details`);
+            } else {
+              console.error(`❌ Failed to update Airtable record: ${updateResponse.status} ${updateResponse.statusText}`);
+            }
+          } else {
+            console.log(`⚠️ No platojobmatches record found for User ID ${candidateId} and Job ID ${jobId}`);
+          }
+        } else {
+          console.error(`❌ Failed to search Airtable records: ${searchResponse.status} ${searchResponse.statusText}`);
+        }
       } catch (airtableError) {
         console.error('❌ Failed to update platojobmatches with interview details:', airtableError);
         // Don't fail the entire operation if Airtable update fails
@@ -1755,104 +1806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interview scheduling endpoint
-  app.post('/api/interviews', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      const { candidateName, candidateEmail, candidateId, jobId, jobTitle, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
-      
-      console.log(`📅 Scheduling interview for applicant ${candidateName} (${candidateId}) for job ${jobId}`);
-      
-      // Generate unique interview ID
-      const interviewId = `interview_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      
-      // Create interview record in our database
-      const interviewData = {
-        id: interviewId,
-        candidateName: candidateName || 'Unknown',
-        candidateEmail: candidateEmail || '',
-        candidateId: candidateId,
-        jobId: jobId,
-        jobTitle: jobTitle || 'Unknown Position',
-        scheduledDate,
-        scheduledTime,
-        interviewType: interviewType || 'video',
-        meetingLink: meetingLink || '',
-        interviewer: organization.companyName,
-        status: 'scheduled',
-        notes: notes || '',
-        organizationId: organization.id.toString(),
-      };
-
-      const interview = await storage.createRealInterview(interviewData);
-      
-      // Update the Airtable platojobmatches record with interview details
-      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
-      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-      
-      // Find the platojobmatches record to update
-      const filterFormula = `AND({User ID}='${candidateId}', {Job ID}='${jobId}')`;
-      const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-      
-      const searchResponse = await fetch(searchUrl, {
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        if (searchData.records && searchData.records.length > 0) {
-          const recordId = searchData.records[0].id;
-          
-          // Update the record with interview details
-          const updateData = {
-            fields: {
-              'Interview Date': scheduledDate,
-              'Interview Time': scheduledTime,
-              'Interview Type': interviewType,
-              'Meeting Link': meetingLink || '',
-              'Interview Notes': notes || '',
-              'Interview Status': 'scheduled'
-            }
-          };
-
-          const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(updateData)
-          });
-
-          if (updateResponse.ok) {
-            console.log(`✅ Updated Airtable platojobmatches record with interview details`);
-          } else {
-            console.error(`❌ Failed to update Airtable record: ${updateResponse.status}`);
-          }
-        }
-      }
-
-      console.log(`✅ Interview scheduled successfully for ${candidateName}`);
-      res.json({ 
-        success: true, 
-        message: "Interview scheduled successfully!",
-        interview: interview 
-      });
-    } catch (error) {
-      console.error("Error scheduling interview:", error);
-      res.status(500).json({ message: "Failed to schedule interview" });
-    }
-  });
+  // Interview scheduling endpoint (removed duplicate - using the one at line 1501 instead)
 
   const httpServer = createServer(app);
   return httpServer;
