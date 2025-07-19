@@ -244,9 +244,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const acceptApplicantMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      return apiRequest(`/api/real-applicants/${applicantId}/accept`, {
-        method: 'POST'
-      });
+      return apiRequest('POST', `/api/real-applicants/${applicantId}/accept`);
     },
     onMutate: (applicantId: string) => {
       setProcessingActions(prev => new Set([...prev, applicantId]));
@@ -291,9 +289,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const declineApplicantMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      return apiRequest(`/api/real-applicants/${applicantId}/decline`, {
-        method: 'POST'
-      });
+      return apiRequest('POST', `/api/real-applicants/${applicantId}/decline`);
     },
     onMutate: (applicantId: string) => {
       setProcessingActions(prev => new Set([...prev, applicantId]));
@@ -337,23 +333,17 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const scheduleInterviewMutation = useMutation({
     mutationFn: async (data: { applicant: ApplicantData; scheduledDate: string; scheduledTime: string; interviewType: string; meetingLink?: string; notes?: string }) => {
-      return apiRequest('/api/interviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          candidateName: data.applicant.name,
-          candidateEmail: data.applicant.email,
-          candidateId: data.applicant.id,
-          jobId: data.applicant.jobId,
-          jobTitle: data.applicant.jobTitle,
-          scheduledDate: data.scheduledDate,
-          scheduledTime: data.scheduledTime,
-          interviewType: data.interviewType,
-          meetingLink: data.meetingLink || '',
-          notes: data.notes || ''
-        }),
+      return apiRequest('POST', '/api/interviews', {
+        candidateName: data.applicant.name,
+        candidateEmail: data.applicant.email,
+        candidateId: data.applicant.id,
+        jobId: data.applicant.jobId,
+        jobTitle: data.applicant.jobTitle,
+        scheduledDate: data.scheduledDate,
+        scheduledTime: data.scheduledTime,
+        interviewType: data.interviewType,
+        meetingLink: data.meetingLink || '',
+        notes: data.notes || ''
       });
     },
     onSuccess: () => {
