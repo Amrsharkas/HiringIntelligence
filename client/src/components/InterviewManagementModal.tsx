@@ -54,9 +54,13 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
   // Create/Update interview mutation
   const interviewMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('🚀 Interview mutation called with data:', data);
+      console.log('✏️ Editing interview:', editingInterview);
       if (editingInterview) {
+        console.log(`📤 Making PATCH request to /api/interviews/${editingInterview.id}`);
         return apiRequest('PATCH', `/api/interviews/${editingInterview.id}`, data);
       } else {
+        console.log('📤 Making POST request to /api/interviews');
         return apiRequest('POST', '/api/interviews', data);
       }
     },
@@ -70,6 +74,8 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
       });
     },
     onError: (error: any) => {
+      console.error('❌ Interview mutation error:', error);
+      console.error('❌ Error details:', error.message);
       toast({
         title: "Error",
         description: error.message || "Failed to save interview",
@@ -233,6 +239,8 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      console.log('🔄 Submitting interview form:', formData);
+      console.log('📝 Is editing interview?', !!interview);
       interviewMutation.mutate(formData);
     };
 
