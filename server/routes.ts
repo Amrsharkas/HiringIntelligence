@@ -1680,6 +1680,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint to add accepted applicants for testing
+  app.post('/api/test/add-accepted-applicant', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+      const APPLICATIONS_BASE_ID = process.env.AIRTABLE_APPLICATIONS_BASE_ID || 'appEYs1fTytFXoJ7x';
+      const applicationsUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201`;
+      
+      // Add a test accepted applicant
+      const testApplicant = {
+        "Applicant Name": "Adam Elshanawany",
+        "Applicant User ID": "43108970",
+        "Job title": "Administrative Assistant",
+        "Job description": "Administrative role at our company",
+        "Company": organization.companyName,
+        "Job ID": "5",
+        "Status": "Accepted",
+        "Email": "adam@example.com"
+      };
+
+      const response = await fetch(applicationsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          records: [{
+            fields: testApplicant
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to add test applicant: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Added test accepted applicant: ${testApplicant["Applicant Name"]}`);
+
+      res.json({ 
+        message: "Test accepted applicant added successfully",
+        recordId: data.records[0].id,
+        applicant: testApplicant
+      });
+    } catch (error) {
+      console.error("Error adding test applicant:", error);
+      res.status(500).json({ message: "Failed to add test applicant" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

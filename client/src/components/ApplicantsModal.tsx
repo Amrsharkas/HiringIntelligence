@@ -281,7 +281,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       
       toast({
         title: "Success",
-        description: "Applicant accepted and added to job matches",
+        description: `${data.applicantName} accepted! Click "Schedule Interview" in the Quick Actions to proceed.`,
+        duration: 8000,
       });
       refetch();
     },
