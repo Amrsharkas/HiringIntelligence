@@ -28,7 +28,7 @@ import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { TeamManagementModal } from "@/components/TeamManagementModal";
 import { MessagingModal } from "@/components/MessagingModal";
-import { InterviewsModal } from "@/components/InterviewsModal";
+
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -197,7 +197,7 @@ export default function EmployerDashboard() {
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isMessagingModalOpen, setIsMessagingModalOpen] = useState(false);
-  const [isInterviewsModalOpen, setIsInterviewsModalOpen] = useState(false);
+
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
 
   // Redirect to home if not authenticated
@@ -411,7 +411,7 @@ export default function EmployerDashboard() {
                 component: <StatNumber value={teamMembers?.length || 0} />,
                 icon: MessageSquare, 
                 color: "orange",
-                onClick: () => setIsInterviewsModalOpen(true)
+                onClick: () => setIsCreateInterviewModalOpen(true)
               }
             ], [matches?.length, teamMembers?.length]).map((stat, index) => (
               <InteractiveCard
@@ -556,10 +556,7 @@ export default function EmployerDashboard() {
         isOpen={isMessagingModalOpen} 
         onClose={() => setIsMessagingModalOpen(false)} 
       />
-      <InterviewsModal 
-        isOpen={isInterviewsModalOpen} 
-        onClose={() => setIsInterviewsModalOpen(false)} 
-      />
+
       <CreateInterviewModal 
         isOpen={isCreateInterviewModalOpen} 
         onClose={() => setIsCreateInterviewModalOpen(false)} 
