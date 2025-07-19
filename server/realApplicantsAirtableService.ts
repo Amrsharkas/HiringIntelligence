@@ -4,8 +4,11 @@ import fetch from 'node-fetch';
 interface AirtableApplicantRecord {
   id: string;
   fields: {
-    'Name': string;
+    'Name'?: string;
+    'Applicant Name'?: string;
     'User ID': string;
+    'Email'?: string;
+    'Phone'?: string;
     'Job title': string;
     'Job description': string;
     'Company name': string;
@@ -85,8 +88,10 @@ class RealApplicantsAirtableService {
       // Transform records to our format
       const applicants: ApplicantWithProfile[] = allRecords.map(record => ({
         id: record.id,
-        name: record.fields['Name'] || 'Unknown Applicant',
+        name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
         userId: record.fields['User ID'] || '',
+        email: record.fields['Email'] || '',
+        phone: record.fields['Phone'] || '',
         jobTitle: record.fields['Job title'] || '',
         jobDescription: record.fields['Job description'] || '',
         companyName: record.fields['Company name'] || '',
@@ -140,8 +145,10 @@ class RealApplicantsAirtableService {
       // Transform records to our format and group by job ID
       const applicants: ApplicantWithProfile[] = allRecords.map(record => ({
         id: record.id,
-        name: record.fields['Name'] || 'Unknown Applicant',
+        name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
         userId: record.fields['User ID'] || '',
+        email: record.fields['Email'] || '',
+        phone: record.fields['Phone'] || '',
         jobTitle: record.fields['Job title'] || '',
         jobDescription: record.fields['Job description'] || '',
         companyName: record.fields['Company name'] || '',

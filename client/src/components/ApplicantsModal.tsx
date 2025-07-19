@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +38,7 @@ interface ApplicantsModalProps {
 }
 
 export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps) {
+  const [selectedJob, setSelectedJob] = useState<any>(null);
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantData | null>(null);
   const [showInterviewScheduler, setShowInterviewScheduler] = useState(false);
   const [showProfileAnalysis, setShowProfileAnalysis] = useState(false);
@@ -53,9 +54,15 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: applicants = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: jobId ? ['/api/real-applicants', jobId] : ['/api/real-applicants'],
+  // Fetch available jobs
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['/api/job-postings'],
     enabled: isOpen,
+  });
+
+  const { data: applicants = [], isLoading, refetch, isFetching } = useQuery({
+    queryKey: selectedJob ? ['/api/real-applicants', selectedJob.id] : null,
+    enabled: isOpen && !!selectedJob,
     refetchInterval: 30000, // Refetch every 30 seconds
     refetchIntervalInBackground: true,
   });
@@ -65,16 +72,26 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     refetch();
   };
 
-  // Auto-refresh every 30 seconds when modal is open
+  // Auto-refresh every 30 seconds when modal is open and job is selected
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !selectedJob) return;
     
     const interval = setInterval(() => {
       refetch();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [isOpen, refetch]);
+  }, [isOpen, selectedJob, refetch]);
+
+  // Reset selected job when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedJob(null);
+      setSelectedApplicant(null);
+      setShowInterviewScheduler(false);
+      setShowProfileAnalysis(false);
+    }
+  }, [isOpen]);
 
   const acceptApplicantMutation = useMutation({
     mutationFn: async (applicant: ApplicantData) => {
@@ -295,10 +312,10 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {jobId ? 'Job Applicants' : 'All Applicants'}
+              {selectedJob ? `Applicants for ${selectedJob.title}` : 'Select Job Position'}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Real applications with AI-powered matching scores
+              {selectedJob ? 'Real applications with AI-powered matching scores' : 'Choose a job to view its applicants'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -321,7 +338,49 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">
-          {isLoading ? (
+          {!selectedJob ? (
+            // Job Selection Screen
+            <div className="h-full overflow-y-auto p-6">
+              <div className="max-w-4xl mx-auto">
+                <div className="grid gap-4">
+                  {jobs.map((job: any) => (
+                    <motion.div
+                      key={job.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      onClick={() => setSelectedJob(job)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-grow">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                            {job.title}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">
+                              {job.location}
+                            </span>
+                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full">
+                              {job.salaryRange}
+                            </span>
+                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded-full">
+                              {job.jobType}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                            {job.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center text-blue-600 dark:text-blue-400 ml-4">
+                          <ChevronRight className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
@@ -329,7 +388,13 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">No applicants found</p>
+                <p className="text-gray-500 dark:text-gray-400">No applicants found for this position</p>
+                <button
+                  onClick={() => setSelectedJob(null)}
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Back to Job Selection
+                </button>
               </div>
             </div>
           ) : (
