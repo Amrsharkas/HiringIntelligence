@@ -1661,84 +1661,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Interview not found" });
       }
 
-      // Update Airtable if date/time, timezone, or meeting link changed
-      if (scheduledDate !== undefined || scheduledTime !== undefined || timeZone !== undefined || meetingLink !== undefined) {
-        try {
-          console.log('🔄 Updating Airtable record for interview changes...');
-          
-          const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-          const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
-          const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-          
-          // Search for the record using User ID and Job title (as shown in JobMatchesAirtableService)
-          const filterFormula = `AND({User ID}='${updatedInterview.candidateId}',{Job title}='${updatedInterview.jobTitle}')`;
-          const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-          
-          console.log('🔍 Searching for Airtable record with:', {
-            userId: updatedInterview.candidateId,
-            jobTitle: updatedInterview.jobTitle,
-            searchUrl: searchUrl,
-            filterFormula: filterFormula
-          });
-          
-          const searchResponse = await fetch(searchUrl, {
-            headers: {
-              'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (!searchResponse.ok) {
-            const errorText = await searchResponse.text();
-            console.error('❌ Failed to search Airtable:', searchResponse.status, searchResponse.statusText, errorText);
-            throw new Error(`Failed to search platojobmatches: ${searchResponse.status} ${searchResponse.statusText}`);
-          }
-
-          const searchData = await searchResponse.json();
-          console.log('🔍 Airtable search results:', searchData);
-          
-          if (!searchData.records || searchData.records.length === 0) {
-            console.error(`❌ No matching record found in platojobmatches for User ID "${updatedInterview.candidateId}" and Job title "${updatedInterview.jobTitle}"`);
-            throw new Error(`No matching record found for User ID "${updatedInterview.candidateId}" and Job title "${updatedInterview.jobTitle}"`);
-          }
-
-          const recordId = searchData.records[0].id;
-          console.log(`✅ Found matching record: ${recordId}`);
-          
-          // Format datetime properly for Airtable
-          const interviewDateTime = `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime} (${updatedInterview.timeZone || 'UTC'})`;
-          
-          const airtableUpdateData = {
-            fields: {
-              'Interview date&time': interviewDateTime,
-              'Interview Link': updatedInterview.meetingLink || ''
-            }
-          };
-
-          console.log('📤 Updating Airtable record with:', airtableUpdateData);
-
-          const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(airtableUpdateData)
-          });
-
-          if (!updateResponse.ok) {
-            const errorText = await updateResponse.text();
-            console.error('❌ Failed to update Airtable record:', updateResponse.status, updateResponse.statusText, errorText);
-            throw new Error(`Failed to update Airtable record: ${updateResponse.status} ${updateResponse.statusText}`);
-          }
-
-          const updatedRecord = await updateResponse.json();
-          console.log(`✅ Successfully updated Airtable record:`, updatedRecord);
-          
-        } catch (airtableError) {
-          console.error('❌ Failed to update Airtable with interview changes:', airtableError);
-          // Don't fail the whole request if Airtable update fails, but log the error
-        }
+      // Auto-update Airtable whenever any interview field is updated
+      try {
+        console.log('🔄 Auto-updating Airtable record for interview changes...');
+        
+        const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
+        const jobMatchesService = new JobMatchesAirtableService();
+        
+        // Format the datetime for Airtable
+        const interviewDateTime = `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime}`;
+        
+        await jobMatchesService.updateInterviewDetails(
+          updatedInterview.candidateId,
+          updatedInterview.jobTitle,
+          interviewDateTime,
+          updatedInterview.meetingLink,
+          updatedInterview.timeZone
+        );
+        
+        console.log(`✅ Successfully auto-updated Airtable platojobmatches table`);
+        
+      } catch (airtableError) {
+        console.error('❌ Failed to auto-update Airtable platojobmatches:', airtableError);
+        // Don't fail the whole request if Airtable update fails, but log the error
       }
 
       res.json(updatedInterview);
