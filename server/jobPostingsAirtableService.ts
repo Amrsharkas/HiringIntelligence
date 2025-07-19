@@ -1,9 +1,17 @@
-import { storage } from './storage';
+// Service for handling job postings from platojobpostings table
+import fetch from 'node-fetch';
 
 interface AirtableJobRecord {
   id: string;
   fields: {
-    [key: string]: any;
+    'Job title'?: string;
+    'Job ID'?: string;
+    'Job description'?: string;
+    'Date Posted'?: string;
+    'Company'?: string;
+    'Job type'?: string;
+    'Salary'?: string;
+    'Location'?: string;
   };
   createdTime: string;
 }
@@ -13,299 +21,92 @@ interface AirtableJobResponse {
   offset?: string;
 }
 
-export class JobPostingsAirtableService {
+interface JobPostingData {
+  id: string;
+  title: string;
+  jobId: string;
+  description: string;
+  datePosted: string;
+  companyName: string;
+  jobType: string;
+  salary: string;
+  location: string;
+}
+
+export class jobPostingsAirtableService {
+  private baseUrl = 'https://api.airtable.com/v0';
+  private baseId = 'appCjIvd73lvp0oLf'; // platojobpostings base
+  private tableName = 'Table 1';
   private apiKey: string;
-  private baseUrl: string = 'https://api.airtable.com/v0';
-  private baseId: string = 'appCjIvd73lvp0oLf'; // platojobpostings base
-  private tableName: string = 'Table 1'; // Default table name
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  async syncJobPostingsToAirtable() {
+  async getJobByJobId(jobId: string): Promise<JobPostingData | null> {
     try {
-      console.log('Starting job postings sync to Airtable...');
+      console.log(`Fetching job ${jobId} from platojobpostings table...`);
       
-      // First discover the table structure to see what fields exist
-      console.log('🔍 Discovering Airtable table structure...');
-      await this.discoverAirtableStructure();
+      // Filter by Job ID
+      const params = new URLSearchParams();
+      params.append('filterByFormula', `{Job ID} = "${jobId}"`);
       
-      // Get all active job postings from our database
-      const allJobs = await this.getAllActiveJobs();
-      
-      // Get existing records from Airtable to avoid duplicates
-      const existingRecords = await this.getExistingJobRecords();
-      const existingJobIds = new Set(existingRecords.map(record => record.fields['Job ID']));
-      
-      // Filter out jobs that already exist in Airtable
-      const newJobs = allJobs.filter(job => !existingJobIds.has(job.id.toString()));
-      
-      if (newJobs.length === 0) {
-        console.log('No new jobs to sync to Airtable');
-        return { synced: 0, total: allJobs.length };
-      }
-      
-      // Create records for new jobs using exact field names from Airtable
-      const recordsToCreate = newJobs.map(job => {
-        // Create comprehensive job description that includes all information
-        let fullDescription = job.description || 'No description provided';
-        
-        // Add requirements section if available
-        if (job.requirements) {
-          fullDescription += '\n\n**REQUIREMENTS & QUALIFICATIONS:**\n\n' + job.requirements;
-        }
-        
-        // Add technical skills section if available
-        if (job.technicalSkills && job.technicalSkills.length > 0) {
-          fullDescription += '\n\n**Technical Skills Required:**\n';
-          job.technicalSkills.forEach(skill => {
-            fullDescription += `- ${skill}\n`;
-          });
-        }
-        
-        // Add soft skills section if available
-        if (job.softSkills && job.softSkills.length > 0) {
-          fullDescription += '\n**Essential Skills:**\n';
-          job.softSkills.forEach(skill => {
-            fullDescription += `- ${skill}\n`;
-          });
-        }
-        
-        return {
-          fields: {
-            'Job title': job.title || 'Untitled Position',
-            'Job ID': job.id.toString(),
-            'Job description': fullDescription,
-            'Date Posted': job.createdAt ? new Date(job.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            'Company': job.companyName || 'Unknown Company',
-            'Job type': job.employmentType || 'Full-time',
-            'Salary': job.salaryRange || 'Not specified',
-            'Location': job.location || 'Remote'
-          }
-        };
-      });
-      
-      // Batch create records (Airtable allows up to 10 records per request)
-      const batchSize = 10;
-      let syncedCount = 0;
-      
-      for (let i = 0; i < recordsToCreate.length; i += batchSize) {
-        const batch = recordsToCreate.slice(i, i + batchSize);
-        
-        const response = await fetch(`${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            records: batch
-          }),
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Failed to create job records in Airtable: ${response.status} ${response.statusText}`, errorText);
-          continue;
-        }
-        
-        const data = await response.json();
-        syncedCount += data.records.length;
-        
-        // Small delay to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      console.log(`Successfully synced ${syncedCount} new job postings to Airtable`);
-      
-      // Also clean up any Airtable records for jobs that are no longer active
-      await this.cleanupInactiveJobs(allJobs);
-      
-      return { synced: syncedCount, total: allJobs.length };
-      
-    } catch (error) {
-      console.error('Error syncing job postings to Airtable:', error);
-      throw error;
-    }
-  }
-  
-  private async getAllActiveJobs() {
-    try {
-      const { storage } = await import('./storage');
-      
-      // Get all active jobs across all organizations
-      const allOrgs = await storage.getOrganizationByUser('43108970'); // Current user ID from logs
-      if (!allOrgs) {
-        console.log('No organization found for user');
-        return [];
-      }
-      
-      const activeJobs = await storage.getJobsByOrganization(allOrgs.id);
-      
-      console.log(`📊 Found ${activeJobs.length} active jobs for org ${allOrgs.id}`);
-      console.log('Active jobs:', activeJobs.map(j => ({ id: j.id, title: j.title, isActive: j.isActive })));
-      
-      // Get organization data
-      const companyName = allOrgs.companyName || 'Unknown Company';
-      
-      // Return jobs with company name
-      return activeJobs.map(job => ({
-        ...job,
-        companyName
-      }));
-      
-    } catch (error) {
-      console.error('Error fetching active jobs:', error);
-      return [];
-    }
-  }
-  
-  private async getExistingJobRecords(): Promise<AirtableJobRecord[]> {
-    try {
-      let allRecords: AirtableJobRecord[] = [];
-      let offset: string | undefined;
-      
-      do {
-        const params = new URLSearchParams();
-        if (offset) params.append('offset', offset);
-        
-        const response = await fetch(
-          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-            },
-          }
-        );
-        
-        if (!response.ok) {
-          console.error(`Failed to fetch existing job records: ${response.status}`);
-          break;
-        }
-        
-        const data: AirtableJobResponse = await response.json();
-        allRecords = allRecords.concat(data.records);
-        offset = data.offset;
-        
-      } while (offset);
-      
-      return allRecords;
-      
-    } catch (error) {
-      console.error('Error fetching existing job records:', error);
-      return [];
-    }
-  }
-  
-  async discoverAirtableStructure() {
-    try {
-      console.log('Discovering Airtable structure for job postings...');
-      
-      // Try to get the first few records to understand the structure
       const response = await fetch(
-        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?maxRecords=3`,
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
-          },
-        }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Job postings table structure:', JSON.stringify(data, null, 2));
-        return data;
-      } else {
-        console.error('Failed to discover job postings structure:', response.status);
-      }
-    } catch (error) {
-      console.error('Error discovering job postings structure:', error);
-    }
-  }
-  
-  setAirtableConfig(baseId: string, tableName: string = 'Table 1') {
-    this.baseId = baseId;
-    this.tableName = tableName;
-  }
-
-  private async cleanupInactiveJobs(activeJobs: any[]) {
-    try {
-      console.log('🧹 Cleaning up inactive job records from Airtable...');
-      
-      // Get all existing records from Airtable
-      const existingRecords = await this.getExistingJobRecords();
-      const activeJobIds = new Set(activeJobs.map(job => job.id.toString()));
-      
-      // Find records for jobs that are no longer active
-      const inactiveRecords = existingRecords.filter(record => 
-        record.fields['Job ID'] && !activeJobIds.has(record.fields['Job ID'])
-      );
-      
-      if (inactiveRecords.length === 0) {
-        console.log('No inactive job records found in Airtable');
-        return;
-      }
-      
-      console.log(`Found ${inactiveRecords.length} inactive job records to clean up`);
-      
-      // Delete inactive records in batches
-      const batchSize = 10;
-      let deletedCount = 0;
-      
-      for (let i = 0; i < inactiveRecords.length; i += batchSize) {
-        const batch = inactiveRecords.slice(i, i + batchSize);
-        const recordIds = batch.map(record => record.id);
-        
-        const params = new URLSearchParams();
-        recordIds.forEach(id => params.append('records[]', id));
-        
-        const response = await fetch(
-          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Content-Type': 'application/json'
-            }
+            'Content-Type': 'application/json'
           }
-        );
+        }
+      );
 
-        if (response.ok) {
-          deletedCount += batch.length;
-          console.log(`✅ Cleaned up batch of ${batch.length} inactive job records`);
-        } else {
-          console.error(`Failed to clean up batch: ${response.status} ${response.statusText}`);
-        }
-        
-        // Small delay to respect rate limits
-        if (i + batchSize < inactiveRecords.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
       }
+
+      const data: AirtableJobResponse = await response.json();
       
-      console.log(`🎉 Successfully cleaned up ${deletedCount} inactive job records from Airtable`);
+      if (!data.records || data.records.length === 0) {
+        console.log(`No job found with Job ID: ${jobId}`);
+        return null;
+      }
+
+      const record = data.records[0];
       
+      // Transform record to our format
+      const jobPosting: JobPostingData = {
+        id: record.id,
+        title: record.fields['Job title'] || 'Unknown Job',
+        jobId: record.fields['Job ID'] || '',
+        description: record.fields['Job description'] || '',
+        datePosted: record.fields['Date Posted'] || '',
+        companyName: record.fields['Company'] || '',
+        jobType: record.fields['Job type'] || '',
+        salary: record.fields['Salary'] || '',
+        location: record.fields['Location'] || ''
+      };
+
+      console.log(`Found job posting: ${jobPosting.title} at ${jobPosting.companyName}`);
+      return jobPosting;
+
     } catch (error) {
-      console.error('Error cleaning up inactive jobs:', error);
-      // Don't throw - this is a cleanup operation that shouldn't fail the main sync
+      console.error('Error fetching job posting from Airtable:', error);
+      throw error;
     }
   }
 
-  async deleteJobPostingByJobId(jobId: number): Promise<void> {
+  async getAllJobPostings(): Promise<JobPostingData[]> {
     try {
-      console.log(`Deleting job posting for job ${jobId} from platojobpostings table...`);
+      console.log('Fetching all job postings from platojobpostings table...');
       
       let allRecords: AirtableJobRecord[] = [];
       let offset: string | undefined;
-      
-      // Get all records for this job
+
+      // Get all records
       do {
         const params = new URLSearchParams();
         if (offset) params.append('offset', offset);
-        
-        // Filter by Job ID field
-        params.append('filterByFormula', `{Job ID} = "${jobId}"`);
         
         const response = await fetch(
           `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
@@ -326,49 +127,28 @@ export class JobPostingsAirtableService {
         offset = data.offset;
       } while (offset);
 
-      if (allRecords.length === 0) {
-        console.log(`No job posting found for job ${jobId}`);
-        return;
-      }
+      console.log(`Found ${allRecords.length} job postings`);
 
-      // Delete records in batches (Airtable allows up to 10 records per request)
-      const batchSize = 10;
-      
-      for (let i = 0; i < allRecords.length; i += batchSize) {
-        const batch = allRecords.slice(i, i + batchSize);
-        const recordIds = batch.map(record => record.id);
-        
-        const params = new URLSearchParams();
-        recordIds.forEach(id => params.append('records[]', id));
-        
-        const response = await fetch(
-          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
+      // Transform records to our format
+      const jobPostings: JobPostingData[] = allRecords.map(record => ({
+        id: record.id,
+        title: record.fields['Job title'] || 'Unknown Job',
+        jobId: record.fields['Job ID'] || '',
+        description: record.fields['Job description'] || '',
+        datePosted: record.fields['Date Posted'] || '',
+        companyName: record.fields['Company'] || '',
+        jobType: record.fields['Job type'] || '',
+        salary: record.fields['Salary'] || '',
+        location: record.fields['Location'] || ''
+      }));
 
-        if (!response.ok) {
-          throw new Error(`Failed to delete job posting: ${response.status} ${response.statusText}`);
-        }
-        
-        // Add delay between batches to respect rate limits
-        if (i + batchSize < allRecords.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-      }
-      
-      console.log(`Successfully deleted ${allRecords.length} job posting records for job ${jobId}`);
-      
+      return jobPostings;
+
     } catch (error) {
-      console.error('Error deleting job posting:', error);
-      throw error;
+      console.error('Error fetching job postings from Airtable:', error);
+      return [];
     }
   }
 }
 
-export const jobPostingsAirtableService = new JobPostingsAirtableService("pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0");
+// Export the service class (not instance)

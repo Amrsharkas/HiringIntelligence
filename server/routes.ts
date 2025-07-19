@@ -511,49 +511,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get applicant data from platojobapplications
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
+      const applicantService = new realApplicantsAirtableService('pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0');
+      const applicant = await applicantService.getApplicantById(applicantId);
       
       if (!applicant) {
         return res.status(404).json({ message: "Applicant not found" });
       }
       
-      // Get job data
-      const job = await storage.getJob(parseInt(applicant.jobId));
-      if (!job) {
+      console.log(`📋 Found applicant: ${applicant.name}, Job ID: ${applicant.jobId}`);
+      
+      // Get job data from platojobpostings Airtable table using Job ID
+      const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
+      let jobData = null;
+      
+      try {
+        const jobPostingsService = new jobPostingsAirtableService('pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0');
+        jobData = await jobPostingsService.getJobByJobId(applicant.jobId);
+        console.log(`📄 Found job posting: ${jobData?.title || 'Unknown'}`);
+      } catch (jobError) {
+        console.warn(`⚠️ Could not fetch job from platojobpostings, trying local database:`, jobError);
+        
+        // Fallback to local database
+        const job = await storage.getJob(parseInt(applicant.jobId));
+        if (job) {
+          jobData = {
+            title: job.title,
+            description: job.description,
+            companyName: 'Plato' // Default company name
+          };
+          console.log(`📄 Using local job data: ${job.title}`);
+        }
+      }
+      
+      if (!jobData) {
         return res.status(404).json({ message: "Job not found" });
       }
       
-      // Get organization
+      // Get organization for company name
       const organization = await storage.getOrganizationByUser(userId);
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
+      const companyName = organization?.companyName || jobData.companyName || 'Unknown Company';
       
       // Create job match record
       const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
       const jobMatchesService = new JobMatchesAirtableService();
       
       const applicantData = {
-        name: applicant.name,
-        userId: applicant.userId || applicantId,
+        name: applicant.name || 'Unknown Applicant',
+        userId: applicant.userId || applicant.id || applicantId,
         id: applicantId
       };
       
-      const jobData = {
-        title: job.title,
-        description: job.description
+      const jobMatchData = {
+        title: jobData.title || 'Unknown Job',
+        description: jobData.description || ''
       };
       
-      await jobMatchesService.createJobMatch(applicantData, jobData, organization.companyName);
+      console.log(`🔄 Creating job match for ${applicantData.name} -> ${jobMatchData.title} at ${companyName}`);
+      await jobMatchesService.createJobMatch(applicantData, jobMatchData, companyName);
       
       // Delete from applications table
+      console.log(`🗑️ Removing applicant ${applicantId} from platojobapplications...`);
       await jobMatchesService.deleteFromApplicationsTable(applicantId);
       
       console.log(`✅ Successfully accepted applicant ${applicantId}`);
-      res.json({ message: "Applicant accepted and moved to job matches" });
+      res.json({ 
+        message: "Applicant accepted and moved to job matches",
+        applicantName: applicantData.name,
+        jobTitle: jobMatchData.title
+      });
       
     } catch (error) {
-      console.error("Error accepting applicant:", error);
+      console.error("❌ Error accepting applicant:", error);
       res.status(500).json({ 
         message: "Failed to accept applicant",
         error: error instanceof Error ? error.message : "Unknown error"
@@ -568,17 +596,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`❌ Declining applicant ${applicantId}...`);
       
+      // Get applicant name for logging
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const applicantService = new realApplicantsAirtableService('pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0');
+      
+      let applicantName = 'Unknown Applicant';
+      try {
+        const applicant = await applicantService.getApplicantById(applicantId);
+        applicantName = applicant?.name || 'Unknown Applicant';
+      } catch (error) {
+        console.warn(`⚠️ Could not fetch applicant name: ${error}`);
+      }
+      
       // Delete from applications table
       const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
       const jobMatchesService = new JobMatchesAirtableService();
       
       await jobMatchesService.deleteFromApplicationsTable(applicantId);
       
-      console.log(`✅ Successfully declined applicant ${applicantId}`);
-      res.json({ message: "Applicant declined and removed from applications" });
+      console.log(`✅ Successfully declined applicant ${applicantName} (${applicantId})`);
+      res.json({ 
+        message: "Applicant declined and removed from applications",
+        applicantName: applicantName
+      });
       
     } catch (error) {
-      console.error("Error declining applicant:", error);
+      console.error("❌ Error declining applicant:", error);
       res.status(500).json({ 
         message: "Failed to decline applicant",
         error: error instanceof Error ? error.message : "Unknown error"
