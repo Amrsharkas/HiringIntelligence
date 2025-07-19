@@ -108,12 +108,25 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMinutes = Math.floor(diffTime / (1000 * 60));
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffMinutes < 60) {
+      if (diffMinutes === 0) return "Posted just now";
+      if (diffMinutes === 1) return "Posted 1 minute ago";
+      return `Posted ${diffMinutes} minutes ago`;
+    }
+    
+    if (diffHours < 24) {
+      if (diffHours === 1) return "Posted 1 hour ago";
+      return `Posted ${diffHours} hours ago`;
+    }
     
     if (diffDays === 1) return "Posted 1 day ago";
     if (diffDays < 7) return `Posted ${diffDays} days ago`;
-    if (diffDays < 30) return `Posted ${Math.ceil(diffDays / 7)} weeks ago`;
-    return `Posted ${Math.ceil(diffDays / 30)} months ago`;
+    if (diffDays < 30) return `Posted ${Math.floor(diffDays / 7)} weeks ago`;
+    return `Posted ${Math.floor(diffDays / 30)} months ago`;
   };
 
   if (!isOpen) return null;
