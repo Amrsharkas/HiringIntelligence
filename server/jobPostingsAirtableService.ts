@@ -47,18 +47,44 @@ export class JobPostingsAirtableService {
       }
       
       // Create records for new jobs using exact field names from Airtable
-      const recordsToCreate = newJobs.map(job => ({
-        fields: {
-          'Job title': job.title || 'Untitled Position',
-          'Job ID': job.id.toString(),
-          'Job description': job.description || 'No description provided',
-          'Date Posted': job.createdAt ? new Date(job.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          'Company': job.companyName || 'Unknown Company',
-          'Job type': job.employmentType || 'Full-time',
-          'Salary': job.salaryRange || 'Not specified',
-          'Location': job.location || 'Remote'
+      const recordsToCreate = newJobs.map(job => {
+        // Create comprehensive job description that includes all information
+        let fullDescription = job.description || 'No description provided';
+        
+        // Add requirements section if available
+        if (job.requirements) {
+          fullDescription += '\n\n**REQUIREMENTS & QUALIFICATIONS:**\n\n' + job.requirements;
         }
-      }));
+        
+        // Add technical skills section if available
+        if (job.technicalSkills && job.technicalSkills.length > 0) {
+          fullDescription += '\n\n**Technical Skills Required:**\n';
+          job.technicalSkills.forEach(skill => {
+            fullDescription += `- ${skill}\n`;
+          });
+        }
+        
+        // Add soft skills section if available
+        if (job.softSkills && job.softSkills.length > 0) {
+          fullDescription += '\n**Essential Skills:**\n';
+          job.softSkills.forEach(skill => {
+            fullDescription += `- ${skill}\n`;
+          });
+        }
+        
+        return {
+          fields: {
+            'Job title': job.title || 'Untitled Position',
+            'Job ID': job.id.toString(),
+            'Job description': fullDescription,
+            'Date Posted': job.createdAt ? new Date(job.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            'Company': job.companyName || 'Unknown Company',
+            'Job type': job.employmentType || 'Full-time',
+            'Salary': job.salaryRange || 'Not specified',
+            'Location': job.location || 'Remote'
+          }
+        };
+      });
       
       // Batch create records (Airtable allows up to 10 records per request)
       const batchSize = 10;

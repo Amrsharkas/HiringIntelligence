@@ -134,11 +134,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getJobsByOrganization(organizationId: number): Promise<Job[]> {
-    return await db
+    const allJobs = await db
       .select()
       .from(jobs)
-      .where(and(eq(jobs.organizationId, organizationId), eq(jobs.isActive, true)))
+      .where(eq(jobs.organizationId, organizationId))
       .orderBy(desc(jobs.createdAt));
+    
+    // Filter active jobs manually for now to avoid SQL syntax issues
+    return allJobs.filter(job => job.is_active !== false);
   }
 
   async getJobById(id: number): Promise<Job | undefined> {
@@ -156,7 +159,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteJob(id: number): Promise<void> {
-    await db.update(jobs).set({ isActive: false }).where(eq(jobs.id, id));
+    await db.update(jobs).set({ is_active: false }).where(eq(jobs.id, id));
   }
 
   async incrementJobViews(id: number): Promise<void> {
@@ -167,12 +170,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveJobsCount(organizationId: number): Promise<number> {
-    const [result] = await db
-      .select({ count: sql<number>`count(*)` })
+    const allJobs = await db
+      .select()
       .from(jobs)
-      .where(and(eq(jobs.organizationId, organizationId), eq(jobs.isActive, true)));
+      .where(eq(jobs.organizationId, organizationId));
     
-    return result?.count || 0;
+    // Count active jobs manually for now to avoid SQL syntax issues
+    return allJobs.filter(job => job.is_active !== false).length;
   }
 
   // Candidate operations

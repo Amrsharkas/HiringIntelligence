@@ -162,6 +162,8 @@ Changelog:
 - July 08, 2025. Redesigned carousel with podium-style layout featuring center focus logo (largest), left/right preview logos (smaller and blurred), slower 5-second transitions, larger overall size, and full-screen width design matching modern industry standards
 - July 08, 2025. Repositioned carousel below the 3 success stats section (95% hiring success, 60% time reduction, 98% client satisfaction) for improved page flow and visual hierarchy
 - July 16, 2025. Added comprehensive testing and cleanup capabilities - created automated cleanup scripts that clear all candidate data (platouserprofiles, platojobmatches, platojobapplications tables) while preserving job postings for fresh system testing. Includes verification script to confirm cleanup success.
+- July 16, 2025. Fixed database filtering issues for job deletion and active job retrieval - resolved SQL syntax errors with is_active field references and ensured proper job lifecycle management.
+- July 16, 2025. Enhanced Airtable job description sync to include complete information - all job postings now automatically sync with comprehensive descriptions including requirements, technical skills, essential skills, and qualifications to "platojobpostings" table.
 ```
 
 ## User Preferences
