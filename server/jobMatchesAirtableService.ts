@@ -84,7 +84,8 @@ export class JobMatchesAirtableService {
           'User ID': applicantData.userId, // Use ONLY the User ID from platojobapplications
           'Job title': jobData.title,
           'Job Description': jobData.description || '',
-          'Company name': companyName
+          'Company name': companyName,
+          'Job ID': jobData.id?.toString() || '' // Add Job ID field
         }
       };
 

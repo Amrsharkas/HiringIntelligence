@@ -191,6 +191,7 @@ export class AirtableService {
     jobTitle: string,
     jobDescription: string,
     companyName: string,
+    jobId?: string | number, // Add jobId parameter
     baseId: string = 'app1u4N2W46jD43mP', // platojobmatches base ID
     tableName: string = 'Table 1'
   ): Promise<void> {
@@ -204,6 +205,7 @@ export class AirtableService {
         'Job title': jobTitle,
         'Job Description': jobDescription,
         'Company name': companyName,
+        'Job ID': jobId?.toString() || '',
       });
       
       const response = await fetch(url, {
@@ -219,6 +221,7 @@ export class AirtableService {
             'Job title': jobTitle,
             'Job Description': jobDescription, // Note: capital D for Description
             'Company name': companyName, // Note: lowercase 'n' for name
+            'Job ID': jobId?.toString() || '', // Add Job ID field
           }
         }),
       });

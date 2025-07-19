@@ -169,6 +169,7 @@ Changelog:
 - July 19, 2025. Implemented status-based applicant management - accept/decline actions now update Status field ("Accepted"/"Denied") in platojobapplications table instead of deleting records, preserving data integrity and maintaining complete application history.
 - July 19, 2025. Fixed User ID mapping in job match creation - system now correctly retrieves and uses exact User ID from platojobapplications table when creating records in platojobmatches table, ensuring accurate candidate-to-job matching and proper interview scheduling functionality.
 - July 19, 2025. Enhanced applicant filtering to only display pending applicants in UI - accepted/denied applicants are filtered out from main applicant lists while preserving records in Airtable for data tracking and analysis purposes.
+- July 19, 2025. Updated job match creation to include Job ID field - both JobMatchesAirtableService and AirtableService now include Job ID field when creating records in platojobmatches table, ensuring complete job tracking across all Airtable tables.
 ```
 
 ## User Preferences

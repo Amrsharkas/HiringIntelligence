@@ -570,7 +570,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const jobMatchData = {
         title: jobData.title || 'Unknown Job',
-        description: jobData.description || ''
+        description: jobData.description || '',
+        id: applicant.jobId // Include Job ID from applicant data
       };
       
       console.log(`🔄 Creating job match for ${applicantData.name} -> ${jobMatchData.title} at ${companyName}`);
@@ -967,7 +968,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             candidateData.userId, // User ID from the candidate profile
             job.title,
             job.description || '',
-            organization.companyName // Company name from organization
+            organization.companyName, // Company name from organization
+            job.id // Job ID
           );
           console.log(`✅ Successfully created job match record for ${candidateData.name} (User ID: ${candidateData.userId})`);
         } else {
