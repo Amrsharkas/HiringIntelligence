@@ -223,6 +223,8 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
   );
 
   const InterviewForm = ({ interview }: { interview?: Interview }) => {
+    const [selectedJob, setSelectedJob] = useState(interview?.jobId || '');
+    const [selectedApplicant, setSelectedApplicant] = useState(interview?.candidateId || '');
     const [formData, setFormData] = useState({
       candidateName: interview?.candidateName || '',
       candidateEmail: interview?.candidateEmail || '',
@@ -237,36 +239,130 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
       notes: interview?.notes || '',
     });
 
+    // Fetch active jobs
+    const { data: jobs = [] } = useQuery({
+      queryKey: ['/api/job-postings'],
+      enabled: isOpen,
+    });
+
+    // Fetch accepted applicants for the selected job from platojobmatches table
+    const { data: acceptedApplicants = [], isLoading: isLoadingApplicants } = useQuery({
+      queryKey: ['/api/accepted-applicants', selectedJob],
+      queryFn: async () => {
+        const res = await fetch(`/api/accepted-applicants/${selectedJob}`);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      },
+      enabled: isOpen && !!selectedJob && !interview, // Only for new interviews, not editing
+      retry: false,
+    });
+
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      console.log('🔄 Submitting interview form:', formData);
-      console.log('📝 Is editing interview?', !!interview);
-      interviewMutation.mutate(formData);
+      
+      // For new interviews, validate dropdowns and get candidate data
+      if (!interview) {
+        if (!selectedJob || !selectedApplicant) {
+          toast({
+            title: "Error",
+            description: "Please select a job and candidate",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const applicant = acceptedApplicants.find(app => app.id === selectedApplicant);
+        if (!applicant) {
+          toast({
+            title: "Error", 
+            description: "Selected candidate not found",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Update form data with selected candidate info
+        const updatedData = {
+          ...formData,
+          candidateName: applicant.name,
+          candidateEmail: applicant.email || '',
+          candidateId: applicant.userId,
+          jobId: applicant.jobId,
+          jobTitle: applicant.jobTitle,
+        };
+        console.log('🔄 Submitting new interview:', updatedData);
+        interviewMutation.mutate(updatedData);
+      } else {
+        // For editing existing interviews, use form data as-is
+        console.log('🔄 Submitting interview update:', formData);
+        interviewMutation.mutate(formData);
+      }
     };
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="candidateName">Candidate Name *</Label>
-            <Input
-              id="candidateName"
-              value={formData.candidateName}
-              onChange={(e) => setFormData({ ...formData, candidateName: e.target.value })}
-              required
-            />
+{interview ? (
+          // For editing existing interviews, show as read-only fields
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Candidate Name</Label>
+              <Input value={formData.candidateName} disabled className="bg-gray-50" />
+            </div>
+            <div>
+              <Label>Job Title</Label>
+              <Input value={formData.jobTitle} disabled className="bg-gray-50" />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="jobTitle">Job Title *</Label>
-            <Input
-              id="jobTitle"
-              value={formData.jobTitle}
-              onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-              required
-            />
-          </div>
-        </div>
+        ) : (
+          // For new interviews, show dropdowns
+          <>
+            <div>
+              <Label htmlFor="jobSelect">Select Job Position *</Label>
+              <Select value={selectedJob} onValueChange={setSelectedJob}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a job position..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobs.map((job: any) => (
+                    <SelectItem key={job.id} value={job.id}>
+                      {job.title} - {job.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
+            {selectedJob && (
+              <div>
+                <Label htmlFor="candidateSelect">Select Accepted Candidate *</Label>
+                <Select value={selectedApplicant} onValueChange={setSelectedApplicant}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an accepted candidate..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {acceptedApplicants.map((applicant: any) => (
+                      <SelectItem key={applicant.id} value={applicant.id}>
+                        {applicant.name} - {applicant.jobTitle} {applicant.email ? `(${applicant.email})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isLoadingApplicants && (
+                  <p className="text-sm text-gray-500 mt-1">Loading accepted candidates...</p>
+                )}
+                {!isLoadingApplicants && acceptedApplicants.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">No accepted candidates found for this job.</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Only show interview details if editing existing interview OR if new interview with candidate selected */}
+        {(interview || selectedApplicant) && (
         <div className="grid grid-cols-3 gap-4">
           <div>
             <Label htmlFor="scheduledDate">Interview Date *</Label>
@@ -358,7 +454,10 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
         </div>
 
         <div className="flex space-x-2">
-          <Button type="submit" disabled={interviewMutation.isPending}>
+          <Button 
+            type="submit" 
+            disabled={interviewMutation.isPending || (!interview && (!selectedJob || !selectedApplicant))}
+          >
             {interviewMutation.isPending ? 'Saving...' : (interview ? 'Update Interview' : 'Schedule Interview')}
           </Button>
           <Button
@@ -372,6 +471,7 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
             Cancel
           </Button>
         </div>
+        )}  {/* End of conditional interview details section */}
       </form>
     );
   };
