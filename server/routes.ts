@@ -534,19 +534,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const applicantData = await applicantResponse.json();
       const applicant = applicantData.fields;
       
-      console.log(`📋 Found applicant: ${applicant.Name}`);
+      console.log(`📋 Raw applicant data:`, JSON.stringify(applicantData, null, 2));
+      console.log(`📋 Applicant fields:`, JSON.stringify(applicant, null, 2));
+      console.log(`📋 Found applicant: ${applicant?.Name || 'UNDEFINED'}`);
       
       // Step 2: Validate required fields
-      if (!applicant.Name || !applicant['User ID'] || !applicant['Job title'] || !applicant['Job Description'] || !applicant['Company name']) {
+      const requiredFields = ['Name', 'User ID', 'Job title', 'Job Description', 'Company name'];
+      const missingFields: string[] = [];
+      
+      for (const field of requiredFields) {
+        if (!applicant || !applicant[field]) {
+          missingFields.push(field);
+        }
+      }
+      
+      if (missingFields.length > 0) {
+        console.log(`❌ Missing required fields: ${missingFields.join(', ')}`);
         return res.status(400).json({ 
-          message: "Missing required fields in applicant record",
-          missingFields: {
-            name: !applicant.Name,
-            userId: !applicant['User ID'],
-            jobTitle: !applicant['Job title'],
-            jobDescription: !applicant['Job Description'],
-            companyName: !applicant['Company name']
-          }
+          message: `Missing required fields: ${missingFields.join(', ')}`,
+          missingFields: missingFields,
+          availableFields: applicant ? Object.keys(applicant) : []
         });
       }
       
