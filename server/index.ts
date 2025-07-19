@@ -62,8 +62,8 @@ app.use((req, res, next) => {
   // Initial sync on server start
   setTimeout(syncJobPostingsPeriodically, 5000); // Wait 5 seconds after server start
   
-  // Set up periodic sync every 15 seconds
-  setInterval(syncJobPostingsPeriodically, 15000);
+  // Set up periodic sync every 30 seconds
+  setInterval(syncJobPostingsPeriodically, 30000);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

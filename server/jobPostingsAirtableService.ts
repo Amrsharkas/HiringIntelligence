@@ -32,11 +32,12 @@ interface JobPostingData {
   jobType: string;
   salary: string;
   location: string;
+  employerQuestions?: string[];
 }
 
 export class JobPostingsAirtableService {
   private baseUrl = 'https://api.airtable.com/v0';
-  private baseId = 'app1u4N2W46jD43mP'; // platojobpostings base with employer questions support
+  private baseId = 'appCjIvd73lvp0oLf'; // platojobpostings base ID
   private tableName = 'Table 1';
   private apiKey: string;
 
@@ -208,16 +209,159 @@ export class JobPostingsAirtableService {
     }
   }
 
-  // Sync method for periodic syncing (placeholder for now)
+  // Sync method for periodic syncing - fetches from database and syncs to Airtable
   async syncJobPostingsToAirtable(): Promise<void> {
     try {
       console.log('Syncing job postings to Airtable...');
-      // This is a placeholder - implement actual sync logic as needed
-      const jobPostings = await this.getAllJobPostings();
-      console.log(`Successfully synced ${jobPostings.length} job postings`);
+      
+      // Import database and schema
+      const { db } = await import('./db');
+      const { jobs, organizations } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      // Fetch all active jobs from database with organization details
+      const activeJobs = await db
+        .select({
+          id: jobs.id,
+          title: jobs.title,
+          description: jobs.description,
+          requirements: jobs.requirements,
+          location: jobs.location,
+          salaryRange: jobs.salaryRange,
+          employerQuestions: jobs.employerQuestions,
+          isActive: jobs.isActive,
+          companyName: organizations.companyName,
+        })
+        .from(jobs)
+        .leftJoin(organizations, eq(jobs.organizationId, organizations.id))
+        .where(eq(jobs.isActive, true));
+      
+      console.log(`Found ${activeJobs.length} job postings`);
+      
+      if (activeJobs.length === 0) {
+        console.log('No active job postings to sync');
+        return;
+      }
+      
+      // Get existing jobs from Airtable to avoid duplicates
+      const existingJobs = await this.getAllJobPostings();
+      const existingJobIds = new Set(existingJobs.map(job => job.jobId));
+      
+      let syncedCount = 0;
+      
+      for (const job of activeJobs) {
+        const jobId = job.id.toString();
+        
+        // Skip if job already exists in Airtable
+        if (existingJobIds.has(jobId)) {
+          console.log(`Job ${jobId} already exists in Airtable, checking for updates...`);
+          await this.updateJobInAirtable(jobId, {
+            title: job.title,
+            description: `${job.description}\n\nRequirements:\n${job.requirements}`,
+            location: job.location,
+            salary: job.salaryRange || '',
+            company: job.companyName || 'Unknown Company',
+            employerQuestions: job.employerQuestions || []
+          });
+          continue;
+        }
+        
+        // Add new job to Airtable
+        await this.addJobToAirtable({
+          jobId: jobId,
+          title: job.title,
+          description: `${job.description}\n\nRequirements:\n${job.requirements}`,
+          location: job.location,
+          salary: job.salaryRange || '',
+          company: job.companyName || 'Unknown Company',
+          employerQuestions: job.employerQuestions || []
+        });
+        
+        syncedCount++;
+        console.log(`✅ Synced job ${jobId}: ${job.title}`);
+      }
+      
+      console.log(`Successfully synced ${syncedCount} job postings to Airtable`);
+      
     } catch (error) {
       console.error('Error syncing job postings to Airtable:', error);
       throw error;
+    }
+  }
+
+  // Update existing job in Airtable
+  async updateJobInAirtable(jobId: string, jobData: {
+    title: string;
+    description: string;
+    location: string;
+    salary?: string;
+    company: string;
+    employerQuestions?: string[];
+  }): Promise<void> {
+    try {
+      // Find the record ID for this job
+      const params = new URLSearchParams();
+      params.append('filterByFormula', `{Job ID} = "${jobId}"`);
+      
+      const searchResponse = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!searchResponse.ok) {
+        throw new Error(`Failed to search for job: ${searchResponse.status}`);
+      }
+
+      const searchData: AirtableJobResponse = await searchResponse.json();
+      
+      if (!searchData.records || searchData.records.length === 0) {
+        console.log(`Job ${jobId} not found in Airtable, will add as new`);
+        return this.addJobToAirtable({ jobId, ...jobData });
+      }
+
+      const recordId = searchData.records[0].id;
+      
+      // Format employer questions
+      const employerQuestionsText = jobData.employerQuestions && jobData.employerQuestions.length > 0
+        ? jobData.employerQuestions.map((q, index) => `${index + 1}. ${q}`).join('\n')
+        : '';
+
+      const updateData = {
+        fields: {
+          'Job title': jobData.title,
+          'Job description': jobData.description,
+          'Location': jobData.location,
+          'Salary': jobData.salary || '',
+          'Company': jobData.company,
+          'Employer Questions': employerQuestionsText,
+        }
+      };
+
+      const updateResponse = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        }
+      );
+
+      if (!updateResponse.ok) {
+        throw new Error(`Failed to update job: ${updateResponse.status} ${updateResponse.statusText}`);
+      }
+
+      console.log(`✅ Updated job ${jobId} in Airtable`);
+
+    } catch (error) {
+      console.error(`Error updating job ${jobId} in Airtable:`, error);
     }
   }
 }

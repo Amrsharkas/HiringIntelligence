@@ -172,6 +172,10 @@ Changelog:
 - July 19, 2025. Updated job match creation to include Job ID field - both JobMatchesAirtableService and AirtableService now include Job ID field when creating records in platojobmatches table, ensuring complete job tracking across all Airtable tables.
 - July 19, 2025. Implemented comprehensive timezone support for interview scheduling - added timezone field to realInterviews database schema, 15-timezone dropdown in interview forms, timezone display in interview cards, and bidirectional Airtable sync with timezone information in "Date at Time (Timezone)" format.
 - July 19, 2025. Fixed interview management API bugs - resolved missing database imports in both interview deletion and update routes, ensuring proper CRUD operations for interview records with complete error handling.
+- July 19, 2025. Enhanced job posting system with AI-powered employer questions generation - added OpenAI GPT-4o endpoint (/api/ai/generate-employer-questions) that creates 3-5 thoughtful, role-specific interview questions based on job title, description, and requirements with intelligent fallback questions for different industries.
+- July 19, 2025. Updated job posting modal with multi-step interface featuring "AI Generate Questions" button - employers can now automatically generate relevant questions or manually add up to 5 custom questions for candidate applications.
+- July 19, 2025. Enhanced Airtable "platojobpostings" table integration (Base ID: appCjIvd73lvp0oLf) - updated sync system to include "Employer Questions" field with auto-sync every 30 seconds, ensuring all job postings sync with complete information including generated questions formatted as numbered list.
+- July 19, 2025. Fixed interview count display with accurate real-time updates - replaced team member count with proper LiveInterviewsCount component that shows actual scheduled interviews and auto-refreshes every 30 seconds using /api/interviews/count endpoint.
 ```
 
 ## User Preferences
