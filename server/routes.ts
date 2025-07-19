@@ -511,8 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get applicant data from platojobapplications
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicantService = new realApplicantsAirtableService('pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0');
-      const applicant = await applicantService.getApplicantById(applicantId);
+      const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
       
       if (!applicant) {
         return res.status(404).json({ message: "Applicant not found" });
@@ -598,11 +597,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get applicant name for logging
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicantService = new realApplicantsAirtableService('pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0');
       
       let applicantName = 'Unknown Applicant';
       try {
-        const applicant = await applicantService.getApplicantById(applicantId);
+        const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
         applicantName = applicant?.name || 'Unknown Applicant';
       } catch (error) {
         console.warn(`⚠️ Could not fetch applicant name: ${error}`);
