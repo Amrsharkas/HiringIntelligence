@@ -165,6 +165,33 @@ class RealApplicantsAirtableService {
       return [];
     }
   }
+
+  async deleteApplicant(recordId: string): Promise<void> {
+    try {
+      console.log(`Deleting applicant record ${recordId}...`);
+      
+      const response = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to delete applicant: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      console.log(`✅ Successfully deleted applicant record ${recordId}`);
+    } catch (error) {
+      console.error('❌ Error deleting applicant:', error);
+      throw error;
+    }
+  }
 }
 
 export const realApplicantsAirtableService = new RealApplicantsAirtableService("pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0");

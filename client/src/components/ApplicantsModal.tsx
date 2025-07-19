@@ -344,6 +344,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const [showProfileAnalysis, setShowProfileAnalysis] = useState(false);
   const [profileAnalysis, setProfileAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [acceptedApplicants, setAcceptedApplicants] = useState<Set<string>>(new Set());
+  const [processingActions, setProcessingActions] = useState<Set<string>>(new Set());
   const [interviewData, setInterviewData] = useState({
     scheduledDate: '',
     scheduledTime: '',
@@ -404,21 +406,34 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   }, [isOpen]);
 
   const acceptApplicantMutation = useMutation({
-    mutationFn: async (applicant: ApplicantData) => {
-      const response = await apiRequest("POST", `/api/applicants/${applicant.id}/accept`, {
-        jobId: applicant.jobId
+    mutationFn: async (applicantId: string) => {
+      return apiRequest(`/api/real-applicants/${applicantId}/accept`, {
+        method: 'POST'
       });
-      return response.json();
     },
-    onSuccess: () => {
+    onMutate: (applicantId: string) => {
+      setProcessingActions(prev => new Set([...prev, applicantId]));
+    },
+    onSuccess: (data, applicantId: string) => {
+      setAcceptedApplicants(prev => new Set([...prev, applicantId]));
+      setProcessingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(applicantId);
+        return newSet;
+      });
       toast({
         title: "Success",
-        description: "Applicant accepted successfully!",
+        description: "Applicant accepted and added to job matches",
       });
       refetch();
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
+    onError: (error, applicantId: string) => {
+      setProcessingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(applicantId);
+        return newSet;
+      });
+      if (isUnauthorizedError(error as Error)) {
         toast({
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
@@ -438,21 +453,33 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   });
 
   const declineApplicantMutation = useMutation({
-    mutationFn: async (applicant: ApplicantData) => {
-      const response = await apiRequest("POST", `/api/applicants/${applicant.id}/decline`, {
-        jobId: applicant.jobId
+    mutationFn: async (applicantId: string) => {
+      return apiRequest(`/api/real-applicants/${applicantId}/decline`, {
+        method: 'POST'
       });
-      return response.json();
     },
-    onSuccess: () => {
+    onMutate: (applicantId: string) => {
+      setProcessingActions(prev => new Set([...prev, applicantId]));
+    },
+    onSuccess: (data, applicantId: string) => {
+      setProcessingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(applicantId);
+        return newSet;
+      });
       toast({
         title: "Success",
-        description: "Applicant declined successfully!",
+        description: "Applicant declined and removed",
       });
       refetch();
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
+    onError: (error, applicantId: string) => {
+      setProcessingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(applicantId);
+        return newSet;
+      });
+      if (isUnauthorizedError(error as Error)) {
         toast({
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
@@ -519,11 +546,11 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   });
 
   const handleAcceptApplicant = (applicant: ApplicantData) => {
-    acceptApplicantMutation.mutate(applicant);
+    acceptApplicantMutation.mutate(applicant.id);
   };
 
   const handleDeclineApplicant = (applicant: ApplicantData) => {
-    declineApplicantMutation.mutate(applicant);
+    declineApplicantMutation.mutate(applicant.id);
   };
 
   const handleScheduleInterview = (applicant: ApplicantData) => {
@@ -798,34 +825,33 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                       </button>
                       
                       <div className="flex space-x-2">
-                        {(!applicant.status || applicant.status === 'pending') && (
-                          <>
-                            <button
-                              onClick={() => handleAcceptApplicant(applicant)}
-                              disabled={acceptApplicantMutation.isPending}
-                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
-                            >
-                              <CheckCircle className="w-3 h-3" />
-                              <span>{acceptApplicantMutation.isPending ? 'Accepting...' : 'Accept'}</span>
-                            </button>
-                            <button
-                              onClick={() => handleDeclineApplicant(applicant)}
-                              disabled={declineApplicantMutation.isPending}
-                              className="bg-red-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
-                            >
-                              <XCircle className="w-3 h-3" />
-                              <span>{declineApplicantMutation.isPending ? 'Declining...' : 'Decline'}</span>
-                            </button>
-                          </>
-                        )}
-                        {applicant.status === 'accepted' && (
+                        {acceptedApplicants.has(applicant.id) ? (
                           <button
                             onClick={() => handleScheduleInterview(applicant)}
                             className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
                           >
                             <Calendar className="w-3 h-3" />
-                            <span>Schedule</span>
+                            <span>Schedule Interview</span>
                           </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleAcceptApplicant(applicant)}
+                              disabled={processingActions.has(applicant.id)}
+                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                            >
+                              <CheckCircle className="w-3 h-3" />
+                              <span>{processingActions.has(applicant.id) ? 'Accepting...' : 'Accept'}</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeclineApplicant(applicant)}
+                              disabled={processingActions.has(applicant.id)}
+                              className="bg-red-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
+                            >
+                              <XCircle className="w-3 h-3" />
+                              <span>{processingActions.has(applicant.id) ? 'Declining...' : 'Decline'}</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>

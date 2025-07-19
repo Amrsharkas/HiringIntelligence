@@ -24,7 +24,7 @@ interface JobWithQuestions {
 
 class InterviewQuestionsService {
   private baseUrl = 'https://api.airtable.com/v0';
-  private baseId = 'appEYs1fTytFXoJ7x'; // platojobpostings base
+  private baseId = 'appCjIvd73lvp0oLf'; // platojobpostings base
   private tableName = 'Table 1';
   private apiKey: string;
 

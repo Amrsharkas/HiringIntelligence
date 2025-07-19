@@ -9,6 +9,7 @@ import { airtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
+import { jobMatchesAirtableService } from "./jobMatchesAirtableService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -1028,6 +1029,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating interview questions:", error);
       res.status(500).json({ message: "Failed to update interview questions" });
+    }
+  });
+
+  // Accept/Decline Real Applicants from platojobapplications
+  app.post('/api/real-applicants/:id/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const userId = req.user.claims.sub;
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      
+      console.log(`Accepting applicant ${applicantId}...`);
+      
+      // Get applicant details first
+      const allApplicants = await realApplicantsAirtableService.getAllApplicants();
+      const applicant = allApplicants.find(app => app.id === applicantId);
+      
+      if (!applicant) {
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+
+      // Get organization for company name
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Create job match record
+      await jobMatchesAirtableService.createJobMatch(
+        applicant.name,
+        applicant.userId || applicant.id, // Use userId if available, otherwise use record ID
+        applicant.jobTitle,
+        applicant.jobDescription || '',
+        organization.companyName
+      );
+
+      console.log(`✅ Successfully accepted applicant ${applicant.name} and created job match`);
+      res.json({ 
+        success: true, 
+        message: "Applicant accepted and job match created",
+        applicant 
+      });
+    } catch (error) {
+      console.error("Error accepting real applicant:", error);
+      res.status(500).json({ message: "Failed to accept applicant" });
+    }
+  });
+
+  app.post('/api/real-applicants/:id/decline', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      
+      console.log(`Declining and deleting applicant ${applicantId}...`);
+      
+      // Delete the applicant record from Airtable
+      await realApplicantsAirtableService.deleteApplicant(applicantId);
+      
+      console.log(`✅ Successfully declined and deleted applicant ${applicantId}`);
+      res.json({ 
+        success: true, 
+        message: "Applicant declined and removed" 
+      });
+    } catch (error) {
+      console.error("Error declining real applicant:", error);
+      res.status(500).json({ message: "Failed to decline applicant" });
     }
   });
 
