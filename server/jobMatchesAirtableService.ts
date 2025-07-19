@@ -8,7 +8,7 @@ if (!AIRTABLE_API_KEY) {
 }
 
 export class JobMatchesAirtableService {
-  private baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/platojobmatches`;
+  private baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Table%201`;
 
   async updateInterviewDetails(userId: string, jobTitle: string, interviewDateTime: string, interviewLink?: string) {
     try {
@@ -113,7 +113,7 @@ export class JobMatchesAirtableService {
     try {
       console.log(`🗑️ Deleting applicant record ${applicantId} from platojobapplications...`);
       
-      const applicationsUrl = `https://api.airtable.com/v0/appEYs1fTytFXoJ7x/platojobapplications/${applicantId}`;
+      const applicationsUrl = `https://api.airtable.com/v0/appEYs1fTytFXoJ7x/Table%201/${applicantId}`;
       
       const response = await fetch(applicationsUrl, {
         method: 'DELETE',
