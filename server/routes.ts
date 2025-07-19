@@ -537,29 +537,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📋 Applicant fields:`, JSON.stringify(fields, null, 2));
       
       // Step 2: Extract the actual User ID and other data from the record fields
-      const actualUserId = fields['User ID']; // This is the real User ID, not the record ID
-      const applicantName = fields['Name'];
+      const actualUserId = fields['Applicant User ID']; // Use the correct field name from Airtable
+      const applicantName = fields['Applicant Name']; // Use the correct field name
       const jobId = fields['Job ID'];
-      const jobTitle = fields['Job title'];
-      const jobDescription = fields['Job Description']; 
-      const companyName = fields['Company name'];
+      const jobTitle = fields['Job title']; // lowercase 't' in title
+      const jobDescription = fields['Job description']; // lowercase 'd' in description
+      const companyName = fields['Company'];
       
       console.log(`📋 Extracted data - User ID: ${actualUserId}, Name: ${applicantName}, Job: ${jobTitle}`);
       
-      // Step 3: Validate required fields exist
-      if (!actualUserId || !applicantName || !jobTitle || !jobDescription || !companyName) {
+      // Step 3: Validate required fields exist - all fields should be present now with correct names
+      if (!actualUserId || !applicantName || !jobTitle || !companyName) {
         const missingFields = [];
-        if (!actualUserId) missingFields.push('User ID');
-        if (!applicantName) missingFields.push('Name');
+        if (!actualUserId) missingFields.push('Applicant User ID');
+        if (!applicantName) missingFields.push('Applicant Name');
         if (!jobTitle) missingFields.push('Job title');
-        if (!jobDescription) missingFields.push('Job Description');
-        if (!companyName) missingFields.push('Company name');
+        if (!companyName) missingFields.push('Company');
         
         console.log(`❌ Missing required fields: ${missingFields.join(', ')}`);
+        console.log(`❌ Field values - User ID: "${actualUserId}", Name: "${applicantName}", Job: "${jobTitle}", Company: "${companyName}"`);
         return res.status(400).json({ 
           message: `Missing required fields: ${missingFields.join(', ')}`,
           missingFields: missingFields,
-          availableFields: fields ? Object.keys(fields) : []
+          availableFields: fields ? Object.keys(fields) : [],
+          fieldValues: {
+            'Applicant User ID': actualUserId,
+            'Applicant Name': applicantName,
+            'Job title': jobTitle,
+            'Company': companyName
+          }
         });
       }
       
@@ -569,7 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Name': applicantName,
           'User ID': actualUserId, // Use the actual User ID from the record, not the Airtable record ID
           'Job title': jobTitle,
-          'Job Description': jobDescription,
+          'Job Description': jobDescription || 'No description provided',
           'Company name': companyName,
           'Job ID': jobId // Include Job ID if available
         }
