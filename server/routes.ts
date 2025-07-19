@@ -9,7 +9,7 @@ import { airtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
-import { jobMatchesAirtableService } from "./jobMatchesAirtableService";
+import { jobMatchesService } from "./jobMatchesAirtableService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -308,8 +308,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/candidates/count', isAuthenticated, async (req: any, res) => {
     try {
-      const { candidatesAirtableService } = await import('./candidatesAirtableService');
-      const candidates = await candidatesAirtableService.getAllCandidates();
+      const { airtableService } = await import('./airtableService');
+      const candidates = await airtableService.getAllCandidates();
       
       // Only count candidates with scores > 85
       const highScoringCandidates = candidates.filter(candidate => 
@@ -1159,6 +1159,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).returning();
 
       console.log(`✅ Created interview for ${candidateName} on ${scheduledDate} at ${scheduledTime}`);
+
+      // Update platojobmatches table with interview details
+      try {
+        // Create ISO8601 formatted datetime
+        const interviewDateTime = `${scheduledDate}T${scheduledTime}:00.000Z`;
+        
+        console.log(`🔗 Updating platojobmatches for User ID: ${candidateId}, Job title: ${jobTitle}`);
+        await jobMatchesService.updateInterviewDetails(candidateId, jobTitle, interviewDateTime, meetingLink);
+        console.log(`✅ Successfully updated platojobmatches with interview details`);
+      } catch (airtableError) {
+        console.error('❌ Failed to update platojobmatches with interview details:', airtableError);
+        // Don't fail the entire operation if Airtable update fails
+      }
+
       res.json(interview);
     } catch (error) {
       console.error("Error creating interview:", error);

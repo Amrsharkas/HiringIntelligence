@@ -671,7 +671,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                       </button>
                       
                       <div className="flex space-x-2">
-                        {acceptedApplicants.has(applicant.id) ? (
+                        {acceptedApplicants.has(applicant.id) || applicant.status === 'accepted' ? (
                           <button
                             onClick={() => handleScheduleInterview(applicant)}
                             className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
@@ -679,6 +679,11 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                             <Calendar className="w-3 h-3" />
                             <span>Schedule Interview</span>
                           </button>
+                        ) : applicant.status === 'declined' ? (
+                          <div className="flex items-center space-x-2 text-red-600">
+                            <XCircle className="w-4 h-4" />
+                            <span className="text-sm font-medium">Declined</span>
+                          </div>
                         ) : (
                           <>
                             <button

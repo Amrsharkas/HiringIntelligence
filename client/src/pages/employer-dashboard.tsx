@@ -17,7 +17,8 @@ import {
   BarChart3,
   Settings,
   Bell,
-  Building2
+  Building2,
+  Calendar
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
@@ -28,6 +29,7 @@ import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { TeamManagementModal } from "@/components/TeamManagementModal";
 import { MessagingModal } from "@/components/MessagingModal";
 import { InterviewsModal } from "@/components/InterviewsModal";
+import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -196,6 +198,7 @@ export default function EmployerDashboard() {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isMessagingModalOpen, setIsMessagingModalOpen] = useState(false);
   const [isInterviewsModalOpen, setIsInterviewsModalOpen] = useState(false);
+  const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -472,6 +475,14 @@ export default function EmployerDashboard() {
                 </Button>
                 <Button 
                   variant="ghost" 
+                  className="w-full justify-start text-left hover:bg-orange-50 dark:hover:bg-orange-900/30"
+                  onClick={() => setIsCreateInterviewModalOpen(true)}
+                >
+                  <Calendar className="w-4 h-4 text-orange-600 dark:text-orange-400 mr-3" />
+                  Create Interview
+                </Button>
+                <Button 
+                  variant="ghost" 
                   className="w-full justify-start text-left hover:bg-purple-50 dark:hover:bg-purple-900/30"
                   onClick={() => setIsAnalyticsModalOpen(true)}
                 >
@@ -548,6 +559,10 @@ export default function EmployerDashboard() {
       <InterviewsModal 
         isOpen={isInterviewsModalOpen} 
         onClose={() => setIsInterviewsModalOpen(false)} 
+      />
+      <CreateInterviewModal 
+        isOpen={isCreateInterviewModalOpen} 
+        onClose={() => setIsCreateInterviewModalOpen(false)} 
       />
     </div>
   );

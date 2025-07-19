@@ -1,122 +1,94 @@
-// Service for managing job matches in platojobmatches table
 import fetch from 'node-fetch';
 
-interface JobMatchRecord {
-  "Name": string;
-  "User ID": string;
-  "Job title": string;
-  "Job Description": string;
-  "Company name": string;
+const AIRTABLE_BASE_ID = 'app1u4N2W46jD43mP';
+const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+
+if (!AIRTABLE_API_KEY) {
+  console.error('AIRTABLE_API_KEY environment variable is not set');
 }
 
-class JobMatchesAirtableService {
-  private baseUrl = 'https://api.airtable.com/v0';
-  private baseId = 'app1u4N2W46jD43mP'; // platojobmatches base
-  private tableName = 'Table 1';
-  private apiKey: string;
+export class JobMatchesAirtableService {
+  private baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/platojobmatches`;
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  async createJobMatch(
-    name: string,
-    userId: string,
-    jobTitle: string,
-    jobDescription: string,
-    companyName: string
-  ): Promise<void> {
+  async updateInterviewDetails(userId: string, jobTitle: string, interviewDateTime: string, interviewLink?: string) {
     try {
-      console.log(`Creating job match record for ${name}...`);
+      console.log(`🔍 Looking for match: User ID "${userId}" + Job title "${jobTitle}"`);
       
-      const record: JobMatchRecord = {
-        "Name": name,
-        "User ID": userId,
-        "Job title": jobTitle,
-        "Job Description": jobDescription,
-        "Company name": companyName
+      // First, find the record by User ID and Job title
+      const searchUrl = `${this.baseUrl}?filterByFormula=AND({User ID}='${userId}',{Job title}='${jobTitle}')`;
+      
+      const searchResponse = await fetch(searchUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!searchResponse.ok) {
+        throw new Error(`Failed to search platojobmatches: ${searchResponse.status} ${searchResponse.statusText}`);
+      }
+
+      const searchData = await searchResponse.json() as any;
+      
+      if (!searchData.records || searchData.records.length === 0) {
+        console.error(`❌ No matching record found in platojobmatches for User ID "${userId}" and Job title "${jobTitle}"`);
+        throw new Error(`No matching record found for User ID "${userId}" and Job title "${jobTitle}"`);
+      }
+
+      const recordId = searchData.records[0].id;
+      console.log(`✅ Found matching record: ${recordId}`);
+
+      // Update the record with interview details
+      const updateData = {
+        fields: {
+          'Interview date&time': interviewDateTime,
+          ...(interviewLink && { 'Interview Link': interviewLink })
+        }
       };
 
-      const response = await fetch(
-        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            fields: record
-          })
-        }
-      );
+      const updateResponse = await fetch(`${this.baseUrl}/${recordId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create job match: ${response.status} ${response.statusText} - ${errorText}`);
+      if (!updateResponse.ok) {
+        throw new Error(`Failed to update interview details: ${updateResponse.status} ${updateResponse.statusText}`);
       }
 
-      const result = await response.json();
-      console.log(`✅ Successfully created job match record for ${name} (Record ID: ${result.id})`);
+      const updatedRecord = await updateResponse.json();
+      console.log(`🎯 Successfully updated interview details for record ${recordId}`);
+      return updatedRecord;
+
     } catch (error) {
-      console.error('❌ Error creating job match:', error);
+      console.error('Error updating interview details in platojobmatches:', error);
       throw error;
     }
   }
 
-  async deleteJobMatchesByJobId(jobId: string): Promise<void> {
+  async getJobMatches() {
     try {
-      console.log(`Deleting job matches for job ID ${jobId}...`);
-      
-      // First, find all matches for this job
-      const params = new URLSearchParams();
-      params.append('filterByFormula', `SEARCH("${jobId}", {Job title}) > 0`);
-      
-      const getResponse = await fetch(
-        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          }
+      const response = await fetch(this.baseUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
-      if (!getResponse.ok) {
-        throw new Error(`Failed to fetch job matches: ${getResponse.status} ${getResponse.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch job matches: ${response.status} ${response.statusText}`);
       }
 
-      const data = await getResponse.json();
-      
-      if (data.records && data.records.length > 0) {
-        console.log(`Found ${data.records.length} job matches to delete`);
-        
-        // Delete each record
-        for (const record of data.records) {
-          const deleteResponse = await fetch(
-            `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${record.id}`,
-            {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${this.apiKey}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-
-          if (!deleteResponse.ok) {
-            console.error(`Failed to delete job match record ${record.id}`);
-          } else {
-            console.log(`Deleted job match record ${record.id}`);
-          }
-        }
-      }
+      const data = await response.json() as any;
+      return data.records || [];
     } catch (error) {
-      console.error('Error deleting job matches:', error);
+      console.error('Error fetching job matches:', error);
       throw error;
     }
   }
 }
 
-// Create service instance
-export const jobMatchesAirtableService = new JobMatchesAirtableService('pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0');
+export const jobMatchesService = new JobMatchesAirtableService();
