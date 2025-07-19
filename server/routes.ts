@@ -502,6 +502,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/ai/generate-employer-questions', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, jobDescription, requirements } = req.body;
+      
+      if (!jobTitle) {
+        return res.status(400).json({ message: "Job title is required" });
+      }
+
+      const { generateEmployerQuestions } = await import('./openai');
+      const questions = await generateEmployerQuestions(jobTitle, jobDescription, requirements);
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating employer questions:", error);
+      res.status(500).json({ message: "Failed to generate employer questions" });
+    }
+  });
+
   // Real applicants - Accept candidate (move from platojobapplications to platojobmatches)
   app.post('/api/real-applicants/:id/accept', async (req: any, res) => {
     try {
@@ -1476,6 +1493,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interview Management Endpoints
+  app.get('/api/interviews/count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { realInterviews } = await import('@shared/schema');
+      const { eq, count } = await import('drizzle-orm');
+      const { db } = await import('./db');
+      
+      const [{ count: interviewCount }] = await db
+        .select({ count: count() })
+        .from(realInterviews)
+        .where(eq(realInterviews.organizationId, organization.id.toString()));
+      
+      res.json({ count: interviewCount || 0 });
+    } catch (error) {
+      console.error("Error counting interviews:", error);
+      res.status(500).json({ message: "Failed to count interviews", count: 0 });
+    }
+  });
+
   app.get('/api/interviews', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

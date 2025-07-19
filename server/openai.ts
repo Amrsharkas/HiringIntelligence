@@ -280,3 +280,77 @@ export async function analyzeApplicantProfile(
     };
   }
 }
+
+export async function generateEmployerQuestions(jobTitle: string, jobDescription?: string, requirements?: string): Promise<string[]> {
+  try {
+    const prompt = `Generate 3-5 thoughtful, open-ended employer questions for candidates applying to this position:
+
+Job Title: ${jobTitle}
+${jobDescription ? `Job Description: ${jobDescription}` : ''}
+${requirements ? `Requirements: ${requirements}` : ''}
+
+Create questions that:
+- Are specific to this role and industry
+- Help assess both technical competency and cultural fit
+- Encourage candidates to provide detailed, thoughtful responses
+- Go beyond what's already covered in a resume
+- Help identify passion, problem-solving ability, and relevant experience
+
+Examples of good questions:
+- "Describe a challenging project where you had to [specific skill]. What was your approach and what did you learn?"
+- "What interests you most about this role, and how does it align with your career goals?"
+- "Tell us about a time when you had to learn a new technology/skill quickly. How did you approach it?"
+
+Respond with JSON in this format: { "questions": ["question1", "question2", "question3"] }`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert HR professional specializing in interview question design. Generate thoughtful, role-specific employer questions that help identify the best candidates."
+        },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 800,
+      temperature: 0.7,
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{"questions": []}');
+    return result.questions || [];
+  } catch (error) {
+    console.error("Error generating employer questions:", error);
+    // Provide fallback questions based on job title
+    const title = (jobTitle || "").toLowerCase();
+    
+    if (title.includes('developer') || title.includes('engineer')) {
+      return [
+        "Describe a challenging technical problem you solved recently. What was your approach?",
+        "How do you stay current with new technologies and best practices in your field?",
+        "Tell us about a time when you had to work with a difficult codebase or legacy system."
+      ];
+    }
+    if (title.includes('manager') || title.includes('lead')) {
+      return [
+        "Describe your approach to managing team conflicts and ensuring productive collaboration.",
+        "How do you prioritize competing demands and communicate decisions to stakeholders?",
+        "Tell us about a time when you had to lead a team through a significant change."
+      ];
+    }
+    if (title.includes('sales') || title.includes('marketing')) {
+      return [
+        "Describe a challenging sales situation and how you overcame objections to close the deal.",
+        "How do you approach building relationships with new clients or customers?",
+        "What strategies do you use to stay motivated during difficult periods?"
+      ];
+    }
+    
+    // Generic fallback questions
+    return [
+      "What interests you most about this role and our company?",
+      "Describe a challenging situation you faced at work and how you handled it.",
+      "Where do you see yourself in your career in the next 2-3 years?"
+    ];
+  }
+}

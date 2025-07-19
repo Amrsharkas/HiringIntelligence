@@ -74,6 +74,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   const [dynamicTechnicalSkills, setDynamicTechnicalSkills] = useState<string[]>([]);
   const [employerQuestions, setEmployerQuestions] = useState<string[]>(['']);
   const [activeTab, setActiveTab] = useState('details');
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
   const form = useForm<JobFormData>({
     resolver: zodResolver(jobFormSchema),
@@ -108,6 +109,48 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     // Only include non-empty questions in form data
     const validQuestions = newQuestions.filter(q => q.trim() !== '');
     form.setValue('employerQuestions', validQuestions);
+  };
+
+  const generateEmployerQuestions = async () => {
+    const jobTitle = form.watch("title");
+    const jobDescription = form.watch("description");
+    const requirements = form.watch("requirements");
+
+    if (!jobTitle) {
+      toast({
+        title: "Missing Information",
+        description: "Please add a job title first to generate relevant questions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingQuestions(true);
+    try {
+      const response = await apiRequest("POST", "/api/ai/generate-employer-questions", {
+        jobTitle,
+        jobDescription,
+        requirements,
+      });
+      const data = await response.json();
+      
+      if (data.questions && data.questions.length > 0) {
+        setEmployerQuestions(data.questions);
+        form.setValue('employerQuestions', data.questions);
+        toast({
+          title: "Questions Generated",
+          description: `Generated ${data.questions.length} employer questions based on your job posting.`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate questions. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
   };
 
   // Reset form when editJob changes
@@ -667,6 +710,19 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                       Add up to 5 optional questions to ask candidates during the application process.
                       These help you learn more about candidates beyond their resume.
                     </p>
+                    <Button
+                      type="button"
+                      onClick={generateEmployerQuestions}
+                      disabled={isGeneratingQuestions}
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg"
+                    >
+                      {isGeneratingQuestions ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 mr-1" />
+                      )}
+                      AI Generate Questions
+                    </Button>
                   </div>
 
                   <div className="space-y-4">

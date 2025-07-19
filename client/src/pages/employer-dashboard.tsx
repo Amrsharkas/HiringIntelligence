@@ -183,7 +183,37 @@ const LiveCandidatesCount = memo(() => {
 LiveJobCount.displayName = 'LiveJobCount';
 LiveOrganizationName.displayName = 'LiveOrganizationName';
 LiveApplicantsCount.displayName = 'LiveApplicantsCount';
+const LiveInterviewsCount = memo(() => {
+  const { toast } = useToast();
+  const { data: interviewsCount = { count: 0 } } = useQuery<any>({
+    queryKey: ["/api/interviews/count"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+    },
+  });
+  return (
+    <div className="text-3xl font-bold" style={{ minWidth: '60px', textAlign: 'center' }}>
+      {interviewsCount.count}
+    </div>
+  );
+});
+
 LiveCandidatesCount.displayName = 'LiveCandidatesCount';
+LiveInterviewsCount.displayName = 'LiveInterviewsCount';
 StatNumber.displayName = 'StatNumber';
 InteractiveCard.displayName = 'InteractiveCard';
 
@@ -410,7 +440,7 @@ export default function EmployerDashboard() {
               },
               { 
                 label: "Interviews", 
-                component: <StatNumber value={teamMembers?.length || 0} />,
+                component: <LiveInterviewsCount />,
                 icon: Calendar, 
                 color: "orange",
                 onClick: () => setIsInterviewManagementModalOpen(true)
