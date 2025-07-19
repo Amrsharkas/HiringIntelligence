@@ -1663,23 +1663,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Auto-update Airtable whenever any interview field is updated
       try {
-        console.log('🔄 Auto-updating Airtable record for interview changes...');
+        console.log('🔄 Auto-updating Airtable platojobmatches for interview changes...');
         
-        const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-        const jobMatchesService = new JobMatchesAirtableService();
+        const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+        const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
+        const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
         
-        // Format the datetime for Airtable
-        const interviewDateTime = `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime}`;
+        // Search for the record using User ID and Job title
+        const filterFormula = `AND({User ID}='${updatedInterview.candidateId}',{Job title}='${updatedInterview.jobTitle}')`;
+        const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
         
-        await jobMatchesService.updateInterviewDetails(
-          updatedInterview.candidateId,
-          updatedInterview.jobTitle,
-          interviewDateTime,
-          updatedInterview.meetingLink,
-          updatedInterview.timeZone
-        );
+        console.log('🔍 Searching for Airtable record to update:', {
+          userId: updatedInterview.candidateId,
+          jobTitle: updatedInterview.jobTitle,
+          filterFormula: filterFormula
+        });
         
-        console.log(`✅ Successfully auto-updated Airtable platojobmatches table`);
+        const searchResponse = await fetch(searchUrl, {
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!searchResponse.ok) {
+          const errorText = await searchResponse.text();
+          console.error('❌ Failed to search Airtable for interview update:', searchResponse.status, searchResponse.statusText, errorText);
+          throw new Error(`Failed to search Airtable: ${searchResponse.status} ${searchResponse.statusText}`);
+        }
+
+        const searchData = await searchResponse.json();
+        console.log('🔍 Airtable search results:', JSON.stringify(searchData, null, 2));
+        
+        if (!searchData.records || searchData.records.length === 0) {
+          console.error(`❌ No matching record found in Airtable for User ID "${updatedInterview.candidateId}" and Job title "${updatedInterview.jobTitle}"`);
+          return; // Exit gracefully without failing the interview update
+        }
+
+        const recordId = searchData.records[0].id;
+        console.log(`✅ Found matching Airtable record: ${recordId}`);
+        
+        // Format datetime with timezone for Airtable
+        const interviewDateTime = updatedInterview.timeZone ? 
+          `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime} (${updatedInterview.timeZone})` : 
+          `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime}`;
+        
+        const airtableUpdateData = {
+          fields: {
+            'Interview date&time': interviewDateTime,
+            'Interview Link': updatedInterview.meetingLink || ''
+          }
+        };
+
+        console.log('📤 Updating Airtable record with:', JSON.stringify(airtableUpdateData, null, 2));
+
+        const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(airtableUpdateData)
+        });
+
+        if (!updateResponse.ok) {
+          const errorText = await updateResponse.text();
+          console.error('❌ Failed to update Airtable record:', updateResponse.status, updateResponse.statusText, errorText);
+          throw new Error(`Failed to update Airtable record: ${updateResponse.status} ${updateResponse.statusText}`);
+        }
+
+        const updatedRecord = await updateResponse.json();
+        console.log(`✅ Successfully updated Airtable platojobmatches record:`, JSON.stringify(updatedRecord, null, 2));
         
       } catch (airtableError) {
         console.error('❌ Failed to auto-update Airtable platojobmatches:', airtableError);
@@ -1733,7 +1787,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log('🔍 Searching for Airtable record to clear interview details:', {
           userId: deletedInterview.candidateId,
-          jobTitle: deletedInterview.jobTitle
+          jobTitle: deletedInterview.jobTitle,
+          filterFormula: filterFormula
         });
         
         const searchResponse = await fetch(searchUrl, {
@@ -1743,43 +1798,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
 
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          
-          if (searchData.records && searchData.records.length > 0) {
-            const recordId = searchData.records[0].id;
-            console.log(`✅ Found matching record: ${recordId}, clearing interview details...`);
-            
-            // Clear interview fields in Airtable
-            const clearData = {
-              fields: {
-                'Interview date&time': '',
-                'Interview Link': ''
-              }
-            };
-
-            const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
-              method: 'PATCH',
-              headers: {
-                'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(clearData)
-            });
-
-            if (updateResponse.ok) {
-              console.log(`✅ Successfully cleared interview details from Airtable platojobmatches`);
-            } else {
-              const errorText = await updateResponse.text();
-              console.error(`❌ Failed to clear Airtable interview details: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`);
-            }
-          } else {
-            console.log(`⚠️ No matching record found in platojobmatches for User ID "${deletedInterview.candidateId}" and Job title "${deletedInterview.jobTitle}"`);
-          }
-        } else {
+        if (!searchResponse.ok) {
           const errorText = await searchResponse.text();
           console.error('❌ Failed to search Airtable for interview deletion:', searchResponse.status, searchResponse.statusText, errorText);
+          throw new Error(`Failed to search Airtable: ${searchResponse.status} ${searchResponse.statusText}`);
         }
+
+        const searchData = await searchResponse.json();
+        console.log('🔍 Airtable search results for deletion:', JSON.stringify(searchData, null, 2));
+        
+        if (!searchData.records || searchData.records.length === 0) {
+          console.log(`⚠️ No matching record found in platojobmatches for User ID "${deletedInterview.candidateId}" and Job title "${deletedInterview.jobTitle}"`);
+          return; // Exit gracefully without failing the interview deletion
+        }
+
+        const recordId = searchData.records[0].id;
+        console.log(`✅ Found matching Airtable record for deletion: ${recordId}`);
+        
+        // Clear interview fields in Airtable
+        const clearData = {
+          fields: {
+            'Interview date&time': '',
+            'Interview Link': ''
+          }
+        };
+
+        console.log('📤 Clearing Airtable interview fields with:', JSON.stringify(clearData, null, 2));
+
+        const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(clearData)
+        });
+
+        if (!updateResponse.ok) {
+          const errorText = await updateResponse.text();
+          console.error(`❌ Failed to clear Airtable interview details: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`);
+          throw new Error(`Failed to clear Airtable interview details: ${updateResponse.status} ${updateResponse.statusText}`);
+        }
+
+        const clearedRecord = await updateResponse.json();
+        console.log(`✅ Successfully cleared interview details from Airtable platojobmatches:`, JSON.stringify(clearedRecord, null, 2));
         
       } catch (airtableError) {
         console.error('❌ Failed to auto-clear Airtable platojobmatches during interview deletion:', airtableError);
