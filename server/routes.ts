@@ -647,6 +647,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix most recent accepted candidate User ID
+  app.post('/api/fix-recent-candidate-userid', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log(`🔧 Fixing most recent accepted candidate User ID...`);
+      
+      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const jobMatchesService = new JobMatchesAirtableService();
+      
+      // Get the most recent job match
+      const mostRecentMatch = await jobMatchesService.getMostRecentJobMatch();
+      
+      if (!mostRecentMatch) {
+        return res.status(404).json({ message: "No job matches found" });
+      }
+      
+      console.log(`📋 Most recent job match:`, mostRecentMatch.fields);
+      
+      const currentUserId = mostRecentMatch.fields['User ID'];
+      const candidateName = mostRecentMatch.fields['Name'];
+      const jobTitle = mostRecentMatch.fields['Job title'];
+      
+      // Look for this candidate in platojobapplications with "Accepted" status
+      const allApplications = await realApplicantsAirtableService.getAllApplicantsIncludingProcessed();
+      
+      // Find the accepted application for this candidate and job
+      const matchingApplication = allApplications.find(app => 
+        app.name === candidateName && 
+        app.jobTitle === jobTitle &&
+        app.status === 'Accepted'
+      );
+      
+      if (!matchingApplication) {
+        return res.status(404).json({ 
+          message: `No matching accepted application found for ${candidateName} - ${jobTitle}` 
+        });
+      }
+      
+      const correctUserId = matchingApplication.userId;
+      
+      if (currentUserId === correctUserId) {
+        return res.json({ 
+          message: "User ID is already correct",
+          currentUserId,
+          candidateName,
+          jobTitle
+        });
+      }
+      
+      // Update the job match with the correct User ID
+      console.log(`🔄 Updating User ID from ${currentUserId} to ${correctUserId}`);
+      await jobMatchesService.updateJobMatchUserId(mostRecentMatch.id, correctUserId);
+      
+      res.json({ 
+        message: "Successfully updated most recent candidate User ID",
+        candidateName,
+        jobTitle,
+        oldUserId: currentUserId,
+        newUserId: correctUserId,
+        recordId: mostRecentMatch.id
+      });
+      
+    } catch (error) {
+      console.error("❌ Error fixing candidate User ID:", error);
+      res.status(500).json({ 
+        message: "Failed to fix candidate User ID",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Undo accept applicant - move from platojobmatches back to platojobapplications
   app.post('/api/real-applicants/:id/undo-accept', isAuthenticated, async (req: any, res) => {
     try {

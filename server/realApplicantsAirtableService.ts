@@ -252,6 +252,64 @@ class RealApplicantsAirtableService {
     }
   }
 
+  async getAllApplicantsIncludingProcessed(): Promise<ApplicantWithProfile[]> {
+    try {
+      console.log('Fetching ALL applicants from platojobapplications table (including accepted/denied)...');
+      
+      let allRecords: AirtableApplicantRecord[] = [];
+      let offset: string | undefined;
+
+      // Get all records regardless of status
+      do {
+        const params = new URLSearchParams();
+        if (offset) params.append('offset', offset);
+        
+        const response = await fetch(
+          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data: AirtableApplicantResponse = await response.json();
+        allRecords = allRecords.concat(data.records);
+        offset = data.offset;
+      } while (offset);
+
+      console.log(`Found ${allRecords.length} total applicants (including all statuses)`);
+
+      // Transform records to our format
+      const applicants: ApplicantWithProfile[] = allRecords.map(record => ({
+        id: record.id,
+        name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
+        userId: record.fields['User ID'] || '',
+        email: record.fields['Email'] || '',
+        phone: record.fields['Phone'] || '',
+        jobTitle: record.fields['Job title'] || '',
+        jobDescription: record.fields['Job description'] || '',
+        companyName: record.fields['Company name'] || '',
+        jobId: record.fields['Job ID'] || '',
+        userProfile: record.fields['User profile'] || '',
+        notes: record.fields['Notes'] || '',
+        status: record.fields['Status'] || 'pending',
+        applicationDate: record.createdTime
+      }));
+
+      return applicants;
+
+    } catch (error) {
+      console.error('Error fetching all applicants (including processed):', error);
+      return [];
+    }
+  }
+
   async deleteApplicant(recordId: string): Promise<void> {
     try {
       console.log(`Deleting applicant record ${recordId}...`);

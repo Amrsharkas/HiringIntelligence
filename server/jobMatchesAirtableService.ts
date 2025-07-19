@@ -163,6 +163,63 @@ export class JobMatchesAirtableService {
       throw error;
     }
   }
+
+  async getMostRecentJobMatch() {
+    try {
+      // Fetch records sorted by created time (most recent first)
+      const url = `${this.baseUrl}?sort[0][field]=CREATED_TIME&sort[0][direction]=desc&maxRecords=1`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch most recent job match: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json() as any;
+      return data.records?.[0] || null;
+    } catch (error) {
+      console.error('Error fetching most recent job match:', error);
+      throw error;
+    }
+  }
+
+  async updateJobMatchUserId(recordId: string, newUserId: string) {
+    try {
+      console.log(`📝 Updating job match ${recordId} with correct User ID: ${newUserId}`);
+      
+      const updateData = {
+        fields: {
+          'User ID': newUserId
+        }
+      };
+
+      const response = await fetch(`${this.baseUrl}/${recordId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update job match User ID: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const updatedRecord = await response.json();
+      console.log(`✅ Successfully updated job match ${recordId} with User ID: ${newUserId}`);
+      return updatedRecord;
+    } catch (error) {
+      console.error('Error updating job match User ID:', error);
+      throw error;
+    }
+  }
 }
 
 export const jobMatchesService = new JobMatchesAirtableService();
