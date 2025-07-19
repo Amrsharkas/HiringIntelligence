@@ -1631,7 +1631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get accepted applicants for CreateInterviewModal (from Airtable directly)
+  // Get accepted applicants for CreateInterviewModal (from platojobmatches table)
   app.get('/api/accepted-applicants', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1641,14 +1641,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      console.log(`🔍 Fetching accepted applicants from Airtable for organization: ${organization.companyName}`);
+      console.log(`🔍 Fetching accepted applicants from platojobmatches table for organization: ${organization.companyName}`);
       
-      // Get accepted applicants directly from Airtable by filtering status = "Accepted"
+      // Get accepted applicants from platojobmatches table (where accepted applicants are stored)
       const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-      const APPLICATIONS_BASE_ID = process.env.AIRTABLE_APPLICATIONS_BASE_ID || 'appEYs1fTytFXoJ7x';
-      const applicationsUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201`;
+      const MATCHES_BASE_ID = process.env.AIRTABLE_MATCHES_BASE_ID || 'appCjIvd73lvp0oLf';
+      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
       
-      const response = await fetch(`${applicationsUrl}?filterByFormula=AND({Status}='Accepted', {Company}='${organization.companyName}')`, {
+      const response = await fetch(`${matchesUrl}?filterByFormula={Company name}='${organization.companyName}'`, {
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json'
@@ -1660,14 +1660,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const data = await response.json();
-      console.log(`✅ Found ${data.records.length} accepted applicants in Airtable`);
+      console.log(`✅ Found ${data.records.length} accepted applicants in platojobmatches table`);
 
       // Transform to expected format for the interview modal
       const formattedApplicants = data.records.map((record: any) => ({
-        id: record.fields['Applicant User ID'] || record.id,
-        name: record.fields['Applicant Name'] || 'Unknown',
+        id: record.fields['User ID'] || record.id,
+        name: record.fields['Name'] || 'Unknown',
         jobTitle: record.fields['Job title'] || 'Unknown Position',
-        userId: record.fields['Applicant User ID'] || record.id,
+        userId: record.fields['User ID'] || record.id,
         jobId: record.fields['Job ID'] || '',
         email: record.fields['Email'] || '',
         airtableRecordId: record.id
@@ -1680,7 +1680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test endpoint to add accepted applicants for testing
+  // Test endpoint to add accepted applicants directly to platojobmatches for testing
   app.post('/api/test/add-accepted-applicant', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1691,22 +1691,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-      const APPLICATIONS_BASE_ID = process.env.AIRTABLE_APPLICATIONS_BASE_ID || 'appEYs1fTytFXoJ7x';
-      const applicationsUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201`;
+      const MATCHES_BASE_ID = process.env.AIRTABLE_MATCHES_BASE_ID || 'appCjIvd73lvp0oLf';
+      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
       
-      // Add a test accepted applicant
-      const testApplicant = {
-        "Applicant Name": "Adam Elshanawany",
-        "Applicant User ID": "43108970",
+      // Add a test accepted applicant to platojobmatches table
+      const testMatch = {
+        "Name": "Adam Elshanawany", 
+        "User ID": "43108970",
         "Job title": "Administrative Assistant",
         "Job description": "Administrative role at our company",
-        "Company": organization.companyName,
-        "Job ID": "5",
-        "Status": "Accepted",
-        "Email": "adam@example.com"
+        "Company name": organization.companyName,
+        "Job ID": "5"
       };
 
-      const response = await fetch(applicationsUrl, {
+      const response = await fetch(matchesUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -1714,26 +1712,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         body: JSON.stringify({
           records: [{
-            fields: testApplicant
+            fields: testMatch
           }]
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to add test applicant: ${response.status}`);
+        throw new Error(`Failed to add test match: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log(`✅ Added test accepted applicant: ${testApplicant["Applicant Name"]}`);
+      console.log(`✅ Added test accepted match: ${testMatch["Name"]}`);
 
       res.json({ 
-        message: "Test accepted applicant added successfully",
+        message: "Test accepted applicant added to platojobmatches successfully",
         recordId: data.records[0].id,
-        applicant: testApplicant
+        match: testMatch
       });
     } catch (error) {
-      console.error("Error adding test applicant:", error);
-      res.status(500).json({ message: "Failed to add test applicant" });
+      console.error("Error adding test match:", error);
+      res.status(500).json({ message: "Failed to add test match" });
     }
   });
 
