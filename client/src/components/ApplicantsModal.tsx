@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight, Settings, Plus, Trash2, MessageSquare } from 'lucide-react';
+import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight, Settings, Plus, Trash2, MessageSquare, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -183,6 +183,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [acceptedApplicants, setAcceptedApplicants] = useState<Set<string>>(new Set());
   const [processingActions, setProcessingActions] = useState<Set<string>>(new Set());
+  const [recentActions, setRecentActions] = useState<Map<string, any>>(new Map());
+  const [showingUndo, setShowingUndo] = useState<Set<string>>(new Set());
   const [interviewData, setInterviewData] = useState({
     scheduledDate: '',
     scheduledTime: '',
@@ -256,6 +258,27 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
         newSet.delete(applicantId);
         return newSet;
       });
+      
+      // Store undo data if provided
+      if (data.undoData) {
+        setRecentActions(prev => new Map(prev.set(applicantId, data.undoData)));
+        setShowingUndo(prev => new Set([...prev, applicantId]));
+        
+        // Hide undo button after 10 seconds
+        setTimeout(() => {
+          setShowingUndo(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(applicantId);
+            return newSet;
+          });
+          setRecentActions(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(applicantId);
+            return newMap;
+          });
+        }, 10000);
+      }
+      
       toast({
         title: "Success",
         description: "Applicant accepted and added to job matches",
@@ -300,6 +323,27 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
         newSet.delete(applicantId);
         return newSet;
       });
+      
+      // Store undo data if provided
+      if (data.undoData) {
+        setRecentActions(prev => new Map(prev.set(applicantId, data.undoData)));
+        setShowingUndo(prev => new Set([...prev, applicantId]));
+        
+        // Hide undo button after 10 seconds
+        setTimeout(() => {
+          setShowingUndo(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(applicantId);
+            return newSet;
+          });
+          setRecentActions(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(applicantId);
+            return newMap;
+          });
+        }, 10000);
+      }
+      
       toast({
         title: "Success",
         description: "Applicant declined and removed",
@@ -326,6 +370,42 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       toast({
         title: "Error",
         description: "Failed to decline applicant. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Undo accept mutation
+  const undoAcceptMutation = useMutation({
+    mutationFn: async (undoData: any) => {
+      return apiRequest('POST', `/api/real-applicants/${undoData.applicantId}/undo-accept`, undoData);
+    },
+    onSuccess: (data, undoData) => {
+      setAcceptedApplicants(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(undoData.applicantId);
+        return newSet;
+      });
+      setShowingUndo(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(undoData.applicantId);
+        return newSet;
+      });
+      setRecentActions(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(undoData.applicantId);
+        return newMap;
+      });
+      toast({
+        title: "Success",
+        description: "Accept action undone - applicant restored to applications",
+      });
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to undo accept action. Please try again.",
         variant: "destructive",
       });
     },
@@ -661,7 +741,26 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                       </button>
                       
                       <div className="flex space-x-2">
-                        {acceptedApplicants.has(applicant.id) || applicant.status === 'accepted' ? (
+                        {showingUndo.has(applicant.id) ? (
+                          // Show undo options
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                const undoData = recentActions.get(applicant.id);
+                                if (undoData && undoData.action === 'accept') {
+                                  undoAcceptMutation.mutate(undoData);
+                                }
+                              }}
+                              className="bg-orange-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-orange-700 transition-colors flex items-center space-x-1"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>Undo</span>
+                            </button>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {recentActions.get(applicant.id)?.action === 'accept' ? 'Accepted' : 'Declined'}
+                            </span>
+                          </div>
+                        ) : acceptedApplicants.has(applicant.id) || applicant.status === 'accepted' ? (
                           <button
                             onClick={() => handleScheduleInterview(applicant)}
                             className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"

@@ -576,7 +576,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         message: "Applicant accepted and moved to job matches",
         applicantName: applicantData.name,
-        jobTitle: jobMatchData.title
+        jobTitle: jobMatchData.title,
+        undoData: {
+          applicantId,
+          applicantName: applicantData.name,
+          userId: applicantData.userId,
+          jobTitle: jobMatchData.title,
+          jobDescription: jobMatchData.description,
+          companyName: companyName,
+          action: 'accept'
+        }
       });
       
     } catch (error) {
@@ -615,13 +624,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ Successfully declined applicant ${applicantName} (${applicantId})`);
       res.json({ 
         message: "Applicant declined and removed from applications",
-        applicantName: applicantName
+        applicantName: applicantName,
+        undoData: {
+          applicantId,
+          applicantName,
+          action: 'decline'
+        }
       });
       
     } catch (error) {
       console.error("❌ Error declining applicant:", error);
       res.status(500).json({ 
         message: "Failed to decline applicant",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Undo accept applicant - move from platojobmatches back to platojobapplications
+  app.post('/api/real-applicants/:id/undo-accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const { applicantId, userId, applicantName, jobTitle, jobDescription, companyName } = req.body;
+      
+      console.log(`⏪ Undoing accept for applicant ${applicantName}...`);
+      
+      // Create record back in platojobapplications
+      const applicationsUrl = `https://api.airtable.com/v0/appEYs1fTytFXoJ7x/Table%201`;
+      const applicationData = {
+        fields: {
+          'Applicant Name': applicantName,
+          'User ID': userId,
+          'Job title': jobTitle,
+          'Job description': jobDescription,
+          'Company name': companyName,
+          'Job ID': req.params.id // Use the job ID from parameters
+        }
+      };
+      
+      const response = await fetch(applicationsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0'}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(applicationData)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to restore application: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      // Delete from platojobmatches
+      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
+      const jobMatchesService = new JobMatchesAirtableService();
+      
+      // Find and delete the job match record
+      const matchesUrl = `https://api.airtable.com/v0/app1u4N2W46jD43mP/Table%201?filterByFormula=AND({User ID}='${userId}',{Job title}='${jobTitle}')`;
+      
+      const searchResponse = await fetch(matchesUrl, {
+        headers: {
+          'Authorization': `Bearer ${'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0'}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json() as any;
+        if (searchData.records && searchData.records.length > 0) {
+          const recordId = searchData.records[0].id;
+          const deleteUrl = `https://api.airtable.com/v0/app1u4N2W46jD43mP/Table%201/${recordId}`;
+          
+          await fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0'}`,
+            }
+          });
+        }
+      }
+      
+      console.log(`✅ Successfully undid accept for applicant ${applicantName}`);
+      res.json({ 
+        message: "Accept action undone - applicant restored to applications",
+        applicantName: applicantName
+      });
+      
+    } catch (error) {
+      console.error("❌ Error undoing accept:", error);
+      res.status(500).json({ 
+        message: "Failed to undo accept action",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
