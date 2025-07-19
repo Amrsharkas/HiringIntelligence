@@ -1719,6 +1719,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Interview not found" });
       }
 
+      // Auto-clear interview details from Airtable platojobmatches when interview is deleted
+      try {
+        console.log('🔄 Auto-clearing interview details from Airtable platojobmatches...');
+        
+        const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+        const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
+        const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
+        
+        // Search for the record using candidateId and jobTitle
+        const filterFormula = `AND({User ID}='${deletedInterview.candidateId}',{Job title}='${deletedInterview.jobTitle}')`;
+        const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+        
+        console.log('🔍 Searching for Airtable record to clear interview details:', {
+          userId: deletedInterview.candidateId,
+          jobTitle: deletedInterview.jobTitle
+        });
+        
+        const searchResponse = await fetch(searchUrl, {
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          
+          if (searchData.records && searchData.records.length > 0) {
+            const recordId = searchData.records[0].id;
+            console.log(`✅ Found matching record: ${recordId}, clearing interview details...`);
+            
+            // Clear interview fields in Airtable
+            const clearData = {
+              fields: {
+                'Interview date&time': '',
+                'Interview Link': ''
+              }
+            };
+
+            const updateResponse = await fetch(`${matchesUrl}/${recordId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(clearData)
+            });
+
+            if (updateResponse.ok) {
+              console.log(`✅ Successfully cleared interview details from Airtable platojobmatches`);
+            } else {
+              const errorText = await updateResponse.text();
+              console.error(`❌ Failed to clear Airtable interview details: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`);
+            }
+          } else {
+            console.log(`⚠️ No matching record found in platojobmatches for User ID "${deletedInterview.candidateId}" and Job title "${deletedInterview.jobTitle}"`);
+          }
+        } else {
+          const errorText = await searchResponse.text();
+          console.error('❌ Failed to search Airtable for interview deletion:', searchResponse.status, searchResponse.statusText, errorText);
+        }
+        
+      } catch (airtableError) {
+        console.error('❌ Failed to auto-clear Airtable platojobmatches during interview deletion:', airtableError);
+        // Don't fail the whole request if Airtable update fails, but log the error
+      }
+
       res.json({ message: "Interview deleted successfully" });
     } catch (error) {
       console.error("Error deleting interview:", error);
