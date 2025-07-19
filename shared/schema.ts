@@ -205,6 +205,7 @@ export const realInterviews = pgTable("real_interviews", {
   jobTitle: varchar("job_title").notNull(),
   scheduledDate: varchar("scheduled_date").notNull(),
   scheduledTime: varchar("scheduled_time").notNull(),
+  timeZone: varchar("time_zone").notNull().default('UTC'),
   interviewType: varchar("interview_type").notNull().default('video'),
   meetingLink: varchar("meeting_link"),
   interviewer: varchar("interviewer").notNull(),

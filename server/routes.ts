@@ -1512,7 +1512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { candidateName, candidateEmail, candidateId, jobId, jobTitle, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
+      const { candidateName, candidateEmail, candidateId, jobId, jobTitle, scheduledDate, scheduledTime, timeZone, interviewType, meetingLink, notes } = req.body;
       
       const { realInterviews } = await import('@shared/schema');
       const { nanoid } = await import('nanoid');
@@ -1530,6 +1530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobTitle,
         scheduledDate,
         scheduledTime,
+        timeZone: timeZone || 'UTC',
         interviewType: interviewType || 'video',
         meetingLink: meetingLink || '',
         interviewer,
@@ -1565,8 +1566,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const recordId = searchData.records[0].id;
             console.log(`📝 Found record ID: ${recordId}, updating with interview details...`);
             
-            // Create combined date & time string for Airtable
-            const interviewDateTime = `${scheduledDate} at ${scheduledTime}`;
+            // Create combined date & time string for Airtable with timezone
+            const interviewDateTime = timeZone ? `${scheduledDate} at ${scheduledTime} (${timeZone})` : `${scheduledDate} at ${scheduledTime}`;
             
             // Update the record with interview details using correct field names
             const updateData = {
@@ -1621,7 +1622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const { scheduledDate, scheduledTime, interviewType, meetingLink, notes, status } = req.body;
+      const { scheduledDate, scheduledTime, timeZone, interviewType, meetingLink, notes, status } = req.body;
       
       const { realInterviews } = await import('@shared/schema');
       const { eq, and } = await import('drizzle-orm');
@@ -1632,6 +1633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (scheduledDate !== undefined) updateData.scheduledDate = scheduledDate;
       if (scheduledTime !== undefined) updateData.scheduledTime = scheduledTime;
+      if (timeZone !== undefined) updateData.timeZone = timeZone;
       if (interviewType !== undefined) updateData.interviewType = interviewType;
       if (meetingLink !== undefined) updateData.meetingLink = meetingLink;
       if (notes !== undefined) updateData.notes = notes;
@@ -1649,8 +1651,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Interview not found" });
       }
 
-      // Update Airtable if date/time or meeting link changed
-      if (scheduledDate !== undefined || scheduledTime !== undefined || meetingLink !== undefined) {
+      // Update Airtable if date/time, timezone, or meeting link changed
+      if (scheduledDate !== undefined || scheduledTime !== undefined || timeZone !== undefined || meetingLink !== undefined) {
         try {
           const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
           const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
@@ -1670,7 +1672,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const searchData = await searchResponse.json();
             if (searchData.records && searchData.records.length > 0) {
               const recordId = searchData.records[0].id;
-              const interviewDateTime = `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime}`;
+              const interviewDateTime = updatedInterview.timeZone ? 
+                `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime} (${updatedInterview.timeZone})` : 
+                `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime}`;
               
               const airtableUpdateData = {
                 fields: {
@@ -1715,6 +1719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { realInterviews } = await import('@shared/schema');
       const { eq, and } = await import('drizzle-orm');
+      const { db } = await import('./db');
       
       const [deletedInterview] = await db.delete(realInterviews)
         .where(and(

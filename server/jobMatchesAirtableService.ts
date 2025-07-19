@@ -10,7 +10,7 @@ if (!AIRTABLE_API_KEY) {
 export class JobMatchesAirtableService {
   private baseUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Table%201`;
 
-  async updateInterviewDetails(userId: string, jobTitle: string, interviewDateTime: string, interviewLink?: string) {
+  async updateInterviewDetails(userId: string, jobTitle: string, interviewDateTime: string, interviewLink?: string, timeZone?: string) {
     try {
       console.log(`🔍 Looking for match: User ID "${userId}" + Job title "${jobTitle}"`);
       
@@ -41,7 +41,7 @@ export class JobMatchesAirtableService {
       // Update the record with interview details
       const updateData = {
         fields: {
-          'Interview date&time': interviewDateTime,
+          'Interview date&time': timeZone ? `${interviewDateTime} (${timeZone})` : interviewDateTime,
           ...(interviewLink && { 'Interview Link': interviewLink })
         }
       };

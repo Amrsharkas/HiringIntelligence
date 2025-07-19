@@ -160,6 +160,9 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
             <span>{interview.scheduledDate}</span>
             <Clock className="h-4 w-4 text-gray-500 ml-2" />
             <span>{interview.scheduledTime}</span>
+            {interview.timeZone && (
+              <span className="text-xs text-gray-400 ml-1">({interview.timeZone})</span>
+            )}
           </div>
           
           <div className="flex items-center space-x-2 text-sm">
@@ -222,6 +225,7 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
       jobTitle: interview?.jobTitle || '',
       scheduledDate: interview?.scheduledDate || '',
       scheduledTime: interview?.scheduledTime || '',
+      timeZone: interview?.timeZone || 'UTC',
       interviewType: interview?.interviewType || 'video',
       meetingLink: interview?.meetingLink || '',
       notes: interview?.notes || '',
@@ -275,7 +279,7 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <Label htmlFor="scheduledDate">Interview Date *</Label>
             <Input
@@ -295,6 +299,33 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
               onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
               required
             />
+          </div>
+          <div>
+            <Label htmlFor="timeZone">Time Zone *</Label>
+            <Select
+              value={formData.timeZone}
+              onValueChange={(value) => setFormData({ ...formData, timeZone: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="UTC">UTC</SelectItem>
+                <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
+                <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
+                <SelectItem value="Australia/Sydney">Sydney (AEST)</SelectItem>
+                <SelectItem value="America/Toronto">Toronto (ET)</SelectItem>
+                <SelectItem value="America/Vancouver">Vancouver (PT)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
