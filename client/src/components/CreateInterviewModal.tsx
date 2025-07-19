@@ -17,6 +17,7 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
   const [interviewData, setInterviewData] = useState({
     scheduledDate: '',
     scheduledTime: '',
+    timeZone: 'UTC',
     interviewType: 'video',
     meetingLink: '',
     notes: ''
@@ -85,6 +86,7 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
     setInterviewData({
       scheduledDate: '',
       scheduledTime: '',
+      timeZone: 'UTC',
       interviewType: 'video',
       meetingLink: '',
       notes: ''
@@ -215,7 +217,7 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
             {/* Interview Details */}
             {selectedApplicant && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Date *
@@ -238,6 +240,33 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
                       onChange={(e) => setInterviewData({...interviewData, scheduledTime: e.target.value})}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Time Zone *
+                    </label>
+                    <select
+                      value={interviewData.timeZone}
+                      onChange={(e) => setInterviewData({...interviewData, timeZone: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    >
+                      <option value="UTC">UTC</option>
+                      <option value="EST">Eastern (EST/EDT)</option>
+                      <option value="CST">Central (CST/CDT)</option>
+                      <option value="MST">Mountain (MST/MDT)</option>
+                      <option value="PST">Pacific (PST/PDT)</option>
+                      <option value="GMT">GMT</option>
+                      <option value="CET">Central European (CET)</option>
+                      <option value="JST">Japan (JST)</option>
+                      <option value="AEST">Australian Eastern (AEST)</option>
+                      <option value="IST">India (IST)</option>
+                      <option value="CST-China">China (CST)</option>
+                      <option value="BST">British Summer (BST)</option>
+                      <option value="CEST">Central European Summer (CEST)</option>
+                      <option value="MSK">Moscow (MSK)</option>
+                      <option value="SGT">Singapore (SGT)</option>
+                    </select>
                   </div>
                 </div>
                 
