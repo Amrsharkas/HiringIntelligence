@@ -304,7 +304,7 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
-{interview ? (
+        {interview ? (
           // For editing existing interviews, show as read-only fields
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -363,114 +363,116 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
         {/* Only show interview details if editing existing interview OR if new interview with candidate selected */}
         {(interview || selectedApplicant) && (
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="scheduledDate">Interview Date *</Label>
-            <Input
-              id="scheduledDate"
-              type="date"
-              value={formData.scheduledDate}
-              onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="scheduledTime">Interview Time *</Label>
-            <Input
-              id="scheduledTime"
-              type="time"
-              value={formData.scheduledTime}
-              onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="timeZone">Time Zone *</Label>
-            <Select
-              value={formData.timeZone}
-              onValueChange={(value) => setFormData({ ...formData, timeZone: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="UTC">UTC</SelectItem>
-                <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                <SelectItem value="Europe/London">London (GMT)</SelectItem>
-                <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
-                <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
-                <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
-                <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
-                <SelectItem value="Australia/Sydney">Sydney (AEST)</SelectItem>
-                <SelectItem value="America/Toronto">Toronto (ET)</SelectItem>
-                <SelectItem value="America/Vancouver">Vancouver (PT)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          <>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="scheduledDate">Interview Date *</Label>
+                <Input
+                  id="scheduledDate"
+                  type="date"
+                  value={formData.scheduledDate}
+                  onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="scheduledTime">Interview Time *</Label>
+                <Input
+                  id="scheduledTime"
+                  type="time"
+                  value={formData.scheduledTime}
+                  onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="timeZone">Time Zone *</Label>
+                <Select
+                  value={formData.timeZone}
+                  onValueChange={(value) => setFormData({ ...formData, timeZone: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                    <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                    <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                    <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                    <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
+                    <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                    <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                    <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
+                    <SelectItem value="Australia/Sydney">Sydney (AEST)</SelectItem>
+                    <SelectItem value="America/Toronto">Toronto (ET)</SelectItem>
+                    <SelectItem value="America/Vancouver">Vancouver (PT)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="interviewType">Interview Type *</Label>
-            <Select
-              value={formData.interviewType}
-              onValueChange={(value) => setFormData({ ...formData, interviewType: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="video">Video Call</SelectItem>
-                <SelectItem value="phone">Phone Call</SelectItem>
-                <SelectItem value="in-person">In-Person</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="meetingLink">Meeting Link</Label>
-            <Input
-              id="meetingLink"
-              type="url"
-              value={formData.meetingLink}
-              onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-              placeholder="https://zoom.us/j/..."
-            />
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="interviewType">Interview Type *</Label>
+                <Select
+                  value={formData.interviewType}
+                  onValueChange={(value) => setFormData({ ...formData, interviewType: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="video">Video Call</SelectItem>
+                    <SelectItem value="phone">Phone Call</SelectItem>
+                    <SelectItem value="in-person">In-Person</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="meetingLink">Meeting Link</Label>
+                <Input
+                  id="meetingLink"
+                  type="url"
+                  value={formData.meetingLink}
+                  onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
+                  placeholder="https://zoom.us/j/..."
+                />
+              </div>
+            </div>
 
-        <div>
-          <Label htmlFor="notes">Notes</Label>
-          <Textarea
-            id="notes"
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={3}
-            placeholder="Additional notes or instructions..."
-          />
-        </div>
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                placeholder="Additional notes or instructions..."
+              />
+            </div>
 
-        <div className="flex space-x-2">
-          <Button 
-            type="submit" 
-            disabled={interviewMutation.isPending || (!interview && (!selectedJob || !selectedApplicant))}
-          >
-            {interviewMutation.isPending ? 'Saving...' : (interview ? 'Update Interview' : 'Schedule Interview')}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setEditingInterview(null);
-              setShowCreateForm(false);
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
+            <div className="flex space-x-2">
+              <Button 
+                type="submit" 
+                disabled={interviewMutation.isPending || (!interview && (!selectedJob || !selectedApplicant))}
+              >
+                {interviewMutation.isPending ? 'Saving...' : (interview ? 'Update Interview' : 'Schedule Interview')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditingInterview(null);
+                  setShowCreateForm(false);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </>
         )}  {/* End of conditional interview details section */}
       </form>
     );

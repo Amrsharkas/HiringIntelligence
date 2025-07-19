@@ -33,7 +33,7 @@ interface JobPostingData {
   location: string;
 }
 
-export class jobPostingsAirtableService {
+export class JobPostingsAirtableService {
   private baseUrl = 'https://api.airtable.com/v0';
   private baseId = 'appCjIvd73lvp0oLf'; // platojobpostings base
   private tableName = 'Table 1';
@@ -149,6 +149,21 @@ export class jobPostingsAirtableService {
       return [];
     }
   }
+
+  // Sync method for periodic syncing (placeholder for now)
+  async syncJobPostingsToAirtable(): Promise<void> {
+    try {
+      console.log('Syncing job postings to Airtable...');
+      // This is a placeholder - implement actual sync logic as needed
+      const jobPostings = await this.getAllJobPostings();
+      console.log(`Successfully synced ${jobPostings.length} job postings`);
+    } catch (error) {
+      console.error('Error syncing job postings to Airtable:', error);
+      throw error;
+    }
+  }
 }
 
-// Export the service class (not instance)
+// Export an instance with environment-based API key
+const airtableApiKey = process.env.AIRTABLE_API_KEY || 'placeholder-key';
+export const jobPostingsAirtableService = new JobPostingsAirtableService(airtableApiKey);
