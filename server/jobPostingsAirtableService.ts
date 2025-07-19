@@ -163,9 +163,9 @@ export class JobPostingsAirtableService {
     employerQuestions?: string[];
   }): Promise<void> {
     try {
-      console.log(`Adding job ${jobData.jobId} to Airtable...`);
+      console.log(`📤 Adding job ${jobData.jobId} to Airtable...`);
       
-      // Format employer questions as multiline string
+      // Format employer questions as multiline string - combine all into single text block with numbering
       const employerQuestionsText = jobData.employerQuestions && jobData.employerQuestions.length > 0
         ? jobData.employerQuestions.map((q, index) => `${index + 1}. ${q}`).join('\n')
         : '';
@@ -184,6 +184,9 @@ export class JobPostingsAirtableService {
         }
       };
 
+      console.log(`📤 Sending payload to Airtable for Job ID ${jobData.jobId}:`, JSON.stringify(record, null, 2));
+      console.log(`📊 Employer Questions being sent: "${employerQuestionsText || '(empty)'}"`);
+
       const response = await fetch(
         `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}`,
         {
@@ -196,12 +199,15 @@ export class JobPostingsAirtableService {
         }
       );
 
+      const responseText = await response.text();
+      console.log(`📥 Airtable response for Job ID ${jobData.jobId} (${response.status}):`, responseText);
+
       if (!response.ok) {
-        throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Airtable API error: ${response.status} ${response.statusText} - ${responseText}`);
       }
 
-      const result = await response.json();
-      console.log(`Successfully added job to Airtable with ID: ${result.id}`);
+      const result = JSON.parse(responseText);
+      console.log(`✅ Successfully added job ${jobData.jobId} to Airtable with record ID: ${result.id}`);
 
     } catch (error) {
       console.error('Error adding job to Airtable:', error);
@@ -221,10 +227,13 @@ export class JobPostingsAirtableService {
       
       // Fetch all active jobs from database with organization details
       const activeJobs = await db
-        .select()
+        .select({
+          job: jobs,
+          organization: organizations
+        })
         .from(jobs)
         .leftJoin(organizations, eq(jobs.organizationId, organizations.id))
-        .where(eq(jobs.isActive, true));
+        .where(eq(jobs.is_active, true));
       
       console.log(`Found ${activeJobs.length} job postings`);
       
@@ -240,8 +249,8 @@ export class JobPostingsAirtableService {
       let syncedCount = 0;
       
       for (const result of activeJobs) {
-        const job = result.jobs;
-        const organization = result.organizations;
+        const job = result.job;
+        const organization = result.organization;
         const jobId = job.id.toString();
         
         // Skip if job already exists in Airtable
@@ -334,6 +343,9 @@ export class JobPostingsAirtableService {
         }
       };
 
+      console.log(`📤 Sending update payload to Airtable for Job ID ${jobId}:`, JSON.stringify(updateData, null, 2));
+      console.log(`📊 Employer Questions being updated: "${employerQuestionsText || '(empty)'}"`);
+
       const updateResponse = await fetch(
         `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
         {
@@ -346,14 +358,19 @@ export class JobPostingsAirtableService {
         }
       );
 
+      const responseText = await updateResponse.text();
+      console.log(`📥 Airtable update response for Job ID ${jobId} (${updateResponse.status}):`, responseText);
+
       if (!updateResponse.ok) {
-        throw new Error(`Failed to update job: ${updateResponse.status} ${updateResponse.statusText}`);
+        throw new Error(`Failed to update job: ${updateResponse.status} ${updateResponse.statusText} - ${responseText}`);
       }
 
-      console.log(`✅ Updated job ${jobId} in Airtable`);
+      const result = JSON.parse(responseText);
+      console.log(`✅ Successfully updated job ${jobId} in Airtable with record ID: ${result.id}`);
 
     } catch (error) {
       console.error(`Error updating job ${jobId} in Airtable:`, error);
+      throw error;
     }
   }
 }

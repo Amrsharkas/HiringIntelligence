@@ -409,10 +409,15 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   };
 
   const onSubmit = (data: JobFormData) => {
+    // Combine employer questions into single text block with numbering, send empty string if no questions
+    const validQuestions = employerQuestions.filter(q => q.trim() !== '');
+    const employerQuestionsArray = validQuestions.length > 0 ? validQuestions : [];
+    
     const jobData = {
       ...data,
       softSkills: selectedSoftSkills,
       technicalSkills: selectedTechnicalSkills,
+      employerQuestions: employerQuestionsArray,
     };
 
     if (editJob) {
@@ -458,7 +463,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                 </TabsTrigger>
                 <TabsTrigger value="questions" className="flex items-center gap-2">
                   <HelpCircle className="w-4 h-4" />
-                  Employer Questions
+                  Optional Questions
                 </TabsTrigger>
               </TabsList>
 
