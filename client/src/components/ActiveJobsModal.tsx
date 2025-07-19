@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { JobPostingModal } from "./JobPostingModal";
-import { CandidatesModal } from "./CandidatesModal";
+import { ApplicantsModal } from "./ApplicantsModal";
 
 interface ActiveJobsModalProps {
   isOpen: boolean;
@@ -20,7 +20,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
   const [editingJob, setEditingJob] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
-  const [isCandidatesModalOpen, setIsCandidatesModalOpen] = useState(false);
+  const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
 
   const { data: jobs = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/job-postings"],
@@ -83,9 +83,9 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
     }
   };
 
-  const handleViewCandidates = (jobId: number) => {
+  const handleViewApplicants = (jobId: number) => {
     setSelectedJobId(jobId);
-    setIsCandidatesModalOpen(true);
+    setIsApplicantsModalOpen(true);
   };
 
   const formatSalary = (job: any) => {
@@ -246,11 +246,11 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
                       
                       <div className="flex items-center gap-2 ml-4">
                         <Button
-                          onClick={() => handleViewCandidates(job.id)}
+                          onClick={() => handleViewApplicants(job.id)}
                           className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg"
                         >
                           <Users className="w-4 h-4 mr-1" />
-                          View Candidates
+                          View Applicants
                         </Button>
                         <Button
                           variant="ghost"
@@ -289,10 +289,10 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
         editJob={editingJob}
       />
       
-      <CandidatesModal
-        isOpen={isCandidatesModalOpen}
+      <ApplicantsModal
+        isOpen={isApplicantsModalOpen}
         onClose={() => {
-          setIsCandidatesModalOpen(false);
+          setIsApplicantsModalOpen(false);
           setSelectedJobId(null);
         }}
         jobId={selectedJobId || undefined}

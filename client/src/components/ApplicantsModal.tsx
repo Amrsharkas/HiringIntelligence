@@ -83,6 +83,16 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     return () => clearInterval(interval);
   }, [isOpen, selectedJob, refetch]);
 
+  // Auto-select job if jobId is provided from "View Applicants" button
+  useEffect(() => {
+    if (jobId && jobs.length > 0 && !selectedJob) {
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        setSelectedJob(job);
+      }
+    }
+  }, [jobId, jobs, selectedJob]);
+
   // Reset selected job when modal closes
   useEffect(() => {
     if (!isOpen) {
