@@ -8,6 +8,7 @@ import { airtableMatchingService } from "./airtableMatchingService";
 import { airtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
+import { interviewQuestionsService } from "./interviewQuestionsService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -981,6 +982,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Cleanup failed', 
         error: error instanceof Error ? error.message : 'Unknown error' 
       });
+    }
+  });
+
+  // Interview Questions Management
+  app.get('/api/interview-questions/jobs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const jobs = await interviewQuestionsService.getAllJobs();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching jobs for interview questions:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  app.get('/api/interview-questions/:jobId', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = req.params.jobId;
+      const questions = await interviewQuestionsService.getInterviewQuestions(jobId);
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error fetching interview questions:", error);
+      res.status(500).json({ message: "Failed to fetch interview questions" });
+    }
+  });
+
+  app.put('/api/interview-questions/:jobId', isAuthenticated, async (req: any, res) => {
+    try {
+      const jobId = req.params.jobId;
+      const { questions } = req.body;
+      
+      if (!Array.isArray(questions)) {
+        return res.status(400).json({ message: "Questions must be an array" });
+      }
+
+      await interviewQuestionsService.updateInterviewQuestions(jobId, questions);
+      res.json({ message: "Interview questions updated successfully" });
+    } catch (error) {
+      console.error("Error updating interview questions:", error);
+      res.status(500).json({ message: "Failed to update interview questions" });
     }
   });
 

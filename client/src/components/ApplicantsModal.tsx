@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight } from 'lucide-react';
+import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight, Settings, Plus, Trash2, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,306 @@ interface ApplicantsModalProps {
   isOpen: boolean;
   onClose: () => void;
   jobId?: number;
+}
+
+// Interview Modal Content Component
+function InterviewModalContent({ 
+  selectedApplicant, 
+  interviewData, 
+  setInterviewData, 
+  onSubmit, 
+  isScheduling 
+}: {
+  selectedApplicant: ApplicantData;
+  interviewData: any;
+  setInterviewData: (data: any) => void;
+  onSubmit: () => void;
+  isScheduling: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<'schedule' | 'questions'>('schedule');
+  const [selectedJobForQuestions, setSelectedJobForQuestions] = useState<string>('');
+  const [newQuestion, setNewQuestion] = useState('');
+  const [questionsList, setQuestionsList] = useState<string[]>([]);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Fetch all jobs for question management
+  const { data: jobsData = [] } = useQuery({
+    queryKey: ['/api/interview-questions/jobs'],
+    enabled: activeTab === 'questions'
+  });
+
+  // Fetch questions for selected job
+  const { data: questionsData, refetch: refetchQuestions } = useQuery({
+    queryKey: ['/api/interview-questions', selectedJobForQuestions],
+    enabled: !!selectedJobForQuestions,
+  });
+
+  // Update questions mutation
+  const updateQuestionsMutation = useMutation({
+    mutationFn: async (questions: string[]) => {
+      return apiRequest(`/api/interview-questions/${selectedJobForQuestions}`, {
+        method: 'PUT',
+        body: { questions }
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Interview questions updated successfully" });
+      refetchQuestions();
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Error", 
+        description: "Failed to update interview questions",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // Update local questions list when data changes
+  React.useEffect(() => {
+    if (questionsData?.questions) {
+      setQuestionsList(questionsData.questions);
+    }
+  }, [questionsData]);
+
+  const addQuestion = () => {
+    if (newQuestion.trim() && !questionsList.includes(newQuestion.trim())) {
+      const updatedQuestions = [...questionsList, newQuestion.trim()];
+      setQuestionsList(updatedQuestions);
+      updateQuestionsMutation.mutate(updatedQuestions);
+      setNewQuestion('');
+    }
+  };
+
+  const deleteQuestion = (index: number) => {
+    const updatedQuestions = questionsList.filter((_, i) => i !== index);
+    setQuestionsList(updatedQuestions);
+    updateQuestionsMutation.mutate(updatedQuestions);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex space-x-8 px-6">
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'schedule'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <Calendar className="w-4 h-4 inline mr-2" />
+            Schedule Interview
+          </button>
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'questions'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 inline mr-2" />
+            Manage Questions
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {activeTab === 'schedule' && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
+                Interview with {selectedApplicant.name}
+              </h4>
+              <p className="text-blue-700 dark:text-blue-300 text-sm">
+                Position: {selectedApplicant.jobTitle}
+              </p>
+              {selectedApplicant.email && (
+                <p className="text-blue-700 dark:text-blue-300 text-sm">
+                  Email: {selectedApplicant.email}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={interviewData.scheduledDate}
+                  onChange={(e) => setInterviewData({...interviewData, scheduledDate: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Time
+                </label>
+                <input
+                  type="time"
+                  value={interviewData.scheduledTime}
+                  onChange={(e) => setInterviewData({...interviewData, scheduledTime: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Interview Type
+              </label>
+              <select
+                value={interviewData.interviewType}
+                onChange={(e) => setInterviewData({...interviewData, interviewType: e.target.value})}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="video">Video Call</option>
+                <option value="phone">Phone Call</option>
+                <option value="in-person">In-Person</option>
+              </select>
+            </div>
+            
+            {interviewData.interviewType === 'video' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Meeting Link
+                </label>
+                <input
+                  type="url"
+                  value={interviewData.meetingLink}
+                  onChange={(e) => setInterviewData({...interviewData, meetingLink: e.target.value})}
+                  placeholder="https://zoom.us/j/..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={interviewData.notes}
+                onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
+                rows={4}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Additional notes for the interview..."
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={onSubmit}
+                disabled={isScheduling || !interviewData.scheduledDate || !interviewData.scheduledTime}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                {isScheduling && <RefreshCw className="w-4 h-4 animate-spin" />}
+                <span>{isScheduling ? 'Scheduling...' : 'Schedule Interview'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'questions' && (
+          <div className="space-y-6">
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <Settings className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <h4 className="font-medium text-amber-900 dark:text-amber-200">
+                  Manage Interview Questions
+                </h4>
+              </div>
+              <p className="text-amber-700 dark:text-amber-300 text-sm">
+                Define custom interview questions for each job posting. Questions are stored in your Airtable platojobpostings table.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Job
+              </label>
+              <select
+                value={selectedJobForQuestions}
+                onChange={(e) => setSelectedJobForQuestions(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">Choose a job posting...</option>
+                {jobsData.map((job: any) => (
+                  <option key={job.jobId} value={job.jobId}>
+                    {job.jobTitle} (ID: {job.jobId})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedJobForQuestions && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Current Questions ({questionsList.length})
+                  </label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {questionsList.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                        No questions defined for this job yet.
+                      </p>
+                    ) : (
+                      questionsList.map((question, index) => (
+                        <div key={index} className="flex items-start space-x-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <MessageSquare className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+                            {question}
+                          </span>
+                          <button
+                            onClick={() => deleteQuestion(index)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Add New Question
+                  </label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={newQuestion}
+                      onChange={(e) => setNewQuestion(e.target.value)}
+                      placeholder="Enter a new interview question..."
+                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      onKeyPress={(e) => e.key === 'Enter' && addQuestion()}
+                    />
+                    <button
+                      onClick={addQuestion}
+                      disabled={!newQuestion.trim() || updateQuestionsMutation.isPending}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps) {
@@ -549,95 +849,31 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 p-6"
+                className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full mx-4 h-[90vh] flex flex-col"
               >
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Schedule Interview with {selectedApplicant.name}
-                </h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={interviewData.scheduledDate}
-                      onChange={(e) => setInterviewData({...interviewData, scheduledDate: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="w-6 h-6 text-blue-600" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      Interview Management with {selectedApplicant.name}
+                    </h3>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Time
-                    </label>
-                    <input
-                      type="time"
-                      value={interviewData.scheduledTime}
-                      onChange={(e) => setInterviewData({...interviewData, scheduledTime: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Interview Type
-                    </label>
-                    <select
-                      value={interviewData.interviewType}
-                      onChange={(e) => setInterviewData({...interviewData, interviewType: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    >
-                      <option value="video">Video Call</option>
-                      <option value="phone">Phone Call</option>
-                      <option value="in-person">In-Person</option>
-                    </select>
-                  </div>
-                  
-                  {interviewData.interviewType === 'video' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Meeting Link
-                      </label>
-                      <input
-                        type="url"
-                        value={interviewData.meetingLink}
-                        onChange={(e) => setInterviewData({...interviewData, meetingLink: e.target.value})}
-                        placeholder="https://zoom.us/j/..."
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      />
-                    </div>
-                  )}
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Notes
-                    </label>
-                    <textarea
-                      value={interviewData.notes}
-                      onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
-                      rows={3}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      placeholder="Additional notes for the interview..."
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex space-x-3 mt-6">
                   <button
                     onClick={() => setShowInterviewScheduler(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
-                    Cancel
+                    <X className="w-6 h-6" />
                   </button>
-                  <button
-                    onClick={handleSubmitInterview}
-                    disabled={scheduleInterviewMutation.isPending || !interviewData.scheduledDate || !interviewData.scheduledTime}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {scheduleInterviewMutation.isPending ? 'Scheduling...' : 'Schedule Interview'}
-                  </button>
+                </div>
+
+                <div className="flex-1 overflow-hidden">
+                  <InterviewModalContent 
+                    selectedApplicant={selectedApplicant}
+                    interviewData={interviewData}
+                    setInterviewData={setInterviewData}
+                    onSubmit={handleSubmitInterview}
+                    isScheduling={scheduleInterviewMutation.isPending}
+                  />
                 </div>
               </motion.div>
             </motion.div>
