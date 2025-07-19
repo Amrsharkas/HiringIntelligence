@@ -12,7 +12,6 @@ interface CreateInterviewModalProps {
 }
 
 export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalProps) {
-  const [selectedJob, setSelectedJob] = useState('');
   const [selectedApplicant, setSelectedApplicant] = useState('');
   const [interviewData, setInterviewData] = useState({
     scheduledDate: '',
@@ -25,16 +24,10 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch job postings
-  const { data: jobs = [] } = useQuery({
-    queryKey: ['/api/job-postings'],
-    enabled: isOpen,
-  });
-
-  // Fetch accepted applicants for selected job
+  // Fetch accepted applicants from platojobmatches table filtered by company name
   const { data: acceptedApplicants = [] } = useQuery({
-    queryKey: ['/api/real-applicants', selectedJob],
-    enabled: isOpen && !!selectedJob,
+    queryKey: ['/api/accepted-applicants'],
+    enabled: isOpen,
   });
 
   const createInterviewMutation = useMutation({
@@ -77,7 +70,6 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
   });
 
   const resetForm = () => {
-    setSelectedJob('');
     setSelectedApplicant('');
     setInterviewData({
       scheduledDate: '',
@@ -89,7 +81,7 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
   };
 
   const handleSubmit = () => {
-    if (!selectedJob || !selectedApplicant || !interviewData.scheduledDate || !interviewData.scheduledTime) {
+    if (!selectedApplicant || !interviewData.scheduledDate || !interviewData.scheduledTime) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -111,16 +103,14 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
     createInterviewMutation.mutate({
       candidateName: applicant.name,
       candidateEmail: applicant.email || '',
-      candidateId: applicant.id,
-      jobId: selectedJob,
+      candidateId: applicant.userId, // Use userId for tracking
+      jobId: applicant.jobId, // Use jobId from applicant data
       jobTitle: applicant.jobTitle,
       ...interviewData
     });
   };
 
-  const filteredAcceptedApplicants = acceptedApplicants.filter(
-    applicant => applicant.status === 'accepted'
-  );
+  // All applicants from platojobmatches are already accepted, no additional filtering needed
 
   if (!isOpen) return null;
 
@@ -154,55 +144,30 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
           </div>
 
           <div className="p-6 space-y-6">
-            {/* Job Selection */}
+            {/* Applicant Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <Briefcase className="w-4 h-4 inline mr-2" />
-                Select Job Position *
+                <Users className="w-4 h-4 inline mr-2" />
+                Select Accepted Applicant *
               </label>
               <select
-                value={selectedJob}
-                onChange={(e) => {
-                  setSelectedJob(e.target.value);
-                  setSelectedApplicant(''); // Reset applicant selection
-                }}
+                value={selectedApplicant}
+                onChange={(e) => setSelectedApplicant(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Choose a job posting...</option>
-                {jobs.map((job: any) => (
-                  <option key={job.id} value={job.id}>
-                    {job.title} - {job.location}
+                <option value="">Choose an accepted applicant...</option>
+                {acceptedApplicants.map((applicant: any) => (
+                  <option key={applicant.id} value={applicant.id}>
+                    {applicant.name} - {applicant.jobTitle} {applicant.email ? `(${applicant.email})` : ''}
                   </option>
                 ))}
               </select>
+              {acceptedApplicants.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  No accepted applicants for your company yet.
+                </p>
+              )}
             </div>
-
-            {/* Applicant Selection */}
-            {selectedJob && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <Users className="w-4 h-4 inline mr-2" />
-                  Select Accepted Applicant *
-                </label>
-                <select
-                  value={selectedApplicant}
-                  onChange={(e) => setSelectedApplicant(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
-                  <option value="">Choose an accepted applicant...</option>
-                  {filteredAcceptedApplicants.map((applicant: any) => (
-                    <option key={applicant.id} value={applicant.id}>
-                      {applicant.name} - {applicant.email}
-                    </option>
-                  ))}
-                </select>
-                {filteredAcceptedApplicants.length === 0 && selectedJob && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    No accepted applicants for this job yet.
-                  </p>
-                )}
-              </div>
-            )}
 
             {/* Interview Details */}
             {selectedApplicant && (

@@ -1550,6 +1550,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get accepted applicants from platojobmatches table filtered by company name
+  app.get('/api/accepted-applicants', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const companyName = organization.companyName;
+      console.log(`🔍 Fetching accepted applicants for company: ${companyName}`);
+      
+      // Fetch from platojobmatches table filtered by company name
+      const jobMatchesService = new (await import('./jobMatchesAirtableService')).JobMatchesAirtableService();
+      const jobMatches = await jobMatchesService.getJobMatches();
+      
+      // Get profile service to fetch email addresses
+      const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService();
+      
+      // Filter by company name and enhance with email data
+      const matchedApplicants = jobMatches.filter(match => match.fields?.['Company name'] === companyName);
+      
+      const acceptedApplicants = await Promise.all(
+        matchedApplicants.map(async (match) => {
+          const userId = match.fields?.['User ID'];
+          let email = '';
+          
+          // Fetch email from user profile if userId exists
+          if (userId) {
+            try {
+              const profiles = await realApplicantsService.getAllProfiles();
+              const userProfile = profiles.find(profile => profile.fields?.['User ID'] === userId);
+              email = userProfile?.fields?.['Email'] || '';
+            } catch (error) {
+              console.log(`Failed to fetch email for user ${userId}:`, error);
+            }
+          }
+          
+          return {
+            id: userId || match.id,
+            name: match.fields?.['Name'] || 'Unknown',
+            jobTitle: match.fields?.['Job title'] || 'Unknown Job',
+            userId: userId,
+            jobId: match.fields?.['Job ID'] || '',
+            email: email,
+          };
+        })
+      );
+
+      console.log(`✅ Found ${acceptedApplicants.length} accepted applicants for ${companyName}`);
+      res.json(acceptedApplicants);
+    } catch (error) {
+      console.error("Error fetching accepted applicants:", error);
+      res.status(500).json({ message: "Failed to fetch accepted applicants" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
