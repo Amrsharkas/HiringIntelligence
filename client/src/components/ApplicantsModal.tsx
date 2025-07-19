@@ -246,7 +246,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const acceptApplicantMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      return apiRequest('POST', `/api/real-applicants/${applicantId}/accept`);
+      const response = await apiRequest('POST', `/api/real-applicants/${applicantId}/accept`);
+      return response.json();
     },
     onMutate: (applicantId: string) => {
       setProcessingActions(prev => new Set([...prev, applicantId]));
@@ -312,7 +313,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const declineApplicantMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      return apiRequest('POST', `/api/real-applicants/${applicantId}/decline`);
+      const response = await apiRequest('POST', `/api/real-applicants/${applicantId}/decline`);
+      return response.json();
     },
     onMutate: (applicantId: string) => {
       setProcessingActions(prev => new Set([...prev, applicantId]));
@@ -378,7 +380,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   // Undo accept mutation
   const undoAcceptMutation = useMutation({
     mutationFn: async (undoData: any) => {
-      return apiRequest('POST', `/api/real-applicants/${undoData.applicantId}/undo-accept`, undoData);
+      const response = await apiRequest('POST', `/api/real-applicants/${undoData.applicantId}/undo-accept`, undoData);
+      return response.json();
     },
     onSuccess: (data, undoData) => {
       setAcceptedApplicants(prev => {
@@ -413,7 +416,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const scheduleInterviewMutation = useMutation({
     mutationFn: async (data: { applicant: ApplicantData; scheduledDate: string; scheduledTime: string; interviewType: string; meetingLink?: string; notes?: string }) => {
-      return apiRequest('POST', '/api/interviews', {
+      const response = await apiRequest('POST', '/api/interviews', {
         candidateName: data.applicant.name,
         candidateEmail: data.applicant.email,
         candidateId: data.applicant.id,
