@@ -1640,6 +1640,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (notes !== undefined) updateData.notes = notes;
       if (status !== undefined) updateData.status = status;
 
+      console.log(`🔄 Updating interview ${interviewId} with data:`, updateData);
+      
       const [updatedInterview] = await db.update(realInterviews)
         .set(updateData)
         .where(and(
@@ -1647,6 +1649,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(realInterviews.organizationId, organization.id.toString())
         ))
         .returning();
+      
+      console.log(`✅ Interview updated successfully:`, updatedInterview);
 
       if (!updatedInterview) {
         return res.status(404).json({ message: "Interview not found" });
@@ -1703,7 +1707,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updatedInterview);
     } catch (error) {
-      console.error("Error updating interview:", error);
+      console.error("❌ Error updating interview:", error);
+      console.error("❌ Error stack:", error.stack);
       res.status(500).json({ message: "Failed to update interview" });
     }
   });
