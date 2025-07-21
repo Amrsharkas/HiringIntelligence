@@ -27,7 +27,7 @@ import { CandidatesModal } from "@/components/SimpleCandidatesModal";
 import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { TeamManagementModal } from "@/components/TeamManagementModal";
-import { MessagingModal } from "@/components/MessagingModal";
+import { RecentActivityModal } from "@/components/RecentActivityModal";
 
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { InterviewManagementModal } from "@/components/InterviewManagementModal";
@@ -227,7 +227,7 @@ export default function EmployerDashboard() {
   const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
-  const [isMessagingModalOpen, setIsMessagingModalOpen] = useState(false);
+  const [isRecentActivityModalOpen, setIsRecentActivityModalOpen] = useState(false);
 
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
   const [isInterviewManagementModalOpen, setIsInterviewManagementModalOpen] = useState(false);
@@ -383,16 +383,16 @@ export default function EmployerDashboard() {
 
             <InteractiveCard
               index={1}
-              onClick={() => setIsMessagingModalOpen(true)}
+              onClick={() => setIsRecentActivityModalOpen(true)}
               className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
             >
               <div className="p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Message Candidates</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{matches?.length || 0} AI matches</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Recent Activity</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Live dashboard stats</p>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <Target className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  <BarChart3 className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </InteractiveCard>
@@ -584,9 +584,9 @@ export default function EmployerDashboard() {
         isOpen={isTeamModalOpen} 
         onClose={() => setIsTeamModalOpen(false)} 
       />
-      <MessagingModal 
-        isOpen={isMessagingModalOpen} 
-        onClose={() => setIsMessagingModalOpen(false)} 
+      <RecentActivityModal 
+        isOpen={isRecentActivityModalOpen} 
+        onClose={() => setIsRecentActivityModalOpen(false)} 
       />
 
       <CreateInterviewModal 
