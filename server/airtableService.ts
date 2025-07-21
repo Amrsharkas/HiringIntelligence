@@ -19,6 +19,68 @@ export class AirtableService {
     this.apiKey = apiKey;
   }
 
+  // Get complete user profile from platouserprofiles table
+  async getCompleteUserProfile(userId: string): Promise<any> {
+    try {
+      const baseId = 'app1u4N2W46jD43mP'; // platouserprofiles base
+      const tableName = 'platouserprofiles';
+      
+      // Filter by User ID
+      const filterFormula = `{User ID} = "${userId}"`;
+      const url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data: AirtableResponse = await response.json();
+      
+      if (data.records.length === 0) {
+        return null;
+      }
+
+      const record = data.records[0];
+      return {
+        id: record.id,
+        userId: userId,
+        name: record.fields.Name || record.fields.name || 'Unknown',
+        email: record.fields.Email || record.fields.email || null,
+        userProfile: record.fields['User profile'] || record.fields['user profile'] || '',
+        technicalAnalysis: record.fields['Technical Analysis'] || record.fields['technical analysis'] || '',
+        personalAnalysis: record.fields['Personal Analysis'] || record.fields['personal analysis'] || '',
+        professionalAnalysis: record.fields['Professional Analysis'] || record.fields['professional analysis'] || '',
+        technicalScore: record.fields['Technical Score'] || record.fields['technical score'] || 0,
+        personalScore: record.fields['Personal Score'] || record.fields['personal score'] || 0,
+        professionalScore: record.fields['Professional Score'] || record.fields['professional score'] || 0,
+        resume: record.fields.Resume || record.fields.resume || null,
+        portfolioLink: record.fields['Portfolio Link'] || record.fields['portfolio link'] || null,
+        linkedinProfile: record.fields['LinkedIn Profile'] || record.fields['linkedin profile'] || null,
+        githubProfile: record.fields['GitHub Profile'] || record.fields['github profile'] || null,
+        salaryExpectation: record.fields['Salary Expectation'] || record.fields['salary expectation'] || null,
+        availabilityDate: record.fields['Availability Date'] || record.fields['availability date'] || null,
+        workPreference: record.fields['Work Preference'] || record.fields['work preference'] || null,
+        location: record.fields.Location || record.fields.location || null,
+        yearsExperience: record.fields['Years Experience'] || record.fields['years experience'] || null,
+        education: record.fields.Education || record.fields.education || null,
+        certifications: record.fields.Certifications || record.fields.certifications || null,
+        languages: record.fields.Languages || record.fields.languages || null,
+        createdTime: record.createdTime,
+        rawData: record.fields,
+      };
+
+    } catch (error) {
+      console.error('Error fetching complete user profile from Airtable:', error);
+      throw error;
+    }
+  }
+
   async getAllCandidateProfiles(baseId: string, tableName: string = 'Table 1'): Promise<any[]> {
     try {
       let allRecords: AirtableRecord[] = [];

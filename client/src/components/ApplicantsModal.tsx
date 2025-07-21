@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight, Settings, Plus, Trash2, MessageSquare, RotateCcw } from 'lucide-react';
+import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight, Settings, Plus, Trash2, MessageSquare, RotateCcw, Lightbulb, MapPin, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -475,54 +475,91 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     setShowInterviewScheduler(true);
   };
 
+  const [completeUserProfile, setCompleteUserProfile] = useState<any>(null);
+  const [matchAnalysis, setMatchAnalysis] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'match' | 'profile'>('match');
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isLoadingMatchAnalysis, setIsLoadingMatchAnalysis] = useState(false);
+
   const handleViewProfile = async (applicant: ApplicantData) => {
     setSelectedApplicant(applicant);
     setShowProfileAnalysis(true);
-    setIsAnalyzing(true);
+    setActiveTab('match');
+    setCompleteUserProfile(null);
+    setMatchAnalysis(null);
     
+    // Load both complete profile and match analysis simultaneously
+    await Promise.all([
+      loadCompleteUserProfile(applicant.userId),
+      loadMatchAnalysis(applicant)
+    ]);
+  };
+
+  const loadCompleteUserProfile = async (userId: string) => {
+    if (!userId) return;
+    
+    setIsLoadingProfile(true);
     try {
-      const response = await apiRequest("POST", "/api/ai/analyze-applicant-profile", {
-        applicantData: {
-          name: applicant.name,
-          email: applicant.email,
-          experience: applicant.experience,
-          skills: applicant.skills,
-          resume: applicant.resume,
-          coverLetter: applicant.coverLetter,
-          location: applicant.location,
-          salaryExpectation: applicant.salaryExpectation,
-        },
-        jobTitle: applicant.jobTitle,
-        jobDescription: applicant.jobDescription,
-        requiredSkills: applicant.skills,
-      });
-      const analysis = await response.json();
-      setProfileAnalysis(analysis);
+      console.log('🔍 Loading complete user profile for:', userId);
+      const response = await apiRequest("GET", `/api/user-profile/${userId}`);
+      const profile = await response.json();
+      setCompleteUserProfile(profile);
+      console.log('✅ Complete user profile loaded');
     } catch (error) {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+      console.error('Error loading user profile:', error);
       toast({
         title: "Error",
-        description: "Failed to analyze profile. Please try again.",
+        description: "Failed to load complete user profile",
         variant: "destructive",
       });
-      setProfileAnalysis({
-        profileScore: 0,
-        analysis: "Unable to analyze profile at this time",
-        strengths: [],
-        improvements: []
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const loadMatchAnalysis = async (applicant: ApplicantData) => {
+    if (!selectedJob) return;
+    
+    setIsLoadingMatchAnalysis(true);
+    try {
+      console.log('🤖 Generating AI match analysis...');
+      const response = await apiRequest("POST", "/api/ai/job-match-analysis", {
+        jobTitle: selectedJob.title,
+        jobDescription: selectedJob.description,
+        jobRequirements: selectedJob.requirements,
+        userProfile: {
+          name: applicant.name,
+          email: applicant.email,
+          userId: applicant.userId,
+          experience: applicant.experience,
+          skills: applicant.skills,
+          location: applicant.location,
+          salaryExpectation: applicant.salaryExpectation,
+          // Include any available profile data
+          userProfile: applicant.userProfile || '',
+          resume: applicant.resume,
+          coverLetter: applicant.coverLetter,
+        },
+      });
+      const analysis = await response.json();
+      setMatchAnalysis(analysis);
+      console.log('✅ Match analysis generated with score:', analysis.overallMatchScore);
+    } catch (error) {
+      console.error('Error generating match analysis:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate match analysis",
+        variant: "destructive",
       });
     } finally {
-      setIsAnalyzing(false);
+      setIsLoadingMatchAnalysis(false);
+    }
+  };
+
+  const handleRefreshProfile = () => {
+    if (selectedApplicant) {
+      loadCompleteUserProfile(selectedApplicant.userId);
+      loadMatchAnalysis(selectedApplicant);
     }
   };
 
@@ -872,185 +909,431 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                       <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         {selectedApplicant.name}
                       </h2>
-                      <p className="text-gray-500 dark:text-gray-400">{selectedApplicant.jobTitle}</p>
+                      <p className="text-gray-500 dark:text-gray-400">Complete Profile & Job Match Analysis</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setShowProfileAnalysis(false)}
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRefreshProfile}
+                      className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Refresh
+                    </button>
+                    <button
+                      onClick={() => setShowProfileAnalysis(false)}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex p-6 pb-0">
+                    <button
+                      onClick={() => setActiveTab('match')}
+                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeTab === 'match'
+                          ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Brain className="w-4 h-4" />
+                        AI Match Analysis
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('profile')}
+                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeTab === 'profile'
+                          ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Complete Profile
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {isAnalyzing ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <Brain className="w-16 h-16 mx-auto text-blue-500 animate-pulse mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                          AI Analyzing Profile
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400">
-                          Our AI is analyzing the candidate's profile for this position...
-                        </p>
-                      </div>
-                    </div>
-                  ) : profileAnalysis ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Left Column - Profile Details */}
-                      <div className="space-y-6">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                            Profile Information
-                          </h3>
-                          <div className="space-y-4">
-                            <div className="flex items-center space-x-3">
-                              <Mail className="w-5 h-5 text-gray-400" />
-                              <span className="text-gray-600 dark:text-gray-300">{selectedApplicant.email}</span>
+                <div className="flex-1 overflow-y-auto">
+                  {activeTab === 'match' ? (
+                    /* AI Match Analysis Tab */
+                    <div className="p-6">
+                      {isLoadingMatchAnalysis ? (
+                        <div className="flex items-center justify-center h-96">
+                          <div className="text-center">
+                            <Brain className="w-16 h-16 mx-auto text-blue-500 animate-pulse mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                              Generating AI Match Analysis
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400">
+                              Our AI is analyzing how well this candidate matches the job requirements...
+                            </p>
+                          </div>
+                        </div>
+                      ) : matchAnalysis ? (
+                        <div className="space-y-6">
+                          {/* Overall Match Score */}
+                          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700/50">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Overall Match Score</h3>
+                              <div className="text-right">
+                                <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                                  {matchAnalysis.overallMatchScore}/100
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">Match Quality</div>
+                              </div>
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                              {matchAnalysis.matchSummary}
+                            </p>
+                          </div>
+
+                          {/* Alignment Scores */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Technical Skills</h4>
+                                <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                  {matchAnalysis.technicalAlignment?.score || 0}%
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {matchAnalysis.technicalAlignment?.analysis || 'No analysis available'}
+                              </p>
                             </div>
                             
-                            {selectedApplicant.location && (
-                              <div className="flex items-center space-x-3">
-                                <span className="text-gray-600 dark:text-gray-300">{selectedApplicant.location}</span>
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Experience</h4>
+                                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                  {matchAnalysis.experienceAlignment?.score || 0}%
+                                </span>
                               </div>
-                            )}
-
-                            {selectedApplicant.salaryExpectation && (
-                              <div>
-                                <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Salary Expectation</h4>
-                                <p className="text-gray-600 dark:text-gray-400">{selectedApplicant.salaryExpectation}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {matchAnalysis.experienceAlignment?.analysis || 'No analysis available'}
+                              </p>
+                            </div>
+                            
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Cultural Fit</h4>
+                                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                  {matchAnalysis.culturalFit?.score || 0}%
+                                </span>
                               </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {selectedApplicant.skills && (
-                          <div>
-                            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Skills</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedApplicant.skills.split(/[,;\n]/).map((skill, index) => {
-                                const trimmedSkill = skill.trim();
-                                return trimmedSkill ? (
-                                  <span
-                                    key={index}
-                                    className="px-2 py-1 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-md text-sm"
-                                  >
-                                    {trimmedSkill}
-                                  </span>
-                                ) : null;
-                              })}
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {matchAnalysis.culturalFit?.analysis || 'No analysis available'}
+                              </p>
                             </div>
                           </div>
-                        )}
 
-                        {selectedApplicant.experience && (
-                          <div>
-                            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</h4>
-                            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                              {selectedApplicant.experience}
-                            </p>
+                          {/* Strengths and Gaps */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-5 border border-green-200 dark:border-green-700/50">
+                              <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                Key Strengths
+                              </h4>
+                              <ul className="space-y-2">
+                                {(matchAnalysis.strengths || []).map((strength: string, index: number) => (
+                                  <li key={index} className="flex items-start gap-2">
+                                    <span className="text-green-500 mt-1.5 text-xs">●</span>
+                                    <span className="text-green-700 dark:text-green-300 text-sm leading-relaxed">
+                                      {strength}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-5 border border-orange-200 dark:border-orange-700/50">
+                              <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-3 flex items-center gap-2">
+                                <AlertTriangle className="w-5 h-5 text-orange-600" />
+                                Development Areas
+                              </h4>
+                              <ul className="space-y-2">
+                                {(matchAnalysis.gaps || []).map((gap: string, index: number) => (
+                                  <li key={index} className="flex items-start gap-2">
+                                    <span className="text-orange-500 mt-1.5 text-xs">●</span>
+                                    <span className="text-orange-700 dark:text-orange-300 text-sm leading-relaxed">
+                                      {gap}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           </div>
-                        )}
 
-                        {selectedApplicant.coverLetter && (
-                          <div>
-                            <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Cover Letter</h4>
-                            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                              {selectedApplicant.coverLetter}
-                            </p>
+                          {/* Recommendations and Interview Focus */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700/50">
+                              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                                <Lightbulb className="w-5 h-5 text-blue-600" />
+                                Recommendations
+                              </h4>
+                              <ul className="space-y-2">
+                                {(matchAnalysis.recommendations || []).map((rec: string, index: number) => (
+                                  <li key={index} className="flex items-start gap-2">
+                                    <span className="text-blue-500 mt-1.5 text-xs">●</span>
+                                    <span className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed">
+                                      {rec}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-5 border border-purple-200 dark:border-purple-700/50">
+                              <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
+                                <MessageSquare className="w-5 h-5 text-purple-600" />
+                                Interview Focus Areas
+                              </h4>
+                              <ul className="space-y-2">
+                                {(matchAnalysis.interviewFocus || []).map((focus: string, index: number) => (
+                                  <li key={index} className="flex items-start gap-2">
+                                    <span className="text-purple-500 mt-1.5 text-xs">●</span>
+                                    <span className="text-purple-700 dark:text-purple-300 text-sm leading-relaxed">
+                                      {focus}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Right Column - AI Analysis */}
-                      <div className="space-y-6">
-                        {/* AI Score */}
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                              <Brain className="w-5 h-5 text-blue-600" />
-                              <span>AI Profile Score</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-96">
+                          <div className="text-center">
+                            <AlertTriangle className="w-16 h-16 mx-auto text-red-400 mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                              Match Analysis Failed
                             </h3>
-                            <div className="flex items-center space-x-2">
-                              <Star className="w-5 h-5 text-yellow-500" />
-                              <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {Math.round(selectedApplicant.matchScore || profileAnalysis.profileScore)}/100
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                            {profileAnalysis.analysis}
-                          </p>
-                        </div>
-
-                        {/* Strengths */}
-                        <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
-                            <TrendingUp className="w-5 h-5 text-green-600" />
-                            <span>Key Strengths</span>
-                          </h4>
-                          <div className="space-y-2">
-                            {profileAnalysis.strengths.map((strength, index) => (
-                              <div
-                                key={index}
-                                className="flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
-                              >
-                                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-green-700 dark:text-green-300 text-sm">
-                                  {strength}
-                                </span>
-                              </div>
-                            ))}
+                            <p className="text-gray-500 dark:text-gray-400">
+                              Unable to generate match analysis. Please try again.
+                            </p>
                           </div>
                         </div>
-
-                        {/* Areas for Improvement */}
-                        <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
-                            <AlertTriangle className="w-5 h-5 text-orange-600" />
-                            <span>Development Areas</span>
-                          </h4>
-                          <div className="space-y-2">
-                            {profileAnalysis.improvements.map((improvement, index) => (
-                              <div
-                                key={index}
-                                className="flex items-start space-x-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg"
-                              >
-                                <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-orange-700 dark:text-orange-300 text-sm">
-                                  {improvement}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <AlertTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                          Analysis Failed
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400">
-                          Unable to analyze the profile. Please try again.
-                        </p>
-                      </div>
+                    /* Complete Profile Tab */
+                    <div className="p-6">
+                      {isLoadingProfile ? (
+                        <div className="flex items-center justify-center h-96">
+                          <div className="text-center">
+                            <User className="w-16 h-16 mx-auto text-blue-500 animate-pulse mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                              Loading Complete Profile
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400">
+                              Fetching comprehensive user profile from Airtable...
+                            </p>
+                          </div>
+                        </div>
+                      ) : completeUserProfile ? (
+                        <div className="space-y-6">
+                          {/* Profile Header */}
+                          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700/50">
+                            <div className="flex items-start gap-6">
+                              <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-2xl">
+                                {completeUserProfile.name?.split(' ').map((n: string) => n.charAt(0)).join('') || 'U'}
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                                  {completeUserProfile.name}
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {completeUserProfile.email && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <Mail className="w-4 h-4" />
+                                      <span>{completeUserProfile.email}</span>
+                                    </div>
+                                  )}
+                                  {completeUserProfile.location && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <MapPin className="w-4 h-4" />
+                                      <span>{completeUserProfile.location}</span>
+                                    </div>
+                                  )}
+                                  {completeUserProfile.yearsExperience && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <Calendar className="w-4 h-4" />
+                                      <span>{completeUserProfile.yearsExperience} years experience</span>
+                                    </div>
+                                  )}
+                                  {completeUserProfile.salaryExpectation && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <DollarSign className="w-4 h-4" />
+                                      <span>{completeUserProfile.salaryExpectation}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Interview Scores */}
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                              <Brain className="w-5 h-5 text-blue-600" />
+                              Interview Assessment Scores
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700/50">
+                                <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
+                                  {completeUserProfile.technicalScore || 0}
+                                </div>
+                                <div className="text-sm font-medium text-green-900 dark:text-green-100">Technical</div>
+                              </div>
+                              <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700/50">
+                                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                                  {completeUserProfile.personalScore || 0}
+                                </div>
+                                <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Personal</div>
+                              </div>
+                              <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700/50">
+                                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
+                                  {completeUserProfile.professionalScore || 0}
+                                </div>
+                                <div className="text-sm font-medium text-purple-900 dark:text-purple-100">Professional</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Detailed Analyses */}
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {completeUserProfile.technicalAnalysis && (
+                              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-5 border border-green-200 dark:border-green-700/50">
+                                <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3">Technical Analysis</h4>
+                                <p className="text-green-700 dark:text-green-300 text-sm leading-relaxed">
+                                  {completeUserProfile.technicalAnalysis}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {completeUserProfile.personalAnalysis && (
+                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700/50">
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">Personal Analysis</h4>
+                                <p className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed">
+                                  {completeUserProfile.personalAnalysis}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {completeUserProfile.professionalAnalysis && (
+                              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-5 border border-purple-200 dark:border-purple-700/50">
+                                <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-3">Professional Analysis</h4>
+                                <p className="text-purple-700 dark:text-purple-300 text-sm leading-relaxed">
+                                  {completeUserProfile.professionalAnalysis}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Additional Information */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h4>
+                              <div className="space-y-3">
+                                {completeUserProfile.education && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Education</label>
+                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.education}</p>
+                                  </div>
+                                )}
+                                {completeUserProfile.certifications && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Certifications</label>
+                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.certifications}</p>
+                                  </div>
+                                )}
+                                {completeUserProfile.languages && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Languages</label>
+                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.languages}</p>
+                                  </div>
+                                )}
+                                {completeUserProfile.workPreference && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Work Preference</label>
+                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.workPreference}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Professional Links</h4>
+                              <div className="space-y-3">
+                                {completeUserProfile.portfolioLink && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Portfolio</label>
+                                    <a href={completeUserProfile.portfolioLink} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
+                                      {completeUserProfile.portfolioLink}
+                                    </a>
+                                  </div>
+                                )}
+                                {completeUserProfile.linkedinProfile && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">LinkedIn</label>
+                                    <a href={completeUserProfile.linkedinProfile} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
+                                      {completeUserProfile.linkedinProfile}
+                                    </a>
+                                  </div>
+                                )}
+                                {completeUserProfile.githubProfile && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">GitHub</label>
+                                    <a href={completeUserProfile.githubProfile} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
+                                      {completeUserProfile.githubProfile}
+                                    </a>
+                                  </div>
+                                )}
+                                {completeUserProfile.resume && (
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Resume</label>
+                                    <a href={completeUserProfile.resume} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
+                                      View Resume
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* User Profile Text */}
+                          {completeUserProfile.userProfile && (
+                            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Complete User Profile</h4>
+                              <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                                {completeUserProfile.userProfile}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-96">
+                          <div className="text-center">
+                            <AlertTriangle className="w-16 h-16 mx-auto text-red-400 mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                              Profile Not Found
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400">
+                              Unable to load the complete user profile from Airtable.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-
-                {/* Footer */}
-                <div className="flex justify-end p-6 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setShowProfileAnalysis(false)}
-                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                  >
-                    Close
-                  </button>
                 </div>
               </motion.div>
             </motion.div>

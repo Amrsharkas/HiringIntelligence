@@ -6,7 +6,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { airtableMatchingService } from "./airtableMatchingService";
-import { airtableService } from "./airtableService";
+import { airtableService, AirtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
@@ -691,6 +691,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   app.post('/api/ai/generate-employer-questions', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription, requirements } = req.body;
@@ -705,6 +707,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating employer questions:", error);
       res.status(500).json({ message: "Failed to generate employer questions" });
+    }
+  });
+
+  // Get complete user profile from Airtable platouserprofiles table
+  app.get('/api/user-profile/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      console.log(`🔍 Fetching complete user profile for User ID: ${userId}`);
+      
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
+      
+      const profile = await airtableService2.getCompleteUserProfile(userId);
+      
+      if (!profile) {
+        console.log(`❌ No profile found for User ID: ${userId}`);
+        return res.status(404).json({ message: "User profile not found" });
+      }
+
+      console.log(`✅ Found complete user profile for: ${profile.name}`);
+      res.json(profile);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      res.status(500).json({ message: 'Failed to fetch user profile' });
+    }
+  });
+
+  // Generate comprehensive AI-powered job match analysis
+  app.post('/api/ai/job-match-analysis', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, jobDescription, jobRequirements, userProfile } = req.body;
+      
+      if (!jobTitle || !jobDescription || !userProfile) {
+        return res.status(400).json({ message: "Job title, description, and user profile are required" });
+      }
+
+      console.log(`🤖 Generating comprehensive job match analysis for: ${userProfile.name}`);
+
+      const prompt = `You are an expert HR analyst. Analyze this candidate's profile against the job requirements and provide a comprehensive match analysis.
+
+**JOB DETAILS:**
+Title: ${jobTitle}
+Description: ${jobDescription}
+Requirements: ${jobRequirements || 'Not specified'}
+
+**CANDIDATE PROFILE:**
+Name: ${userProfile.name}
+User ID: ${userProfile.userId}
+Email: ${userProfile.email || 'Not provided'}
+Location: ${userProfile.location || 'Not specified'}
+Experience: ${userProfile.experience || 'Not specified'}
+Skills: ${userProfile.skills || 'Not specified'}
+Salary Expectation: ${userProfile.salaryExpectation || 'Not specified'}
+Profile Details: ${userProfile.userProfile || ''}
+Resume: ${userProfile.resume || 'Not provided'}
+Cover Letter: ${userProfile.coverLetter || 'Not provided'}
+
+**ANALYSIS REQUIREMENTS:**
+Provide a comprehensive JSON response with the following structure:
+{
+  "overallMatchScore": <number 1-100>,
+  "matchSummary": "<2-3 sentence summary of overall fit>",
+  "technicalAlignment": {
+    "score": <number 1-100>,
+    "analysis": "<detailed technical skills assessment>"
+  },
+  "experienceAlignment": {
+    "score": <number 1-100>,
+    "analysis": "<experience level and relevance assessment>"
+  },
+  "culturalFit": {
+    "score": <number 1-100>,
+    "analysis": "<cultural and soft skills alignment>"
+  },
+  "strengths": [
+    "<specific strength 1>",
+    "<specific strength 2>",
+    "<specific strength 3>"
+  ],
+  "gaps": [
+    "<development area 1>",
+    "<development area 2>",
+    "<development area 3>"
+  ],
+  "recommendations": [
+    "<hiring recommendation 1>",
+    "<hiring recommendation 2>",
+    "<hiring recommendation 3>"
+  ],
+  "interviewFocus": [
+    "<interview focus area 1>",
+    "<interview focus area 2>",
+    "<interview focus area 3>"
+  ]
+}
+
+Be specific, avoid generic responses, and base analysis on the actual profile data provided. Use varied scores (avoid round numbers like 70, 80, 90).`;
+
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert HR analyst specializing in comprehensive candidate-job matching analysis. Provide detailed, specific assessments based on the exact job requirements and candidate profile provided."
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+      });
+
+      const analysis = JSON.parse(response.choices[0].message.content);
+      console.log(`✅ Generated comprehensive match analysis with overall score: ${analysis.overallMatchScore}`);
+
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error generating job match analysis:', error);
+      res.status(500).json({ message: 'Failed to generate job match analysis' });
     }
   });
 
