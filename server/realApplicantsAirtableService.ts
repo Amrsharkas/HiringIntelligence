@@ -88,20 +88,27 @@ class RealApplicantsAirtableService {
       console.log(`Found ${allRecords.length} applicants for job ${jobId}`);
 
       // Transform records to our format
-      const applicants: ApplicantWithProfile[] = allRecords.map(record => ({
-        id: record.id,
-        name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
-        userId: record.fields['User ID'] || '',
-        email: record.fields['Email'] || '',
-        phone: record.fields['Phone'] || '',
-        jobTitle: record.fields['Job title'] || '',
-        jobDescription: record.fields['Job description'] || '',
-        companyName: record.fields['Company name'] || '',
-        jobId: record.fields['Job ID'] || '',
-        userProfile: record.fields['User profile'] || '',
-        notes: record.fields['Notes'] || '',
-        applicationDate: record.createdTime
-      }));
+      const applicants: ApplicantWithProfile[] = allRecords.map(record => {
+        const applicant = {
+          id: record.id,
+          name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
+          userId: record.fields['User ID'] || '',
+          email: record.fields['Email'] || '',
+          phone: record.fields['Phone'] || '',
+          jobTitle: record.fields['Job title'] || '',
+          jobDescription: record.fields['Job description'] || '',
+          companyName: record.fields['Company name'] || '',
+          jobId: record.fields['Job ID'] || '',
+          userProfile: record.fields['User profile'] || '',
+          notes: record.fields['Notes'] || '',
+          applicationDate: record.createdTime
+        };
+        
+        console.log(`📋 Applicant ${applicant.name} - User ID: "${applicant.userId}" (length: ${applicant.userId.length})`);
+        console.log(`📋 Available fields in record:`, Object.keys(record.fields));
+        
+        return applicant;
+      });
 
       return applicants;
 

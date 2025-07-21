@@ -724,10 +724,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
       
+      // First, let's debug what profiles are available
+      console.log(`🔍 Getting all profiles to check available User IDs...`);
+      const allProfiles = await airtableService2.getAllCandidateProfiles('app3tA4UpKQCT2s17', 'platouserprofiles');
+      console.log(`📊 Found ${allProfiles.length} total profiles in platouserprofiles table`);
+      
+      if (allProfiles.length > 0) {
+        console.log(`🔍 Available User IDs in profiles:`);
+        allProfiles.forEach((profile, index) => {
+          console.log(`   Profile ${index + 1}: User ID = "${profile.fields?.['User ID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || 'No User ID field'}", Name = "${profile.fields?.Name || profile.fields?.name || 'No Name'}"`)
+        });
+      }
+      
       const profile = await airtableService2.getCompleteUserProfile(userId);
       
       if (!profile) {
-        console.log(`❌ No profile found for User ID: ${userId}`);
+        console.log(`❌ No profile found for User ID: "${userId}"`);
+        console.log(`❌ Searched User ID exactly matches one of the available User IDs above`);
         return res.status(404).json({ message: "User profile not found" });
       }
 

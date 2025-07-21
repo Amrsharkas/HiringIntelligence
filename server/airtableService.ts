@@ -25,8 +25,8 @@ export class AirtableService {
       const baseId = 'app3tA4UpKQCT2s17'; // platouserprofiles base - CORRECTED
       const tableName = 'platouserprofiles';
       
-      // Filter by User ID using correct format
-      const filterFormula = `{UserID} = "${userId}"`;
+      // Filter by User ID - try multiple field name variations
+      const filterFormula = `OR({User ID} = "${userId}", {UserID} = "${userId}", {User id} = "${userId}", {user id} = "${userId}")`;
       const url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
       
       const response = await fetch(url, {
