@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, User, Mail, Phone, FileText, Calendar, CheckCircle, XCircle, Clock, Eye, MessageCircle, Video, Brain, Star, TrendingUp, AlertTriangle, RefreshCw, ChevronRight, Settings, Plus, Trash2, MessageSquare, RotateCcw, Lightbulb, MapPin, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { isUnauthorizedError } from '@/lib/authUtils';
@@ -499,21 +501,22 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   };
 
   const loadCompleteUserProfile = async (applicant: ApplicantData) => {
-    // Extract UserID from applicant data - check multiple possible field names
-    const userId = applicant.userId || applicant.applicantUserId || applicant.userID || applicant.id;
+    // Use applicant name for profile lookup since UserID field in job applications contains name
+    const userIdentifier = applicant.name;
     
-    if (!userId) {
-      console.error('❌ No UserID found in applicant data:', applicant);
+    if (!userIdentifier) {
+      console.error('❌ No name found in applicant data:', applicant);
       setCompleteUserProfile(null);
       return;
     }
     
     setIsLoadingProfile(true);
     try {
-      console.log('🔍 Loading complete user profile for UserID:', userId);
+      console.log('🔍 Loading complete user profile for:', userIdentifier);
       console.log('📋 Applicant data fields:', Object.keys(applicant));
+      console.log('📋 Using applicant name as identifier:', userIdentifier);
       
-      const response = await apiRequest("GET", `/api/user-profile/${userId}`);
+      const response = await apiRequest("GET", `/api/user-profile/${encodeURIComponent(userIdentifier)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -527,7 +530,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       setCompleteUserProfile(null);
       toast({
         title: "Profile Not Found",
-        description: "Full profile not found – please ask the applicant to complete their profile.",
+        description: "The applicant has not completed their full profile yet. Please ask them to finish their AI interview.",
         variant: "destructive",
       });
     } finally {
@@ -1327,12 +1330,14 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                             </div>
                           </div>
 
-                          {/* User Profile Text */}
+                          {/* Complete Professional Profile */}
                           {completeUserProfile.userProfile && (
                             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
-                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Complete User Profile</h4>
-                              <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-                                {completeUserProfile.userProfile}
+                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Complete Professional Profile</h4>
+                              <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-ul:text-gray-700 dark:prose-ul:text-gray-300">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {completeUserProfile.userProfile}
+                                </ReactMarkdown>
                               </div>
                             </div>
                           )}
@@ -1345,7 +1350,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                               Profile Not Found
                             </h3>
                             <p className="text-gray-500 dark:text-gray-400">
-                              Unable to load the complete user profile from Airtable.
+                              The applicant has not completed their full profile yet. Please ask them to finish their AI interview.
                             </p>
                           </div>
                         </div>

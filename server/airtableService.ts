@@ -25,11 +25,13 @@ export class AirtableService {
       const baseId = 'app3tA4UpKQCT2s17'; // platouserprofiles base - CORRECTED
       const tableName = 'platouserprofiles';
       
-      console.log(`🔍 Searching for profile with User ID: "${userId}"`);
+      console.log(`🔍 Searching for profile with User ID/Name: "${userId}"`);
       
-      // First try: Filter by User ID - try multiple field name variations
-      let filterFormula = `OR({User ID} = "${userId}", {UserID} = "${userId}", {User id} = "${userId}", {user id} = "${userId}")`;
+      // Since the userId might be a name like "Adam Elshanawany", try name-based lookup first
+      let filterFormula = `OR({Name} = "${userId}", {name} = "${userId}")`;
       let url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+      
+      console.log(`🔍 Trying name-based lookup first: ${filterFormula}`);
       
       let response = await fetch(url, {
         headers: {
@@ -39,15 +41,17 @@ export class AirtableService {
       });
 
       if (!response.ok) {
+        console.error(`❌ Airtable API error: ${response.status} ${response.statusText}`);
         throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
       }
 
       let data: AirtableResponse = await response.json();
+      console.log(`🔍 Name-based search returned ${data.records.length} records`);
       
-      // If no match by UserID, try matching by name (fallback for when UserID field contains name)
+      // If no match by name, try by UserID fields
       if (data.records.length === 0) {
-        console.log(`🔍 No match by UserID, trying by Name: "${userId}"`);
-        filterFormula = `OR({Name} = "${userId}", {name} = "${userId}")`;
+        console.log(`🔍 No match by Name, trying UserID fields: "${userId}"`);
+        filterFormula = `OR({User ID} = "${userId}", {UserID} = "${userId}", {User id} = "${userId}", {user id} = "${userId}")`;
         url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
         
         response = await fetch(url, {
@@ -58,10 +62,12 @@ export class AirtableService {
         });
 
         if (!response.ok) {
+          console.error(`❌ Airtable API error: ${response.status} ${response.statusText}`);
           throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
         }
 
         data = await response.json();
+        console.log(`🔍 UserID-based search returned ${data.records.length} records`);
       }
       
       if (data.records.length === 0) {
