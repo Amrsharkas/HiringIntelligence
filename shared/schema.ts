@@ -58,6 +58,19 @@ export const organizationMembers = pgTable("organization_members", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Organization invitations
+export const organizationInvitations = pgTable("organization_invitations", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  email: varchar("email").notNull(),
+  role: varchar("role").notNull().default("member"),
+  token: varchar("token").notNull().unique(),
+  invitedBy: varchar("invited_by").notNull().references(() => users.id),
+  status: varchar("status").notNull().default("pending"), // pending, accepted, expired
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Job postings
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
@@ -142,18 +155,25 @@ export const interviews = pgTable("interviews", {
 export const usersRelations = relations(users, ({ one, many }) => ({
   ownedOrganizations: many(organizations),
   organizationMemberships: many(organizationMembers),
+  sentInvitations: many(organizationInvitations),
   createdJobs: many(jobs),
 }));
 
 export const organizationsRelations = relations(organizations, ({ one, many }) => ({
   owner: one(users, { fields: [organizations.ownerId], references: [users.id] }),
   members: many(organizationMembers),
+  invitations: many(organizationInvitations),
   jobs: many(jobs),
 }));
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
   organization: one(organizations, { fields: [organizationMembers.organizationId], references: [organizations.id] }),
   user: one(users, { fields: [organizationMembers.userId], references: [users.id] }),
+}));
+
+export const organizationInvitationsRelations = relations(organizationInvitations, ({ one }) => ({
+  organization: one(organizations, { fields: [organizationInvitations.organizationId], references: [organizations.id] }),
+  invitedByUser: one(users, { fields: [organizationInvitations.invitedBy], references: [users.id] }),
 }));
 
 export const jobsRelations = relations(jobs, ({ one, many }) => ({
@@ -231,6 +251,15 @@ export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   updatedAt: true,
 });
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
+export const insertOrganizationInvitationSchema = createInsertSchema(organizationInvitations).omit({
+  id: true,
+  token: true,
+  status: true,
+  createdAt: true,
+});
+export type InsertOrganizationInvitation = z.infer<typeof insertOrganizationInvitationSchema>;
+export type OrganizationInvitation = typeof organizationInvitations.$inferSelect;
 export type Organization = typeof organizations.$inferSelect;
 
 export const insertJobSchema = createInsertSchema(jobs).omit({

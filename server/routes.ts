@@ -11,6 +11,9 @@ import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { jobMatchesService } from "./jobMatchesAirtableService";
+import { sendInvitationEmail } from "./emailService";
+import { nanoid } from "nanoid";
+import { insertOrganizationInvitationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -111,6 +114,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching team:", error);
       res.status(500).json({ message: "Failed to fetch team" });
+    }
+  });
+
+  // Invitation routes
+  app.post('/api/organizations/invite', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Check if user is owner/admin
+      const members = await storage.getOrganizationMembers(organization.id);
+      const currentUserMember = members.find(m => m.userId === userId);
+      
+      if (!currentUserMember || (currentUserMember.role !== 'owner' && currentUserMember.role !== 'admin')) {
+        return res.status(403).json({ message: "Only organization owners and admins can send invitations" });
+      }
+
+      const { email, role = 'member' } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Generate unique invitation token
+      const token = nanoid(32);
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // Expires in 7 days
+
+      // Create invitation record
+      const invitation = await storage.createInvitation({
+        organizationId: organization.id,
+        email,
+        role,
+        invitedBy: userId,
+        expiresAt,
+        token
+      });
+
+      // Get inviter info for email
+      const inviter = await storage.getUser(userId);
+      const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() : 'Team Admin';
+
+      // Send invitation email
+      const emailSent = await sendInvitationEmail({
+        to: email,
+        organizationName: organization.companyName,
+        inviterName,
+        invitationToken: token,
+      });
+
+      if (!emailSent) {
+        return res.status(500).json({ message: "Failed to send invitation email" });
+      }
+
+      res.json({
+        message: "Invitation sent successfully",
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          status: invitation.status,
+          expiresAt: invitation.expiresAt,
+        }
+      });
+
+    } catch (error) {
+      console.error("Error sending invitation:", error);
+      res.status(500).json({ message: "Failed to send invitation" });
+    }
+  });
+
+  app.get('/api/organizations/invitations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const invitations = await storage.getOrganizationInvitations(organization.id);
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+
+  app.post('/api/invitations/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Invitation token is required" });
+      }
+
+      const result = await storage.acceptInvitation(token, userId);
+      
+      if (!result) {
+        return res.status(400).json({ message: "Invalid, expired, or already used invitation" });
+      }
+
+      res.json({
+        message: "Successfully joined organization",
+        organization: result.organization
+      });
+
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  app.get('/api/invitations/:token', async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      const invitation = await storage.getInvitationByToken(token);
+      
+      if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
+        return res.status(404).json({ message: "Invitation not found or expired" });
+      }
+
+      const organization = await storage.getOrganizationById(invitation.organizationId);
+      
+      res.json({
+        invitation: {
+          email: invitation.email,
+          role: invitation.role,
+          organization: organization ? {
+            id: organization.id,
+            companyName: organization.companyName,
+            industry: organization.industry,
+          } : null,
+          expiresAt: invitation.expiresAt,
+        }
+      });
+
+    } catch (error) {
+      console.error("Error fetching invitation:", error);
+      res.status(500).json({ message: "Failed to fetch invitation details" });
     }
   });
 

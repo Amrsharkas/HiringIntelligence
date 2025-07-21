@@ -2,6 +2,7 @@ import {
   users,
   organizations,
   organizationMembers,
+  organizationInvitations,
   jobs,
   candidates,
   matches,
@@ -13,11 +14,13 @@ import {
   type UpsertUser,
   type Organization,
   type InsertOrganization,
+  type OrganizationMember,
+  type OrganizationInvitation,
+  type InsertOrganizationInvitation,
   type Job,
   type InsertJob,
   type Candidate,
   type Match,
-  type OrganizationMember,
   type CandidateApplication,
   type InsertCandidateApplication,
   type Interview,
@@ -137,9 +140,9 @@ export class DatabaseStorage implements IStorage {
         userId: organizationMembers.userId,
         role: organizationMembers.role,
         createdAt: organizationMembers.createdAt,
-        name: users.name,
+        name: users.firstName,
         email: users.email,
-        picture: users.picture
+        picture: users.profileImageUrl
       })
       .from(organizationMembers)
       .innerJoin(users, eq(organizationMembers.userId, users.id))
@@ -152,6 +155,76 @@ export class DatabaseStorage implements IStorage {
       .values(memberData)
       .returning();
     return member;
+  }
+
+  // Organization invitation operations
+  async createInvitation(invitationData: InsertOrganizationInvitation & { token: string }): Promise<OrganizationInvitation> {
+    const [invitation] = await db
+      .insert(organizationInvitations)
+      .values(invitationData)
+      .returning();
+    return invitation;
+  }
+
+  async getInvitationByToken(token: string): Promise<OrganizationInvitation | undefined> {
+    const [invitation] = await db
+      .select()
+      .from(organizationInvitations)
+      .where(eq(organizationInvitations.token, token));
+    return invitation;
+  }
+
+  async getOrganizationInvitations(organizationId: number): Promise<OrganizationInvitation[]> {
+    return await db
+      .select()
+      .from(organizationInvitations)
+      .where(eq(organizationInvitations.organizationId, organizationId))
+      .orderBy(desc(organizationInvitations.createdAt));
+  }
+
+  async updateInvitationStatus(token: string, status: string): Promise<void> {
+    await db
+      .update(organizationInvitations)
+      .set({ status })
+      .where(eq(organizationInvitations.token, token));
+  }
+
+  async acceptInvitation(token: string, userId: string): Promise<{ organization: Organization; member: OrganizationMember } | null> {
+    const invitation = await this.getInvitationByToken(token);
+    
+    if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
+      return null;
+    }
+
+    // Add user to organization
+    const [member] = await db
+      .insert(organizationMembers)
+      .values({
+        organizationId: invitation.organizationId,
+        userId: userId,
+        role: invitation.role,
+      })
+      .returning();
+
+    // Update invitation status
+    await this.updateInvitationStatus(token, 'accepted');
+
+    // Get organization info
+    const organization = await this.getOrganizationById(invitation.organizationId);
+    
+    if (!organization) {
+      throw new Error('Organization not found');
+    }
+
+    return { organization, member };
+  }
+
+  async getOrganizationById(id: number): Promise<Organization | undefined> {
+    const [org] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, id));
+    return org;
   }
 
   // Job operations

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
+import { AcceptInvitation } from "@/pages/AcceptInvitation";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +31,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Invitation acceptance route - accessible without full auth checks */}
+      <Route path="/accept-invitation" component={AcceptInvitation} />
+      
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
@@ -46,6 +50,7 @@ function Router() {
         <>
           <Route path="/" component={EmployerDashboard} />
           <Route path="/employer-dashboard" component={EmployerDashboard} />
+          <Route path="/dashboard" component={EmployerDashboard} />
           <Route path="/organization-setup" component={EmployerDashboard} />
         </>
       )}

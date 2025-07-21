@@ -74,6 +74,9 @@ interface TeamManagementModalProps {
 export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
 
   const form = useForm<OrganizationFormData>({
@@ -123,6 +126,42 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
       toast({
         title: "Error",
         description: "Failed to create organization. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sendInvitationMutation = useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: string }) => {
+      const response = await apiRequest("POST", "/api/organizations/invite", { email, role });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Invitation sent successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations/invitations"] });
+      setShowInviteForm(false);
+      setInviteEmail('');
+      setInviteRole('member');
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to send invitation. Please try again.",
         variant: "destructive",
       });
     },
@@ -274,7 +313,7 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                       Team Members
                     </h3>
                     <Button
-                      onClick={() => toast({ title: "Coming Soon", description: "Member invitation will be implemented soon." })}
+                      onClick={() => setShowInviteForm(true)}
                       className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg"
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
@@ -336,6 +375,89 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                     </div>
                   )}
                 </div>
+
+                {/* Invitation Form Modal */}
+                <AnimatePresence>
+                  {showInviteForm && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="mt-6 p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200/50 dark:border-blue-700/50"
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h4 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          Send Team Invitation
+                        </h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowInviteForm(false)}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="inviteEmail">Email Address</Label>
+                          <Input
+                            id="inviteEmail"
+                            type="email"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            placeholder="colleague@company.com"
+                            className="mt-2"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="inviteRole">Role</Label>
+                          <select
+                            id="inviteRole"
+                            value={inviteRole}
+                            onChange={(e) => setInviteRole(e.target.value)}
+                            className="mt-2 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                          >
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowInviteForm(false)}
+                            disabled={sendInvitationMutation.isPending}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={() => sendInvitationMutation.mutate({ email: inviteEmail, role: inviteRole })}
+                            disabled={sendInvitationMutation.isPending || !inviteEmail.trim()}
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                          >
+                            {sendInvitationMutation.isPending ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2"></div>
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 mr-2" />
+                                Send Invitation
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </div>
