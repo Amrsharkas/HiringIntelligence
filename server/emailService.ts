@@ -98,7 +98,10 @@ This invitation was sent by ${organizationName} through our hiring platform.
 
     await mailService.send({
       to,
-      from: 'noreply@plato-hiring.replit.app', // You may want to configure this
+      from: {
+        email: 'adam.1.elshanawany@gmail.com', // Use your verified sender email
+        name: `${organizationName} Team`
+      },
       subject: `Invitation to join ${organizationName} team`,
       text: emailText,
       html: emailHtml,
