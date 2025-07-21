@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Settings, Users, Building2, UserPlus, Crown, Shield, Briefcase, Target, UserCheck } from "lucide-react";
+import { X, Plus, Settings, Users, Building2, UserPlus, Crown, Shield, Briefcase, Target, UserCheck, Mail, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -351,7 +351,7 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                                 />
                               ) : (
                                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
-                                  {member.name?.split(' ').map(n => n.charAt(0)).join('') || member.email?.charAt(0).toUpperCase() || "U"}
+                                  {member.name?.split(' ').map((n: string) => n.charAt(0)).join('') || member.email?.charAt(0).toUpperCase() || "U"}
                                 </div>
                               )}
                               <div>

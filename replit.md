@@ -51,7 +51,9 @@ This is a standalone employer-facing web application designed to make hiring mor
 
 ### Organization Management
 - **Company Setup**: Organization creation and management
-- **Team Management**: Member invitation and role management
+- **Team Management**: Email-based member invitation system with role-based access control
+- **Invitation System**: Professional email invitations with SendGrid integration and secure token-based acceptance
+- **Role Management**: Organization owners and admins can invite members with different permission levels
 - **Settings**: Company-wide configuration and preferences
 
 ## Data Flow
@@ -181,6 +183,7 @@ Changelog:
 - July 21, 2025. Removed MessagingModal component completely from application per user request - eliminated all candidate messaging functionality and replaced with real-time Recent Activity system.
 - July 21, 2025. Created comprehensive RecentActivityModal with live dashboard statistics - features real-time job counts, interview counts, candidate matches, and application stats with 5-second refresh intervals and detailed activity timeline.
 - July 21, 2025. Enhanced bottom dashboard Recent Activity section with live data integration - replaced static activity items with real-time generated activities based on actual platform statistics, refreshing every 5 seconds.
+- July 21, 2025. Implemented comprehensive team invitation system - created invitation database schema, email service with SendGrid, invitation API endpoints (invite/accept/get), enhanced Team Management modal with invitation form, role-based access control where organization owners can invite members, and invitation acceptance page with professional UI for seamless team onboarding.
 ```
 
 ## User Preferences
