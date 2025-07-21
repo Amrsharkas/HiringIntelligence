@@ -488,28 +488,46 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     setCompleteUserProfile(null);
     setMatchAnalysis(null);
     
+    console.log('🔍 View Profile clicked for applicant:', applicant.name);
+    console.log('📋 Available applicant fields:', Object.keys(applicant));
+    
     // Load both complete profile and match analysis simultaneously
     await Promise.all([
-      loadCompleteUserProfile(applicant.userId),
+      loadCompleteUserProfile(applicant),
       loadMatchAnalysis(applicant)
     ]);
   };
 
-  const loadCompleteUserProfile = async (userId: string) => {
-    if (!userId) return;
+  const loadCompleteUserProfile = async (applicant: ApplicantData) => {
+    // Extract UserID from applicant data - check multiple possible field names
+    const userId = applicant.userId || applicant.applicantUserId || applicant.userID || applicant.id;
+    
+    if (!userId) {
+      console.error('❌ No UserID found in applicant data:', applicant);
+      setCompleteUserProfile(null);
+      return;
+    }
     
     setIsLoadingProfile(true);
     try {
-      console.log('🔍 Loading complete user profile for:', userId);
+      console.log('🔍 Loading complete user profile for UserID:', userId);
+      console.log('📋 Applicant data fields:', Object.keys(applicant));
+      
       const response = await apiRequest("GET", `/api/user-profile/${userId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const profile = await response.json();
       setCompleteUserProfile(profile);
-      console.log('✅ Complete user profile loaded');
+      console.log('✅ Complete user profile loaded for:', profile.name);
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error('❌ Error loading user profile:', error);
+      setCompleteUserProfile(null);
       toast({
-        title: "Error",
-        description: "Failed to load complete user profile",
+        title: "Profile Not Found",
+        description: "Full profile not found – please ask the applicant to complete their profile.",
         variant: "destructive",
       });
     } finally {
@@ -558,7 +576,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const handleRefreshProfile = () => {
     if (selectedApplicant) {
-      loadCompleteUserProfile(selectedApplicant.userId);
+      loadCompleteUserProfile(selectedApplicant);
       loadMatchAnalysis(selectedApplicant);
     }
   };

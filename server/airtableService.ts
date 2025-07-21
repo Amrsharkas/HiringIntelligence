@@ -22,11 +22,11 @@ export class AirtableService {
   // Get complete user profile from platouserprofiles table
   async getCompleteUserProfile(userId: string): Promise<any> {
     try {
-      const baseId = 'app1u4N2W46jD43mP'; // platouserprofiles base
+      const baseId = 'app3tA4UpKQCT2s17'; // platouserprofiles base - CORRECTED
       const tableName = 'platouserprofiles';
       
-      // Filter by User ID
-      const filterFormula = `{User ID} = "${userId}"`;
+      // Filter by User ID using correct format
+      const filterFormula = `{UserID} = "${userId}"`;
       const url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
       
       const response = await fetch(url, {
@@ -52,6 +52,8 @@ export class AirtableService {
         userId: userId,
         name: record.fields.Name || record.fields.name || 'Unknown',
         email: record.fields.Email || record.fields.email || null,
+        phone: record.fields.Phone || record.fields.phone || null,
+        location: record.fields.Location || record.fields.location || null,
         userProfile: record.fields['User profile'] || record.fields['user profile'] || '',
         technicalAnalysis: record.fields['Technical Analysis'] || record.fields['technical analysis'] || '',
         personalAnalysis: record.fields['Personal Analysis'] || record.fields['personal analysis'] || '',
@@ -59,6 +61,7 @@ export class AirtableService {
         technicalScore: record.fields['Technical Score'] || record.fields['technical score'] || 0,
         personalScore: record.fields['Personal Score'] || record.fields['personal score'] || 0,
         professionalScore: record.fields['Professional Score'] || record.fields['professional score'] || 0,
+        overallScore: record.fields['Overall Score'] || record.fields['overall score'] || 0,
         resume: record.fields.Resume || record.fields.resume || null,
         portfolioLink: record.fields['Portfolio Link'] || record.fields['portfolio link'] || null,
         linkedinProfile: record.fields['LinkedIn Profile'] || record.fields['linkedin profile'] || null,
@@ -66,11 +69,14 @@ export class AirtableService {
         salaryExpectation: record.fields['Salary Expectation'] || record.fields['salary expectation'] || null,
         availabilityDate: record.fields['Availability Date'] || record.fields['availability date'] || null,
         workPreference: record.fields['Work Preference'] || record.fields['work preference'] || null,
-        location: record.fields.Location || record.fields.location || null,
         yearsExperience: record.fields['Years Experience'] || record.fields['years experience'] || null,
         education: record.fields.Education || record.fields.education || null,
         certifications: record.fields.Certifications || record.fields.certifications || null,
+        skills: record.fields.Skills || record.fields.skills || null,
+        experience: record.fields.Experience || record.fields.experience || null,
         languages: record.fields.Languages || record.fields.languages || null,
+        interests: record.fields.Interests || record.fields.interests || null,
+        coverLetter: record.fields['Cover Letter'] || record.fields['cover letter'] || null,
         createdTime: record.createdTime,
         rawData: record.fields,
       };
