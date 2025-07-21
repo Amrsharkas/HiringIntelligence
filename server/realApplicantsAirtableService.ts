@@ -86,6 +86,14 @@ class RealApplicantsAirtableService {
       } while (offset);
 
       console.log(`Found ${allRecords.length} applicants for job ${jobId}`);
+      
+      // Debug: Show raw record data
+      if (allRecords.length > 0) {
+        console.log('🔍 Raw applicant record fields:', Object.keys(allRecords[0].fields));
+        allRecords.forEach((record, index) => {
+          console.log(`🔍 Applicant ${index + 1} raw fields:`, record.fields);
+        });
+      }
 
       // Transform records to our format
       const applicants: ApplicantWithProfile[] = allRecords.map(record => {

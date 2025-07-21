@@ -719,7 +719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User ID is required" });
       }
 
-      console.log(`🔍 Fetching complete user profile for User ID: ${userId}`);
+      console.log(`🔍 Fetching complete user profile for User ID: "${userId}" (length: ${userId.length})`);
       
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
@@ -730,10 +730,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📊 Found ${allProfiles.length} total profiles in platouserprofiles table`);
       
       if (allProfiles.length > 0) {
-        console.log(`🔍 Available User IDs in profiles:`);
+        console.log(`🔍 Available User IDs in profiles table:`);
         allProfiles.forEach((profile, index) => {
-          console.log(`   Profile ${index + 1}: User ID = "${profile.fields?.['User ID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || 'No User ID field'}", Name = "${profile.fields?.Name || profile.fields?.name || 'No Name'}"`)
+          const userIdField = profile.fields?.['User ID'] || profile.fields?.['UserID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || '';
+          console.log(`   Profile ${index + 1}: User ID = "${userIdField}" (length: ${userIdField.length}), Name = "${profile.fields?.Name || profile.fields?.name || 'No Name'}"`);
         });
+        
+        // Debug: Show exact match attempt
+        console.log(`🔍 Looking for exact match with User ID: "${userId}"`);
+        const matchingProfile = allProfiles.find(profile => {
+          const profileUserId = profile.fields?.['User ID'] || profile.fields?.['UserID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || '';
+          return profileUserId === userId;
+        });
+        if (matchingProfile) {
+          console.log(`✅ Found matching profile!`);
+        } else {
+          console.log(`❌ No exact match found for User ID: "${userId}"`);
+        }
       }
       
       const profile = await airtableService2.getCompleteUserProfile(userId);
@@ -1657,6 +1670,52 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("Error formatting profile:", error);
       res.status(500).json({ message: "Failed to format profile" });
+    }
+  });
+
+  // Debug UserID mapping between applicants and profiles
+  app.get('/api/debug-userids', async (req, res) => {
+    try {
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService(AIRTABLE_API_KEY);
+      const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
+      
+      // Get all applicants
+      const allApplicants = await realApplicantsService.getAllApplicants();
+      
+      // Get all profiles
+      const allProfiles = await airtableService2.getAllCandidateProfiles('app3tA4UpKQCT2s17', 'platouserprofiles');
+      
+      const debug = {
+        applicants: allApplicants.map(app => ({
+          name: app.name,
+          userId: app.userId,
+          userIdLength: app.userId.length
+        })),
+        profiles: allProfiles.map(profile => ({
+          name: profile.fields?.Name || profile.fields?.name || 'Unknown',
+          userId: profile.fields?.['User ID'] || profile.fields?.['UserID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || '',
+          userIdLength: (profile.fields?.['User ID'] || profile.fields?.['UserID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || '').length,
+          availableFields: Object.keys(profile.fields)
+        })),
+        comparison: allApplicants.map(app => {
+          const matchingProfile = allProfiles.find(profile => {
+            const profileUserId = profile.fields?.['User ID'] || profile.fields?.['UserID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || '';
+            return profileUserId === app.userId;
+          });
+          return {
+            applicantName: app.name,
+            applicantUserId: app.userId,
+            hasMatchingProfile: !!matchingProfile,
+            matchingProfileName: matchingProfile ? (matchingProfile.fields?.Name || matchingProfile.fields?.name) : null
+          };
+        })
+      };
+      
+      res.json(debug);
+    } catch (error) {
+      console.error('Debug UserIDs failed:', error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 

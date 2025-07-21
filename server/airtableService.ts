@@ -25,11 +25,13 @@ export class AirtableService {
       const baseId = 'app3tA4UpKQCT2s17'; // platouserprofiles base - CORRECTED
       const tableName = 'platouserprofiles';
       
-      // Filter by User ID - try multiple field name variations
-      const filterFormula = `OR({User ID} = "${userId}", {UserID} = "${userId}", {User id} = "${userId}", {user id} = "${userId}")`;
-      const url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+      console.log(`🔍 Searching for profile with User ID: "${userId}"`);
       
-      const response = await fetch(url, {
+      // First try: Filter by User ID - try multiple field name variations
+      let filterFormula = `OR({User ID} = "${userId}", {UserID} = "${userId}", {User id} = "${userId}", {user id} = "${userId}")`;
+      let url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+      
+      let response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -40,11 +42,34 @@ export class AirtableService {
         throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
       }
 
-      const data: AirtableResponse = await response.json();
+      let data: AirtableResponse = await response.json();
+      
+      // If no match by UserID, try matching by name (fallback for when UserID field contains name)
+      if (data.records.length === 0) {
+        console.log(`🔍 No match by UserID, trying by Name: "${userId}"`);
+        filterFormula = `OR({Name} = "${userId}", {name} = "${userId}")`;
+        url = `${this.baseUrl}/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+        
+        response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+        }
+
+        data = await response.json();
+      }
       
       if (data.records.length === 0) {
+        console.log(`❌ No profile found for "${userId}" by UserID or Name`);
         return null;
       }
+
+      console.log(`✅ Found profile for "${userId}"`);
 
       const record = data.records[0];
       return {
