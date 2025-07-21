@@ -129,10 +129,20 @@ export class DatabaseStorage implements IStorage {
     return result?.organizations;
   }
 
-  async getOrganizationMembers(organizationId: number): Promise<OrganizationMember[]> {
+  async getOrganizationMembers(organizationId: number): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        id: organizationMembers.id,
+        organizationId: organizationMembers.organizationId,
+        userId: organizationMembers.userId,
+        role: organizationMembers.role,
+        createdAt: organizationMembers.createdAt,
+        name: users.name,
+        email: users.email,
+        picture: users.picture
+      })
       .from(organizationMembers)
+      .innerJoin(users, eq(organizationMembers.userId, users.id))
       .where(eq(organizationMembers.organizationId, organizationId));
   }
 

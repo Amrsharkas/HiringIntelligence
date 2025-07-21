@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Settings, Users, Building2, UserPlus, Crown, Shield } from "lucide-react";
+import { X, Plus, Settings, Users, Building2, UserPlus, Crown, Shield, Briefcase, Target, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -18,6 +18,53 @@ const organizationFormSchema = z.object({
 });
 
 type OrganizationFormData = z.infer<typeof organizationFormSchema>;
+
+// Live team stats component
+const LiveTeamStats = ({ teamMembers }: { teamMembers: any[] }) => {
+  const { toast } = useToast();
+
+  // Get live job count
+  const { data: jobCounts = { active: 0 } } = useQuery<any>({
+    queryKey: ["/api/job-postings/count"],
+    refetchInterval: 30000, // 30 seconds
+    staleTime: 0,
+  });
+
+  // Get live candidate count
+  const { data: candidatesCount = { count: 0 } } = useQuery<any>({
+    queryKey: ["/api/candidates/count"],
+    refetchInterval: 30000,
+    staleTime: 0,
+  });
+
+  // Get live interview count
+  const { data: interviewsCount = { count: 0 } } = useQuery<any>({
+    queryKey: ["/api/interviews/count"],
+    refetchInterval: 30000,
+    staleTime: 0,
+  });
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
+        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{teamMembers?.length || 0}</div>
+        <div className="text-sm text-slate-600 dark:text-slate-400">Members</div>
+      </div>
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
+        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{jobCounts.active}</div>
+        <div className="text-sm text-slate-600 dark:text-slate-400">Active Jobs</div>
+      </div>
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
+        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{candidatesCount.count}</div>
+        <div className="text-sm text-slate-600 dark:text-slate-400">Candidates</div>
+      </div>
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
+        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{interviewsCount.count}</div>
+        <div className="text-sm text-slate-600 dark:text-slate-400">Interviews</div>
+      </div>
+    </div>
+  );
+};
 
 interface TeamManagementModalProps {
   isOpen: boolean;
@@ -39,37 +86,11 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
   const { data: organization, isLoading: orgLoading } = useQuery<any>({
     queryKey: ["/api/organizations/current"],
     enabled: isOpen,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery<any[]>({
     queryKey: ["/api/companies/team"],
     enabled: isOpen && !!organization,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
   const createOrganizationMutation = useMutation({
@@ -87,7 +108,7 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
       setIsCreatingOrg(false);
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -242,24 +263,7 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                       <p className="text-slate-600 dark:text-slate-400">Organization ID: {organization.id}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{teamMembers.length}</div>
-                      <div className="text-sm text-slate-600 dark:text-slate-400">Members</div>
-                    </div>
-                    <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">8</div>
-                      <div className="text-sm text-slate-600 dark:text-slate-400">Active Jobs</div>
-                    </div>
-                    <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">156</div>
-                      <div className="text-sm text-slate-600 dark:text-slate-400">Candidates</div>
-                    </div>
-                    <div className="bg-white/50 dark:bg-slate-700/50 rounded-lg p-3">
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">95%</div>
-                      <div className="text-sm text-slate-600 dark:text-slate-400">Match Rate</div>
-                    </div>
-                  </div>
+                  <LiveTeamStats teamMembers={teamMembers} />
                 </div>
 
                 {/* Team Members */}
@@ -300,15 +304,23 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-600 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold">
-                                {member.user?.firstName?.charAt(0) || "M"}{member.user?.lastName?.charAt(0) || "U"}
-                              </div>
+                              {member.picture ? (
+                                <img 
+                                  src={member.picture} 
+                                  alt={member.name || 'User'} 
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                  {member.name?.split(' ').map(n => n.charAt(0)).join('') || member.email?.charAt(0).toUpperCase() || "U"}
+                                </div>
+                              )}
                               <div>
                                 <h4 className="font-medium text-slate-900 dark:text-white">
-                                  {member.user?.firstName || "Team"} {member.user?.lastName || "Member"}
+                                  {member.name || "Team Member"}
                                 </h4>
                                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                                  {member.user?.email || "team@company.com"}
+                                  {member.email || "No email provided"}
                                 </p>
                               </div>
                             </div>
