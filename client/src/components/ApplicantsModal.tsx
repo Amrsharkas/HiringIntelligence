@@ -479,14 +479,12 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const [completeUserProfile, setCompleteUserProfile] = useState<any>(null);
   const [matchAnalysis, setMatchAnalysis] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'match' | 'profile'>('match');
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingMatchAnalysis, setIsLoadingMatchAnalysis] = useState(false);
 
   const handleViewProfile = async (applicant: ApplicantData) => {
     setSelectedApplicant(applicant);
     setShowProfileAnalysis(true);
-    setActiveTab('match');
     setCompleteUserProfile(null);
     setMatchAnalysis(null);
     
@@ -950,58 +948,118 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                   </div>
                 </div>
 
-                {/* Tabs */}
+                {/* Header for AI Analysis */}
                 <div className="border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex p-6 pb-0">
-                    <button
-                      onClick={() => setActiveTab('match')}
-                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'match'
-                          ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Brain className="w-4 h-4" />
-                        AI Match Analysis
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('profile')}
-                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'profile'
-                          ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        Complete Profile
-                      </div>
-                    </button>
+                  <div className="flex p-6 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Complete AI Analysis & Profile
+                      </h3>
+                    </div>
                   </div>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto">
-                  {activeTab === 'match' ? (
-                    /* AI Match Analysis Tab */
-                    <div className="p-6">
-                      {isLoadingMatchAnalysis ? (
-                        <div className="flex items-center justify-center h-96">
-                          <div className="text-center">
-                            <Brain className="w-16 h-16 mx-auto text-blue-500 animate-pulse mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                              Generating AI Match Analysis
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400">
-                              Our AI is analyzing how well this candidate matches the job requirements...
-                            </p>
-                          </div>
+                  <div className="p-6">
+                    {isLoadingMatchAnalysis || isLoadingProfile ? (
+                      <div className="flex items-center justify-center h-96">
+                        <div className="text-center">
+                          <Brain className="w-16 h-16 mx-auto text-blue-500 animate-pulse mb-4" />
+                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                            Generating Complete Analysis
+                          </h3>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Loading user profile and generating AI match analysis...
+                          </p>
                         </div>
-                      ) : matchAnalysis ? (
-                        <div className="space-y-6">
-                          {/* Overall Match Score */}
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* User Summary Section */}
+                        {completeUserProfile && (
+                          <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-700/50">
+                            <div className="flex items-start gap-6 mb-6">
+                              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xl">
+                                {completeUserProfile.name?.split(' ').map((n: string) => n.charAt(0)).join('') || 'U'}
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                                  {completeUserProfile.name}
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {completeUserProfile.email && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <Mail className="w-4 h-4" />
+                                      <span className="text-sm">{completeUserProfile.email}</span>
+                                    </div>
+                                  )}
+                                  {completeUserProfile.location && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <MapPin className="w-4 h-4" />
+                                      <span className="text-sm">{completeUserProfile.location}</span>
+                                    </div>
+                                  )}
+                                  {completeUserProfile.yearsExperience && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <Calendar className="w-4 h-4" />
+                                      <span className="text-sm">{completeUserProfile.yearsExperience} years experience</span>
+                                    </div>
+                                  )}
+                                  {completeUserProfile.salaryExpectation && (
+                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                      <DollarSign className="w-4 h-4" />
+                                      <span className="text-sm">{completeUserProfile.salaryExpectation}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Interview Scores */}
+                            {(completeUserProfile.technicalScore || completeUserProfile.personalScore || completeUserProfile.professionalScore) && (
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-emerald-200 dark:border-emerald-700/50">
+                                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                                    {completeUserProfile.technicalScore || 0}
+                                  </div>
+                                  <div className="text-xs font-medium text-emerald-900 dark:text-emerald-100">Technical</div>
+                                </div>
+                                <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-emerald-200 dark:border-emerald-700/50">
+                                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                                    {completeUserProfile.personalScore || 0}
+                                  </div>
+                                  <div className="text-xs font-medium text-emerald-900 dark:text-emerald-100">Personal</div>
+                                </div>
+                                <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-emerald-200 dark:border-emerald-700/50">
+                                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                                    {completeUserProfile.professionalScore || 0}
+                                  </div>
+                                  <div className="text-xs font-medium text-emerald-900 dark:text-emerald-100">Professional</div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* User Profile Summary */}
+                            {completeUserProfile.userProfile && (
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-emerald-200 dark:border-emerald-700/50">
+                                <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                  <User className="w-5 h-5 text-emerald-600" />
+                                  Complete Professional Profile
+                                </h4>
+                                <div className="prose dark:prose-invert prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {completeUserProfile.userProfile}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Overall Match Score */}
+                        {matchAnalysis && (
                           <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700/50">
                             <div className="flex items-center justify-between mb-4">
                               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Overall Match Score</h3>
@@ -1016,8 +1074,10 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                               {matchAnalysis.matchSummary}
                             </p>
                           </div>
+                        )}
 
-                          {/* Alignment Scores */}
+                        {/* Alignment Scores */}
+                        {matchAnalysis && (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                               <div className="flex items-center justify-between mb-2">
@@ -1055,8 +1115,10 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                               </p>
                             </div>
                           </div>
+                        )}
 
-                          {/* Strengths and Gaps */}
+                        {/* Strengths and Gaps */}
+                        {matchAnalysis && (
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-5 border border-green-200 dark:border-green-700/50">
                               <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
@@ -1092,8 +1154,10 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                               </ul>
                             </div>
                           </div>
+                        )}
 
-                          {/* Recommendations and Interview Focus */}
+                        {/* Recommendations and Interview Focus */}
+                        {matchAnalysis && (
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700/50">
                               <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
@@ -1129,234 +1193,24 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                               </ul>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-96">
-                          <div className="text-center">
-                            <AlertTriangle className="w-16 h-16 mx-auto text-red-400 mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                              Match Analysis Failed
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400">
-                              Unable to generate match analysis. Please try again.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Complete Profile Tab */
-                    <div className="p-6">
-                      {isLoadingProfile ? (
-                        <div className="flex items-center justify-center h-96">
-                          <div className="text-center">
-                            <User className="w-16 h-16 mx-auto text-blue-500 animate-pulse mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                              Loading Complete Profile
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400">
-                              Fetching comprehensive user profile from Airtable...
-                            </p>
-                          </div>
-                        </div>
-                      ) : completeUserProfile ? (
-                        <div className="space-y-6">
-                          {/* Profile Header */}
-                          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700/50">
-                            <div className="flex items-start gap-6">
-                              <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-2xl">
-                                {completeUserProfile.name?.split(' ').map((n: string) => n.charAt(0)).join('') || 'U'}
-                              </div>
-                              <div className="flex-1">
-                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                                  {completeUserProfile.name}
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  {completeUserProfile.email && (
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                      <Mail className="w-4 h-4" />
-                                      <span>{completeUserProfile.email}</span>
-                                    </div>
-                                  )}
-                                  {completeUserProfile.location && (
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                      <MapPin className="w-4 h-4" />
-                                      <span>{completeUserProfile.location}</span>
-                                    </div>
-                                  )}
-                                  {completeUserProfile.yearsExperience && (
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                      <Calendar className="w-4 h-4" />
-                                      <span>{completeUserProfile.yearsExperience} years experience</span>
-                                    </div>
-                                  )}
-                                  {completeUserProfile.salaryExpectation && (
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                      <DollarSign className="w-4 h-4" />
-                                      <span>{completeUserProfile.salaryExpectation}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                        )}
+
+                        {!matchAnalysis && !isLoadingMatchAnalysis && (
+                          <div className="flex items-center justify-center h-96">
+                            <div className="text-center">
+                              <AlertTriangle className="w-16 h-16 mx-auto text-red-400 mb-4" />
+                              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                                Analysis Not Available
+                              </h3>
+                              <p className="text-gray-500 dark:text-gray-400">
+                                {completeUserProfile ? 'Unable to generate match analysis. Please try again.' : 'User profile not available yet.'}
+                              </p>
                             </div>
                           </div>
-
-                          {/* Interview Scores */}
-                          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                              <Brain className="w-5 h-5 text-blue-600" />
-                              Interview Assessment Scores
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700/50">
-                                <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
-                                  {completeUserProfile.technicalScore || 0}
-                                </div>
-                                <div className="text-sm font-medium text-green-900 dark:text-green-100">Technical</div>
-                              </div>
-                              <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700/50">
-                                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                                  {completeUserProfile.personalScore || 0}
-                                </div>
-                                <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Personal</div>
-                              </div>
-                              <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700/50">
-                                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                                  {completeUserProfile.professionalScore || 0}
-                                </div>
-                                <div className="text-sm font-medium text-purple-900 dark:text-purple-100">Professional</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Detailed Analyses */}
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {completeUserProfile.technicalAnalysis && (
-                              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-5 border border-green-200 dark:border-green-700/50">
-                                <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3">Technical Analysis</h4>
-                                <p className="text-green-700 dark:text-green-300 text-sm leading-relaxed">
-                                  {completeUserProfile.technicalAnalysis}
-                                </p>
-                              </div>
-                            )}
-                            
-                            {completeUserProfile.personalAnalysis && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-5 border border-blue-200 dark:border-blue-700/50">
-                                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">Personal Analysis</h4>
-                                <p className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed">
-                                  {completeUserProfile.personalAnalysis}
-                                </p>
-                              </div>
-                            )}
-                            
-                            {completeUserProfile.professionalAnalysis && (
-                              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-5 border border-purple-200 dark:border-purple-700/50">
-                                <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-3">Professional Analysis</h4>
-                                <p className="text-purple-700 dark:text-purple-300 text-sm leading-relaxed">
-                                  {completeUserProfile.professionalAnalysis}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Additional Information */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h4>
-                              <div className="space-y-3">
-                                {completeUserProfile.education && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Education</label>
-                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.education}</p>
-                                  </div>
-                                )}
-                                {completeUserProfile.certifications && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Certifications</label>
-                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.certifications}</p>
-                                  </div>
-                                )}
-                                {completeUserProfile.languages && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Languages</label>
-                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.languages}</p>
-                                  </div>
-                                )}
-                                {completeUserProfile.workPreference && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Work Preference</label>
-                                    <p className="text-gray-900 dark:text-white">{completeUserProfile.workPreference}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Professional Links</h4>
-                              <div className="space-y-3">
-                                {completeUserProfile.portfolioLink && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Portfolio</label>
-                                    <a href={completeUserProfile.portfolioLink} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
-                                      {completeUserProfile.portfolioLink}
-                                    </a>
-                                  </div>
-                                )}
-                                {completeUserProfile.linkedinProfile && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">LinkedIn</label>
-                                    <a href={completeUserProfile.linkedinProfile} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
-                                      {completeUserProfile.linkedinProfile}
-                                    </a>
-                                  </div>
-                                )}
-                                {completeUserProfile.githubProfile && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">GitHub</label>
-                                    <a href={completeUserProfile.githubProfile} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
-                                      {completeUserProfile.githubProfile}
-                                    </a>
-                                  </div>
-                                )}
-                                {completeUserProfile.resume && (
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Resume</label>
-                                    <a href={completeUserProfile.resume} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline">
-                                      View Resume
-                                    </a>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Complete Professional Profile */}
-                          {completeUserProfile.userProfile && (
-                            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
-                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Complete Professional Profile</h4>
-                              <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-ul:text-gray-700 dark:prose-ul:text-gray-300">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {completeUserProfile.userProfile}
-                                </ReactMarkdown>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-96">
-                          <div className="text-center">
-                            <AlertTriangle className="w-16 h-16 mx-auto text-red-400 mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                              Profile Not Found
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400">
-                              The applicant has not completed their full profile yet. Please ask them to finish their AI interview.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
