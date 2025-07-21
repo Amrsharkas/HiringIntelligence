@@ -161,6 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() : 'Team Admin';
 
       // Send invitation email
+      console.log(`📧 Sending invitation email to ${email}...`);
       const emailSent = await sendInvitationEmail({
         to: email,
         organizationName: organization.companyName,
@@ -169,8 +170,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!emailSent) {
+        console.error(`❌ Failed to send invitation email to ${email}`);
         return res.status(500).json({ message: "Failed to send invitation email" });
       }
+      
+      console.log(`✅ Invitation email sent successfully to ${email}`);
 
       res.json({
         message: "Invitation sent successfully",

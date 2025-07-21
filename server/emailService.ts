@@ -21,7 +21,10 @@ export async function sendInvitationEmail({
   invitationToken,
 }: InvitationEmailParams): Promise<boolean> {
   try {
-    const acceptUrl = `${process.env.REPL_SLUG || 'localhost:5000'}/invite/accept?token=${invitationToken}`;
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN ? 
+      `https://${process.env.REPLIT_DEV_DOMAIN}` : 
+      'https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev';
+    const acceptUrl = `${baseUrl}/invite/accept?token=${invitationToken}`;
     
     const emailHtml = `
       <!DOCTYPE html>
@@ -104,6 +107,9 @@ This invitation was sent by ${organizationName} through our hiring platform.
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      console.error('SendGrid response details:', (error as any).response?.body);
+    }
     return false;
   }
 }
