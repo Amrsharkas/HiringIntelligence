@@ -719,77 +719,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User ID is required" });
       }
 
-      console.log(`🔍 Fetching complete user profile for User ID: "${userId}" (length: ${userId.length})`);
+      console.log(`🔍 Fetching complete user profile for identifier: "${userId}"`);
       
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
       
-      // Debug by fetching profiles directly via Airtable API
-      console.log(`🔍 Fetching all profiles to check available User IDs...`);
-      try {
-        const baseId = 'app3tA4UpKQCT2s17';
-        const tableName = 'platouserprofiles';
-        const url = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+      // Step 1: Find the actual UserID from the job applications table
+      console.log(`📋 Step 1: Finding UserID from job applications for: "${userId}"`);
+      const applicationsBaseId = 'appEYs1fTytFXoJ7x';
+      const applicationsTableName = 'platojobapplications';
+      
+      // Search by name in applications table
+      let applicationsUrl = `https://api.airtable.com/v0/${applicationsBaseId}/${applicationsTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${userId}"`)}`;
+      
+      const applicationsResponse = await fetch(applicationsUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!applicationsResponse.ok) {
+        console.log(`❌ Failed to fetch applications: ${applicationsResponse.status} ${applicationsResponse.statusText}`);
+        return res.status(500).json({ message: 'Failed to fetch application data' });
+      }
+      
+      const applicationsData = await applicationsResponse.json();
+      console.log(`📋 Found ${applicationsData.records.length} applications matching name: "${userId}"`);
+      
+      let actualUserId = userId; // Default to the provided identifier
+      
+      if (applicationsData.records.length > 0) {
+        const application = applicationsData.records[0];
+        const userIdFromApplication = application.fields?.['UserID'] || application.fields?.['User ID'] || application.fields?.['userId'] || '';
+        if (userIdFromApplication) {
+          actualUserId = userIdFromApplication;
+          console.log(`✅ Found UserID from application: "${actualUserId}"`);
+        } else {
+          console.log(`⚠️ No UserID field found in application, using name: "${userId}"`);
+        }
+      } else {
+        console.log(`⚠️ No application found for name "${userId}", will try direct profile lookup`);
+      }
+      
+      // Step 2: Fetch the user profile using the actual UserID
+      console.log(`👤 Step 2: Fetching user profile for UserID: "${actualUserId}"`);
+      const profilesBaseId = 'app3tA4UpKQCT2s17';
+      const profilesTableName = 'platouserprofiles';
+      
+      // Try by UserID field first
+      let profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{UserID} = "${actualUserId}"`)}`;
+      
+      let profilesResponse = await fetch(profilesUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!profilesResponse.ok) {
+        console.log(`❌ Failed to fetch profiles: ${profilesResponse.status} ${profilesResponse.statusText}`);
+        return res.status(500).json({ message: 'Failed to fetch profile data' });
+      }
+      
+      let profilesData = await profilesResponse.json();
+      console.log(`👤 Found ${profilesData.records.length} profiles matching UserID: "${actualUserId}"`);
+      
+      // If no match by UserID, try by Name
+      if (profilesData.records.length === 0) {
+        console.log(`🔍 No UserID match, trying by Name: "${userId}"`);
+        profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${userId}"`)}`;
         
-        const response = await fetch(url, {
+        profilesResponse = await fetch(profilesUrl, {
           headers: {
             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
             'Content-Type': 'application/json',
           },
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`📊 Found ${data.records.length} total profiles in platouserprofiles table`);
-          
-          if (data.records.length > 0) {
-            console.log(`🔍 Available User IDs and Names in profiles table:`);
-            data.records.forEach((record: any, index: number) => {
-              const userIdField = record.fields?.['User ID'] || record.fields?.['UserID'] || record.fields?.['User id'] || record.fields?.['user id'] || '';
-              const nameField = record.fields?.['Name'] || record.fields?.['name'] || 'No Name';
-              console.log(`   Profile ${index + 1}: User ID = "${userIdField}" (length: ${userIdField.length}), Name = "${nameField}"`);
-            });
-            
-            // Debug: Show exact match attempt  
-            console.log(`🔍 Looking for exact match with User ID: "${userId}"`);
-            const matchingProfile = data.records.find((record: any) => {
-              const profileUserId = record.fields?.['User ID'] || record.fields?.['UserID'] || record.fields?.['User id'] || record.fields?.['user id'] || '';
-              return profileUserId === userId;
-            });
-            if (matchingProfile) {
-              console.log(`✅ Found matching profile by User ID!`);
-            } else {
-              console.log(`❌ No exact User ID match found, trying name match...`);
-              const nameMatchingProfile = data.records.find((record: any) => {
-                const profileName = record.fields?.['Name'] || record.fields?.['name'] || '';
-                return profileName === userId;
-              });
-              if (nameMatchingProfile) {
-                console.log(`✅ Found matching profile by Name!`);
-              } else {
-                console.log(`❌ No name match found either for: "${userId}"`);
-              }
-            }
-          }
-        } else {
-          console.log(`❌ Failed to fetch profiles: ${response.status} ${response.statusText}`);
+        if (profilesResponse.ok) {
+          profilesData = await profilesResponse.json();
+          console.log(`👤 Found ${profilesData.records.length} profiles matching Name: "${userId}"`);
         }
-      } catch (debugError) {
-        console.error('Debug fetch error:', debugError);
       }
       
-      const profile = await airtableService2.getCompleteUserProfile(userId);
-      
-      if (!profile) {
-        console.log(`❌ No profile found for User ID: "${userId}"`);
-        console.log(`❌ Searched User ID exactly matches one of the available User IDs above`);
+      if (profilesData.records.length === 0) {
+        console.log(`❌ No profile found for "${userId}" in either UserID or Name fields`);
         return res.status(404).json({ message: "User profile not found" });
       }
+      
+      // Step 3: Extract and format the profile data
+      const profileRecord = profilesData.records[0];
+      const fields = profileRecord.fields;
+      
+      console.log(`✅ Found profile! Available fields: ${Object.keys(fields).join(', ')}`);
+      
+      const profile = {
+        id: profileRecord.id,
+        userId: actualUserId,
+        name: fields['Name'] || fields['name'] || 'Unknown',
+        email: fields['Email'] || fields['email'] || null,
+        phone: fields['Phone'] || fields['phone'] || null,
+        location: fields['Location'] || fields['location'] || null,
+        userProfile: fields['User profile'] || fields['user profile'] || '',
+        technicalAnalysis: fields['Technical Analysis'] || fields['technical analysis'] || '',
+        personalAnalysis: fields['Personal Analysis'] || fields['personal analysis'] || '',
+        professionalAnalysis: fields['Professional Analysis'] || fields['professional analysis'] || '',
+        technicalScore: fields['Technical Score'] || fields['technical score'] || 0,
+        personalScore: fields['Personal Score'] || fields['personal score'] || 0,
+        professionalScore: fields['Professional Score'] || fields['professional score'] || 0,
+        overallScore: fields['Overall Score'] || fields['overall score'] || 0,
+        resume: fields['Resume'] || fields['resume'] || null,
+        portfolioLink: fields['Portfolio Link'] || fields['portfolio link'] || null,
+        linkedinProfile: fields['LinkedIn Profile'] || fields['linkedin profile'] || null,
+        githubProfile: fields['GitHub Profile'] || fields['github profile'] || null,
+        salaryExpectation: fields['Salary Expectation'] || fields['salary expectation'] || null,
+        availabilityDate: fields['Availability Date'] || fields['availability date'] || null,
+        workPreference: fields['Work Preference'] || fields['work preference'] || null,
+        yearsExperience: fields['Years Experience'] || fields['years experience'] || null,
+        education: fields['Education'] || fields['education'] || null,
+        certifications: fields['Certifications'] || fields['certifications'] || null,
+        skills: fields['Skills'] || fields['skills'] || null,
+        experience: fields['Experience'] || fields['experience'] || null,
+        languages: fields['Languages'] || fields['languages'] || null,
+        interests: fields['Interests'] || fields['interests'] || null,
+        coverLetter: fields['Cover Letter'] || fields['cover letter'] || null,
+      };
 
-      console.log(`✅ Found complete user profile for: ${profile.name}`);
+      console.log(`✅ Profile data prepared for: ${profile.name}, User Profile length: ${profile.userProfile.length} characters`);
       res.json(profile);
+      
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error fetching user profile:', error);
       res.status(500).json({ message: 'Failed to fetch user profile' });
     }
   });
