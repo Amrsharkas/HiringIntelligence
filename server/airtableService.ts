@@ -72,6 +72,27 @@ export class AirtableService {
       
       if (data.records.length === 0) {
         console.log(`❌ No profile found for "${userId}" by UserID or Name`);
+        
+        // Debug: Let's see what profiles are actually available
+        console.log('🔍 Let me check what profiles are available...');
+        const debugUrl = `${this.baseUrl}/${baseId}/${tableName}`;
+        const debugResponse = await fetch(debugUrl, {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (debugResponse.ok) {
+          const debugData: AirtableResponse = await debugResponse.json();
+          console.log(`🔍 Found ${debugData.records.length} total profiles in Airtable:`);
+          debugData.records.forEach((record, index) => {
+            console.log(`  Profile ${index + 1}: Name="${record.fields['Name'] || 'N/A'}", UserID="${record.fields['User ID'] || 'N/A'}", RecordID=${record.id}`);
+          });
+        } else {
+          console.log(`❌ Failed to fetch debug data: ${debugResponse.status}`);
+        }
+        
         return null;
       }
 

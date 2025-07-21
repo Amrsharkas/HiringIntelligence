@@ -724,29 +724,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
       
-      // First, let's debug what profiles are available
-      console.log(`🔍 Getting all profiles to check available User IDs...`);
-      const allProfiles = await airtableService2.getAllCandidateProfiles('app3tA4UpKQCT2s17', 'platouserprofiles');
-      console.log(`📊 Found ${allProfiles.length} total profiles in platouserprofiles table`);
-      
-      if (allProfiles.length > 0) {
-        console.log(`🔍 Available User IDs in profiles table:`);
-        allProfiles.forEach((profile, index) => {
-          const userIdField = profile.fields?.['User ID'] || profile.fields?.['UserID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || '';
-          console.log(`   Profile ${index + 1}: User ID = "${userIdField}" (length: ${userIdField.length}), Name = "${profile.fields?.Name || profile.fields?.name || 'No Name'}"`);
+      // Debug by fetching profiles directly via Airtable API
+      console.log(`🔍 Fetching all profiles to check available User IDs...`);
+      try {
+        const baseId = 'app3tA4UpKQCT2s17';
+        const tableName = 'platouserprofiles';
+        const url = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
         });
         
-        // Debug: Show exact match attempt
-        console.log(`🔍 Looking for exact match with User ID: "${userId}"`);
-        const matchingProfile = allProfiles.find(profile => {
-          const profileUserId = profile.fields?.['User ID'] || profile.fields?.['UserID'] || profile.fields?.['User id'] || profile.fields?.['user id'] || '';
-          return profileUserId === userId;
-        });
-        if (matchingProfile) {
-          console.log(`✅ Found matching profile!`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`📊 Found ${data.records.length} total profiles in platouserprofiles table`);
+          
+          if (data.records.length > 0) {
+            console.log(`🔍 Available User IDs and Names in profiles table:`);
+            data.records.forEach((record: any, index: number) => {
+              const userIdField = record.fields?.['User ID'] || record.fields?.['UserID'] || record.fields?.['User id'] || record.fields?.['user id'] || '';
+              const nameField = record.fields?.['Name'] || record.fields?.['name'] || 'No Name';
+              console.log(`   Profile ${index + 1}: User ID = "${userIdField}" (length: ${userIdField.length}), Name = "${nameField}"`);
+            });
+            
+            // Debug: Show exact match attempt  
+            console.log(`🔍 Looking for exact match with User ID: "${userId}"`);
+            const matchingProfile = data.records.find((record: any) => {
+              const profileUserId = record.fields?.['User ID'] || record.fields?.['UserID'] || record.fields?.['User id'] || record.fields?.['user id'] || '';
+              return profileUserId === userId;
+            });
+            if (matchingProfile) {
+              console.log(`✅ Found matching profile by User ID!`);
+            } else {
+              console.log(`❌ No exact User ID match found, trying name match...`);
+              const nameMatchingProfile = data.records.find((record: any) => {
+                const profileName = record.fields?.['Name'] || record.fields?.['name'] || '';
+                return profileName === userId;
+              });
+              if (nameMatchingProfile) {
+                console.log(`✅ Found matching profile by Name!`);
+              } else {
+                console.log(`❌ No name match found either for: "${userId}"`);
+              }
+            }
+          }
         } else {
-          console.log(`❌ No exact match found for User ID: "${userId}"`);
+          console.log(`❌ Failed to fetch profiles: ${response.status} ${response.statusText}`);
         }
+      } catch (debugError) {
+        console.error('Debug fetch error:', debugError);
       }
       
       const profile = await airtableService2.getCompleteUserProfile(userId);
