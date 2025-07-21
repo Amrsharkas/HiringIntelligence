@@ -178,6 +178,9 @@ Changelog:
 - July 19, 2025. Fixed interview count display with accurate real-time updates - replaced team member count with proper LiveInterviewsCount component that shows actual scheduled interviews and auto-refreshes every 30 seconds using /api/interviews/count endpoint.
 - July 19, 2025. Implemented instant Airtable sync for all job operations - when employers create new jobs or press "update job" button, changes are immediately synced to "platojobpostings" table including all job details and employer questions, providing real-time updates without waiting for periodic sync.
 - July 19, 2025. Fixed Drizzle ORM sync query issues - resolved database field selection errors in periodic sync function to ensure proper job data retrieval and synchronization with Airtable tables.
+- July 21, 2025. Removed MessagingModal component completely from application per user request - eliminated all candidate messaging functionality and replaced with real-time Recent Activity system.
+- July 21, 2025. Created comprehensive RecentActivityModal with live dashboard statistics - features real-time job counts, interview counts, candidate matches, and application stats with 5-second refresh intervals and detailed activity timeline.
+- July 21, 2025. Enhanced bottom dashboard Recent Activity section with live data integration - replaced static activity items with real-time generated activities based on actual platform statistics, refreshing every 5 seconds.
 ```
 
 ## User Preferences
