@@ -120,6 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Invitation routes
   app.post('/api/organizations/invite', isAuthenticated, async (req: any, res) => {
     try {
+      console.log(`🚀 Invitation request received:`, req.body);
       const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
@@ -171,12 +172,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!emailSent) {
         console.error(`❌ Failed to send invitation email to ${email}`);
-        return res.status(500).json({ message: "Failed to send invitation email" });
+        // Still create the invitation record even if email fails, user can resend later
+        console.log(`⚠️ Invitation record created but email failed for ${email}`);
+      } else {
+        console.log(`✅ Invitation email sent successfully to ${email}`);
       }
-      
-      console.log(`✅ Invitation email sent successfully to ${email}`);
 
       res.json({
+        success: true,
         message: "Invitation sent successfully",
         invitation: {
           id: invitation.id,

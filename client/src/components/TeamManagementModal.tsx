@@ -133,7 +133,9 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
 
   const sendInvitationMutation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: string }) => {
+      console.log('🚀 Frontend: Sending invitation to', email, 'with role', role);
       const response = await apiRequest("POST", "/api/organizations/invite", { email, role });
+      console.log('📨 Frontend: Invitation response status', response.status);
       return response.json();
     },
     onSuccess: () => {
