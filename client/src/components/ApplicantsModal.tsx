@@ -501,11 +501,14 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     console.log('🔍 View Profile clicked for applicant:', applicant.name);
     console.log('📋 Available applicant fields:', Object.keys(applicant));
     
-    // Load both complete profile and match analysis simultaneously
-    await Promise.all([
+    // Start AI Match Analysis immediately, load profile in background
+    // Profile loading errors will be suppressed while on Match Analysis tab
+    Promise.all([
       loadCompleteUserProfile(applicant),
       loadMatchAnalysis(applicant)
-    ]);
+    ]).catch(error => {
+      console.log('🔄 Background loading completed with some errors (this is normal):', error);
+    });
   };
 
   const loadCompleteUserProfile = async (applicant: ApplicantData) => {
@@ -556,11 +559,18 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
         stack: error.stack
       });
       setCompleteUserProfile(null);
-      toast({
-        title: "Profile Not Found",
-        description: "The applicant has not completed their full profile yet. Please ask them to finish their AI interview.",
-        variant: "destructive",
-      });
+      
+      // Only show error toast if we're actively viewing the Complete Profile tab
+      // and not if this is just background loading while AI Match Analysis is running
+      if (activeTab === 'profile') {
+        toast({
+          title: "Profile Not Found",
+          description: "The applicant has not completed their full profile yet. Please ask them to finish their AI interview.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('🔇 Profile loading failed but AI Match Analysis is active, suppressing error toast');
+      }
     } finally {
       setIsLoadingProfile(false);
     }
