@@ -486,8 +486,22 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   // Load profile when switching to Complete Profile tab (only once per applicant)
   useEffect(() => {
+    console.log('📋 Profile tab useEffect triggered:', {
+      activeTab,
+      hasSelectedApplicant: !!selectedApplicant,
+      selectedApplicantName: selectedApplicant?.name,
+      hasCompleteUserProfile: !!completeUserProfile,
+      isLoadingProfile,
+      profileLoadAttempted
+    });
+    
     if (activeTab === 'profile' && selectedApplicant && !completeUserProfile && !isLoadingProfile && !profileLoadAttempted) {
       console.log('🔄 Complete Profile tab selected, loading profile for:', selectedApplicant.name);
+      console.log('📊 Applicant data being passed:', {
+        name: selectedApplicant.name,
+        id: selectedApplicant.id,
+        keys: Object.keys(selectedApplicant)
+      });
       setProfileLoadAttempted(true);
       loadCompleteUserProfile(selectedApplicant);
     }
@@ -1031,7 +1045,16 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                       </div>
                     </button>
                     <button
-                      onClick={() => setActiveTab('profile')}
+                      onClick={() => {
+                        console.log('🖱️ Complete Profile tab clicked');
+                        setActiveTab('profile');
+                        // Force profile load if not already attempted
+                        if (selectedApplicant && !completeUserProfile && !isLoadingProfile && !profileLoadAttempted) {
+                          console.log('🚀 Manually triggering profile load from tab click');
+                          setProfileLoadAttempted(true);
+                          loadCompleteUserProfile(selectedApplicant);
+                        }
+                      }}
                       className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === 'profile'
                           ? 'border-blue-600 text-blue-600 dark:text-blue-400'

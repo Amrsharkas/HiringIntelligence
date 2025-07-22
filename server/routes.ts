@@ -710,6 +710,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint to debug profile lookup without authentication
+  app.get('/api/test-profile/:userId', async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      console.log(`🧪 TEST: Fetching profile for: "${userId}"`);
+      
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const profilesBaseId = 'app3tA4UpKQCT2s17';
+      const profilesTableName = 'platouserprofiles';
+      
+      // Try by Name field
+      let profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${userId}"`)}`;
+      
+      const profilesResponse = await fetch(profilesUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!profilesResponse.ok) {
+        return res.status(500).json({ message: 'Failed to fetch profile data' });
+      }
+      
+      const profilesData = await profilesResponse.json();
+      console.log(`🧪 TEST: Found ${profilesData.records.length} profiles matching Name: "${userId}"`);
+      
+      if (profilesData.records.length > 0) {
+        console.log(`🧪 TEST: Profile found! Fields: ${Object.keys(profilesData.records[0].fields).join(', ')}`);
+      }
+      
+      res.json({ 
+        found: profilesData.records.length > 0,
+        count: profilesData.records.length,
+        fields: profilesData.records.length > 0 ? Object.keys(profilesData.records[0].fields) : []
+      });
+    } catch (error) {
+      console.error('🧪 TEST: Error fetching profile:', error);
+      res.status(500).json({ message: 'Test failed', error: error.message });
+    }
+  });
+
   // Get complete user profile from Airtable platouserprofiles table
   app.get('/api/user-profile/:userId', isAuthenticated, async (req: any, res) => {
     try {
