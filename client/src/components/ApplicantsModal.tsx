@@ -45,13 +45,15 @@ function InterviewModalContent({
   interviewData, 
   setInterviewData, 
   onSubmit, 
-  isScheduling 
+  isScheduling,
+  isManaging = false 
 }: {
   selectedApplicant: ApplicantData;
   interviewData: any;
   setInterviewData: (data: any) => void;
   onSubmit: () => void;
   isScheduling: boolean;
+  isManaging?: boolean;
 }) {
   const { data: interviews = [], isLoading: loadingInterviews } = useQuery({
     queryKey: ['/api/interviews'],
@@ -152,7 +154,12 @@ function InterviewModalContent({
           className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
         >
           {isScheduling && <RefreshCw className="w-3 h-3 animate-spin" />}
-          <span>{isScheduling ? 'Scheduling...' : 'Schedule Interview'}</span>
+          <span>
+            {isScheduling 
+              ? (isManaging ? 'Updating...' : 'Scheduling...') 
+              : (isManaging ? 'Update Interview' : 'Schedule Interview')
+            }
+          </span>
         </button>
       </div>
     </div>
@@ -178,6 +185,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     meetingLink: '',
     notes: ''
   });
+  const [isManagingInterview, setIsManagingInterview] = useState(false);
+  const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -192,6 +201,13 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     enabled: isOpen && !!selectedJob,
     refetchInterval: 30000, // Refetch every 30 seconds
     refetchIntervalInBackground: true,
+  });
+
+  // Fetch interviews to check which applicants already have scheduled interviews
+  const { data: interviews = [] } = useQuery({
+    queryKey: ['/api/interviews'],
+    enabled: isOpen,
+    refetchInterval: 30000,
   });
 
   // Manual refresh function
@@ -401,7 +417,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const scheduleInterviewMutation = useMutation({
     mutationFn: async (data: { applicant: ApplicantData; scheduledDate: string; scheduledTime: string; interviewType: string; meetingLink?: string; notes?: string }) => {
-      const response = await apiRequest('POST', '/api/interviews', {
+      const requestData = {
         candidateName: data.applicant.name,
         candidateEmail: data.applicant.email,
         candidateId: data.applicant.id,
@@ -412,14 +428,24 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
         interviewType: data.interviewType,
         meetingLink: data.meetingLink || '',
         notes: data.notes || ''
-      });
+      };
+
+      if (isManagingInterview && currentInterviewId) {
+        // Update existing interview
+        return await apiRequest('PATCH', `/api/interviews/${currentInterviewId}`, requestData);
+      } else {
+        // Create new interview
+        return await apiRequest('POST', '/api/interviews', requestData);
+      }
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Interview scheduled successfully!",
+        description: isManagingInterview ? "Interview updated successfully!" : "Interview scheduled successfully!",
       });
       setShowInterviewScheduler(false);
+      setIsManagingInterview(false);
+      setCurrentInterviewId(null);
       setInterviewData({
         scheduledDate: '',
         scheduledTime: '',
@@ -427,6 +453,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
         meetingLink: '',
         notes: ''
       });
+      // Invalidate both interviews and applicants data to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/interviews'] });
       refetch();
     },
     onError: (error) => {
@@ -443,7 +471,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       }
       toast({
         title: "Error",
-        description: "Failed to schedule interview. Please try again.",
+        description: isManagingInterview ? "Failed to update interview. Please try again." : "Failed to schedule interview. Please try again.",
         variant: "destructive",
       });
     },
@@ -457,9 +485,50 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     declineApplicantMutation.mutate(applicant.id);
   };
 
+  // Helper function to check if an applicant has an existing interview
+  const getApplicantInterview = (applicant: ApplicantData) => {
+    return interviews.find(interview => 
+      interview.candidateName === applicant.name || 
+      interview.candidateId === applicant.id
+    );
+  };
+
+  // Helper function to check if applicant has an interview
+  const hasExistingInterview = (applicant: ApplicantData) => {
+    return !!getApplicantInterview(applicant);
+  };
+
   const handleScheduleInterview = (applicant: ApplicantData) => {
+    // Reset to default values for new interview
+    setInterviewData({
+      scheduledDate: '',
+      scheduledTime: '',
+      interviewType: 'video',
+      meetingLink: '',
+      notes: ''
+    });
+    setIsManagingInterview(false);
+    setCurrentInterviewId(null);
     setSelectedApplicant(applicant);
     setShowInterviewScheduler(true);
+  };
+
+  const handleManageInterview = (applicant: ApplicantData) => {
+    const existingInterview = getApplicantInterview(applicant);
+    if (existingInterview) {
+      // Pre-populate the form with existing interview data
+      setInterviewData({
+        scheduledDate: existingInterview.scheduledDate?.split('T')[0] || '',
+        scheduledTime: existingInterview.scheduledTime || '',
+        interviewType: existingInterview.interviewType || 'video',
+        meetingLink: existingInterview.meetingLink || '',
+        notes: existingInterview.notes || ''
+      });
+      setIsManagingInterview(true);
+      setCurrentInterviewId(existingInterview.id);
+      setSelectedApplicant(applicant);
+      setShowInterviewScheduler(true);
+    }
   };
 
   const [completeUserProfile, setCompleteUserProfile] = useState<any>(null);
@@ -883,13 +952,23 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                             </span>
                           </div>
                         ) : acceptedApplicants.has(applicant.id) || applicant.status === 'accepted' ? (
-                          <button
-                            onClick={() => handleScheduleInterview(applicant)}
-                            className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                          >
-                            <Calendar className="w-3 h-3" />
-                            <span>Schedule Interview</span>
-                          </button>
+                          hasExistingInterview(applicant) ? (
+                            <button
+                              onClick={() => handleManageInterview(applicant)}
+                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 transition-colors flex items-center space-x-1"
+                            >
+                              <Settings className="w-3 h-3" />
+                              <span>Manage Interview</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleScheduleInterview(applicant)}
+                              className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                            >
+                              <Calendar className="w-3 h-3" />
+                              <span>Schedule Interview</span>
+                            </button>
+                          )
                         ) : applicant.status === 'declined' ? (
                           <div className="flex items-center space-x-2 text-red-600">
                             <XCircle className="w-4 h-4" />
@@ -943,11 +1022,15 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                   <div className="flex items-center space-x-3">
                     <Calendar className="w-6 h-6 text-blue-600" />
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Schedule Interview
+                      {isManagingInterview ? 'Manage Interview' : 'Schedule Interview'}
                     </h3>
                   </div>
                   <button
-                    onClick={() => setShowInterviewScheduler(false)}
+                    onClick={() => {
+                      setShowInterviewScheduler(false);
+                      setIsManagingInterview(false);
+                      setCurrentInterviewId(null);
+                    }}
                     className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
                     <X className="w-6 h-6" />
@@ -961,6 +1044,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                     setInterviewData={setInterviewData}
                     onSubmit={handleSubmitInterview}
                     isScheduling={scheduleInterviewMutation.isPending}
+                    isManaging={isManagingInterview}
                   />
                 </div>
               </motion.div>
