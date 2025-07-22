@@ -483,6 +483,14 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingMatchAnalysis, setIsLoadingMatchAnalysis] = useState(false);
 
+  // Load profile when switching to Complete Profile tab
+  useEffect(() => {
+    if (activeTab === 'profile' && selectedApplicant && !completeUserProfile && !isLoadingProfile) {
+      console.log('🔄 Complete Profile tab selected, loading profile for:', selectedApplicant.name);
+      loadCompleteUserProfile(selectedApplicant);
+    }
+  }, [activeTab, selectedApplicant, completeUserProfile, isLoadingProfile]);
+
   const handleViewProfile = async (applicant: ApplicantData) => {
     setSelectedApplicant(applicant);
     setShowProfileAnalysis(true);
@@ -504,6 +512,12 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     // Use applicant name for profile lookup since UserID field in job applications contains name
     const userIdentifier = applicant.name;
     
+    console.log('🚀 loadCompleteUserProfile called with:', { 
+      applicantName: userIdentifier,
+      applicantKeys: Object.keys(applicant),
+      hasName: !!userIdentifier
+    });
+    
     if (!userIdentifier) {
       console.error('❌ No name found in applicant data:', applicant);
       setCompleteUserProfile(null);
@@ -512,21 +526,35 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     
     setIsLoadingProfile(true);
     try {
-      console.log('🔍 Loading complete user profile for:', userIdentifier);
-      console.log('📋 Applicant data fields:', Object.keys(applicant));
-      console.log('📋 Using applicant name as identifier:', userIdentifier);
+      console.log('🔍 Making API request to:', `/api/user-profile/${encodeURIComponent(userIdentifier)}`);
+      console.log('📋 Full applicant data:', applicant);
       
       const response = await apiRequest("GET", `/api/user-profile/${encodeURIComponent(userIdentifier)}`);
       
+      console.log('📡 API response status:', response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
       
       const profile = await response.json();
+      console.log('✅ Profile data received:', {
+        name: profile.name,
+        userId: profile.userId,
+        profileLength: profile.userProfile?.length || 0,
+        keys: Object.keys(profile)
+      });
+      
       setCompleteUserProfile(profile);
       console.log('✅ Complete user profile loaded for:', profile.name);
     } catch (error) {
       console.error('❌ Error loading user profile:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
       setCompleteUserProfile(null);
       toast({
         title: "Profile Not Found",
