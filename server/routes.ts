@@ -716,10 +716,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId } = req.params;
       
       if (!userId) {
+        console.log('❌ No user ID provided in request');
         return res.status(400).json({ message: "User ID is required" });
       }
 
       console.log(`🔍 Fetching complete user profile for identifier: "${userId}"`);
+      console.log(`👤 Authenticated user: ${req.user?.claims?.sub || 'unknown'}`);
+      console.log(`🏢 Organization ID: ${req.user?.orgId || 'unknown'}`);
       
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       

@@ -534,6 +534,9 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       console.log('🔍 Making API request to:', `/api/user-profile/${encodeURIComponent(userIdentifier)}`);
       console.log('📋 Full applicant data:', applicant);
       
+      // Add a small delay to ensure session is properly established
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const response = await apiRequest("GET", `/api/user-profile/${encodeURIComponent(userIdentifier)}`);
       
       console.log('📡 API response status:', response.status, response.statusText);
@@ -541,6 +544,21 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ API Error Response:', errorText);
+        
+        // If it's a 401 error, try one more time after a longer delay
+        if (response.status === 401) {
+          console.log('🔄 401 error detected, retrying after delay...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const retryResponse = await apiRequest("GET", `/api/user-profile/${encodeURIComponent(userIdentifier)}`);
+          if (retryResponse.ok) {
+            const profile = await retryResponse.json();
+            setCompleteUserProfile(profile);
+            console.log('✅ Complete user profile loaded after retry for:', profile.name);
+            return;
+          }
+        }
+        
         throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
       
