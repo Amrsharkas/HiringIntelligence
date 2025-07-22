@@ -63,8 +63,8 @@ class RealApplicantsAirtableService {
         const params = new URLSearchParams();
         if (offset) params.append('offset', offset);
         
-        // Filter by Job ID and only show pending applicants (not accepted or denied)
-        params.append('filterByFormula', `AND({Job ID} = "${jobId}", OR({Status} = "", {Status} = "pending", {Status} = BLANK()))`);
+        // Filter by Job ID and show pending and accepted applicants (for interview scheduling)
+        params.append('filterByFormula', `AND({Job ID} = "${jobId}", OR({Status} = "", {Status} = "pending", {Status} = "Accepted", {Status} = BLANK()))`);
         
         const response = await fetch(
           `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
@@ -138,8 +138,8 @@ class RealApplicantsAirtableService {
         const params = new URLSearchParams();
         if (offset) params.append('offset', offset);
         
-        // Filter to only show pending applicants
-        params.append('filterByFormula', `OR({Status} = "", {Status} = "pending", {Status} = BLANK())`);
+        // Filter to show pending and accepted applicants (for interview scheduling)
+        params.append('filterByFormula', `OR({Status} = "", {Status} = "pending", {Status} = "Accepted", {Status} = BLANK())`);
         
         const response = await fetch(
           `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
