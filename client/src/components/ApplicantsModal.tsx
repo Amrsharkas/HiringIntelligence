@@ -64,69 +64,52 @@ function InterviewModalContent({
   );
 
   return (
-    <div className="space-y-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
-          Schedule Interview with {selectedApplicant.name}
+    <div className="space-y-4 p-6">
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+        <h4 className="font-medium text-blue-900 dark:text-blue-200 text-sm">
+          {selectedApplicant.name} - {selectedApplicant.jobTitle}
         </h4>
-        <p className="text-blue-700 dark:text-blue-300 text-sm">
-          Position: {selectedApplicant.jobTitle}
-        </p>
         {selectedApplicant.email && (
-          <p className="text-blue-700 dark:text-blue-300 text-sm">
-            Email: {selectedApplicant.email}
+          <p className="text-blue-700 dark:text-blue-300 text-xs">
+            {selectedApplicant.email}
           </p>
         )}
       </div>
 
-      {/* Show existing interviews if any */}
-      {applicantInterviews.length > 0 && (
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-          <h5 className="font-medium text-green-900 dark:text-green-200 mb-2">
-            Scheduled Interviews ({applicantInterviews.length})
-          </h5>
-          {applicantInterviews.map((interview: any) => (
-            <div key={interview.id} className="text-sm text-green-700 dark:text-green-300 mb-1">
-              • {interview.scheduledDate} at {interview.scheduledTime} ({interview.interviewType})
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             Date
           </label>
           <input
             type="date"
             value={interviewData.scheduledDate}
             onChange={(e) => setInterviewData({...interviewData, scheduledDate: e.target.value})}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             Time
           </label>
           <input
             type="time"
             value={interviewData.scheduledTime}
             onChange={(e) => setInterviewData({...interviewData, scheduledTime: e.target.value})}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
         </div>
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
           Interview Type
         </label>
         <select
           value={interviewData.interviewType}
           onChange={(e) => setInterviewData({...interviewData, interviewType: e.target.value})}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
         >
           <option value="video">Video Call</option>
           <option value="phone">Phone Call</option>
@@ -136,7 +119,7 @@ function InterviewModalContent({
       
       {interviewData.interviewType === 'video' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             Meeting Link
           </label>
           <input
@@ -144,31 +127,31 @@ function InterviewModalContent({
             value={interviewData.meetingLink}
             onChange={(e) => setInterviewData({...interviewData, meetingLink: e.target.value})}
             placeholder="https://zoom.us/j/..."
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
         </div>
       )}
       
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
           Notes
         </label>
         <textarea
           value={interviewData.notes}
           onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
-          rows={4}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          rows={3}
+          className="w-full p-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           placeholder="Additional notes for the interview..."
         />
       </div>
 
-      <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={onSubmit}
           disabled={isScheduling || !interviewData.scheduledDate || !interviewData.scheduledTime}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
         >
-          {isScheduling && <RefreshCw className="w-4 h-4 animate-spin" />}
+          {isScheduling && <RefreshCw className="w-3 h-3 animate-spin" />}
           <span>{isScheduling ? 'Scheduling...' : 'Schedule Interview'}</span>
         </button>
       </div>
@@ -285,8 +268,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       
       toast({
         title: "Success",
-        description: `${data.applicantName || 'Applicant'} accepted! Click "Schedule Interview" in the Quick Actions to proceed.`,
-        duration: 8000,
+        description: `${data.applicantName || 'Applicant'} accepted! You can now schedule an interview.`,
+        duration: 5000,
       });
       refetch();
     },
@@ -900,25 +883,13 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                             </span>
                           </div>
                         ) : acceptedApplicants.has(applicant.id) || applicant.status === 'accepted' ? (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleScheduleInterview(applicant)}
-                              className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                            >
-                              <Calendar className="w-3 h-3" />
-                              <span>Schedule Interview</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedApplicant(applicant);
-                                setShowMeetingScheduler(true);
-                              }}
-                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 transition-colors flex items-center space-x-1"
-                            >
-                              <Video className="w-3 h-3" />
-                              <span>Schedule Meeting</span>
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleScheduleInterview(applicant)}
+                            className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                          >
+                            <Calendar className="w-3 h-3" />
+                            <span>Schedule Interview</span>
+                          </button>
                         ) : applicant.status === 'declined' ? (
                           <div className="flex items-center space-x-2 text-red-600">
                             <XCircle className="w-4 h-4" />
@@ -966,13 +937,13 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full mx-4 h-[90vh] flex flex-col"
+                className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto flex flex-col"
               >
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center space-x-3">
                     <Calendar className="w-6 h-6 text-blue-600" />
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Interview Management with {selectedApplicant.name}
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Schedule Interview
                     </h3>
                   </div>
                   <button
@@ -1464,181 +1435,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
           )}
         </AnimatePresence>
 
-        {/* Meeting Scheduler Modal */}
-        <AnimatePresence>
-          {showMeetingScheduler && selectedApplicant && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60"
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
-              >
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-3">
-                    <Video className="w-6 h-6 text-green-600" />
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Schedule Meeting with {selectedApplicant.name}
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setShowMeetingScheduler(false)}
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
 
-                <div className="p-6 space-y-6">
-                  {/* Meeting Title */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Meeting Title
-                    </label>
-                    <input
-                      type="text"
-                      value={interviewData.meetingTitle || `Meeting with ${selectedApplicant.name}`}
-                      onChange={(e) => setInterviewData({...interviewData, meetingTitle: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      placeholder="Enter meeting title"
-                    />
-                  </div>
-
-                  {/* Date and Time */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Date
-                      </label>
-                      <input
-                        type="date"
-                        value={interviewData.scheduledDate}
-                        onChange={(e) => setInterviewData({...interviewData, scheduledDate: e.target.value})}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Time
-                      </label>
-                      <input
-                        type="time"
-                        value={interviewData.scheduledTime}
-                        onChange={(e) => setInterviewData({...interviewData, scheduledTime: e.target.value})}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Meeting Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Meeting Type
-                    </label>
-                    <select
-                      value={interviewData.interviewType}
-                      onChange={(e) => setInterviewData({...interviewData, interviewType: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    >
-                      <option value="video">Video Call</option>
-                      <option value="phone">Phone Call</option>
-                      <option value="in-person">In-Person</option>
-                    </select>
-                  </div>
-
-                  {/* Meeting Link */}
-                  {interviewData.interviewType === 'video' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Meeting Link
-                      </label>
-                      <input
-                        type="url"
-                        value={interviewData.meetingLink}
-                        onChange={(e) => setInterviewData({...interviewData, meetingLink: e.target.value})}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        placeholder="https://zoom.us/j/... or https://meet.google.com/..."
-                      />
-                    </div>
-                  )}
-
-                  {/* Meeting Duration */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Duration (minutes)
-                    </label>
-                    <select
-                      value={interviewData.duration || '60'}
-                      onChange={(e) => setInterviewData({...interviewData, duration: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    >
-                      <option value="30">30 minutes</option>
-                      <option value="45">45 minutes</option>
-                      <option value="60">1 hour</option>
-                      <option value="90">1.5 hours</option>
-                      <option value="120">2 hours</option>
-                    </select>
-                  </div>
-
-                  {/* Meeting Agenda */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Meeting Agenda
-                    </label>
-                    <textarea
-                      value={interviewData.agenda || ''}
-                      onChange={(e) => setInterviewData({...interviewData, agenda: e.target.value})}
-                      rows={4}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      placeholder="Meeting agenda and topics to discuss..."
-                    />
-                  </div>
-
-                  {/* Notes */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Additional Notes
-                    </label>
-                    <textarea
-                      value={interviewData.notes}
-                      onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
-                      rows={3}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      placeholder="Additional notes or special instructions..."
-                    />
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={() => setShowMeetingScheduler(false)}
-                      className="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        // Use the same submit function as interview scheduler
-                        handleSubmitInterview();
-                        setShowMeetingScheduler(false);
-                      }}
-                      disabled={scheduleInterviewMutation.isPending || !interviewData.scheduledDate || !interviewData.scheduledTime}
-                      className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors"
-                    >
-                      {scheduleInterviewMutation.isPending && <RefreshCw className="w-4 h-4 animate-spin" />}
-                      <span>{scheduleInterviewMutation.isPending ? 'Scheduling...' : 'Schedule Meeting'}</span>
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
