@@ -482,14 +482,22 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const [activeTab, setActiveTab] = useState<'match' | 'profile'>('match');
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingMatchAnalysis, setIsLoadingMatchAnalysis] = useState(false);
+  const [profileLoadAttempted, setProfileLoadAttempted] = useState(false);
 
-  // Load profile when switching to Complete Profile tab
+  // Load profile when switching to Complete Profile tab (only once per applicant)
   useEffect(() => {
-    if (activeTab === 'profile' && selectedApplicant && !completeUserProfile && !isLoadingProfile) {
+    if (activeTab === 'profile' && selectedApplicant && !completeUserProfile && !isLoadingProfile && !profileLoadAttempted) {
       console.log('🔄 Complete Profile tab selected, loading profile for:', selectedApplicant.name);
+      setProfileLoadAttempted(true);
       loadCompleteUserProfile(selectedApplicant);
     }
-  }, [activeTab, selectedApplicant, completeUserProfile, isLoadingProfile]);
+  }, [activeTab, selectedApplicant?.name]);
+
+  // Reset profile load attempt when applicant changes
+  useEffect(() => {
+    setProfileLoadAttempted(false);
+    setCompleteUserProfile(null);
+  }, [selectedApplicant?.name]);
 
   const handleViewProfile = async (applicant: ApplicantData) => {
     setSelectedApplicant(applicant);
@@ -501,14 +509,8 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
     console.log('🔍 View Profile clicked for applicant:', applicant.name);
     console.log('📋 Available applicant fields:', Object.keys(applicant));
     
-    // Start AI Match Analysis immediately, load profile in background
-    // Profile loading errors will be suppressed while on Match Analysis tab
-    Promise.all([
-      loadCompleteUserProfile(applicant),
-      loadMatchAnalysis(applicant)
-    ]).catch(error => {
-      console.log('🔄 Background loading completed with some errors (this is normal):', error);
-    });
+    // Only load AI Match Analysis immediately, profile loads when user clicks Complete Profile tab
+    loadMatchAnalysis(applicant);
   };
 
   const loadCompleteUserProfile = async (applicant: ApplicantData) => {
@@ -617,6 +619,12 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
   const handleRefreshProfile = () => {
     if (selectedApplicant) {
+      console.log('🔄 Refreshing profile for:', selectedApplicant.name);
+      setCompleteUserProfile(null);
+      setMatchAnalysis(null);
+      setProfileLoadAttempted(false); // Reset to allow fresh loading
+      
+      // Reload both profile and match analysis
       loadCompleteUserProfile(selectedApplicant);
       loadMatchAnalysis(selectedApplicant);
     }
