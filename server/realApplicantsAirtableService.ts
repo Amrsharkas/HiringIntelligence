@@ -16,6 +16,11 @@ interface AirtableApplicantRecord {
     'User profile'?: string;
     'Notes'?: string;
     'Status'?: string;
+    'Match Score'?: number;
+    'Match Summary'?: string;
+    'Technical Skills Score'?: number;
+    'Experience Score'?: number;
+    'Cultural Fit Score'?: number;
   };
   createdTime: string;
 }
@@ -39,6 +44,11 @@ interface ApplicantWithProfile {
   applicationDate: string;
   matchScore?: number;
   matchSummary?: string;
+  savedMatchScore?: number;
+  savedMatchSummary?: string;
+  technicalSkillsScore?: number;
+  experienceScore?: number;
+  culturalFitScore?: number;
 }
 
 class RealApplicantsAirtableService {
@@ -112,7 +122,10 @@ class RealApplicantsAirtableService {
           applicationDate: record.createdTime,
           // Check for saved match score from detailed AI analysis
           savedMatchScore: record.fields['Match Score'] || null,
-          savedMatchSummary: record.fields['Match Summary'] || null
+          savedMatchSummary: record.fields['Match Summary'] || null,
+          technicalSkillsScore: record.fields['Technical Skills Score'] || null,
+          experienceScore: record.fields['Experience Score'] || null,
+          culturalFitScore: record.fields['Cultural Fit Score'] || null
         };
         
         console.log(`📋 Applicant ${applicant.name} - User ID: "${applicant.userId}" (length: ${applicant.userId.length})`);
@@ -183,7 +196,10 @@ class RealApplicantsAirtableService {
         applicationDate: record.createdTime,
         // Check for saved match score from detailed AI analysis
         savedMatchScore: record.fields['Match Score'] || null,
-        savedMatchSummary: record.fields['Match Summary'] || null
+        savedMatchSummary: record.fields['Match Summary'] || null,
+        technicalSkillsScore: record.fields['Technical Skills Score'] || null,
+        experienceScore: record.fields['Experience Score'] || null,
+        culturalFitScore: record.fields['Cultural Fit Score'] || null
       }));
 
       return applicants;
@@ -274,9 +290,10 @@ class RealApplicantsAirtableService {
     }
   }
 
-  async updateApplicantScore(recordId: string, matchScore: number, matchSummary?: string): Promise<void> {
+  async updateApplicantScore(recordId: string, matchScore: number, matchSummary?: string, componentScores?: {technical: number, experience: number, cultural: number}): Promise<void> {
     try {
-      console.log(`Updating applicant ${recordId} score to ${matchScore}%...`);
+      console.log(`🔄 Updating applicant ${recordId} with comprehensive scores...`);
+      console.log(`📊 Overall Score: ${matchScore}%`);
       
       const fields: any = {
         'Match Score': matchScore
@@ -284,7 +301,18 @@ class RealApplicantsAirtableService {
 
       if (matchSummary) {
         fields['Match Summary'] = matchSummary;
+        console.log(`📝 Match Summary: ${matchSummary.substring(0, 50)}...`);
       }
+
+      // Add component scores if provided
+      if (componentScores) {
+        fields['Technical Skills Score'] = componentScores.technical;
+        fields['Experience Score'] = componentScores.experience;
+        fields['Cultural Fit Score'] = componentScores.cultural;
+        console.log(`🧩 Component Scores - Technical: ${componentScores.technical}%, Experience: ${componentScores.experience}%, Cultural: ${componentScores.cultural}%`);
+      }
+
+      console.log(`📤 Sending update to Airtable with fields:`, Object.keys(fields));
 
       const response = await fetch(
         `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
@@ -302,14 +330,18 @@ class RealApplicantsAirtableService {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`❌ Airtable API Error: ${response.status} ${response.statusText}`);
+        console.error(`❌ Response Body: ${errorText}`);
         throw new Error(`Failed to update applicant score: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const result = await response.json();
-      console.log(`✅ Successfully updated applicant ${recordId} score to ${matchScore}%`);
+      console.log(`✅ Successfully updated applicant ${recordId} with all scores`);
+      console.log(`✅ Airtable response:`, result);
       return result;
     } catch (error) {
       console.error('❌ Error updating applicant score:', error);
+      console.error('❌ Error details:', error.message);
       throw error;
     }
   }

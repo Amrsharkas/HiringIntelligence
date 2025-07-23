@@ -675,30 +675,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/real-applicants/:id/score', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
-      const { matchScore, matchSummary } = req.body;
+      const { matchScore, matchSummary, componentScores } = req.body;
       
-      console.log(`🔄 Updating applicant ${applicantId} score to: ${matchScore}%`);
-      console.log(`🔄 Request body:`, { matchScore, matchSummary });
+      console.log(`🔄 Updating applicant ${applicantId} with comprehensive analysis...`);
+      console.log(`📊 Overall Score: ${matchScore}%`);
+      console.log(`🔄 Request body:`, { matchScore, matchSummary: matchSummary?.substring(0, 50) + '...', componentScores });
       
       // Update score in Airtable platojobapplications table using the correct service
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       
-      console.log(`🔄 Calling updateApplicantScore with ID: ${applicantId}, Score: ${matchScore}`);
-      await realApplicantsAirtableService.updateApplicantScore(applicantId, matchScore, matchSummary);
+      console.log(`🔄 Calling updateApplicantScore with comprehensive data...`);
+      await realApplicantsAirtableService.updateApplicantScore(applicantId, matchScore, matchSummary, componentScores);
       
-      console.log(`✅ Successfully updated applicant ${applicantId} score to ${matchScore}%`);
+      console.log(`✅ Successfully updated applicant ${applicantId} with all analysis data`);
       
       res.json({ 
         success: true, 
-        message: "Applicant score updated successfully",
+        message: "Applicant analysis updated successfully",
         matchScore,
-        matchSummary 
+        matchSummary,
+        componentScores
       });
     } catch (error) {
-      console.error("❌ Error updating applicant score:", error);
+      console.error("❌ Error updating applicant analysis:", error);
       console.error("❌ Error details:", error.message);
       console.error("❌ Error stack:", error.stack);
-      res.status(500).json({ message: "Failed to update applicant score", error: error.message });
+      res.status(500).json({ message: "Failed to update applicant analysis", error: error.message });
     }
   });
 
