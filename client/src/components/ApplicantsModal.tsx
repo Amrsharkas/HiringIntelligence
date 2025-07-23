@@ -691,6 +691,17 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       const analysis = await response.json();
       setMatchAnalysis(analysis);
       console.log('✅ Match analysis generated with score:', analysis.overallMatchScore);
+      
+      // Update the selected applicant's score to match the AI-generated score
+      if (selectedApplicant && analysis.overallMatchScore) {
+        setSelectedApplicant(prev => prev ? {
+          ...prev,
+          matchScore: analysis.overallMatchScore
+        } : null);
+        
+        // Also invalidate the applicants query to refresh the list with updated score
+        queryClient.invalidateQueries({ queryKey: ['/api/real-applicants', selectedJob?.id] });
+      }
     } catch (error) {
       console.error('Error generating match analysis:', error);
       toast({
