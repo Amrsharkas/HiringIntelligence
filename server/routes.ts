@@ -540,66 +540,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
       }
 
-      // Use saved scores consistently - prevent rescoring if saved scores exist
+      // COMPREHENSIVE DATABASE-BACKED SCORE PERSISTENCE SYSTEM
       if (applicants.length > 0) {
-        console.log(`📊 Processing ${applicants.length} applicants - checking for saved scores...`);
+        console.log(`🗄️  DATABASE-BACKED SCORING: Processing ${applicants.length} applicants`);
         
-        // Check how many applicants have ANY existing scores (matchScore OR savedMatchScore)
-        const withExistingScores = applicants.filter(app => app.savedMatchScore || app.matchScore);
-        const needScoring = applicants.filter(app => !app.savedMatchScore && !app.matchScore && app.userProfile && app.jobDescription);
+        // Step 1: Get all scored applicants from database for this organization
+        const organizationId = organization.id;
+        const allScoredApplicants = await storage.getScoredApplicantsByOrganization(organizationId);
+        const scoredApplicantsMap = new Map(allScoredApplicants.map(s => [s.applicantId, s]));
         
-        console.log(`✅ Found ${withExistingScores.length} applicants with existing scores`);
-        console.log(`🔄 Need to score ${needScoring.length} applicants`);
+        console.log(`🔍 Found ${allScoredApplicants.length} total scored applicants in database`);
         
-        // Log existing scores for debugging
-        withExistingScores.forEach(app => {
-          console.log(`📊 ${app.name}: saved=${app.savedMatchScore}, match=${app.matchScore}`);
-        });
+        // Step 2: Apply database scores to applicants and determine which need scoring
+        const applicantsWithScores: any[] = [];
+        const needScoring: any[] = [];
         
-        // Apply existing scores for all applicants first - use ANY available score
-        applicants = applicants.map(app => ({
-          ...app,
-          matchScore: app.matchScore || app.savedMatchScore || 0,
-          matchSummary: app.matchSummary || app.savedMatchSummary || 'No analysis available',
-          // Use existing scores to ensure consistency between internal and external views
-          savedMatchScore: app.savedMatchScore || app.matchScore,
-          savedMatchSummary: app.savedMatchSummary || app.matchSummary,
-          // Preserve component scores from Airtable
-          technicalSkillsScore: app.technicalSkillsScore,
-          experienceScore: app.experienceScore,
-          culturalFitScore: app.culturalFitScore
-        }));
-
-        // Only score applicants that don't have any saved scores at all
+        for (const app of applicants) {
+          const dbScore = scoredApplicantsMap.get(app.id);
+          
+          if (dbScore) {
+            // Apply database score - NO RECALCULATION EVER
+            console.log(`✅ ${app.name}: Using database score ${dbScore.matchScore} (scored: ${dbScore.scoredAt})`);
+            applicantsWithScores.push({
+              ...app,
+              matchScore: dbScore.matchScore,
+              matchSummary: dbScore.matchSummary || 'Database score',
+              savedMatchScore: dbScore.matchScore,
+              savedMatchSummary: dbScore.matchSummary || 'Database score',
+              technicalSkillsScore: dbScore.technicalSkillsScore,
+              experienceScore: dbScore.experienceScore,
+              culturalFitScore: dbScore.culturalFitScore
+            });
+          } else if (app.userProfile && app.jobDescription) {
+            // Needs scoring - add to scoring queue
+            console.log(`❌ ${app.name}: NO database score found - adding to scoring queue`);
+            needScoring.push(app);
+          } else {
+            // No profile data - skip scoring
+            console.log(`⚠️  ${app.name}: Missing profile/job data - cannot score`);
+            applicantsWithScores.push({
+              ...app,
+              matchScore: 0,
+              matchSummary: 'Insufficient data for scoring',
+              savedMatchScore: 0,
+              savedMatchSummary: 'Insufficient data for scoring'
+            });
+          }
+        }
+        
+        // Step 3: Score ONLY new applicants and save to database immediately
         if (needScoring.length > 0) {
-          console.log(`🤖 Scoring ${needScoring.length} new applicants that need initial scoring...`);
+          console.log(`🤖 DATABASE SCORING: Processing ${needScoring.length} new applicants`);
+          
           const scoringData = needScoring.map(app => ({
             id: app.id,
             userProfile: app.userProfile!,
             jobDescription: app.jobDescription
           }));
           
-          const scores = await applicantScoringService.batchScoreApplicants(scoringData);
-          
-          // Apply new scores only to applicants that needed scoring
-          const scoresMap = new Map(scores.map(s => [s.applicantId, { score: s.score, summary: s.summary }]));
-          applicants = applicants.map(app => {
-            if (!app.savedMatchScore && !app.matchScore && scoresMap.has(app.id)) {
+          try {
+            const scores = await applicantScoringService.batchScoreApplicants(scoringData);
+            const scoresMap = new Map(scores.map(s => [s.applicantId, { score: s.score, summary: s.summary }]));
+            
+            // Save each new score to database immediately
+            for (const app of needScoring) {
               const newScore = scoresMap.get(app.id);
-              return {
-                ...app,
-                matchScore: newScore?.score || 0,
-                matchSummary: newScore?.summary || 'Unable to score',
-                // Store as saved scores too for future consistency
-                savedMatchScore: newScore?.score || 0,
-                savedMatchSummary: newScore?.summary || 'Unable to score'
-              };
+              if (newScore) {
+                try {
+                  // Save to database first - PRIMARY STORAGE
+                  const dbScoredApplicant = await storage.createScoredApplicant({
+                    applicantId: app.id,
+                    matchScore: newScore.score,
+                    matchSummary: newScore.summary,
+                    technicalSkillsScore: null,
+                    experienceScore: null,
+                    culturalFitScore: null,
+                    jobId: app.jobId,
+                    organizationId: organizationId
+                  });
+                  
+                  console.log(`💾 DATABASE: Saved score ${newScore.score} for ${app.name} (ID: ${dbScoredApplicant.id})`);
+                  
+                  // Add to final applicants list with database score
+                  applicantsWithScores.push({
+                    ...app,
+                    matchScore: newScore.score,
+                    matchSummary: newScore.summary,
+                    savedMatchScore: newScore.score,
+                    savedMatchSummary: newScore.summary,
+                    technicalSkillsScore: null,
+                    experienceScore: null,
+                    culturalFitScore: null
+                  });
+                  
+                } catch (dbError) {
+                  console.error(`❌ DATABASE ERROR saving score for ${app.name}:`, dbError);
+                  // Fallback: add with default scores
+                  applicantsWithScores.push({
+                    ...app,
+                    matchScore: 0,
+                    matchSummary: 'Database error - could not save score',
+                    savedMatchScore: 0,
+                    savedMatchSummary: 'Database error - could not save score'
+                  });
+                }
+              }
             }
-            return app;
-          });
-        } else {
-          console.log('✅ All applicants already have comprehensive saved scores - no rescoring needed');
+          } catch (scoringError) {
+            console.error(`❌ SCORING ERROR:`, scoringError);
+            // Add all failed scoring to applicants with 0 scores
+            for (const app of needScoring) {
+              applicantsWithScores.push({
+                ...app,
+                matchScore: 0,
+                matchSummary: 'Scoring service error',
+                savedMatchScore: 0,
+                savedMatchSummary: 'Scoring service error'
+              });
+            }
+          }
         }
+        
+        // Final result: All applicants with persistent scores
+        applicants = applicantsWithScores;
+        console.log(`🎯 FINAL RESULT: ${applicants.length} applicants with persistent database scores`);
+        
+        // Log final scoring status
+        applicants.forEach(app => {
+          console.log(`📊 ${app.name}: Final score = ${app.matchScore} (${app.matchScore > 0 ? 'DATABASE PERSISTENT' : 'NO SCORE'})`);
+        });
       }
 
       // Sort by match score (highest first)

@@ -10,6 +10,7 @@ import {
   interviews,
   acceptedApplicants,
   realInterviews,
+  scoredApplicants,
   type User,
   type UpsertUser,
   type Organization,
@@ -29,6 +30,8 @@ import {
   type InsertAcceptedApplicant,
   type RealInterview,
   type InsertRealInterview,
+  type ScoredApplicant,
+  type InsertScoredApplicant,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -83,6 +86,12 @@ export interface IStorage {
   addAcceptedApplicant(applicant: InsertAcceptedApplicant): Promise<AcceptedApplicant>;
   getAcceptedApplicantsByOrganization(organizationId: number): Promise<AcceptedApplicant[]>;
   removeAcceptedApplicant(candidateId: string, jobId: string, organizationId: number): Promise<void>;
+
+  // Scored applicants operations - for permanent score persistence
+  getScoredApplicant(applicantId: string): Promise<ScoredApplicant | undefined>;
+  createScoredApplicant(scored: InsertScoredApplicant): Promise<ScoredApplicant>;
+  updateScoredApplicant(applicantId: string, scored: Partial<InsertScoredApplicant>): Promise<ScoredApplicant>;
+  getScoredApplicantsByOrganization(organizationId: number): Promise<ScoredApplicant[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -454,6 +463,37 @@ export class DatabaseStorage implements IStorage {
         eq(acceptedApplicants.jobId, jobId),
         eq(acceptedApplicants.organizationId, organizationId)
       ));
+  }
+
+  // Scored applicants operations - for permanent score persistence
+  async getScoredApplicant(applicantId: string): Promise<ScoredApplicant | undefined> {
+    const [scored] = await db
+      .select()
+      .from(scoredApplicants)
+      .where(eq(scoredApplicants.applicantId, applicantId));
+    return scored;
+  }
+
+  async createScoredApplicant(scoredData: InsertScoredApplicant): Promise<ScoredApplicant> {
+    const [scored] = await db.insert(scoredApplicants).values(scoredData).returning();
+    return scored;
+  }
+
+  async updateScoredApplicant(applicantId: string, scoredData: Partial<InsertScoredApplicant>): Promise<ScoredApplicant> {
+    const [scored] = await db
+      .update(scoredApplicants)
+      .set({ ...scoredData, updatedAt: new Date() })
+      .where(eq(scoredApplicants.applicantId, applicantId))
+      .returning();
+    return scored;
+  }
+
+  async getScoredApplicantsByOrganization(organizationId: number): Promise<ScoredApplicant[]> {
+    return await db
+      .select()
+      .from(scoredApplicants)
+      .where(eq(scoredApplicants.organizationId, organizationId))
+      .orderBy(desc(scoredApplicants.scoredAt));
   }
 }
 

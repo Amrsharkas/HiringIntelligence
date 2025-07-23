@@ -237,6 +237,21 @@ export const realInterviews = pgTable("real_interviews", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Scored applicants tracking table - prevents score recalculation
+export const scoredApplicants = pgTable("scored_applicants", {
+  id: serial("id").primaryKey(),
+  applicantId: varchar("applicant_id").notNull().unique(), // Airtable record ID
+  matchScore: integer("match_score").notNull(),
+  matchSummary: text("match_summary"),
+  technicalSkillsScore: integer("technical_skills_score"),
+  experienceScore: integer("experience_score"),
+  culturalFitScore: integer("cultural_fit_score"),
+  jobId: varchar("job_id").notNull(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  scoredAt: timestamp("scored_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -244,6 +259,8 @@ export type AcceptedApplicant = typeof acceptedApplicants.$inferSelect;
 export type InsertAcceptedApplicant = typeof acceptedApplicants.$inferInsert;
 export type RealInterview = typeof realInterviews.$inferSelect;
 export type InsertRealInterview = typeof realInterviews.$inferInsert;
+export type ScoredApplicant = typeof scoredApplicants.$inferSelect;
+export type InsertScoredApplicant = typeof scoredApplicants.$inferInsert;
 
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,

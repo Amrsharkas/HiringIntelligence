@@ -179,6 +179,17 @@ class RealApplicantsAirtableService {
 
       console.log(`Found ${allRecords.length} total applicants`);
 
+      // Debug: Show raw record data for score detection debugging
+      if (allRecords.length > 0) {
+        console.log('🔍 RAW AIRTABLE DATA - First applicant fields:');
+        console.log('🔍 Available field names:', Object.keys(allRecords[0].fields));
+        console.log('🔍 Match Score field value:', allRecords[0].fields['Match Score']);
+        console.log('🔍 Match Summary field value:', allRecords[0].fields['Match Summary']);
+        console.log('🔍 Technical Skills Score field value:', allRecords[0].fields['Technical Skills Score']);
+        console.log('🔍 Experience Score field value:', allRecords[0].fields['Experience Score']);
+        console.log('🔍 Cultural Fit Score field value:', allRecords[0].fields['Cultural Fit Score']);
+      }
+
       // Transform records to our format and group by job ID
       const applicants: ApplicantWithProfile[] = allRecords.map(record => ({
         id: record.id,
