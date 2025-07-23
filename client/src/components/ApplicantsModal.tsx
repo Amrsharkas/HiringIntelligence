@@ -897,7 +897,7 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
                               <p className="text-xs font-medium text-blue-900 dark:text-blue-100">AI Analysis</p>
                               {applicant.matchScore && (
                                 <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                                  Score: {Math.round(applicant.matchScore)}/100
+                                  Score: {Math.round(applicant.matchScore)}%
                                 </span>
                               )}
                             </div>
