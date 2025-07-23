@@ -672,18 +672,21 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
   const loadMatchAnalysis = async (applicant: ApplicantData) => {
     if (!selectedJob) return;
     
-    // Check if we already have saved match analysis data with component scores
-    if (applicant.savedMatchScore && applicant.savedMatchSummary) {
-      console.log('✅ Using saved comprehensive match analysis with score:', applicant.savedMatchScore);
+    // ALWAYS use existing scores (from either matchScore or savedMatchScore) to ensure consistency
+    const existingScore = applicant.matchScore || applicant.savedMatchScore;
+    const existingSummary = applicant.matchSummary || applicant.savedMatchSummary;
+    
+    if (existingScore && existingSummary) {
+      console.log('✅ Using existing comprehensive match analysis with score:', existingScore);
       
       // Use stored component scores if available, otherwise derive stable scores
-      const technicalScore = applicant.technicalSkillsScore || Math.round(applicant.savedMatchScore * 0.95);
-      const experienceScore = applicant.experienceScore || Math.round(applicant.savedMatchScore * 1.05);  
-      const culturalScore = applicant.culturalFitScore || Math.round(applicant.savedMatchScore * 1.0);
+      const technicalScore = applicant.technicalSkillsScore || Math.round(existingScore * 0.95);
+      const experienceScore = applicant.experienceScore || Math.round(existingScore * 1.05);  
+      const culturalScore = applicant.culturalFitScore || Math.round(existingScore * 1.0);
       
       const savedAnalysis = {
-        overallMatchScore: applicant.savedMatchScore,
-        matchSummary: applicant.savedMatchSummary,
+        overallMatchScore: existingScore,
+        matchSummary: existingSummary,
         technicalAlignment: {
           score: technicalScore,
           analysis: "Based on comprehensive AI evaluation of technical competencies and job requirements alignment."

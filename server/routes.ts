@@ -544,18 +544,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (applicants.length > 0) {
         console.log(`📊 Processing ${applicants.length} applicants - checking for saved scores...`);
         
-        // Check how many applicants have saved scores
-        const withSavedScores = applicants.filter(app => app.savedMatchScore);
-        const needScoring = applicants.filter(app => !app.savedMatchScore && app.userProfile && app.jobDescription);
+        // Check how many applicants have ANY existing scores (matchScore OR savedMatchScore)
+        const withExistingScores = applicants.filter(app => app.savedMatchScore || app.matchScore);
+        const needScoring = applicants.filter(app => !app.savedMatchScore && !app.matchScore && app.userProfile && app.jobDescription);
         
-        console.log(`✅ Found ${withSavedScores.length} applicants with saved scores`);
+        console.log(`✅ Found ${withExistingScores.length} applicants with existing scores`);
         console.log(`🔄 Need to score ${needScoring.length} applicants`);
         
-        // Apply saved scores for all applicants first
+        // Log existing scores for debugging
+        withExistingScores.forEach(app => {
+          console.log(`📊 ${app.name}: saved=${app.savedMatchScore}, match=${app.matchScore}`);
+        });
+        
+        // Apply existing scores for all applicants first - use ANY available score
         applicants = applicants.map(app => ({
           ...app,
-          matchScore: app.savedMatchScore || 0,
-          matchSummary: app.savedMatchSummary || 'No analysis available',
+          matchScore: app.matchScore || app.savedMatchScore || 0,
+          matchSummary: app.matchSummary || app.savedMatchSummary || 'No analysis available',
+          // Use existing scores to ensure consistency between internal and external views
+          savedMatchScore: app.savedMatchScore || app.matchScore,
+          savedMatchSummary: app.savedMatchSummary || app.matchSummary,
           // Preserve component scores from Airtable
           technicalSkillsScore: app.technicalSkillsScore,
           experienceScore: app.experienceScore,
@@ -576,12 +584,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Apply new scores only to applicants that needed scoring
           const scoresMap = new Map(scores.map(s => [s.applicantId, { score: s.score, summary: s.summary }]));
           applicants = applicants.map(app => {
-            if (!app.savedMatchScore && scoresMap.has(app.id)) {
+            if (!app.savedMatchScore && !app.matchScore && scoresMap.has(app.id)) {
               const newScore = scoresMap.get(app.id);
               return {
                 ...app,
                 matchScore: newScore?.score || 0,
-                matchSummary: newScore?.summary || 'Unable to score'
+                matchSummary: newScore?.summary || 'Unable to score',
+                // Store as saved scores too for future consistency
+                savedMatchScore: newScore?.score || 0,
+                savedMatchSummary: newScore?.summary || 'Unable to score'
               };
             }
             return app;
