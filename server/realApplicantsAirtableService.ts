@@ -180,7 +180,10 @@ class RealApplicantsAirtableService {
         userProfile: record.fields['User profile'] || '',
         notes: record.fields['Notes'] || '',
         status: record.fields['Status'] || 'pending',
-        applicationDate: record.createdTime
+        applicationDate: record.createdTime,
+        // Check for saved match score from detailed AI analysis
+        savedMatchScore: record.fields['Match Score'] || null,
+        savedMatchSummary: record.fields['Match Summary'] || null
       }));
 
       return applicants;

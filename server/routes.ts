@@ -679,8 +679,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🔄 Updating applicant ${applicantId} score to: ${matchScore}`);
       
-      // Update score in Airtable platojobapplications table
-      await applicantsAirtableService.updateApplicantScore(applicantId, matchScore, matchSummary);
+      // Update score in Airtable platojobapplications table using the correct service
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      await realApplicantsAirtableService.updateApplicantScore(applicantId, matchScore, matchSummary);
       
       res.json({ 
         success: true, 
