@@ -540,27 +540,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
       }
 
-      // Score applicants using OpenAI
+      // Score applicants using OpenAI (only for those without saved scores)
       if (applicants.length > 0) {
-        console.log(`Scoring ${applicants.length} applicants...`);
-        const scoringData = applicants
-          .filter(app => app.userProfile && app.jobDescription)
-          .map(app => ({
+        // First, use saved scores where available
+        applicants = applicants.map(app => ({
+          ...app,
+          matchScore: app.savedMatchScore || 0,
+          matchSummary: app.savedMatchSummary || 'No analysis available'
+        }));
+
+        // Only score applicants that don't have saved scores
+        const needScoring = applicants.filter(app => !app.savedMatchScore && app.userProfile && app.jobDescription);
+        
+        if (needScoring.length > 0) {
+          console.log(`Scoring ${needScoring.length} applicants...`);
+          const scoringData = needScoring.map(app => ({
             id: app.id,
             userProfile: app.userProfile!,
             jobDescription: app.jobDescription
           }));
-        
-        if (scoringData.length > 0) {
+          
           const scores = await applicantScoringService.batchScoreApplicants(scoringData);
           
-          // Apply scores to applicants
+          // Apply new scores only to applicants that needed scoring
           const scoresMap = new Map(scores.map(s => [s.applicantId, { score: s.score, summary: s.summary }]));
-          applicants = applicants.map(app => ({
-            ...app,
-            matchScore: scoresMap.get(app.id)?.score || 0,
-            matchSummary: scoresMap.get(app.id)?.summary || 'Unable to score'
-          }));
+          applicants = applicants.map(app => {
+            if (!app.savedMatchScore && scoresMap.has(app.id)) {
+              return {
+                ...app,
+                matchScore: scoresMap.get(app.id)?.score || 0,
+                matchSummary: scoresMap.get(app.id)?.summary || 'Unable to score'
+              };
+            }
+            return app;
+          });
+        } else {
+          console.log('All applicants already have saved match scores from detailed AI analysis');
         }
       }
 

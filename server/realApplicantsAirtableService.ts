@@ -109,10 +109,14 @@ class RealApplicantsAirtableService {
           jobId: record.fields['Job ID'] || '',
           userProfile: record.fields['User profile'] || '',
           notes: record.fields['Notes'] || '',
-          applicationDate: record.createdTime
+          applicationDate: record.createdTime,
+          // Check for saved match score from detailed AI analysis
+          savedMatchScore: record.fields['Match Score'] || null,
+          savedMatchSummary: record.fields['Match Summary'] || null
         };
         
         console.log(`📋 Applicant ${applicant.name} - User ID: "${applicant.userId}" (length: ${applicant.userId.length})`);
+        console.log(`📋 Saved Match Score: ${applicant.savedMatchScore}`);
         console.log(`📋 Available fields in record:`, Object.keys(record.fields));
         
         return applicant;
