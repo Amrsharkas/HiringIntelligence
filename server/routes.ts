@@ -677,11 +677,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const applicantId = req.params.id;
       const { matchScore, matchSummary } = req.body;
       
-      console.log(`🔄 Updating applicant ${applicantId} score to: ${matchScore}`);
+      console.log(`🔄 Updating applicant ${applicantId} score to: ${matchScore}%`);
+      console.log(`🔄 Request body:`, { matchScore, matchSummary });
       
       // Update score in Airtable platojobapplications table using the correct service
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      
+      console.log(`🔄 Calling updateApplicantScore with ID: ${applicantId}, Score: ${matchScore}`);
       await realApplicantsAirtableService.updateApplicantScore(applicantId, matchScore, matchSummary);
+      
+      console.log(`✅ Successfully updated applicant ${applicantId} score to ${matchScore}%`);
       
       res.json({ 
         success: true, 
@@ -690,8 +695,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         matchSummary 
       });
     } catch (error) {
-      console.error("Error updating applicant score:", error);
-      res.status(500).json({ message: "Failed to update applicant score" });
+      console.error("❌ Error updating applicant score:", error);
+      console.error("❌ Error details:", error.message);
+      console.error("❌ Error stack:", error.stack);
+      res.status(500).json({ message: "Failed to update applicant score", error: error.message });
     }
   });
 
