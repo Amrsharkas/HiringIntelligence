@@ -238,6 +238,8 @@ class RealApplicantsAirtableService {
         id: record.id,
         name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
         userId: record.fields['User ID'] || '',
+        email: record.fields['Email'] || '',
+        phone: record.fields['Phone'] || '',
         jobTitle: record.fields['Job title'] || '',
         jobDescription: record.fields['Job description'] || '',
         companyName: record.fields['Company name'] || '',
@@ -245,7 +247,13 @@ class RealApplicantsAirtableService {
         userProfile: record.fields['User profile'] || '',
         notes: record.fields['Notes'] || '',
         status: record.fields['Status'] || 'pending',
-        applicationDate: record.createdTime
+        applicationDate: record.createdTime,
+        // Include saved scores from Airtable for persistence
+        savedMatchScore: record.fields['Match Score'] || null,
+        savedMatchSummary: record.fields['Match Summary'] || null,
+        technicalSkillsScore: record.fields['Technical Skills Score'] || null,
+        experienceScore: record.fields['Experience Score'] || null,
+        culturalFitScore: record.fields['Cultural Fit Score'] || null
       };
 
       return applicant;
