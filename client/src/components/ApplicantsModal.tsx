@@ -694,12 +694,24 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
       
       // Update the selected applicant's score to match the AI-generated score
       if (selectedApplicant && analysis.overallMatchScore) {
+        // Update the local state immediately
         setSelectedApplicant(prev => prev ? {
           ...prev,
           matchScore: analysis.overallMatchScore
         } : null);
         
-        // Also invalidate the applicants query to refresh the list with updated score
+        // Update the applicant's score in the backend for persistence
+        try {
+          await apiRequest("PATCH", `/api/real-applicants/${selectedApplicant.id}/score`, {
+            matchScore: analysis.overallMatchScore,
+            matchSummary: analysis.matchSummary
+          });
+          console.log('✅ Updated applicant score in backend:', analysis.overallMatchScore);
+        } catch (error) {
+          console.error('❌ Failed to update applicant score in backend:', error);
+        }
+        
+        // Invalidate the applicants query to refresh the list with updated score
         queryClient.invalidateQueries({ queryKey: ['/api/real-applicants', selectedJob?.id] });
       }
     } catch (error) {

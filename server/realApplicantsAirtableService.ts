@@ -267,6 +267,46 @@ class RealApplicantsAirtableService {
     }
   }
 
+  async updateApplicantScore(recordId: string, matchScore: number, matchSummary?: string): Promise<void> {
+    try {
+      console.log(`Updating applicant ${recordId} score to ${matchScore}%...`);
+      
+      const fields: any = {
+        'Match Score': matchScore
+      };
+
+      if (matchSummary) {
+        fields['Match Summary'] = matchSummary;
+      }
+
+      const response = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fields
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update applicant score: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ Successfully updated applicant ${recordId} score to ${matchScore}%`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating applicant score:', error);
+      throw error;
+    }
+  }
+
   async getAllApplicantsIncludingProcessed(): Promise<ApplicantWithProfile[]> {
     try {
       console.log('Fetching ALL applicants from platojobapplications table (including accepted/denied)...');

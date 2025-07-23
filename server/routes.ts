@@ -657,6 +657,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/real-applicants/:id/score', isAuthenticated, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { matchScore, matchSummary } = req.body;
+      
+      console.log(`🔄 Updating applicant ${applicantId} score to: ${matchScore}`);
+      
+      // Update score in Airtable platojobapplications table
+      await applicantsAirtableService.updateApplicantScore(applicantId, matchScore, matchSummary);
+      
+      res.json({ 
+        success: true, 
+        message: "Applicant score updated successfully",
+        matchScore,
+        matchSummary 
+      });
+    } catch (error) {
+      console.error("Error updating applicant score:", error);
+      res.status(500).json({ message: "Failed to update applicant score" });
+    }
+  });
+
   // AI-powered job content generation
   app.post('/api/ai/generate-description', isAuthenticated, async (req: any, res) => {
     try {
