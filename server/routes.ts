@@ -540,20 +540,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
       }
 
-      // Score applicants using OpenAI (only for those without saved scores)
+      // Use saved scores consistently - prevent rescoring if saved scores exist
       if (applicants.length > 0) {
-        // First, use saved scores where available
+        console.log(`📊 Processing ${applicants.length} applicants - checking for saved scores...`);
+        
+        // Check how many applicants have saved scores
+        const withSavedScores = applicants.filter(app => app.savedMatchScore);
+        const needScoring = applicants.filter(app => !app.savedMatchScore && app.userProfile && app.jobDescription);
+        
+        console.log(`✅ Found ${withSavedScores.length} applicants with saved scores`);
+        console.log(`🔄 Need to score ${needScoring.length} applicants`);
+        
+        // Apply saved scores for all applicants first
         applicants = applicants.map(app => ({
           ...app,
           matchScore: app.savedMatchScore || 0,
-          matchSummary: app.savedMatchSummary || 'No analysis available'
+          matchSummary: app.savedMatchSummary || 'No analysis available',
+          // Preserve component scores from Airtable
+          technicalSkillsScore: app.technicalSkillsScore,
+          experienceScore: app.experienceScore,
+          culturalFitScore: app.culturalFitScore
         }));
 
-        // Only score applicants that don't have saved scores
-        const needScoring = applicants.filter(app => !app.savedMatchScore && app.userProfile && app.jobDescription);
-        
+        // Only score applicants that don't have any saved scores at all
         if (needScoring.length > 0) {
-          console.log(`Scoring ${needScoring.length} applicants...`);
+          console.log(`🤖 Scoring ${needScoring.length} new applicants that need initial scoring...`);
           const scoringData = needScoring.map(app => ({
             id: app.id,
             userProfile: app.userProfile!,
@@ -566,16 +577,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const scoresMap = new Map(scores.map(s => [s.applicantId, { score: s.score, summary: s.summary }]));
           applicants = applicants.map(app => {
             if (!app.savedMatchScore && scoresMap.has(app.id)) {
+              const newScore = scoresMap.get(app.id);
               return {
                 ...app,
-                matchScore: scoresMap.get(app.id)?.score || 0,
-                matchSummary: scoresMap.get(app.id)?.summary || 'Unable to score'
+                matchScore: newScore?.score || 0,
+                matchSummary: newScore?.summary || 'Unable to score'
               };
             }
             return app;
           });
         } else {
-          console.log('All applicants already have saved match scores from detailed AI analysis');
+          console.log('✅ All applicants already have comprehensive saved scores - no rescoring needed');
         }
       }
 
@@ -983,15 +995,15 @@ Provide a comprehensive JSON response with the following structure:
   "matchSummary": "<2-3 sentence summary of overall fit>",
   "technicalAlignment": {
     "score": <number 1-100>,
-    "analysis": "<detailed technical skills assessment>"
+    "analysis": "<2 complete sentences analyzing technical skills match with specific examples from candidate profile and job requirements>"
   },
   "experienceAlignment": {
     "score": <number 1-100>,
-    "analysis": "<experience level and relevance assessment>"
+    "analysis": "<2 complete sentences evaluating experience relevance with specific references to years, roles, and responsibilities>"
   },
   "culturalFit": {
     "score": <number 1-100>,
-    "analysis": "<cultural and soft skills alignment>"
+    "analysis": "<2 complete sentences assessing cultural alignment based on communication style, work preferences, and company culture fit>"
   },
   "strengths": [
     "<specific strength 1>",
@@ -1025,7 +1037,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         messages: [
           {
             role: "system",
-            content: "You are an expert HR analyst specializing in comprehensive candidate-job matching analysis. Provide detailed, specific assessments based on the exact job requirements and candidate profile provided."
+            content: "You are an expert HR analyst specializing in comprehensive candidate-job matching analysis. Provide detailed, specific assessments based on the exact job requirements and candidate profile provided. For component analysis, provide 1-2 complete sentences explaining your reasoning with specific references to the candidate's background and job requirements."
           },
           {
             role: "user",
@@ -1033,7 +1045,8 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           },
         ],
         response_format: { type: "json_object" },
-        temperature: 0.3,
+        temperature: 0.1, // Lower temperature for more consistent results
+        max_tokens: 2000, // Ensure full responses aren't truncated
       });
 
       const analysis = JSON.parse(response.choices[0].message.content);
