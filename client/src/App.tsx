@@ -49,8 +49,7 @@ function Router() {
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/employer-dashboard" component={Landing} />
-          <Route path="/organization-setup" component={Landing} />
+          <Route component={Landing} />
         </>
       ) : !organization ? (
         <>
