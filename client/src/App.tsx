@@ -54,9 +54,9 @@ function Router() {
         </>
       ) : !organization ? (
         <>
-          <Route path="/" component={OrganizationSetup} />
+          <Route path="/" component={EmployerDashboard} />
           <Route path="/organization-setup" component={OrganizationSetup} />
-          <Route component={OrganizationSetup} />
+          <Route component={EmployerDashboard} />
         </>
       ) : (
         <>
