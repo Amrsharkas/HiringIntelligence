@@ -67,7 +67,7 @@ export function InviteCodeModal({ isOpen, onClose }: InviteCodeModalProps) {
         setIsSuccess(false);
         reset();
         // Redirect to dashboard as requested
-        window.location.href = "/dashboard";
+        window.location.href = "/";
       }, 2000);
     },
     onError: (error) => {

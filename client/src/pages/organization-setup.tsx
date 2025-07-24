@@ -105,7 +105,7 @@ export default function OrganizationSetup() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       // This will trigger a redirect to the dashboard
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -130,7 +130,7 @@ export default function OrganizationSetup() {
   const joinOrgMutation = useMutation({
     mutationFn: async (data: JoinOrgData) => {
       // Both organizationId and inviteCode are now required
-      const response = await apiRequest("POST", "/api/invitations/accept", { 
+      const response = await apiRequest("POST", "/api/invitations/accept-code", { 
         orgId: data.organizationId,
         inviteCode: data.inviteCode
       });
@@ -143,7 +143,7 @@ export default function OrganizationSetup() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       // This will trigger a redirect to the dashboard
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
