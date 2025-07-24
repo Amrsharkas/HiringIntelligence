@@ -322,13 +322,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { token } = req.params;
       
+      console.log(`🔍 Looking up invitation token: "${token}"`);
+      
       if (!token) {
+        console.log(`❌ No token provided`);
         return res.status(400).json({ message: "Token is required" });
       }
 
       const invitation = await storage.getInvitationByToken(token);
+      console.log(`📋 Database lookup result:`, invitation ? {
+        id: invitation.id,
+        email: invitation.email,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        isExpired: new Date() > invitation.expiresAt
+      } : 'null');
       
       if (!invitation || invitation.status !== 'pending' || new Date() > invitation.expiresAt) {
+        console.log(`❌ Invalid invitation: exists=${!!invitation}, status=${invitation?.status}, expired=${invitation ? new Date() > invitation.expiresAt : 'N/A'}`);
         return res.status(404).json({ message: "Invalid or expired invitation" });
       }
 
