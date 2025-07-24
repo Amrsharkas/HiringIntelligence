@@ -864,6 +864,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for SendGrid email
+  app.post('/api/test-email', async (req: any, res) => {
+    try {
+      const { email } = req.body;
+      console.log(`📧 Testing email send to: ${email}`);
+      
+      const emailSent = await sendInvitationEmail({
+        to: email || 'test@example.com',
+        organizationName: 'Test Organization',
+        inviterName: 'Test Admin',
+        invitationToken: 'test-token-12345',
+      });
+
+      res.json({ 
+        success: emailSent,
+        message: emailSent ? 'Test email sent successfully!' : 'Failed to send test email'
+      });
+    } catch (error) {
+      console.error('Test email error:', error);
+      res.status(500).json({ message: 'Test email failed', error: error.message });
+    }
+  });
+
   // Test endpoint to debug profile lookup without authentication
   app.get('/api/test-profile/:userId', async (req: any, res) => {
     try {
