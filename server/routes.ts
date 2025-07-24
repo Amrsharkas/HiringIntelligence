@@ -174,7 +174,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() : 'Team Admin';
 
       // Send magic link invitation email
+      const magicLink = `https://platohiring.com/invite/accept?token=${token}`;
       console.log(`🔗 Sending magic link invitation email to ${email}...`);
+      console.log(`📧 Magic link: ${magicLink}`);
+      
       const emailSent = await sendMagicLinkInvitationEmail({
         to: email,
         organizationName: organization.companyName,
@@ -190,17 +193,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`⚠️ Invitation record created but email failed for ${email}`);
       } else {
         console.log(`✅ Invitation email sent successfully to ${email}`);
+        console.log(`🔗 Testing Magic Link: ${magicLink}`);
       }
 
       res.json({
         success: true,
-        message: "Invitation sent successfully",
+        message: "Magic link invitation sent successfully",
         invitation: {
           id: invitation.id,
           email: invitation.email,
           role: invitation.role,
           status: invitation.status,
           expiresAt: invitation.expiresAt,
+        },
+        // Include for testing/debugging
+        debugInfo: {
+          token: token,
+          magicLink: `https://platohiring.com/invite/accept?token=${token}`
         }
       });
 
@@ -3255,11 +3264,20 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       console.log(`🔗 Processing magic link invitation acceptance for user: ${userId}, token: ${token}`);
       
       if (!token) {
+        console.log(`❌ No token provided in request body`);
         return res.status(400).json({ message: "Invitation token is required" });
       }
       
       // Find invitation by token
+      console.log(`🔍 Looking up invitation by token: ${token}`);
       const invitation = await storage.getInvitationByToken(token);
+      console.log(`📋 Database lookup result:`, invitation ? {
+        id: invitation.id,
+        email: invitation.email,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        organizationId: invitation.organizationId
+      } : 'null');
       
       if (!invitation) {
         console.log(`❌ Invalid token: ${token}`);

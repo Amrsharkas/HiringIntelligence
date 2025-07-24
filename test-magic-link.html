@@ -121,10 +121,11 @@
         async function testMagicLinkAcceptance() {
             addResult('🧪 Testing magic link acceptance workflow...');
             
-            const testToken = 'test-token-' + Math.random().toString(36).substring(7);
-            const magicLink = `/invite/accept?token=${testToken}`;
+            // Use a real token from the database for testing
+            const realToken = 'RefCOl_dO-hGtNNKfaXgr0IErOledRFG'; // Latest token from DB
+            const magicLink = `/invite/accept?token=${realToken}`;
             
-            addResult(`🔗 Testing with sample magic link: ${magicLink}`);
+            addResult(`🔗 Testing with real magic link: ${magicLink}`);
             
             // Test 1: Check if the route exists
             try {
@@ -137,6 +138,7 @@
                 
                 if (response.ok) {
                     addResult('✅ Magic link page accessible', 'success');
+                    addResult('📝 Page content length: ' + (await response.text()).length + ' characters', 'success');
                 } else {
                     addResult(`⚠️ Magic link page returned: ${response.status}`, 'warning');
                 }
@@ -145,8 +147,8 @@
                 addResult(`❌ Magic link page test failed: ${error.message}`, 'error');
             }
             
-            // Test 2: Check invitation acceptance API
-            addResult('📋 Step 2: Testing invitation acceptance API...');
+            // Test 2: Check invitation acceptance API with real token
+            addResult('📋 Step 2: Testing invitation acceptance API with real token...');
             try {
                 const response = await fetch('/api/invitations/accept', {
                     method: 'POST',
@@ -154,7 +156,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        token: testToken
+                        token: realToken
                     }),
                     credentials: 'include'
                 });
@@ -166,13 +168,44 @@
                 if (response.status === 401) {
                     addResult('✅ Authentication required (as expected)', 'success');
                 } else if (response.status === 404) {
-                    addResult('✅ Invalid token rejected (as expected)', 'success');
+                    addResult('❌ Token not found in database - possible issue!', 'error');
+                } else if (response.status === 400) {
+                    addResult('⚠️ Token invalid/expired/used - check token status', 'warning');
+                } else if (response.status === 200) {
+                    addResult('✅ Token accepted successfully!', 'success');
                 } else {
                     addResult(`⚠️ Unexpected acceptance response: ${response.status}`, 'warning');
                 }
                 
             } catch (error) {
                 addResult(`❌ Acceptance API test failed: ${error.message}`, 'error');
+            }
+            
+            // Test 3: Test with invalid token
+            addResult('📋 Step 3: Testing with invalid token...');
+            try {
+                const invalidResponse = await fetch('/api/invitations/accept', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: 'invalid-token-12345'
+                    }),
+                    credentials: 'include'
+                });
+                
+                const invalidText = await invalidResponse.text();
+                addResult(`📊 Invalid Token Status: ${invalidResponse.status} ${invalidResponse.statusText}`);
+                
+                if (invalidResponse.status === 404) {
+                    addResult('✅ Invalid token properly rejected', 'success');
+                } else {
+                    addResult(`⚠️ Unexpected invalid token response: ${invalidResponse.status}`, 'warning');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Invalid token test failed: ${error.message}`, 'error');
             }
             
             addResult('🏁 Magic link testing complete!', 'success');

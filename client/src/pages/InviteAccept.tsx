@@ -58,27 +58,48 @@ export default function InviteAccept() {
     try {
       console.log('🔄 Processing magic link invitation with token:', inviteToken);
       
+      // Debug: Log the exact request being made
+      console.log('📤 Making POST request to /api/invitations/accept with token:', inviteToken);
+      
       const response = await apiRequest('POST', '/api/invitations/accept', {
         token: inviteToken
       });
 
-      const result = await response.json();
-      
-      console.log('✅ Invitation processed successfully:', result);
-      
-      setInviteStatus('success');
-      setMessage(result.message || 'Successfully joined the team!');
-      setOrganizationName(result.organization?.companyName || 'the team');
+      // Debug: Log the response
+      console.log('📥 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
 
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        setLocation('/');
-      }, 2000);
+      const result = await response.json();
+      console.log('📋 Response data:', result);
+      
+      if (response.ok) {
+        console.log('✅ Invitation processed successfully:', result);
+        
+        setInviteStatus('success');
+        setMessage(result.message || 'Successfully joined the team!');
+        setOrganizationName(result.organization?.companyName || 'the team');
+
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          setLocation('/');
+        }, 2000);
+      } else {
+        throw new Error(result.message || `Server returned ${response.status}`);
+      }
 
     } catch (error) {
       console.error('❌ Failed to process invitation:', error);
       setInviteStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Failed to process invitation');
+      
+      // More detailed error handling
+      if (error instanceof Error) {
+        setMessage(error.message);
+      } else {
+        setMessage('Failed to process invitation');
+      }
     }
   };
 
