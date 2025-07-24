@@ -11,7 +11,7 @@ import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { jobMatchesService } from "./jobMatchesAirtableService";
-import { sendInvitationEmail, sendInviteCodeEmail } from "./emailService";
+import { sendInvitationEmail, sendInviteCodeEmail, sendMagicLinkInvitationEmail } from "./emailService";
 import { nanoid } from "nanoid";
 
 // Utility function to generate human-readable invite codes
@@ -173,15 +173,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviter = await storage.getUser(userId);
       const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() : 'Team Admin';
 
-      // Send invitation email with invite code
-      console.log(`📧 Sending invite code email to ${email} with code: ${inviteCode}...`);
-      const emailSent = await sendInviteCodeEmail(
-        email,
-        organization.companyName,
-        inviteCode,
-        role,
-        organization.id
-      );
+      // Send magic link invitation email
+      console.log(`🔗 Sending magic link invitation email to ${email}...`);
+      const emailSent = await sendMagicLinkInvitationEmail({
+        to: email,
+        organizationName: organization.companyName,
+        inviterName,
+        invitationToken: token,
+        organizationId: organization.id,
+        role
+      });
 
       if (!emailSent) {
         console.error(`❌ Failed to send invitation email to ${email}`);
@@ -3241,6 +3242,76 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       
     } catch (error) {
       console.error("Error accepting invite code:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // Magic link invitation acceptance endpoint
+  app.post('/api/invitations/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { token } = req.body;
+      
+      console.log(`🔗 Processing magic link invitation acceptance for user: ${userId}, token: ${token}`);
+      
+      if (!token) {
+        return res.status(400).json({ message: "Invitation token is required" });
+      }
+      
+      // Find invitation by token
+      const invitation = await storage.getInvitationByToken(token);
+      
+      if (!invitation) {
+        console.log(`❌ Invalid token: ${token}`);
+        return res.status(404).json({ message: "Invalid or expired invitation token" });
+      }
+      
+      // Check invitation status and expiry
+      if (invitation.status !== 'pending') {
+        console.log(`❌ Token already used: ${token}`);
+        return res.status(400).json({ message: "Invitation has already been used" });
+      }
+      
+      if (invitation.expiresAt < new Date()) {
+        console.log(`❌ Token expired: ${token}`);
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+      
+      // Check if user is already a member
+      const existingMember = await storage.getTeamMemberByUserAndOrg(userId, invitation.organizationId);
+      if (existingMember) {
+        console.log(`❌ User ${userId} already member of organization: ${invitation.organizationId}`);
+        return res.status(400).json({ message: "You are already a member of this organization" });
+      }
+      
+      // Add user to organization
+      await storage.addTeamMember({
+        organizationId: invitation.organizationId,
+        userId,
+        role: invitation.role,
+        joinedAt: new Date(),
+      });
+      
+      // Mark invitation as accepted
+      await storage.updateInvitationStatus(invitation.id, 'accepted');
+      
+      // Get organization details
+      const organization = await storage.getOrganizationById(invitation.organizationId);
+      
+      console.log(`✅ Successfully accepted magic link invitation: ${token} for user: ${userId}`);
+      
+      res.json({ 
+        success: true,
+        message: `Welcome to ${organization?.companyName}!`,
+        organization: {
+          id: organization?.id,
+          companyName: organization?.companyName
+        },
+        role: invitation.role
+      });
+      
+    } catch (error) {
+      console.error("Error accepting magic link invitation:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
     }
   });

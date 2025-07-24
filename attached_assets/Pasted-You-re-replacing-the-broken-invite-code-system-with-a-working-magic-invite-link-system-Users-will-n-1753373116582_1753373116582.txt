@@ -1,0 +1,99 @@
+You're replacing the broken invite code system with a working magic invite link system. Users will no longer enter a code manually. Instead:
+
+---
+
+🎯 GOAL:
+- When an org admin invites someone, they get an email with a magic link:
+https://yourplatform.com/invite/accept?token=abc123
+
+yaml
+Copy
+Edit
+
+- When someone opens this link:
+- If they are **not signed in**, redirect to login/signup page
+- After login/signup, redirect **back to the invite link**
+- Auto-accept the invitation
+- Redirect to dashboard and store org ID in user’s profile
+
+---
+
+### ✅ STEP 1: BACKEND — GENERATE INVITE TOKEN & ROUTE
+
+1. Create a route to **generate invite links** for emails:
+POST /api/invitations/send
+Body:
+{
+"orgId": 2,
+"inviteeEmail": "teammate@email.com"
+}
+
+css
+Copy
+Edit
+- Create a secure token (e.g., using JWT or a UUID)
+- Store it in DB: `{ token, orgId, email, status: "pending" }`
+- Send email with link:
+https://yourplatform.com/invite/accept?token=XYZ123
+
+yaml
+Copy
+Edit
+
+---
+
+2. Create a new API route:
+POST /api/invitations/accept
+Body:
+{
+"token": "XYZ123"
+}
+
+yaml
+Copy
+Edit
+- Validate the token
+- Ensure user is signed in
+- Check if token exists and not used
+- Add the current user (by email) to the organization
+- Update token `status = accepted`
+- Store `currentOrgId` in user’s profile
+- Return `{ success: true }`
+
+---
+
+### ✅ STEP 2: FRONTEND — AUTO-ACCEPT INVITE ON PAGE LOAD
+
+Create a page at `/invite/accept` that:
+- Extracts `token` from URL
+- Checks if user is logged in
+- If not logged in → redirect to `/login?redirect=/invite/accept?token=XYZ123`
+- If logged in:
+```js
+await fetch('/api/invitations/accept', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ token })
+})
+.then(() => window.location.href = '/dashboard')
+.catch(err => alert("Failed to join team: " + err.message));
+✅ STEP 3: AUTH LOGIC — HANDLE REDIRECT AFTER LOGIN
+On login/signup success:
+
+If redirect param is in URL (e.g. /login?redirect=/invite/accept?token=XYZ123), redirect to that path.
+
+Otherwise go to /dashboard.
+
+✅ STEP 4: DASHBOARD
+Ensure the dashboard loads content based on user.currentOrgId, so all members in the same org see the same data.
+
+✅ STEP 5: CLEANUP
+Remove old /api/invitations/accept-code logic
+
+Remove invite code field from frontend
+
+Replace all invite logic with token-based magic link
+
+DO NOT move forward until users can click a link in an email and join the org from any device without needing to manually enter a code.
+
+Use secure tokens and protect endpoints properly. Prioritize user experience and security.

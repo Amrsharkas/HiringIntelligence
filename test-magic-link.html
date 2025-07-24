@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Magic Link Invitation System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 12px 20px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 10px 5px 10px 0; }
+        button:hover { background: #005a87; }
+        .result { margin: 15px 0; padding: 15px; border-radius: 4px; border-left: 4px solid #007cba; background: #f0f8ff; }
+        .error { border-left-color: #dc3545; background: #f8d7da; color: #721c24; }
+        .success { border-left-color: #28a745; background: #d4edda; color: #155724; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; color: #856404; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .magic-link { background: #e8f4f8; border: 2px solid #007cba; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .magic-link a { color: #007cba; font-weight: bold; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Test Magic Link Invitation System</h1>
+        <p>This tool tests the complete magic link invitation workflow.</p>
+        
+        <div class="form-group">
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" value="test@example.com" placeholder="Enter email to invite">
+        </div>
+        
+        <div class="form-group">
+            <label for="role">Role:</label>
+            <select id="role" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        
+        <button onclick="sendMagicLinkInvitation()">Send Magic Link Invitation</button>
+        <button onclick="testMagicLinkAcceptance()">Test Magic Link Acceptance</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let currentMagicLink = null;
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            currentMagicLink = null;
+        }
+
+        async function sendMagicLinkInvitation() {
+            const email = document.getElementById('email').value.trim();
+            const role = document.getElementById('role').value;
+            
+            addResult('🔗 Starting magic link invitation process...');
+            
+            if (!email) {
+                addResult('❌ Email address is required', 'error');
+                return;
+            }
+            
+            try {
+                addResult(`📤 Sending magic link invitation to: ${email} with role: ${role}`);
+                
+                const response = await fetch('/api/organizations/invite', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        role: role
+                    }),
+                    credentials: 'include'
+                });
+                
+                const responseText = await response.text();
+                
+                addResult(`📊 Response Status: ${response.status} ${response.statusText}`);
+                addResult(`📝 Response Body: ${responseText}`);
+                
+                if (response.status === 401) {
+                    addResult('🔐 Authentication required - please log in first', 'warning');
+                } else if (response.status === 403) {
+                    addResult('⚠️ Permission denied - only admins can send invitations', 'warning');
+                } else if (response.ok) {
+                    const result = JSON.parse(responseText);
+                    addResult('✅ Magic link invitation sent successfully!', 'success');
+                    
+                    // Extract token from database or generate a test link
+                    // Note: In production, the magic link would be in the email
+                    addResult('🔗 Magic link would be sent via email to the recipient', 'success');
+                    addResult('📧 Check the server logs for the actual magic link URL', 'success');
+                    
+                } else {
+                    addResult(`❌ Unexpected response: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Request failed: ${error.message}`, 'error');
+                addResult(`Error details: ${JSON.stringify({
+                    name: error.name,
+                    message: error.message
+                })}`, 'error');
+            }
+        }
+
+        async function testMagicLinkAcceptance() {
+            addResult('🧪 Testing magic link acceptance workflow...');
+            
+            const testToken = 'test-token-' + Math.random().toString(36).substring(7);
+            const magicLink = `/invite/accept?token=${testToken}`;
+            
+            addResult(`🔗 Testing with sample magic link: ${magicLink}`);
+            
+            // Test 1: Check if the route exists
+            try {
+                addResult('📋 Step 1: Testing magic link page accessibility...');
+                
+                const response = await fetch(magicLink, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    addResult('✅ Magic link page accessible', 'success');
+                } else {
+                    addResult(`⚠️ Magic link page returned: ${response.status}`, 'warning');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Magic link page test failed: ${error.message}`, 'error');
+            }
+            
+            // Test 2: Check invitation acceptance API
+            addResult('📋 Step 2: Testing invitation acceptance API...');
+            try {
+                const response = await fetch('/api/invitations/accept', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: testToken
+                    }),
+                    credentials: 'include'
+                });
+                
+                const responseText = await response.text();
+                addResult(`📊 Acceptance API Status: ${response.status} ${response.statusText}`);
+                addResult(`📝 Acceptance API Response: ${responseText}`);
+                
+                if (response.status === 401) {
+                    addResult('✅ Authentication required (as expected)', 'success');
+                } else if (response.status === 404) {
+                    addResult('✅ Invalid token rejected (as expected)', 'success');
+                } else {
+                    addResult(`⚠️ Unexpected acceptance response: ${response.status}`, 'warning');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Acceptance API test failed: ${error.message}`, 'error');
+            }
+            
+            addResult('🏁 Magic link testing complete!', 'success');
+        }
+
+        // Test magic link simulation
+        function simulateMagicLinkClick() {
+            if (currentMagicLink) {
+                addResult(`🔗 Simulating click on: ${currentMagicLink}`);
+                window.open(currentMagicLink, '_blank');
+            } else {
+                addResult('⚠️ No magic link available. Send an invitation first.', 'warning');
+            }
+        }
+
+        // Auto-populate with URL parameters for testing
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('email')) {
+                document.getElementById('email').value = urlParams.get('email');
+            }
+            if (urlParams.get('role')) {
+                document.getElementById('role').value = urlParams.get('role');
+            }
+            
+            addResult('🚀 Magic link test tool loaded and ready');
+        };
+    </script>
+</body>
+</html>

@@ -10,6 +10,7 @@ import Landing from "@/pages/landing";
 import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
 import { AcceptInvitation } from "@/pages/AcceptInvitation";
+import InviteAccept from "@/pages/InviteAccept";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -43,7 +44,7 @@ function Router() {
   return (
     <Switch>
       {/* Enhanced invitation routes - accessible without full auth checks */}
-      <Route path="/invite/accept" component={AcceptInvitation} />
+      <Route path="/invite/accept" component={InviteAccept} />
       <Route path="/accept-invitation" component={AcceptInvitation} />
       
       {!isAuthenticated ? (

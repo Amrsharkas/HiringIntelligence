@@ -14,6 +14,135 @@ interface InvitationEmailParams {
   role: string;
 }
 
+interface MagicLinkInvitationEmailParams {
+  to: string;
+  organizationName: string;
+  inviterName: string;
+  invitationToken: string;
+  organizationId: number;
+  role: string;
+}
+
+export async function sendMagicLinkInvitationEmail(params: MagicLinkInvitationEmailParams): Promise<boolean> {
+  try {
+    console.log(`🔗 Sending magic link invitation email to ${params.to}...`);
+    
+    const magicLink = `https://platohiring.com/invite/accept?token=${params.invitationToken}`;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Team Invitation - ${params.organizationName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e0e0e0; }
+            .magic-link { background: #f8f9fa; border: 3px solid #667eea; padding: 25px; margin: 25px 0; text-align: center; border-radius: 12px; }
+            .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 15px 0; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+            .button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+            .steps { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 8px 8px; }
+            .icon { font-size: 48px; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="icon">🎉</div>
+              <h1>You're Invited to Join ${params.organizationName}</h1>
+            </div>
+            <div class="content">
+              <p>Hi there!</p>
+              
+              <p><strong>${params.inviterName}</strong> has invited you to join <strong>${params.organizationName}</strong> as a <strong>${params.role}</strong> on our AI-powered hiring platform.</p>
+              
+              <div class="magic-link">
+                <h3 style="color: #667eea; margin: 0 0 15px 0;">✨ One-Click Access</h3>
+                <p style="margin: 0 0 20px 0; color: #666;">Click the button below to instantly join the team!</p>
+                <a href="${magicLink}" class="button" style="color: white;">
+                  🚀 Join ${params.organizationName}
+                </a>
+              </div>
+              
+              <div class="steps">
+                <h3>What happens next:</h3>
+                <ol>
+                  <li><strong>Click "Join ${params.organizationName}"</strong> above</li>
+                  <li><strong>Sign in or create your account</strong> (if needed)</li>
+                  <li><strong>You'll automatically join the team</strong> and access the dashboard</li>
+                </ol>
+              </div>
+              
+              <p>🔒 <strong>Secure & Simple:</strong> This invitation link is unique to you and expires in 7 days for security.</p>
+              
+              <p>Welcome to the future of hiring! 🚀</p>
+              
+              <p>Best regards,<br>
+              <strong>${params.inviterName}</strong><br>
+              ${params.organizationName} Team</p>
+            </div>
+            <div class="footer">
+              <p>This invitation was sent to ${params.to}</p>
+              <p>If you have any questions, please contact ${params.inviterName} or the ${params.organizationName} team.</p>
+              <p style="font-size: 12px; color: #999;">
+                If you can't click the button above, copy and paste this link into your browser:<br>
+                <a href="${magicLink}" style="color: #667eea; word-break: break-all;">${magicLink}</a>
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textVersion = `
+You're Invited to Join ${params.organizationName}!
+
+Hi there!
+
+${params.inviterName} has invited you to join ${params.organizationName} as a ${params.role} on our AI-powered hiring platform.
+
+🔗 JOIN NOW: ${magicLink}
+
+What happens next:
+1. Click the link above
+2. Sign in or create your account (if needed)  
+3. You'll automatically join the team and access the dashboard
+
+This invitation link is unique to you and expires in 7 days for security.
+
+Welcome to the future of hiring!
+
+Best regards,
+${params.inviterName}
+${params.organizationName} Team
+
+---
+If you have any questions, please contact ${params.inviterName} or the ${params.organizationName} team.
+This invitation was sent to ${params.to}
+    `;
+
+    const msg = {
+      to: params.to,
+      from: 'raef@platohiring.com',
+      subject: `🎉 Join ${params.organizationName}'s Hiring Team`,
+      text: textVersion,
+      html: emailHtml,
+    };
+
+    console.log('📤 Sending magic link email via SendGrid...');
+    await mailService.send(msg);
+    console.log('✅ Magic link invitation email sent successfully!');
+    return true;
+
+  } catch (error) {
+    console.error('❌ Error sending magic link invitation email:', error);
+    return false;
+  }
+}
+
 export async function sendInviteCodeEmail(
   to: string, 
   organizationName: string, 
