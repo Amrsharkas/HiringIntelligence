@@ -1,67 +1,83 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { Building2, Check, AlertCircle, Loader2, Users, LogIn, UserPlus } from "lucide-react";
+import { AlertCircle, Loader2, CheckCircle, Users, Building } from "lucide-react";
+import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 
 export function AcceptInvitation() {
-  const [, navigate] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null);
 
-  // Extract token and other parameters from URL
+  const [authState, setAuthState] = useState({ isAuthenticated: false, isLoading: true, user: null });
+  const [invitation, setInvitation] = useState(null);
+  const [invitationLoading, setInvitationLoading] = useState(true);
+  const [invitationError, setInvitationError] = useState(null);
+
+  // Parse URL parameters
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const token = searchParams.get('token');
+  const org = searchParams.get('org');
+  const role = searchParams.get('role');
+
+  // Check authentication status once
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const inviteToken = urlParams.get('token');
-    const organizationId = urlParams.get('org');
-    const userRole = urlParams.get('role');
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/user');
+        if (response.ok) {
+          const user = await response.json();
+          setAuthState({ isAuthenticated: true, isLoading: false, user });
+        } else {
+          setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+        }
+      } catch (error) {
+        setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+      }
+    };
     
-    setToken(inviteToken);
-    setOrgId(organizationId);
-    setRole(userRole);
-    
-    // Store parameters in session for post-auth processing
-    if (inviteToken && organizationId && userRole) {
-      console.log(`🔗 Storing invitation parameters for processing: org=${organizationId}, role=${userRole}`);
-      sessionStorage.setItem('pendingInvitation', JSON.stringify({
-        token: inviteToken,
-        organizationId: organizationId,
-        role: userRole
-      }));
-    }
+    checkAuth();
   }, []);
 
-  // Fetch invitation details (only works without auth requirement)
-  const { data: invitation, isLoading: loadingInvitation, error } = useQuery({
-    queryKey: ['/api/invitations/public', token],
-    queryFn: async () => {
-      if (!token) throw new Error('No token provided');
-      console.log(`🔍 Fetching invitation for token: ${token}`);
-      const response = await fetch(`/api/invitations/public/${token}`);
-      console.log(`📡 Response status: ${response.status}`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Error response: ${errorText}`);
-        throw new Error('Invalid or expired invitation');
+  // Fetch invitation details
+  useEffect(() => {
+    const fetchInvitation = async () => {
+      if (!token) {
+        setInvitationError('No invitation token provided');
+        setInvitationLoading(false);
+        return;
       }
-      const data = await response.json();
-      console.log(`✅ Invitation data:`, data);
-      return data;
-    },
-    enabled: !!token,
-    retry: false,
-  });
 
-  // Accept invitation mutation (only for authenticated users)
+      try {
+        console.log(`🔍 Fetching invitation for token: ${token}`);
+        const response = await fetch(`/api/invitations/public/${token}`);
+        console.log(`📡 Response status: ${response.status}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Error response: ${errorText}`);
+          throw new Error('Invalid or expired invitation');
+        }
+        
+        const data = await response.json();
+        console.log(`✅ Invitation data:`, data);
+        setInvitation(data);
+        setInvitationLoading(false);
+      } catch (error) {
+        console.error('Error fetching invitation:', error);
+        setInvitationError(error.message);
+        setInvitationLoading(false);
+      }
+    };
+
+    fetchInvitation();
+  }, [token]);
+
+  // Accept invitation mutation
   const acceptInvitationMutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error('No token provided');
@@ -76,10 +92,10 @@ export function AcceptInvitation() {
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
       // Clear stored invitation data
-      sessionStorage.removeItem('pendingInvitation');
+      localStorage.removeItem('pendingInvitation');
       // Redirect to dashboard
       setTimeout(() => {
-        navigate("/dashboard");
+        setLocation("/dashboard");
       }, 2000);
     },
     onError: (error: any) => {
@@ -91,27 +107,20 @@ export function AcceptInvitation() {
     },
   });
 
-  // Redirect to Replit Auth for sign in/up with invitation params
-  const handleAuthRedirect = (type: 'signin' | 'signup') => {
-    const params = new URLSearchParams();
-    if (token) params.set('invite', token);
-    if (orgId) params.set('org', orgId);
-    if (role) params.set('role', role);
+  // Handle redirect to login
+  const redirectToLogin = () => {
+    // Store invitation details for post-authentication processing
+    localStorage.setItem('pendingInvitation', JSON.stringify({
+      token,
+      organizationId: org,
+      role
+    }));
     
-    const authUrl = `/auth/${type}?${params.toString()}`;
-    console.log(`🔄 Redirecting to ${type} with invitation parameters:`, authUrl);
-    window.location.href = authUrl;
+    // Redirect to login with invitation parameters
+    window.location.href = `/api/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
   };
 
-  const handleAcceptInvitation = () => {
-    if (isAuthenticated) {
-      acceptInvitationMutation.mutate();
-    } else {
-      // Redirect to sign in with invitation params
-      handleAuthRedirect('signin');
-    }
-  };
-
+  // No token provided
   if (!token) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
@@ -124,7 +133,7 @@ export function AcceptInvitation() {
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               The invitation link appears to be invalid or incomplete.
             </p>
-            <Button onClick={() => navigate("/dashboard")} variant="outline">
+            <Button onClick={() => setLocation("/dashboard")} variant="outline">
               Go to Dashboard
             </Button>
           </CardContent>
@@ -133,7 +142,8 @@ export function AcceptInvitation() {
     );
   }
 
-  if (loadingInvitation) {
+  // Loading invitation
+  if (invitationLoading || authState.isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
@@ -151,7 +161,8 @@ export function AcceptInvitation() {
     );
   }
 
-  if (error || !invitation) {
+  // Invitation error or not found
+  if (invitationError || !invitation) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
@@ -163,7 +174,7 @@ export function AcceptInvitation() {
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               This invitation has expired, been used already, or is invalid.
             </p>
-            <Button onClick={() => navigate("/dashboard")} variant="outline">
+            <Button onClick={() => setLocation("/dashboard")} variant="outline">
               Go to Dashboard
             </Button>
           </CardContent>
@@ -172,32 +183,57 @@ export function AcceptInvitation() {
     );
   }
 
-  if (acceptInvitationMutation.isSuccess) {
+  // User is not authenticated - show login options
+  if (!authState.isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
         >
-          <Card className="w-full max-w-md">
-            <CardContent className="p-6 text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              >
-                <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              </motion.div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                Welcome to the Team!
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400 mb-4">
-                You've successfully joined <strong>{invitation.invitation.organization?.companyName}</strong>.
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-500">
-                Redirecting to dashboard...
-              </p>
+          <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <div className="mb-6">
+                <Building className="w-16 h-16 text-purple-600 mx-auto mb-4" />
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  You're Invited!
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Join {invitation.organization?.companyName || 'the organization'} as a {role}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <Users className="w-5 h-5 text-slate-600 dark:text-slate-400 mr-2" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Organization Details
+                    </span>
+                  </div>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                    {invitation.organization?.companyName || 'Organization'}
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Role: {role}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Sign in to accept this invitation
+                  </p>
+                  <Button 
+                    onClick={redirectToLogin}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    size="lg"
+                  >
+                    Sign In to Join Organization
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
@@ -205,96 +241,101 @@ export function AcceptInvitation() {
     );
   }
 
+  // User is authenticated and invitation is valid - show accept button
+  if (acceptInvitationMutation.isSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                Welcome to the Team!
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 mb-6">
+                You've successfully joined {invitation.organization?.companyName}
+              </p>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                Redirecting to dashboard...
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Show accept invitation interface for authenticated users
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
-      <Card className="w-full max-w-md">
-        <CardContent className="p-6">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Building2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              Join Team Invitation
-            </h2>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-700/30 rounded-lg p-4 mb-6">
-            <div className="text-center">
-              <h3 className="font-semibold text-slate-900 dark:text-white text-lg">
-                {invitation.invitation.organization?.companyName}
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
-                {invitation.invitation.organization?.industry}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <div className="mb-6">
+              <Building className="w-16 h-16 text-purple-600 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                Accept Invitation
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                You've been invited to join {invitation.organization?.companyName || 'the organization'}
               </p>
             </div>
-            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <Users className="w-4 h-4" />
-              <span>Role: <strong className="capitalize">{invitation.invitation.role}</strong></span>
+
+            <div className="space-y-4">
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                <div className="flex items-center justify-center mb-2">
+                  <Users className="w-5 h-5 text-slate-600 dark:text-slate-400 mr-2" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Organization Details
+                  </span>
+                </div>
+                <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                  {invitation.organization?.companyName || 'Organization'}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Role: {role}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => acceptInvitationMutation.mutate()}
+                  disabled={acceptInvitationMutation.isPending}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  size="lg"
+                >
+                  {acceptInvitationMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Joining Organization...
+                    </>
+                  ) : (
+                    'Accept Invitation'
+                  )}
+                </Button>
+                
+                <Button 
+                  onClick={() => setLocation("/dashboard")}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
-          </div>
-
-          {isAuthenticated ? (
-            <div className="space-y-3">
-              <Button
-                onClick={handleAcceptInvitation}
-                disabled={acceptInvitationMutation.isPending}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-              >
-                {acceptInvitationMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Accepting...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 w-4 mr-2" />
-                    Accept Invitation
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                onClick={() => navigate("/")}
-                variant="outline"
-                className="w-full"
-              >
-                Decline
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Button
-                onClick={() => handleAuthRedirect('signin')}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-              >
-                <LogIn className="w-4 h-4 mr-2" />
-                Sign In & Join Team
-              </Button>
-
-              <Button
-                onClick={() => handleAuthRedirect('signup')}
-                variant="outline"
-                className="w-full"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Sign Up & Join Team
-              </Button>
-
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/")}
-                className="w-full text-slate-500"
-              >
-                Not interested
-              </Button>
-            </div>
-          )}
-
-          <p className="text-xs text-slate-500 dark:text-slate-500 mt-4 text-center">
-            This invitation expires on {new Date(invitation.invitation.expiresAt).toLocaleDateString()}
-          </p>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }
