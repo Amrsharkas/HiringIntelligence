@@ -498,13 +498,13 @@ export default function EmployerDashboard() {
 
             <InteractiveCard
               index={2}
-              onClick={() => setIsShortlistedApplicantsModalOpen(true)}
+              onClick={() => setIsApplicantsModalOpen(true)}
               className="bg-gradient-to-br from-purple-500/10 via-purple-400/5 to-transparent"
             >
               <div className="p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Shortlisted Applicants</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your favorites</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Review Applicants</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage job applications</p>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                   <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
