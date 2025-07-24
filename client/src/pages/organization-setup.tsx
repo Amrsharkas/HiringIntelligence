@@ -24,8 +24,14 @@ const createOrgSchema = z.object({
 });
 
 const joinOrgSchema = z.object({
-  organizationId: z.string().min(1, "Please select an organization"),
-  inviteCode: z.string().optional(),
+  organizationId: z.string().optional(),
+  inviteCode: z.string().min(1, "Invite code is required"),
+}).refine((data) => {
+  // If invite code is provided, organization ID is not required
+  return data.inviteCode || data.organizationId;
+}, {
+  message: "Either invite code or organization ID is required",
+  path: ["organizationId"],
 });
 
 type CreateOrgData = z.infer<typeof createOrgSchema>;
@@ -313,28 +319,24 @@ export default function OrganizationSetup() {
               <TabsContent value="join" className="space-y-6">
                 <form onSubmit={joinForm.handleSubmit(onJoinSubmit)} className="space-y-4">
                   <div>
-                    <Label htmlFor="organizationId">Organization ID</Label>
+                    <Label htmlFor="inviteCode">Invite Code</Label>
                     <Input
-                      id="organizationId"
-                      {...joinForm.register("organizationId")}
-                      placeholder="Enter organization ID"
+                      id="inviteCode"
+                      {...joinForm.register("inviteCode")}
+                      placeholder="Enter your 6-character invite code"
                       className="mt-2"
+                      maxLength={6}
+                      style={{ textTransform: 'uppercase' }}
                     />
-                    {joinForm.formState.errors.organizationId && (
+                    {joinForm.formState.errors.inviteCode && (
                       <p className="text-red-500 text-sm mt-1">
-                        {joinForm.formState.errors.organizationId.message}
+                        {joinForm.formState.errors.inviteCode.message}
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <Label htmlFor="inviteCode">Invite Code (Optional)</Label>
-                    <Input
-                      id="inviteCode"
-                      {...joinForm.register("inviteCode")}
-                      placeholder="Enter invite code if provided"
-                      className="mt-2"
-                    />
+                  <div className="text-center text-sm text-gray-500">
+                    <p>Don't have an invite code? Contact your team administrator.</p>
                   </div>
 
                   <Button

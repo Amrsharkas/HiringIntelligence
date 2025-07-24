@@ -94,7 +94,10 @@ export async function sendInviteCodeEmail(
 
     const msg = {
       to,
-      from: 'raef@platohiring.com',
+      from: {
+        email: 'raef@platohiring.com',
+        name: 'Plato Team'
+      },
       subject: `You're invited to join ${organizationName}`,
       html: emailHtml,
     };

@@ -183,7 +183,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Organization invitation operations
-  async createInvitation(invitationData: InsertOrganizationInvitation & { token: string; inviteCode: string }): Promise<OrganizationInvitation> {
+  async createInvitation(invitationData: InsertOrganizationInvitation): Promise<OrganizationInvitation> {
     const [invitation] = await db
       .insert(organizationInvitations)
       .values(invitationData)
