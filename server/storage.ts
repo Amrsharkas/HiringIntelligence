@@ -52,8 +52,12 @@ export interface IStorage {
   createInvitation(invitationData: InsertOrganizationInvitation & { token: string }): Promise<OrganizationInvitation>;
   getInvitationByToken(token: string): Promise<OrganizationInvitation | undefined>;
   getOrganizationInvitations(organizationId: number): Promise<OrganizationInvitation[]>;
-  updateInvitationStatus(token: string, status: string): Promise<void>;
+  updateInvitationStatus(invitationId: number, status: string): Promise<void>;
   acceptInvitation(token: string, userId: string): Promise<{ organization: Organization; member: OrganizationMember } | null>;
+  
+  // Team member operations
+  addTeamMember(memberData: { organizationId: number; userId: string; role: string; joinedAt: Date }): Promise<OrganizationMember>;
+  getTeamMemberByUserAndOrg(userId: string, organizationId: number): Promise<OrganizationMember | undefined>;
   
   // Job operations
   createJob(job: InsertJob): Promise<Job>;
@@ -199,11 +203,30 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(organizationInvitations.createdAt));
   }
 
-  async updateInvitationStatus(token: string, status: string): Promise<void> {
+  async updateInvitationStatus(invitationId: number, status: string): Promise<void> {
     await db
       .update(organizationInvitations)
       .set({ status })
-      .where(eq(organizationInvitations.token, token));
+      .where(eq(organizationInvitations.id, invitationId));
+  }
+
+  async addTeamMember(memberData: { organizationId: number; userId: string; role: string; joinedAt: Date }): Promise<OrganizationMember> {
+    const [member] = await db
+      .insert(organizationMembers)
+      .values(memberData)
+      .returning();
+    return member;
+  }
+
+  async getTeamMemberByUserAndOrg(userId: string, organizationId: number): Promise<OrganizationMember | undefined> {
+    const [member] = await db
+      .select()
+      .from(organizationMembers)
+      .where(and(
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.organizationId, organizationId)
+      ));
+    return member;
   }
 
   async acceptInvitation(token: string, userId: string): Promise<{ organization: Organization; member: OrganizationMember } | null> {

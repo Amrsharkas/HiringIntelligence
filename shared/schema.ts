@@ -55,6 +55,7 @@ export const organizationMembers = pgTable("organization_members", {
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   role: varchar("role").notNull().default("member"),
+  joinedAt: timestamp("joined_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

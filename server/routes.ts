@@ -258,15 +258,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invitation token is required" });
       }
 
-      const result = await storage.acceptInvitation(token, userId);
-      
-      if (!result) {
-        return res.status(400).json({ message: "Invalid, expired, or already used invitation" });
+      console.log(`🔄 Processing invitation acceptance for user ${userId} with token ${token}`);
+
+      // Verify invitation is still valid
+      const invitation = await storage.getInvitationByToken(token);
+      if (!invitation || invitation.status !== 'pending' || new Date() > invitation.expiresAt) {
+        console.log(`❌ Invalid or expired invitation token: ${token}`);
+        return res.status(400).json({ message: "Invalid or expired invitation" });
       }
 
+      // Check if user is already part of this organization
+      const existingMember = await storage.getTeamMemberByUserAndOrg(userId, invitation.organizationId);
+      if (existingMember) {
+        console.log(`ℹ️ User ${userId} is already a member of organization ${invitation.organizationId}`);
+        // Mark invitation as accepted anyway
+        await storage.updateInvitationStatus(invitation.id, 'accepted');
+        
+        const organization = await storage.getOrganizationById(invitation.organizationId);
+        return res.json({
+          message: "You're already part of this team!",
+          organization: {
+            id: organization?.id,
+            companyName: organization?.companyName
+          },
+          role: existingMember.role,
+          alreadyMember: true
+        });
+      }
+
+      // Add user to the organization team
+      await storage.addTeamMember({
+        organizationId: invitation.organizationId,
+        userId,
+        role: invitation.role,
+        joinedAt: new Date()
+      });
+
+      // Mark invitation as accepted
+      await storage.updateInvitationStatus(invitation.id, 'accepted');
+
+      // Get organization details for response
+      const organization = await storage.getOrganizationById(invitation.organizationId);
+
+      console.log(`✅ Successfully added user ${userId} to organization ${invitation.organizationId} as ${invitation.role}`);
+
       res.json({
-        message: "Successfully joined organization",
-        organization: result.organization
+        message: `Successfully joined ${organization?.companyName}'s hiring team!`,
+        organization: {
+          id: organization?.id,
+          companyName: organization?.companyName
+        },
+        role: invitation.role,
+        newMember: true
       });
 
     } catch (error) {

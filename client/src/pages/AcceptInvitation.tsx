@@ -86,17 +86,18 @@ export function AcceptInvitation() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Success!",
-        description: "You've successfully joined the organization!",
+        title: "Welcome to the team!",
+        description: data.message || "You've successfully joined the organization!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Clear stored invitation data
       localStorage.removeItem('pendingInvitation');
       // Redirect to dashboard
       setTimeout(() => {
-        setLocation("/dashboard");
-      }, 2000);
+        setLocation("/");
+      }, 2500);
     },
     onError: (error: any) => {
       toast({
@@ -258,7 +259,7 @@ export function AcceptInvitation() {
                 Welcome to the Team!
               </h2>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                You've successfully joined {invitation.organization?.companyName}
+                You've successfully joined {invitation?.organization?.companyName || 'the team'}
               </p>
               <div className="text-sm text-slate-500 dark:text-slate-400">
                 Redirecting to dashboard...
