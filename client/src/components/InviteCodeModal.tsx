@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
 const inviteCodeSchema = z.object({
+  orgId: z.string().min(1, "Organization ID is required"),
   inviteCode: z.string().min(6, "Invite code must be at least 6 characters").max(8, "Invite code must be at most 8 characters"),
 });
 
@@ -40,7 +41,8 @@ export function InviteCodeModal({ isOpen, onClose }: InviteCodeModalProps) {
   // Accept invitation mutation
   const acceptInviteMutation = useMutation({
     mutationFn: async (data: InviteCodeFormData) => {
-      return await apiRequest("POST", "/api/invitations/accept", {
+      return await apiRequest("POST", "/api/invitations/accept-code", {
+        orgId: data.orgId,
         inviteCode: data.inviteCode
       });
     },
@@ -59,13 +61,13 @@ export function InviteCodeModal({ isOpen, onClose }: InviteCodeModalProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/team"] });
       
-      // Close modal after a brief delay
+      // Close modal after a brief delay and redirect to dashboard
       setTimeout(() => {
         onClose();
         setIsSuccess(false);
         reset();
-        // Refresh the page to update organization state
-        window.location.reload();
+        // Redirect to dashboard as requested
+        window.location.href = "/dashboard";
       }, 2000);
     },
     onError: (error) => {
@@ -163,30 +165,52 @@ export function InviteCodeModal({ isOpen, onClose }: InviteCodeModalProps) {
                     <Users className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                   </div>
                   <p className="text-slate-600 dark:text-slate-400">
-                    Enter your 6-character invite code to join a team
+                    Enter the organization ID and invite code to join a team
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="inviteCode" className="text-slate-700 dark:text-slate-300">
-                    Invite Code
-                  </Label>
-                  <Input
-                    {...register("inviteCode")}
-                    id="inviteCode"
-                    type="text"
-                    placeholder="ABC123"
-                    className="text-center text-lg font-mono tracking-wider uppercase"
-                    style={{ textTransform: 'uppercase' }}
-                    maxLength={8}
-                    disabled={acceptInviteMutation.isPending}
-                  />
-                  {errors.inviteCode && (
-                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
-                      <AlertCircle className="h-4 w-4" />
-                      {errors.inviteCode.message}
-                    </div>
-                  )}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="orgId" className="text-slate-700 dark:text-slate-300">
+                      Organization ID
+                    </Label>
+                    <Input
+                      {...register("orgId")}
+                      id="orgId"
+                      type="text"
+                      placeholder="2"
+                      className="text-center text-lg font-mono"
+                      disabled={acceptInviteMutation.isPending}
+                    />
+                    {errors.orgId && (
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.orgId.message}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="inviteCode" className="text-slate-700 dark:text-slate-300">
+                      Invite Code
+                    </Label>
+                    <Input
+                      {...register("inviteCode")}
+                      id="inviteCode"
+                      type="text"
+                      placeholder="SISUXD"
+                      className="text-center text-lg font-mono tracking-wider uppercase"
+                      style={{ textTransform: 'uppercase' }}
+                      maxLength={8}
+                      disabled={acceptInviteMutation.isPending}
+                    />
+                    {errors.inviteCode && (
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.inviteCode.message}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex gap-3">

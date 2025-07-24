@@ -1,0 +1,98 @@
+You are building a working team invitation system for an organization-based hiring platform. The current functionality is broken. Fix and implement the system with the following specifications:
+
+---
+
+🔁 GOAL:
+
+Users can invite other members to join their organization using a unique invite code. When an invitee signs up or logs in, they enter the organization ID and invite code to join the same team. Once joined, they are redirected to the same team dashboard.
+
+---
+
+🛠️ FIX THE FOLLOWING BUG:
+
+Currently, when users try to join an organization with an invite code and org ID, the frontend tries to fetch from:
+
+    '/api/invitations/accept-code'
+
+But this throws the error:
+
+    ❌ Failed to execute 'fetch' on 'Window': '/api/invitations/accept-code' is not a valid HTTP method
+
+Fix this by properly implementing the **backend POST endpoint**, and ensure the **frontend uses POST method with correct body parameters**.
+
+---
+
+✅ STEP-BY-STEP REQUIREMENTS
+
+1. **Backend API Endpoint: `/api/invitations/accept-code`**
+
+   - Implement this as a `POST` endpoint.
+   - Accepts `orgId` and `inviteCode` from the request body.
+   - Authenticates the user using session or auth middleware.
+   - Validates that:
+     - The organization ID exists.
+     - The invite code is valid for that organization.
+   - If valid:
+     - Adds the logged-in user to that organization’s `members` list or `organization_users` table.
+     - Sets the user’s `currentOrgId` in their session or database.
+   - Returns `{ success: true }` on success or appropriate error JSON on failure.
+
+2. **Frontend Fetch Request**
+
+   On "Join Organization" button click:
+   - Fetch POST to `/api/invitations/accept-code`
+   - Send:
+
+     ```json
+     {
+       "orgId": "2",
+       "inviteCode": "SISUXD"
+     }
+     ```
+
+   - If `success: true`, redirect user to `/dashboard`.
+
+3. **Database Schema**
+
+   Ensure the following tables/collections exist:
+   - `organizations`: stores organization details and invite codes.
+   - `users`: stores user accounts.
+   - `organization_users`: many-to-many table that links users to orgs (optional but recommended for scale).
+
+4. **Email Invite Flow**
+
+   When an inviter sends an invite:
+   - The email should contain:
+     - A link to your app that opens the join screen.
+     - The correct org ID and invite code.
+   - When the link is clicked, ensure:
+     - If the user is not logged in, prompt login/signup.
+     - After login, auto-fill org ID and invite code from the URL.
+     - Once submitted, run the join process.
+
+---
+
+✅ BONUS FEATURES (Optional but recommended)
+
+- Validate invite code expiration (optional field).
+- Support roles (e.g., admin vs member) if required.
+- Let the inviting user view/manage members in a Team Settings tab.
+
+---
+
+✅ EXAMPLE INVITE CODE FLOW
+
+1. HR User creates a job and clicks "Invite team member".
+2. Email is sent with URL: `https://yourapp.com/invite?org=2&code=SISUXD`
+3. New user clicks link → signs up/logs in → gets redirected to join screen (auto-filled).
+4. They click **Join Organization** → they're added to org and redirected to the team dashboard.
+
+---
+
+🌐 Notes:
+
+- Backend should be written in Node.js/Express or similar (adjust to project stack).
+- Frontend is using Replit + browser.
+- Use proper error handling and feedback on UI.
+
+Implement this end-to-end invite and organization join system now.

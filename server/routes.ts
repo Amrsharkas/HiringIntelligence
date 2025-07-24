@@ -3162,6 +3162,83 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Accept invitation using invite code (specific endpoint as requested)
+  app.post('/api/invitations/accept-code', isAuthenticated, async (req: any, res) => {
+    try {
+      const { orgId, inviteCode } = req.body;
+      const userId = req.user.claims.sub;
+      
+      console.log(`🔄 Processing invite code acceptance: ${inviteCode} for user: ${userId} with org ID: ${orgId}`);
+      
+      // Validate required parameters
+      if (!orgId || !inviteCode) {
+        return res.status(400).json({ message: "Both orgId and inviteCode are required" });
+      }
+      
+      // Find invitation by invite code
+      const invitation = await storage.getInvitationByCode(inviteCode);
+      
+      if (!invitation) {
+        console.log(`❌ Invalid invite code: ${inviteCode}`);
+        return res.status(400).json({ message: "Invalid invite code" });
+      }
+      
+      // Verify organization ID matches
+      if (invitation.organizationId !== orgId) {
+        console.log(`❌ Organization ID mismatch: expected ${invitation.organizationId}, got ${orgId}`);
+        return res.status(400).json({ message: "Organization ID does not match invite code" });
+      }
+      
+      // Check invitation status and expiry
+      if (invitation.status !== 'pending') {
+        console.log(`❌ Invite code already used: ${inviteCode}`);
+        return res.status(400).json({ message: "Invite code has already been used" });
+      }
+      
+      if (invitation.expiresAt < new Date()) {
+        console.log(`❌ Invite code expired: ${inviteCode}`);
+        return res.status(400).json({ message: "Invite code has expired" });
+      }
+      
+      // Check if user is already a member
+      const existingMember = await storage.getTeamMemberByUserAndOrg(userId, invitation.organizationId);
+      if (existingMember) {
+        console.log(`❌ User ${userId} already member of organization: ${orgId}`);
+        return res.status(400).json({ message: "You are already a member of this organization" });
+      }
+      
+      // Add user to organization
+      await storage.addTeamMember({
+        organizationId: invitation.organizationId,
+        userId,
+        role: invitation.role,
+        joinedAt: new Date(),
+      });
+      
+      // Mark invitation as accepted
+      await storage.updateInvitationStatus(invitation.id, 'accepted');
+      
+      // Get organization details
+      const organization = await storage.getOrganizationById(invitation.organizationId);
+      
+      console.log(`✅ Successfully accepted invite code: ${inviteCode} for user: ${userId}`);
+      
+      res.json({ 
+        success: true,
+        message: `Welcome to ${organization?.companyName}!`,
+        organization: {
+          id: organization?.id,
+          companyName: organization?.companyName
+        },
+        role: invitation.role
+      });
+      
+    } catch (error) {
+      console.error("Error accepting invite code:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
