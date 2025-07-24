@@ -24,14 +24,8 @@ const createOrgSchema = z.object({
 });
 
 const joinOrgSchema = z.object({
-  organizationId: z.string().optional(),
+  organizationId: z.string().min(1, "Organization ID is required"),
   inviteCode: z.string().min(1, "Invite code is required"),
-}).refine((data) => {
-  // If invite code is provided, organization ID is not required
-  return data.inviteCode || data.organizationId;
-}, {
-  message: "Either invite code or organization ID is required",
-  path: ["organizationId"],
 });
 
 type CreateOrgData = z.infer<typeof createOrgSchema>;
@@ -129,21 +123,12 @@ export default function OrganizationSetup() {
 
   const joinOrgMutation = useMutation({
     mutationFn: async (data: JoinOrgData) => {
-      // If invite code is provided, use the invite code endpoint
-      if (data.inviteCode) {
-        return await apiRequest("/api/invitations/accept-code", {
-          method: "POST",
-          body: JSON.stringify({ inviteCode: data.inviteCode }),
-        });
-      }
-      // Otherwise try to join by organization ID (if available)
-      if (data.organizationId) {
-        return await apiRequest("/api/organizations/join", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
-      }
-      throw new Error("Either invite code or organization ID is required");
+      // Both organizationId and inviteCode are now required
+      const response = await apiRequest("POST", "/api/invitations/accept-code", { 
+        inviteCode: data.inviteCode,
+        organizationId: data.organizationId 
+      });
+      return response.json();
     },
     onSuccess: (response) => {
       toast({
@@ -319,6 +304,21 @@ export default function OrganizationSetup() {
               <TabsContent value="join" className="space-y-6">
                 <form onSubmit={joinForm.handleSubmit(onJoinSubmit)} className="space-y-4">
                   <div>
+                    <Label htmlFor="organizationId">Organization ID</Label>
+                    <Input
+                      id="organizationId"
+                      {...joinForm.register("organizationId")}
+                      placeholder="Enter the organization ID from your invitation email"
+                      className="mt-2"
+                    />
+                    {joinForm.formState.errors.organizationId && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {joinForm.formState.errors.organizationId.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
                     <Label htmlFor="inviteCode">Invite Code</Label>
                     <Input
                       id="inviteCode"
@@ -336,7 +336,7 @@ export default function OrganizationSetup() {
                   </div>
 
                   <div className="text-center text-sm text-gray-500">
-                    <p>Don't have an invite code? Contact your team administrator.</p>
+                    <p>Both Organization ID and Invite Code are required from your invitation email.</p>
                   </div>
 
                   <Button

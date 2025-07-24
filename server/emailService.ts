@@ -18,7 +18,8 @@ export async function sendInviteCodeEmail(
   to: string, 
   organizationName: string, 
   inviteCode: string, 
-  role: string
+  role: string,
+  organizationId: string
 ): Promise<boolean> {
   try {
     console.log(`📧 Sending invite code email to ${to} with code: ${inviteCode}...`);
@@ -60,11 +61,17 @@ export async function sendInviteCodeEmail(
                 <h2>${inviteCode}</h2>
               </div>
               
+              <div class="invite-code">
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">Organization ID:</p>
+                <h2 style="font-size: 18px; word-break: break-all;">${organizationId}</h2>
+              </div>
+              
               <div class="steps">
-                <h3>How to Join (3 Easy Steps):</h3>
+                <h3>How to Join (4 Easy Steps):</h3>
                 <ol>
                   <li><strong>Click "Join the Team"</strong> below to go to our platform</li>
                   <li><strong>Sign up or log in</strong> with your account</li>
+                  <li><strong>Enter Organization ID:</strong> <code style="word-break: break-all;">${organizationId}</code></li>
                   <li><strong>Enter your invite code:</strong> <code>${inviteCode}</code></li>
                 </ol>
               </div>

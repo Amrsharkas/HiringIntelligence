@@ -179,7 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         organization.companyName,
         inviteCode,
-        role
+        role,
+        organization.id
       );
 
       if (!emailSent) {
@@ -1173,10 +1174,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Accept invitation using invite code
   app.post("/api/invitations/accept-code", isAuthenticated, async (req: any, res) => {
     try {
-      const { inviteCode } = req.body;
+      const { inviteCode, organizationId } = req.body;
       const userId = req.user.claims.sub;
       
-      console.log(`🔄 Processing invite code acceptance: ${inviteCode} for user: ${userId}`);
+      console.log(`🔄 Processing invite code acceptance: ${inviteCode} for user: ${userId} with org ID: ${organizationId}`);
+      
+      // Both organizationId and inviteCode are required
+      if (!inviteCode || !organizationId) {
+        return res.status(400).json({ message: "Both invite code and organization ID are required" });
+      }
       
       // Find invitation by invite code
       const invitation = await storage.getInvitationByInviteCode(inviteCode);
@@ -1184,6 +1190,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!invitation) {
         console.log(`❌ Invalid invite code: ${inviteCode}`);
         return res.status(400).json({ message: "Invalid invite code" });
+      }
+      
+      // Verify organization ID matches the invitation
+      if (invitation.organizationId !== organizationId) {
+        console.log(`❌ Organization ID mismatch: expected ${invitation.organizationId}, got ${organizationId}`);
+        return res.status(400).json({ message: "Organization ID does not match invite code" });
       }
       
       if (invitation.status !== 'pending') {
@@ -1264,7 +1276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send invite code email
-      await sendInviteCodeEmail(email, organization.companyName, inviteCode, role);
+      await sendInviteCodeEmail(email, organization.companyName, inviteCode, role, organization.id);
       
       res.json({ 
         message: "Invitation sent successfully", 

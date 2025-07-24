@@ -39,7 +39,7 @@ export const users = pgTable("users", {
 
 // Organizations/Companies
 export const organizations = pgTable("organizations", {
-  id: serial("id").primaryKey(),
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   companyName: varchar("company_name").notNull(),
   industry: varchar("industry"),
   companySize: varchar("company_size"),
@@ -52,7 +52,7 @@ export const organizations = pgTable("organizations", {
 // Organization members
 export const organizationMembers = pgTable("organization_members", {
   id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   role: varchar("role").notNull().default("member"),
   joinedAt: timestamp("joined_at").defaultNow(),
@@ -62,7 +62,7 @@ export const organizationMembers = pgTable("organization_members", {
 // Organization invitations
 export const organizationInvitations = pgTable("organization_invitations", {
   id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
   email: varchar("email").notNull(),
   role: varchar("role").notNull().default("member"),
   token: varchar("token").notNull().unique(),
@@ -86,7 +86,7 @@ export const jobs = pgTable("jobs", {
   softSkills: text("soft_skills").array(),
   technicalSkills: text("technical_skills").array(),
   employerQuestions: text("employer_questions").array(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
   createdById: varchar("created_by_id").notNull().references(() => users.id),
   is_active: boolean("is_active").notNull().default(true),
   views: integer("views").notNull().default(0),
@@ -214,7 +214,7 @@ export const acceptedApplicants = pgTable("accepted_applicants", {
   candidateEmail: varchar("candidate_email"),
   jobId: varchar("job_id").notNull(),
   jobTitle: varchar("job_title").notNull(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
   acceptedBy: varchar("accepted_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -250,7 +250,7 @@ export const scoredApplicants = pgTable("scored_applicants", {
   experienceScore: integer("experience_score"),
   culturalFitScore: integer("cultural_fit_score"),
   jobId: varchar("job_id").notNull(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
   scoredAt: timestamp("scored_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
