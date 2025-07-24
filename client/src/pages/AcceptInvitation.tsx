@@ -5,36 +5,47 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Check, AlertCircle, Loader2, Users } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Building2, Check, AlertCircle, Loader2, Users, LogIn, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export function AcceptInvitation() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [token, setToken] = useState<string | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   // Extract token and other parameters from URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteToken = urlParams.get('token');
-    const orgId = urlParams.get('org');
-    const role = urlParams.get('role');
+    const organizationId = urlParams.get('org');
+    const userRole = urlParams.get('role');
     
     setToken(inviteToken);
+    setOrgId(organizationId);
+    setRole(userRole);
     
-    // Store additional parameters if available for enhanced processing
-    if (orgId && role) {
-      console.log(`🔗 Invitation includes team identifiers: org=${orgId}, role=${role}`);
+    // Store parameters in session for post-auth processing
+    if (inviteToken && organizationId && userRole) {
+      console.log(`🔗 Storing invitation parameters for processing: org=${organizationId}, role=${userRole}`);
+      sessionStorage.setItem('pendingInvitation', JSON.stringify({
+        token: inviteToken,
+        organizationId: organizationId,
+        role: userRole
+      }));
     }
   }, []);
 
-  // Fetch invitation details
+  // Fetch invitation details (only works without auth requirement)
   const { data: invitation, isLoading: loadingInvitation, error } = useQuery({
-    queryKey: ['/api/invitations', token],
+    queryKey: ['/api/invitations/public', token],
     queryFn: async () => {
       if (!token) throw new Error('No token provided');
-      const response = await fetch(`/api/invitations/${token}`);
+      const response = await fetch(`/api/invitations/public/${token}`);
       if (!response.ok) {
         throw new Error('Invalid or expired invitation');
       }
@@ -44,7 +55,7 @@ export function AcceptInvitation() {
     retry: false,
   });
 
-  // Accept invitation mutation
+  // Accept invitation mutation (only for authenticated users)
   const acceptInvitationMutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error('No token provided');
@@ -58,6 +69,8 @@ export function AcceptInvitation() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
+      // Clear stored invitation data
+      sessionStorage.removeItem('pendingInvitation');
       // Redirect to dashboard
       setTimeout(() => {
         navigate("/dashboard");
@@ -72,8 +85,25 @@ export function AcceptInvitation() {
     },
   });
 
+  // Redirect to Replit Auth for sign in/up with invitation params
+  const handleAuthRedirect = (type: 'signin' | 'signup') => {
+    const params = new URLSearchParams();
+    if (token) params.set('invite', token);
+    if (orgId) params.set('org', orgId);
+    if (role) params.set('role', role);
+    
+    const authUrl = `/auth/${type}?${params.toString()}`;
+    console.log(`🔄 Redirecting to ${type} with invitation parameters:`, authUrl);
+    window.location.href = authUrl;
+  };
+
   const handleAcceptInvitation = () => {
-    acceptInvitationMutation.mutate();
+    if (isAuthenticated) {
+      acceptInvitationMutation.mutate();
+    } else {
+      // Redirect to sign in with invitation params
+      handleAuthRedirect('signin');
+    }
   };
 
   if (!token) {
@@ -197,33 +227,62 @@ export function AcceptInvitation() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Button
-              onClick={handleAcceptInvitation}
-              disabled={acceptInvitationMutation.isPending}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-            >
-              {acceptInvitationMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Accepting...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Accept Invitation
-                </>
-              )}
-            </Button>
-            
-            <Button
-              onClick={() => navigate("/dashboard")}
-              variant="outline"
-              className="w-full"
-            >
-              Decline
-            </Button>
-          </div>
+          {isAuthenticated ? (
+            <div className="space-y-3">
+              <Button
+                onClick={handleAcceptInvitation}
+                disabled={acceptInvitationMutation.isPending}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+              >
+                {acceptInvitationMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Accepting...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 w-4 mr-2" />
+                    Accept Invitation
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                onClick={() => navigate("/")}
+                variant="outline"
+                className="w-full"
+              >
+                Decline
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Button
+                onClick={() => handleAuthRedirect('signin')}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In & Join Team
+              </Button>
+
+              <Button
+                onClick={() => handleAuthRedirect('signup')}
+                variant="outline"
+                className="w-full"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Sign Up & Join Team
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/")}
+                className="w-full text-slate-500"
+              >
+                Not interested
+              </Button>
+            </div>
+          )}
 
           <p className="text-xs text-slate-500 dark:text-slate-500 mt-4 text-center">
             This invitation expires on {new Date(invitation.invitation.expiresAt).toLocaleDateString()}

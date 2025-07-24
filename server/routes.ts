@@ -215,6 +215,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public invitation lookup (no authentication required)
+  app.get('/api/invitations/public/:token', async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      const invitation = await storage.getInvitationByToken(token);
+      
+      if (!invitation || invitation.status !== 'pending' || new Date() > invitation.expiresAt) {
+        return res.status(404).json({ message: "Invalid or expired invitation" });
+      }
+
+      // Get organization details for the invitation
+      const organization = await storage.getOrganization(invitation.organizationId);
+      
+      res.json({
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          status: invitation.status,
+          expiresAt: invitation.expiresAt,
+          organization: organization
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching public invitation:", error);
+      res.status(500).json({ message: "Failed to fetch invitation details" });
+    }
+  });
+
   app.post('/api/invitations/accept', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
