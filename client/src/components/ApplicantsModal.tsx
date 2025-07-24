@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { isUnauthorizedError } from '@/lib/authUtils';
+import { ShortlistButton } from './ShortlistButton';
 
 interface ApplicantData {
   id: string;
@@ -1002,13 +1003,24 @@ export function ApplicantsModal({ isOpen, onClose, jobId }: ApplicantsModalProps
 
                     {/* Actions */}
                     <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-600">
-                      <button
-                        onClick={() => handleViewProfile(applicant)}
-                        className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex items-center space-x-1 transition-colors"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>View Profile</span>
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleViewProfile(applicant)}
+                          className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex items-center space-x-1 transition-colors"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View Profile</span>
+                        </button>
+                        
+                        <ShortlistButton
+                          applicantId={applicant.id}
+                          applicantName={applicant.name || 'Unknown Applicant'}
+                          jobTitle={applicant.jobTitle || selectedJob?.title || 'Unknown Position'}
+                          jobId={applicant.jobId || selectedJob?.id?.toString() || '0'}
+                          size="sm"
+                          variant="outline"
+                        />
+                      </div>
                       
                       <div className="flex space-x-2">
                         {showingUndo.has(applicant.id) ? (

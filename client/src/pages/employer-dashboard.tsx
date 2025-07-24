@@ -27,7 +27,7 @@ import { CandidatesModal } from "@/components/SimpleCandidatesModal";
 import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 
-import { RecentActivityModal } from "@/components/RecentActivityModal";
+import { ShortlistedApplicantsModal } from "@/components/ShortlistedApplicantsModal";
 import { InviteCodeModal } from "@/components/InviteCodeModal";
 
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
@@ -357,7 +357,7 @@ export default function EmployerDashboard() {
   const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
 
-  const [isRecentActivityModalOpen, setIsRecentActivityModalOpen] = useState(false);
+  const [isShortlistedApplicantsModalOpen, setIsShortlistedApplicantsModalOpen] = useState(false);
   const [isInviteCodeModalOpen, setIsInviteCodeModalOpen] = useState(false);
 
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
@@ -482,32 +482,32 @@ export default function EmployerDashboard() {
 
             <InteractiveCard
               index={1}
-              onClick={() => setIsRecentActivityModalOpen(true)}
+              onClick={() => setIsShortlistedApplicantsModalOpen(true)}
               className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
             >
               <div className="p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Recent Activity</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Live dashboard stats</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Shortlisted Applicants</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">View your favorites</p>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <BarChart3 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </InteractiveCard>
 
             <InteractiveCard
               index={2}
-              onClick={() => setIsRecentActivityModalOpen(true)}
+              onClick={() => setIsShortlistedApplicantsModalOpen(true)}
               className="bg-gradient-to-br from-purple-500/10 via-purple-400/5 to-transparent"
             >
               <div className="p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Recent Activity</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">View latest updates</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Shortlisted Applicants</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your favorites</p>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </InteractiveCard>
@@ -660,9 +660,9 @@ export default function EmployerDashboard() {
         onClose={() => setIsAnalyticsModalOpen(false)} 
       />
 
-      <RecentActivityModal 
-        isOpen={isRecentActivityModalOpen} 
-        onClose={() => setIsRecentActivityModalOpen(false)} 
+      <ShortlistedApplicantsModal 
+        isOpen={isShortlistedApplicantsModalOpen} 
+        onClose={() => setIsShortlistedApplicantsModalOpen(false)} 
       />
       <InviteCodeModal 
         isOpen={isInviteCodeModalOpen} 

@@ -1100,6 +1100,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/');
   });
 
+  // Shortlisted Applicants endpoints
+  app.post('/api/shortlisted-applicants', isAuthenticated, async (req: any, res) => {
+    try {
+      const { applicantId, applicantName, jobTitle, jobId, note } = req.body;
+      const employerId = req.user.claims.sub;
+      
+      // Check if already shortlisted
+      const isAlreadyShortlisted = await storage.isApplicantShortlisted(employerId, applicantId, jobId);
+      if (isAlreadyShortlisted) {
+        return res.status(400).json({ message: "Applicant already shortlisted for this job" });
+      }
+      
+      const shortlistedData = {
+        id: `shortlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        employerId,
+        applicantId,
+        applicantName,
+        jobTitle,
+        jobId,
+        note: note || null,
+        dateShortlisted: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      const shortlisted = await storage.addToShortlist(shortlistedData);
+      res.json(shortlisted);
+    } catch (error) {
+      console.error("Error adding to shortlist:", error);
+      res.status(500).json({ message: "Failed to add to shortlist" });
+    }
+  });
+  
+  app.get('/api/shortlisted-applicants', isAuthenticated, async (req: any, res) => {
+    try {
+      const employerId = req.user.claims.sub;
+      const shortlisted = await storage.getShortlistedApplicants(employerId);
+      res.json(shortlisted);
+    } catch (error) {
+      console.error("Error fetching shortlisted applicants:", error);
+      res.status(500).json({ message: "Failed to fetch shortlisted applicants" });
+    }
+  });
+  
+  app.delete('/api/shortlisted-applicants/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.removeFromShortlist(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing from shortlist:", error);
+      res.status(500).json({ message: "Failed to remove from shortlist" });
+    }
+  });
+  
+  app.get('/api/shortlisted-applicants/check/:applicantId/:jobId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { applicantId, jobId } = req.params;
+      const employerId = req.user.claims.sub;
+      const isShortlisted = await storage.isApplicantShortlisted(employerId, applicantId, jobId);
+      res.json({ isShortlisted });
+    } catch (error) {
+      console.error("Error checking shortlist status:", error);
+      res.status(500).json({ message: "Failed to check shortlist status" });
+    }
+  });
+
   // Post-authentication hook to automatically process pending invitations
   app.post('/api/auth/process-pending-invitation', isAuthenticated, async (req: any, res) => {
     try {

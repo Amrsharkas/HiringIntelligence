@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Search, MapPin, Star, Eye, Brain, TrendingUp, Target, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { ShortlistButton } from './ShortlistButton';
 
 interface EnhancedCandidate {
   id: string;
@@ -244,14 +245,24 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                               </Badge>
                             )}
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Profile
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <ShortlistButton
+                              applicantId={candidate.id}
+                              applicantName={candidate.name || 'Unnamed Candidate'}
+                              jobTitle={candidate.bestMatchJob?.title || 'General Position'}
+                              jobId={candidate.bestMatchJob?.id?.toString() || '0'}
+                              size="sm"
+                              variant="outline"
+                            />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View Profile
+                            </Button>
+                          </div>
                         </div>
                       </motion.div>
                     ))}

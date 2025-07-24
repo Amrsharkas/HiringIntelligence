@@ -11,6 +11,7 @@ import {
   acceptedApplicants,
   realInterviews,
   scoredApplicants,
+  shortlistedApplicants,
   type User,
   type UpsertUser,
   type Organization,
@@ -32,6 +33,8 @@ import {
   type InsertRealInterview,
   type ScoredApplicant,
   type InsertScoredApplicant,
+  type ShortlistedApplicant,
+  type InsertShortlistedApplicant,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -108,6 +111,12 @@ export interface IStorage {
   createScoredApplicant(scored: InsertScoredApplicant): Promise<ScoredApplicant>;
   updateScoredApplicant(applicantId: string, scored: Partial<InsertScoredApplicant>): Promise<ScoredApplicant>;
   getScoredApplicantsByOrganization(organizationId: number): Promise<ScoredApplicant[]>;
+  
+  // Shortlisted Applicants operations
+  addToShortlist(shortlistedData: InsertShortlistedApplicant): Promise<ShortlistedApplicant>;
+  getShortlistedApplicants(employerId: string): Promise<ShortlistedApplicant[]>;
+  removeFromShortlist(id: string): Promise<void>;
+  isApplicantShortlisted(employerId: string, applicantId: string, jobId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -579,6 +588,39 @@ export class DatabaseStorage implements IStorage {
       .from(scoredApplicants)
       .where(eq(scoredApplicants.organizationId, organizationId))
       .orderBy(desc(scoredApplicants.scoredAt));
+  }
+
+  // Shortlisted Applicants operations
+  async addToShortlist(shortlistedData: InsertShortlistedApplicant): Promise<ShortlistedApplicant> {
+    const [shortlisted] = await db
+      .insert(shortlistedApplicants)
+      .values(shortlistedData)
+      .returning();
+    return shortlisted;
+  }
+
+  async getShortlistedApplicants(employerId: string): Promise<ShortlistedApplicant[]> {
+    return await db.select()
+      .from(shortlistedApplicants)
+      .where(eq(shortlistedApplicants.employerId, employerId))
+      .orderBy(desc(shortlistedApplicants.dateShortlisted));
+  }
+
+  async removeFromShortlist(id: string): Promise<void> {
+    await db.delete(shortlistedApplicants).where(eq(shortlistedApplicants.id, id));
+  }
+
+  async isApplicantShortlisted(employerId: string, applicantId: string, jobId: string): Promise<boolean> {
+    const [result] = await db.select()
+      .from(shortlistedApplicants)
+      .where(
+        and(
+          eq(shortlistedApplicants.employerId, employerId),
+          eq(shortlistedApplicants.applicantId, applicantId),
+          eq(shortlistedApplicants.jobId, jobId)
+        )
+      );
+    return !!result;
   }
 }
 

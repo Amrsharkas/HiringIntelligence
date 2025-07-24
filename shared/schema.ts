@@ -258,6 +258,23 @@ export const scoredApplicants = pgTable("scored_applicants", {
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Shortlisted applicants table
+export const shortlistedApplicants = pgTable("shortlisted_applicants", {
+  id: text("id").primaryKey().notNull(),
+  employerId: text("employer_id").notNull(),
+  applicantId: text("applicant_id").notNull(),
+  applicantName: text("applicant_name").notNull(),
+  jobTitle: text("job_title").notNull(),
+  jobId: text("job_id").notNull(),
+  note: text("note"),
+  dateShortlisted: timestamp("date_shortlisted").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ShortlistedApplicant = typeof shortlistedApplicants.$inferSelect;
+export type InsertShortlistedApplicant = typeof shortlistedApplicants.$inferInsert;
 export type AcceptedApplicant = typeof acceptedApplicants.$inferSelect;
 export type InsertAcceptedApplicant = typeof acceptedApplicants.$inferInsert;
 export type RealInterview = typeof realInterviews.$inferSelect;
