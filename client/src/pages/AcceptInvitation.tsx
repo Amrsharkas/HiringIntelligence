@@ -14,11 +14,19 @@ export function AcceptInvitation() {
   const queryClient = useQueryClient();
   const [token, setToken] = useState<string | null>(null);
 
-  // Extract token from URL
+  // Extract token and other parameters from URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteToken = urlParams.get('token');
+    const orgId = urlParams.get('org');
+    const role = urlParams.get('role');
+    
     setToken(inviteToken);
+    
+    // Store additional parameters if available for enhanced processing
+    if (orgId && role) {
+      console.log(`🔗 Invitation includes team identifiers: org=${orgId}, role=${role}`);
+    }
   }, []);
 
   // Fetch invitation details

@@ -5,14 +5,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
+import { usePendingInvitation } from "@/hooks/usePendingInvitation";
 import Landing from "@/pages/landing";
 import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
 import { AcceptInvitation } from "@/pages/AcceptInvitation";
 import NotFound from "@/pages/not-found";
+import { useEffect } from "react";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { processPendingInvitation } = usePendingInvitation();
 
   // Check if user has an organization
   const { data: organization, isLoading: orgLoading } = useQuery({
@@ -20,6 +23,14 @@ function Router() {
     enabled: isAuthenticated && !!user,
     retry: false,
   });
+
+  // Automatically process pending invitations when user becomes authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && !orgLoading) {
+      console.log('🔄 Checking for pending team invitations...');
+      processPendingInvitation();
+    }
+  }, [isAuthenticated, user, orgLoading, processPendingInvitation]);
 
   if (isLoading || (isAuthenticated && orgLoading)) {
     return (
@@ -31,7 +42,8 @@ function Router() {
 
   return (
     <Switch>
-      {/* Invitation acceptance route - accessible without full auth checks */}
+      {/* Enhanced invitation routes - accessible without full auth checks */}
+      <Route path="/invite/accept" component={AcceptInvitation} />
       <Route path="/accept-invitation" component={AcceptInvitation} />
       
       {!isAuthenticated ? (

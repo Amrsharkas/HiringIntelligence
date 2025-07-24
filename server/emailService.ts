@@ -10,6 +10,8 @@ interface InvitationEmailParams {
   organizationName: string;
   inviterName: string;
   invitationToken: string;
+  organizationId: number;
+  role: string;
 }
 
 export async function sendInvitationEmail({
@@ -17,6 +19,8 @@ export async function sendInvitationEmail({
   organizationName,
   inviterName,
   invitationToken,
+  organizationId,
+  role,
 }: InvitationEmailParams): Promise<boolean> {
   try {
     console.log(`📧 Starting email send process...`);
@@ -28,7 +32,13 @@ export async function sendInvitationEmail({
     const baseUrl = process.env.REPLIT_DEV_DOMAIN ? 
       `https://${process.env.REPLIT_DEV_DOMAIN}` : 
       'https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev';
-    const acceptUrl = `${baseUrl}/invite/accept?token=${invitationToken}`;
+    
+    // Enhanced invitation URL with team identifiers for automatic access granting
+    const acceptUrl = `${baseUrl}/invite/accept?token=${invitationToken}&org=${organizationId}&role=${role}`;
+    
+    // Alternative direct signup/signin URLs with embedded team identifiers
+    const signupUrl = `${baseUrl}/auth/signup?invite=${invitationToken}&org=${organizationId}&role=${role}`;
+    const signinUrl = `${baseUrl}/auth/signin?invite=${invitationToken}&org=${organizationId}&role=${role}`;
     
     const emailHtml = `
       <!DOCTYPE html>
@@ -55,7 +65,7 @@ export async function sendInvitationEmail({
               
               <p><strong>${inviterName}</strong> has invited you to join <strong>${organizationName}</strong> on our hiring platform.</p>
               
-              <p>As a team member, you'll be able to:</p>
+              <p>As a <strong>${role}</strong>, you'll be able to:</p>
               <ul>
                 <li>📝 Create and manage job postings</li>
                 <li>👥 Review and interview candidates</li>
@@ -66,12 +76,22 @@ export async function sendInvitationEmail({
               <p>Click the button below to accept your invitation and get started:</p>
               
               <div style="text-align: center;">
-                <a href="${acceptUrl}" class="button">Accept Invitation</a>
+                <a href="${acceptUrl}" class="button">Accept Invitation & Join Team</a>
+              </div>
+              
+              <div style="margin: 20px 0; text-align: center;">
+                <p style="margin: 10px 0; color: #666;">Already have an account?</p>
+                <a href="${signinUrl}" style="color: #667eea; text-decoration: none;">Sign in to join this team</a>
+              </div>
+              
+              <div style="margin: 20px 0; text-align: center;">
+                <p style="margin: 10px 0; color: #666;">Need to create an account?</p>
+                <a href="${signupUrl}" style="color: #667eea; text-decoration: none;">Sign up and automatically join this team</a>
               </div>
               
               <p><em>This invitation will expire in 7 days.</em></p>
               
-              <p>If the button doesn't work, copy and paste this link into your browser:</p>
+              <p>If none of the buttons work, copy and paste this link into your browser:</p>
               <p style="word-break: break-all; color: #667eea;">${acceptUrl}</p>
             </div>
             <div class="footer">

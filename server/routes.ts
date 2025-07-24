@@ -168,6 +168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationName: organization.companyName,
         inviterName,
         invitationToken: token,
+        organizationId: organization.id,
+        role,
       });
 
       if (!emailSent) {
@@ -864,6 +866,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced authentication routes for automatic team joining
+  app.get('/auth/signup', (req: any, res) => {
+    const { invite, org, role } = req.query;
+    if (invite && org && role) {
+      // Store invitation parameters in session for post-signup processing
+      req.session.pendingInvitation = { token: invite, organizationId: org, role };
+      console.log(`🔗 Stored pending invitation for post-signup: org=${org}, role=${role}`);
+    }
+    // Redirect to main app which will handle Replit Auth signup
+    res.redirect('/');
+  });
+
+  app.get('/auth/signin', (req: any, res) => {
+    const { invite, org, role } = req.query;
+    if (invite && org && role) {
+      // Store invitation parameters in session for post-signin processing
+      req.session.pendingInvitation = { token: invite, organizationId: org, role };
+      console.log(`🔗 Stored pending invitation for post-signin: org=${org}, role=${role}`);
+    }
+    // Redirect to main app which will handle Replit Auth signin
+    res.redirect('/');
+  });
+
+  // Post-authentication hook to automatically process pending invitations
+  app.post('/api/auth/process-pending-invitation', isAuthenticated, async (req: any, res) => {
+    try {
+      const pendingInvitation = req.session.pendingInvitation;
+      if (!pendingInvitation) {
+        return res.json({ success: true, message: "No pending invitation" });
+      }
+
+      console.log(`🔄 Processing pending invitation:`, pendingInvitation);
+      
+      const { token, organizationId, role } = pendingInvitation;
+      const userId = req.user.claims.sub;
+
+      // Verify invitation is still valid
+      const invitation = await storage.getInvitationByToken(token);
+      if (!invitation || invitation.status !== 'pending' || new Date() > invitation.expiresAt) {
+        console.log(`❌ Invalid or expired invitation token: ${token}`);
+        delete req.session.pendingInvitation;
+        return res.status(400).json({ message: "Invalid or expired invitation" });
+      }
+
+      // Check if user is already part of this organization
+      const existingMember = await storage.getTeamMemberByUserAndOrg(userId, parseInt(organizationId));
+      if (existingMember) {
+        console.log(`ℹ️ User ${userId} is already a member of organization ${organizationId}`);
+        delete req.session.pendingInvitation;
+        return res.json({ success: true, message: "Already a team member" });
+      }
+
+      // Add user to the organization team
+      await storage.addTeamMember({
+        organizationId: parseInt(organizationId),
+        userId,
+        role,
+        joinedAt: new Date()
+      });
+
+      // Mark invitation as accepted
+      await storage.updateInvitationStatus(invitation.id, 'accepted');
+
+      console.log(`✅ Successfully added user ${userId} to organization ${organizationId} as ${role}`);
+      delete req.session.pendingInvitation;
+
+      res.json({
+        success: true,
+        message: "Successfully joined team!",
+        organizationId: parseInt(organizationId),
+        role
+      });
+
+    } catch (error) {
+      console.error("Error processing pending invitation:", error);
+      res.status(500).json({ message: "Failed to process invitation" });
+    }
+  });
+
   // Test endpoint for SendGrid email
   app.post('/api/test-email', async (req: any, res) => {
     try {
@@ -875,6 +956,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationName: 'Test Organization',
         inviterName: 'Test Admin',
         invitationToken: 'test-token-12345',
+        organizationId: 1,
+        role: 'member',
       });
 
       res.json({ 
