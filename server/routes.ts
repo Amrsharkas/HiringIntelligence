@@ -11,8 +11,18 @@ import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { jobMatchesService } from "./jobMatchesAirtableService";
-import { sendInvitationEmail } from "./emailService";
+import { sendInvitationEmail, sendInviteCodeEmail } from "./emailService";
 import { nanoid } from "nanoid";
+
+// Utility function to generate human-readable invite codes
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'; // Exclude confusing characters like O, 0, I, L
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 import { insertOrganizationInvitationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2999,6 +3009,88 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Interview scheduling endpoint (removed duplicate - using the one at line 1501 instead)
+
+  // Invite code API endpoints for organization joining
+  app.get('/api/invitations/code/:inviteCode', async (req: any, res) => {
+    try {
+      const { inviteCode } = req.params;
+      const invitation = await storage.getInvitationByCode(inviteCode);
+      
+      if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
+        return res.status(404).json({ message: "Invite code not found or expired" });
+      }
+
+      const organization = await storage.getOrganizationById(invitation.organizationId);
+      
+      res.json({
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          inviteCode: invitation.inviteCode,
+          organization: organization ? {
+            id: organization.id,
+            companyName: organization.companyName,
+            industry: organization.industry,
+          } : null,
+          expiresAt: invitation.expiresAt,
+        }
+      });
+
+    } catch (error) {
+      console.error("Error fetching invitation by code:", error);
+      res.status(500).json({ message: "Failed to fetch invitation" });
+    }
+  });
+
+  // Accept invitation using invite code
+  app.post('/api/invitations/accept-code', isAuthenticated, async (req: any, res) => {
+    try {
+      const { inviteCode } = req.body;
+      const userId = req.user.claims.sub;
+      
+      const invitation = await storage.getInvitationByCode(inviteCode);
+      
+      if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
+        return res.status(404).json({ message: "Invite code not found or expired" });
+      }
+
+      // Check if user is already a member of this organization
+      const existingMember = await storage.getTeamMemberByUserAndOrg(userId, invitation.organizationId);
+      if (existingMember) {
+        return res.status(400).json({ message: "You are already a member of this organization" });
+      }
+
+      // Add user to organization
+      await storage.addTeamMember({
+        organizationId: invitation.organizationId,
+        userId,
+        role: invitation.role,
+        joinedAt: new Date(),
+      });
+
+      // Mark invitation as accepted
+      await storage.updateInvitationStatus(invitation.id, 'accepted');
+
+      const organization = await storage.getOrganizationById(invitation.organizationId);
+      
+      console.log(`✅ User ${userId} joined organization ${invitation.organizationId} as ${invitation.role} via invite code`);
+
+      res.json({
+        message: `Successfully joined ${organization?.companyName}'s hiring team!`,
+        organization: {
+          id: organization?.id,
+          companyName: organization?.companyName
+        },
+        role: invitation.role,
+        newMember: true
+      });
+
+    } catch (error) {
+      console.error("Error accepting invitation via code:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

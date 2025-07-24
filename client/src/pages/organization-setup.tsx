@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,6 +77,16 @@ export default function OrganizationSetup() {
     },
   });
 
+  // Check URL parameters for invite code
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('inviteCode');
+    if (inviteCode) {
+      joinForm.setValue('inviteCode', inviteCode);
+      setActiveTab('join');
+    }
+  }, [joinForm]);
+
   const createOrgMutation = useMutation({
     mutationFn: async (data: CreateOrgData) => {
       const response = await apiRequest("POST", "/api/organizations", data);
@@ -113,13 +123,26 @@ export default function OrganizationSetup() {
 
   const joinOrgMutation = useMutation({
     mutationFn: async (data: JoinOrgData) => {
-      const response = await apiRequest("POST", "/api/organizations/join", data);
-      return response.json();
+      // If invite code is provided, use the invite code endpoint
+      if (data.inviteCode) {
+        return await apiRequest("/api/invitations/accept-code", {
+          method: "POST",
+          body: JSON.stringify({ inviteCode: data.inviteCode }),
+        });
+      }
+      // Otherwise try to join by organization ID (if available)
+      if (data.organizationId) {
+        return await apiRequest("/api/organizations/join", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      }
+      throw new Error("Either invite code or organization ID is required");
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
-        title: "Success", 
-        description: "Successfully joined the organization!",
+        title: "Welcome to the team!",
+        description: response.message || "Successfully joined the organization!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       // This will trigger a redirect to the dashboard
@@ -139,7 +162,7 @@ export default function OrganizationSetup() {
       }
       toast({
         title: "Error",
-        description: "Failed to join organization. Please check your details and try again.",
+        description: error.message || "Failed to join organization. Please check your invite code and try again.",
         variant: "destructive",
       });
     },

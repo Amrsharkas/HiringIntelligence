@@ -181,11 +181,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Organization invitation operations
-  async createInvitation(invitationData: InsertOrganizationInvitation & { token: string }): Promise<OrganizationInvitation> {
+  async createInvitation(invitationData: InsertOrganizationInvitation & { token: string; inviteCode: string }): Promise<OrganizationInvitation> {
     const [invitation] = await db
       .insert(organizationInvitations)
       .values(invitationData)
       .returning();
+    return invitation;
+  }
+
+  async getInvitationByCode(inviteCode: string): Promise<OrganizationInvitation | undefined> {
+    const [invitation] = await db
+      .select()
+      .from(organizationInvitations)
+      .where(eq(organizationInvitations.inviteCode, inviteCode));
     return invitation;
   }
 

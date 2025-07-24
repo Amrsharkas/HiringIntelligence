@@ -66,6 +66,7 @@ export const organizationInvitations = pgTable("organization_invitations", {
   email: varchar("email").notNull(),
   role: varchar("role").notNull().default("member"),
   token: varchar("token").notNull().unique(),
+  inviteCode: varchar("invite_code").notNull().unique(), // 6-8 digit human-readable code
   invitedBy: varchar("invited_by").notNull().references(() => users.id),
   status: varchar("status").notNull().default("pending"), // pending, accepted, expired
   expiresAt: timestamp("expires_at").notNull(),

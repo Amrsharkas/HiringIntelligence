@@ -151,3 +151,77 @@ This invitation was sent by ${organizationName} through our hiring platform.
     return false;
   }
 }
+
+// New invite code email function for simpler team invitations
+export async function sendInviteCodeEmail(
+  email: string, 
+  organizationName: string, 
+  inviteCode: string, 
+  role: string
+): Promise<boolean> {
+  try {
+    console.log(`📧 Sending invite code email to: ${email} for ${organizationName}`);
+    
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN ? 
+      `https://${process.env.REPLIT_DEV_DOMAIN}` : 
+      'https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev';
+    
+    const msg = {
+      to: email,
+      from: 'raef@platohiring.com',
+      subject: `Join ${organizationName}'s hiring team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">You're Invited!</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Join ${organizationName}'s hiring team</p>
+          </div>
+
+          <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+            <h2 style="color: #333; margin: 0 0 15px 0; font-size: 20px;">Welcome to the Team!</h2>
+            <p style="color: #666; margin: 0 0 20px 0; line-height: 1.6;">
+              You've been invited to join <strong>${organizationName}</strong> as a <strong>${role}</strong> on their hiring platform.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 6px; border-left: 4px solid #667eea; margin-bottom: 20px;">
+              <h3 style="color: #333; margin: 0 0 10px 0; font-size: 16px;">Your Invite Code:</h3>
+              <div style="font-family: monospace; font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 2px;">${inviteCode}</div>
+            </div>
+            
+            <p style="color: #666; margin: 0; line-height: 1.6;">
+              To get started:
+              <br>1. Visit our platform
+              <br>2. Sign up or sign in
+              <br>3. Enter the invite code above to join the team
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 25px;">
+            <a href="${baseUrl}/?inviteCode=${inviteCode}" 
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; margin: 10px;">
+              Get Started
+            </a>
+          </div>
+
+          <div style="border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 0;">
+              This invitation will expire in 7 days. If you have any questions, please contact your team administrator.
+            </p>
+          </div>
+        </div>
+      `
+    };
+
+    const result = await mailService.send(msg);
+    console.log(`✅ Invite code email sent successfully to ${email}. Response:`, result[0].statusCode);
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending invite code email:', error);
+    
+    if (error.response) {
+      console.error('📄 Response body:', error.response.body);
+    }
+    
+    return false;
+  }
+}
