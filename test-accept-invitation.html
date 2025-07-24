@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Invitation Acceptance</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, button { padding: 10px; margin: 5px 0; }
+        button { background: #007cba; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; background: #f9f9f9; }
+        .error { border-color: #dc3545; background: #f8d7da; color: #721c24; }
+        .success { border-color: #28a745; background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>Test Invitation Acceptance System</h1>
+    
+    <div class="form-group">
+        <label for="orgId">Organization ID:</label>
+        <input type="text" id="orgId" value="1" placeholder="Enter organization ID">
+    </div>
+    
+    <div class="form-group">
+        <label for="inviteCode">Invite Code:</label>
+        <input type="text" id="inviteCode" value="" placeholder="Enter 6-character invite code">
+    </div>
+    
+    <button onclick="testInviteAcceptance()">Test Invite Acceptance</button>
+    <button onclick="testEndpointExistence()">Test Endpoint Existence</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function logResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testEndpointExistence() {
+            logResult('🧪 Testing if /api/invitations/accept-code endpoint exists...');
+            
+            try {
+                const response = await fetch('/api/invitations/accept-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orgId: "1", inviteCode: "TEST123" }),
+                    credentials: 'include'
+                });
+                
+                const text = await response.text();
+                
+                if (response.status === 401) {
+                    logResult('✅ Endpoint exists and requires authentication (expected)', 'success');
+                } else {
+                    logResult(`⚠️ Endpoint exists but returned status: ${response.status}`, 'error');
+                }
+                
+                logResult(`📝 Response: ${text}`, 'info');
+                
+            } catch (error) {
+                logResult(`❌ Endpoint test failed: ${error.message}`, 'error');
+                logResult(`❌ Error type: ${error.name}`, 'error');
+            }
+        }
+
+        async function testInviteAcceptance() {
+            const orgId = document.getElementById('orgId').value;
+            const inviteCode = document.getElementById('inviteCode').value;
+            
+            if (!orgId || !inviteCode) {
+                logResult('❌ Please enter both Organization ID and Invite Code', 'error');
+                return;
+            }
+            
+            logResult(`🔄 Testing invite acceptance with orgId: ${orgId}, inviteCode: ${inviteCode}`);
+            
+            try {
+                // Test 1: Direct fetch call
+                logResult('📡 Making direct fetch request...');
+                const response = await fetch('/api/invitations/accept-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orgId: orgId,
+                        inviteCode: inviteCode
+                    }),
+                    credentials: 'include'
+                });
+                
+                logResult(`📊 Response status: ${response.status} ${response.statusText}`);
+                
+                const responseText = await response.text();
+                logResult(`📝 Response body: ${responseText}`);
+                
+                if (response.ok) {
+                    logResult('✅ Request successful!', 'success');
+                } else if (response.status === 401) {
+                    logResult('🔐 Authentication required (log in first)', 'info');
+                } else {
+                    logResult(`❌ Request failed with status: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                logResult(`❌ Test failed: ${error.message}`, 'error');
+                logResult(`❌ Error details: ${JSON.stringify({
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack?.substring(0, 200) + '...'
+                })}`, 'error');
+            }
+        }
+
+        // Auto-fill from URL parameters
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orgParam = urlParams.get('org');
+            const codeParam = urlParams.get('code');
+            
+            if (orgParam) {
+                document.getElementById('orgId').value = orgParam;
+            }
+            if (codeParam) {
+                document.getElementById('inviteCode').value = codeParam;
+            }
+            
+            logResult('🚀 Test page loaded. Ready to test invitation acceptance.');
+        };
+    </script>
+</body>
+</html>

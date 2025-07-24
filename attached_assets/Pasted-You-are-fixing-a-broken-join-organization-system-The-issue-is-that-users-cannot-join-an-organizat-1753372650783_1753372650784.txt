@@ -1,0 +1,132 @@
+You are fixing a broken "join organization" system. The issue is that users cannot join an organization using an invite code, and an error shows:
+
+❌ Error:
+Failed to execute 'fetch' on 'Window': '/api/invitations/accept-code' is not a valid HTTP method.
+
+yaml
+Copy
+Edit
+
+This means that no working backend route exists at `/api/invitations/accept-code`, and the frontend is calling it with an invalid HTTP method (probably defaulting to GET).
+
+---
+
+🎯 GOAL:
+Let any logged-in user join an existing organization by entering:
+- `Organization ID`
+- `Invite Code`
+
+If the code is valid and the org exists:
+→ Add the user to the org, save it in the DB, and redirect to the dashboard.
+
+---
+
+### ✅ STEP 1: BACKEND — ADD `POST /api/invitations/accept-code`
+
+Create a backend API route at `/api/invitations/accept-code` that:
+- Method: POST
+- Body:
+```json
+{
+  "orgId": "2",
+  "inviteCode": "F28YHX"
+}
+Gets the currently logged-in user
+
+Validates the organization exists (orgId)
+
+Checks the invite code is valid and belongs to the org
+
+Adds the current user to the org members
+
+Updates the user's profile with the current org (e.g., currentOrgId)
+
+Returns:
+
+json
+Copy
+Edit
+{ "success": true }
+or appropriate error messages
+
+✅ STEP 2: FRONTEND — FIX FETCH CALL
+In the Join Organization form submission, replace the fetch with:
+
+js
+Copy
+Edit
+const response = await fetch('/api/invitations/accept-code', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    orgId: document.getElementById('orgIdInput').value,
+    inviteCode: document.getElementById('inviteCodeInput').value
+  })
+});
+
+if (response.ok) {
+  window.location.href = '/dashboard';
+} else {
+  const error = await response.json();
+  alert("Failed to join organization: " + error.message);
+}
+Make sure the inputs have the correct IDs:
+
+html
+Copy
+Edit
+<input id="orgIdInput" ... />
+<input id="inviteCodeInput" ... />
+✅ STEP 3: ORGANIZATION MEMBERSHIP DATABASE LOGIC
+Ensure:
+
+There is a users table or collection that stores the current org
+
+There is an organizations collection/table that includes:
+
+json
+Copy
+Edit
+{
+  "id": 2,
+  "name": "Example Org",
+  "members": ["user1@example.com", "user2@example.com"]
+}
+Update these in the backend when someone joins using the invite.
+
+✅ STEP 4: OPTIONAL — MAKE INVITE LINK AUTO-FILL
+When an invite is sent via email, format the link as:
+
+arduino
+Copy
+Edit
+https://yourplatform.com/invite?org=2&code=F28YHX
+On the frontend, auto-fill those fields using:
+
+js
+Copy
+Edit
+const urlParams = new URLSearchParams(window.location.search);
+document.getElementById('orgIdInput').value = urlParams.get('org') || '';
+document.getElementById('inviteCodeInput').value = urlParams.get('code') || '';
+✅ STEP 5: REDIRECT TO SHARED DASHBOARD
+After successful join, redirect to /dashboard, which must show the same org data to all team members. Use the current user’s currentOrgId to load org-specific data.
+
+✅ STEP 6: TEST AND REMOVE OLD BROKEN CODE
+Delete any old /api/invitations/accept-code handlers that are broken
+
+Remove any incorrect fetch() calls using GET
+
+Test the flow by:
+
+Sending an invite
+
+Logging in as another user
+
+Using the invite code
+
+Confirming org membership and access
+
+DO NOT move forward until this works fully. Prioritize correctness over speed.

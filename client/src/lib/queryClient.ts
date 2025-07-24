@@ -14,18 +14,46 @@ export async function apiRequest(
 ): Promise<Response> {
   console.log('🔄 API Request:', { method, url, data });
   
-  // Ensure method and url are strings and properly formatted
-  const requestMethod = String(method).toUpperCase();
-  const requestUrl = String(url);
+  // Robust parameter validation and formatting
+  const requestMethod = String(method || 'GET').toUpperCase().trim();
+  const requestUrl = String(url || '').trim();
   
-  const res = await fetch(requestUrl, {
-    method: requestMethod,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  // Comprehensive validation
+  if (!requestMethod || !['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(requestMethod)) {
+    throw new Error(`Invalid HTTP method: "${requestMethod}". Must be GET, POST, PUT, DELETE, or PATCH.`);
+  }
+  
+  if (!requestUrl || !requestUrl.startsWith('/')) {
+    throw new Error(`Invalid URL: "${requestUrl}". Must start with '/'.`);
+  }
 
-  console.log('📡 API Response:', { status: res.status, statusText: res.statusText });
+  // Prevent parameter swapping errors
+  if (requestUrl.match(/^(GET|POST|PUT|DELETE|PATCH)\s/)) {
+    throw new Error(`Parameters appear to be swapped. URL contains HTTP method: "${requestUrl}"`);
+  }
+  
+  const fetchOptions = {
+    method: requestMethod,
+    headers: {} as Record<string, string>,
+    body: undefined as string | undefined,
+    credentials: "include" as RequestCredentials,
+  };
+  
+  if (data && ['POST', 'PUT', 'PATCH'].includes(requestMethod)) {
+    fetchOptions.headers['Content-Type'] = 'application/json';
+    fetchOptions.body = JSON.stringify(data);
+  }
+  
+  console.log('📡 Fetch options:', { 
+    url: requestUrl, 
+    method: fetchOptions.method, 
+    hasBody: !!fetchOptions.body,
+    headers: fetchOptions.headers 
+  });
+  
+  const res = await fetch(requestUrl, fetchOptions);
+
+  console.log('📊 API Response:', { status: res.status, statusText: res.statusText, ok: res.ok });
   await throwIfResNotOk(res);
   return res;
 }

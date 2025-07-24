@@ -3175,6 +3175,12 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(400).json({ message: "Both orgId and inviteCode are required" });
       }
       
+      // Convert orgId to number for comparison
+      const organizationId = parseInt(orgId.toString(), 10);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: "Invalid organization ID format" });
+      }
+      
       // Find invitation by invite code
       const invitation = await storage.getInvitationByCode(inviteCode);
       
@@ -3184,8 +3190,8 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
       
       // Verify organization ID matches
-      if (invitation.organizationId !== orgId) {
-        console.log(`❌ Organization ID mismatch: expected ${invitation.organizationId}, got ${orgId}`);
+      if (invitation.organizationId !== organizationId) {
+        console.log(`❌ Organization ID mismatch: expected ${invitation.organizationId}, got ${organizationId}`);
         return res.status(400).json({ message: "Organization ID does not match invite code" });
       }
       
