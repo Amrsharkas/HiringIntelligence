@@ -44,8 +44,16 @@ export interface IStorage {
   // Organization operations
   createOrganization(org: InsertOrganization): Promise<Organization>;
   getOrganizationByUser(userId: string): Promise<Organization | undefined>;
+  getOrganizationById(id: number): Promise<Organization | undefined>;
   getOrganizationMembers(organizationId: number): Promise<OrganizationMember[]>;
   addOrganizationMember(member: { organizationId: number; userId: string; role: string }): Promise<OrganizationMember>;
+  
+  // Organization invitation operations
+  createInvitation(invitationData: InsertOrganizationInvitation & { token: string }): Promise<OrganizationInvitation>;
+  getInvitationByToken(token: string): Promise<OrganizationInvitation | undefined>;
+  getOrganizationInvitations(organizationId: number): Promise<OrganizationInvitation[]>;
+  updateInvitationStatus(token: string, status: string): Promise<void>;
+  acceptInvitation(token: string, userId: string): Promise<{ organization: Organization; member: OrganizationMember } | null>;
   
   // Job operations
   createJob(job: InsertJob): Promise<Job>;

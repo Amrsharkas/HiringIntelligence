@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get organization details for the invitation
-      const organization = await storage.getOrganization(invitation.organizationId);
+      const organization = await storage.getOrganizationById(invitation.organizationId);
       
       res.json({
         invitation: {

@@ -45,11 +45,17 @@ export function AcceptInvitation() {
     queryKey: ['/api/invitations/public', token],
     queryFn: async () => {
       if (!token) throw new Error('No token provided');
+      console.log(`🔍 Fetching invitation for token: ${token}`);
       const response = await fetch(`/api/invitations/public/${token}`);
+      console.log(`📡 Response status: ${response.status}`);
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Error response: ${errorText}`);
         throw new Error('Invalid or expired invitation');
       }
-      return response.json();
+      const data = await response.json();
+      console.log(`✅ Invitation data:`, data);
+      return data;
     },
     enabled: !!token,
     retry: false,
