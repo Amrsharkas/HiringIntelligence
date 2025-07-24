@@ -310,7 +310,9 @@ export default function OrganizationSetup() {
               <TabsContent value="join" className="space-y-6">
                 <form onSubmit={joinForm.handleSubmit(onJoinSubmit)} className="space-y-4">
                   <div>
-                    <Label htmlFor="organizationId">Organization ID</Label>
+                    <Label htmlFor="organizationId" className="text-slate-700 dark:text-slate-300 font-medium">
+                      Organization ID <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="organizationId"
                       {...joinForm.register("organizationId")}
@@ -325,7 +327,9 @@ export default function OrganizationSetup() {
                   </div>
 
                   <div>
-                    <Label htmlFor="inviteCode">Invite Code</Label>
+                    <Label htmlFor="inviteCode" className="text-slate-700 dark:text-slate-300 font-medium">
+                      Invite Code <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="inviteCode"
                       {...joinForm.register("inviteCode")}
