@@ -289,7 +289,7 @@ const LiveRecentActivity = memo(() => {
       activities.push({
         id: 'candidates-matched',
         color: 'bg-purple-600 dark:bg-purple-400',
-        text: `${candidatesCount.count} AI candidate${candidatesCount.count !== 1 ? 's' : ''} matched to jobs`,
+        text: `${candidatesCount.count} headhunting candidate${candidatesCount.count !== 1 ? 's' : ''} matched to jobs`,
         time: '30 minutes ago'
       });
     }
@@ -532,7 +532,7 @@ export default function EmployerDashboard() {
                 onClick: () => setIsApplicantsModalOpen(true)
               },
               { 
-                label: "Candidates", 
+                label: "Headhunting", 
                 component: <LiveCandidatesCount />,
                 icon: Target, 
                 color: "purple",
@@ -595,7 +595,7 @@ export default function EmployerDashboard() {
                   onClick={() => setIsCandidatesModalOpen(true)}
                 >
                   <Eye className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
-                  Browse Candidates
+                  Browse Headhunting
                 </Button>
                 <Button 
                   variant="ghost" 
