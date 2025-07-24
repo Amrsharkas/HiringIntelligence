@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { JobPostingModal } from "./JobPostingModal";
-import { ApplicantsModal } from "./ApplicantsModal";
+
 
 interface ActiveJobsModalProps {
   isOpen: boolean;
@@ -19,8 +19,8 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
   const queryClient = useQueryClient();
   const [editingJob, setEditingJob] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
-  const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
+
+
 
   const { data: jobs = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/job-postings"],
@@ -83,10 +83,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
     }
   };
 
-  const handleViewApplicants = (jobId: number) => {
-    setSelectedJobId(jobId);
-    setIsApplicantsModalOpen(true);
-  };
+
 
   const formatSalary = (job: any) => {
     if (job.salaryRange) {
@@ -246,13 +243,6 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
                       
                       <div className="flex items-center gap-2 ml-4">
                         <Button
-                          onClick={() => handleViewApplicants(job.id)}
-                          className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg"
-                        >
-                          <Users className="w-4 h-4 mr-1" />
-                          View Applicants
-                        </Button>
-                        <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEditJob(job)}
@@ -289,14 +279,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
         editJob={editingJob}
       />
       
-      <ApplicantsModal
-        isOpen={isApplicantsModalOpen}
-        onClose={() => {
-          setIsApplicantsModalOpen(false);
-          setSelectedJobId(null);
-        }}
-        jobId={selectedJobId || undefined}
-      />
+
     </AnimatePresence>
   );
 }

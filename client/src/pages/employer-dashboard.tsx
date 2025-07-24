@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
 import { ActiveJobsModal } from "@/components/ActiveJobsModal";
 import { CandidatesModal } from "@/components/SimpleCandidatesModal";
-import { ApplicantsModal } from "@/components/ApplicantsModal";
+
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 
 import { ShortlistedApplicantsModal } from "@/components/ShortlistedApplicantsModal";
@@ -354,7 +354,7 @@ export default function EmployerDashboard() {
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [isActiveJobsModalOpen, setIsActiveJobsModalOpen] = useState(false);
   const [isCandidatesModalOpen, setIsCandidatesModalOpen] = useState(false);
-  const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
+
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
 
   const [isShortlistedApplicantsModalOpen, setIsShortlistedApplicantsModalOpen] = useState(false);
@@ -498,16 +498,16 @@ export default function EmployerDashboard() {
 
             <InteractiveCard
               index={2}
-              onClick={() => setIsApplicantsModalOpen(true)}
+              onClick={() => setIsAnalyticsModalOpen(true)}
               className="bg-gradient-to-br from-purple-500/10 via-purple-400/5 to-transparent"
             >
               <div className="p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Review Applicants</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage job applications</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Analytics</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">View hiring insights</p>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </InteractiveCard>
@@ -528,7 +528,7 @@ export default function EmployerDashboard() {
                 component: <LiveApplicantsCount />,
                 icon: Users, 
                 color: "green",
-                onClick: () => setIsApplicantsModalOpen(true)
+                onClick: () => setIsAnalyticsModalOpen(true)
               },
               { 
                 label: "Candidates", 
@@ -651,10 +651,7 @@ export default function EmployerDashboard() {
         isOpen={isCandidatesModalOpen} 
         onClose={() => setIsCandidatesModalOpen(false)} 
       />
-      <ApplicantsModal 
-        isOpen={isApplicantsModalOpen} 
-        onClose={() => setIsApplicantsModalOpen(false)} 
-      />
+
       <AnalyticsModal 
         isOpen={isAnalyticsModalOpen} 
         onClose={() => setIsAnalyticsModalOpen(false)} 
