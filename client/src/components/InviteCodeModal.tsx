@@ -41,10 +41,12 @@ export function InviteCodeModal({ isOpen, onClose }: InviteCodeModalProps) {
   // Accept invitation mutation
   const acceptInviteMutation = useMutation({
     mutationFn: async (data: InviteCodeFormData) => {
-      return await apiRequest("POST", "/api/invitations/accept-code", {
+      console.log('🔄 Making API request to accept invite code:', data);
+      const response = await apiRequest("POST", "/api/invitations/accept-code", {
         orgId: data.orgId,
         inviteCode: data.inviteCode
       });
+      return response.json();
     },
     onSuccess: (data: any) => {
       console.log('✅ Invite code accepted successfully:', data);
