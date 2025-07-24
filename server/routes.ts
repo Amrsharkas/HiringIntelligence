@@ -3135,14 +3135,14 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
   // Interview scheduling endpoint (removed duplicate - using the one at line 1501 instead)
 
-  // Invite code API endpoints for organization joining
-  app.get('/api/invitations/code/:inviteCode', async (req: any, res) => {
+  // Token-based invitation endpoints
+  app.get('/api/invitations/public/:token', async (req: any, res) => {
     try {
-      const { inviteCode } = req.params;
-      const invitation = await storage.getInvitationByCode(inviteCode);
+      const { token } = req.params;
+      const invitation = await storage.getInvitationByToken(token);
       
       if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
-        return res.status(404).json({ message: "Invite code not found or expired" });
+        return res.status(404).json({ message: "Invalid or expired invitation link" });
       }
 
       const organization = await storage.getOrganizationById(invitation.organizationId);
@@ -3152,6 +3152,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           id: invitation.id,
           email: invitation.email,
           role: invitation.role,
+          token: invitation.token,
           inviteCode: invitation.inviteCode,
           organization: organization ? {
             id: organization.id,
@@ -3163,21 +3164,34 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       });
 
     } catch (error) {
-      console.error("Error fetching invitation by code:", error);
+      console.error("Error fetching invitation by token:", error);
       res.status(500).json({ message: "Failed to fetch invitation" });
     }
   });
 
-  // Accept invitation using invite code
-  app.post('/api/invitations/accept-code', isAuthenticated, async (req: any, res) => {
+  // Accept invitation using token (for URL-based invites)
+  app.post('/api/invitations/accept', isAuthenticated, async (req: any, res) => {
     try {
-      const { inviteCode } = req.body;
+      const { token, orgId, inviteCode } = req.body;
       const userId = req.user.claims.sub;
       
-      const invitation = await storage.getInvitationByCode(inviteCode);
+      let invitation;
+      
+      // Support multiple invitation types
+      if (token) {
+        invitation = await storage.getInvitationByToken(token);
+      } else if (inviteCode) {
+        invitation = await storage.getInvitationByCode(inviteCode);
+        // If orgId is provided, validate it matches
+        if (orgId && invitation && invitation.organizationId !== orgId) {
+          return res.status(400).json({ message: "Organization ID does not match invite code" });
+        }
+      } else {
+        return res.status(400).json({ message: "Either token or inviteCode is required" });
+      }
       
       if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
-        return res.status(404).json({ message: "Invite code not found or expired" });
+        return res.status(404).json({ message: "Invalid or expired invitation" });
       }
 
       // Check if user is already a member of this organization
@@ -3199,7 +3213,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       const organization = await storage.getOrganizationById(invitation.organizationId);
       
-      console.log(`✅ User ${userId} joined organization ${invitation.organizationId} as ${invitation.role} via invite code`);
+      console.log(`✅ User ${userId} joined organization ${invitation.organizationId} as ${invitation.role}`);
 
       res.json({
         message: `Successfully joined ${organization?.companyName}'s hiring team!`,
@@ -3212,7 +3226,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       });
 
     } catch (error) {
-      console.error("Error accepting invitation via code:", error);
+      console.error("Error accepting invitation:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
     }
   });

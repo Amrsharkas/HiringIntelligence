@@ -199,6 +199,11 @@ export class DatabaseStorage implements IStorage {
     return invitation;
   }
 
+  // Alias for backwards compatibility
+  async getInvitationByCode(inviteCode: string): Promise<OrganizationInvitation | undefined> {
+    return this.getInvitationByInviteCode(inviteCode);
+  }
+
   async getInvitationByToken(token: string): Promise<OrganizationInvitation | undefined> {
     const [invitation] = await db
       .select()
@@ -303,12 +308,17 @@ export class DatabaseStorage implements IStorage {
     return { organization, member };
   }
 
-  async getOrganizationById(id: number): Promise<Organization | undefined> {
+  async getOrganizationById(id: string | number): Promise<Organization | undefined> {
     const [org] = await db
       .select()
       .from(organizations)
-      .where(eq(organizations.id, id));
+      .where(eq(organizations.id, id.toString()));
     return org;
+  }
+
+  // Alias method for organization lookup by user ID
+  async getOrganizationByUserId(userId: string): Promise<Organization | undefined> {
+    return this.getOrganizationByUser(userId);
   }
 
   // Job operations

@@ -130,9 +130,9 @@ export default function OrganizationSetup() {
   const joinOrgMutation = useMutation({
     mutationFn: async (data: JoinOrgData) => {
       // Both organizationId and inviteCode are now required
-      const response = await apiRequest("POST", "/api/invitations/accept-code", { 
-        inviteCode: data.inviteCode,
-        organizationId: data.organizationId 
+      const response = await apiRequest("POST", "/api/invitations/accept", { 
+        orgId: data.organizationId,
+        inviteCode: data.inviteCode
       });
       return response.json();
     },

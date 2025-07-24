@@ -40,9 +40,8 @@ export function InviteCodeModal({ isOpen, onClose }: InviteCodeModalProps) {
   // Accept invitation mutation
   const acceptInviteMutation = useMutation({
     mutationFn: async (data: InviteCodeFormData) => {
-      return await apiRequest("/api/invitations/accept-code", {
-        method: "POST",
-        body: JSON.stringify(data),
+      return await apiRequest("POST", "/api/invitations/accept", {
+        inviteCode: data.inviteCode
       });
     },
     onSuccess: (data: any) => {
