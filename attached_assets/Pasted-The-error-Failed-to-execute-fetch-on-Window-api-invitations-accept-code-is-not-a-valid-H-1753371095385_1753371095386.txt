@@ -1,0 +1,67 @@
+The error:
+
+❌ Failed to execute 'fetch' on 'Window': '/api/invitations/accept-code' is not a valid HTTP method.
+
+...means your frontend is trying to fetch('/api/invitations/accept-code') without specifying a method, and the server doesn’t know how to handle it.
+
+✅ Fix This in Code (Frontend)
+In your joinOrganization function or wherever the fetch happens, you must change the call to:
+
+ts
+Copy
+Edit
+fetch('/api/invitations/accept-code', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    orgId: orgId,
+    inviteCode: inviteCode
+  })
+})
+.then(response => response.json())
+.then(data => {
+  if (data.success) {
+    window.location.href = "/dashboard"; // or wherever
+  } else {
+    throw new Error(data.message || "Failed to join organization.");
+  }
+})
+.catch(error => {
+  console.error(error);
+  showError("Something went wrong joining the organization.");
+});
+✅ Fix This in Code (Backend)
+Make sure your backend file that handles /api/invitations/accept-code supports POST like this:
+
+ts
+Copy
+Edit
+app.post('/api/invitations/accept-code', async (req, res) => {
+  const { orgId, inviteCode } = req.body;
+
+  // Validate input
+  if (!orgId || !inviteCode) {
+    return res.status(400).json({ success: false, message: "Missing data." });
+  }
+
+  try {
+    // Check invite code in DB
+    const invite = await db.findInvite({ orgId, code: inviteCode });
+    if (!invite) return res.status(404).json({ success: false, message: "Invalid invite code." });
+
+    // Add user to org
+    const userId = req.user?.id; // Or however you track logged in users
+    await db.addUserToOrg(userId, orgId);
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+});
+✅ Summary of Fixes
+Area	Fix
+Frontend	Use fetch(..., { method: 'POST', ... }) — never use fetch() without method
+Backend	Ensure your endpoint /api/invitations/accept-code uses app.post(...) not app.get(...)
+Testing	Use devtools → Network tab → check if fetch is POST, not GET
