@@ -126,7 +126,10 @@ This invitation was sent to ${params.to}
 
     const msg = {
       to: params.to,
-      from: 'raef@platohiring.com',
+      from: {
+        email: 'raef@platohiring.com', // Verified email address
+        name: 'Plato' // Display name shown to recipients
+      },
       subject: `🎉 Join ${params.organizationName}'s Hiring Team`,
       text: textVersion,
       html: emailHtml,
@@ -231,8 +234,8 @@ export async function sendInviteCodeEmail(
     const msg = {
       to,
       from: {
-        email: 'raef@platohiring.com',
-        name: 'Plato Team'
+        email: 'raef@platohiring.com', // Verified email address
+        name: 'Plato' // Display name shown to recipients
       },
       subject: `You're invited to join ${organizationName}`,
       html: emailHtml,
