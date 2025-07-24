@@ -17,73 +17,172 @@ export function AcceptInvitation() {
   const [invitation, setInvitation] = useState<any>(null);
   const [invitationLoading, setInvitationLoading] = useState(true);
   const [invitationError, setInvitationError] = useState<string | null>(null);
+  const [processingInvite, setProcessingInvite] = useState(false);
 
-  // Parse URL parameters - handle both query params and potential URL encoding issues
+  // Parse URL parameters with better handling
   const urlParts = location.split('?');
   const searchParams = new URLSearchParams(urlParts[1] || '');
-  let token = searchParams.get('token');
+  const token = searchParams.get('token');
   const org = searchParams.get('org');
   const role = searchParams.get('role');
 
-  // Clean up token if it has extra parameters appended
-  if (token && token.includes('&')) {
-    token = token.split('&')[0];
-  }
-
-  // Check authentication status once
+  // Store invite parameters for after authentication
   useEffect(() => {
-    const checkAuth = async () => {
+    if (token && org && role) {
+      localStorage.setItem('pendingInvite', JSON.stringify({
+        token,
+        org,
+        role,
+        timestamp: Date.now()
+      }));
+    }
+  }, [token, org, role]);
+
+  // Check authentication status and handle invite flow
+  useEffect(() => {
+    const checkAuthAndProcessInvite = async () => {
       try {
         const response = await fetch('/api/auth/user');
         if (response.ok) {
           const user = await response.json();
           setAuthState({ isAuthenticated: true, isLoading: false, user });
+          
+          // If user is authenticated and we have invite params, process automatically
+          if (token && org && role) {
+            await processInviteAcceptance();
+          }
         } else {
           setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+          
+          // If not authenticated but has invite params, redirect to login
+          if (token && org && role) {
+            setTimeout(() => {
+              window.location.href = '/api/login';
+            }, 1000);
+          } else {
+            setInvitationError('No invitation parameters found');
+            setInvitationLoading(false);
+          }
         }
       } catch (error) {
         setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+        setInvitationError('Failed to check authentication status');
+        setInvitationLoading(false);
       }
     };
     
-    checkAuth();
+    checkAuthAndProcessInvite();
   }, []);
 
-  // Fetch invitation details
-  useEffect(() => {
-    const fetchInvitation = async () => {
-      if (!token) {
-        setInvitationError('No invitation token provided');
-        setInvitationLoading(false);
-        return;
+  const processInviteAcceptance = async () => {
+    if (!token) return;
+    
+    setProcessingInvite(true);
+    try {
+      // First validate the invitation
+      const inviteResponse = await fetch(`/api/invitations/public/${token}`);
+      if (!inviteResponse.ok) {
+        throw new Error('Invalid or expired invitation');
       }
+      
+      const inviteData = await inviteResponse.json();
+      setInvitation(inviteData);
+      
+      // Auto-accept the invitation
+      const acceptResponse = await apiRequest("POST", "/api/invitations/accept", { token });
+      const result = await acceptResponse.json();
+      
+      // Clear stored invite
+      localStorage.removeItem('pendingInvite');
+      
+      toast({
+        title: "Welcome to the team!",
+        description: `You've successfully joined ${inviteData.invitation.organization.companyName}!`,
+      });
+      
+      // Invalidate queries and redirect
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      setTimeout(() => {
+        setLocation("/");
+      }, 2500);
+      
+    } catch (error: any) {
+      console.error('Error processing invitation:', error);
+      setInvitationError(error.message || 'Failed to process invitation');
+      
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to accept invitation',
+        variant: "destructive",
+      });
+    }
+    
+    setProcessingInvite(false);
+    setInvitationLoading(false);
+  };
 
-      try {
-        console.log(`🔍 Fetching invitation for token: ${token}`);
-        const response = await fetch(`/api/invitations/public/${token}`);
-        console.log(`📡 Response status: ${response.status}`);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`❌ Error response: ${errorText}`);
-          throw new Error('Invalid or expired invitation');
+  // Handle pending invites from localStorage after authentication
+  useEffect(() => {
+    const handlePendingInvite = async () => {
+      if (authState.isAuthenticated && !authState.isLoading) {
+        const pendingInvite = localStorage.getItem('pendingInvite');
+        if (pendingInvite) {
+          try {
+            const inviteData = JSON.parse(pendingInvite);
+            // Check if invite is recent (within 1 hour)
+            if (Date.now() - inviteData.timestamp < 3600000) {
+              // Process the stored invitation
+              await processStoredInvite(inviteData);
+            } else {
+              localStorage.removeItem('pendingInvite');
+            }
+          } catch (error) {
+            localStorage.removeItem('pendingInvite');
+          }
         }
-        
-        const data = await response.json();
-        console.log(`✅ Invitation data:`, data);
-        setInvitation(data);
-        setInvitationLoading(false);
-      } catch (error: any) {
-        console.error('Error fetching invitation:', error);
-        setInvitationError(error.message);
-        setInvitationLoading(false);
       }
     };
+    
+    handlePendingInvite();
+  }, [authState.isAuthenticated, authState.isLoading]);
 
-    fetchInvitation();
-  }, [token]);
+  const processStoredInvite = async (inviteData: any) => {
+    setProcessingInvite(true);
+    try {
+      const acceptResponse = await apiRequest("POST", "/api/invitations/accept", { 
+        token: inviteData.token 
+      });
+      const result = await acceptResponse.json();
+      
+      localStorage.removeItem('pendingInvite');
+      
+      toast({
+        title: "Welcome to the team!",
+        description: result.message || "You've successfully joined the organization!",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      setTimeout(() => {
+        setLocation("/");
+      }, 2500);
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to accept invitation',
+        variant: "destructive",
+      });
+    }
+    setProcessingInvite(false);
+  };
 
-  // Accept invitation mutation
+  // Manual accept invitation (for when user needs to manually trigger)
   const acceptInvitationMutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error('No token provided');
@@ -98,9 +197,7 @@ export function AcceptInvitation() {
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      // Clear stored invitation data
-      localStorage.removeItem('pendingInvitation');
-      // Redirect to dashboard
+      localStorage.removeItem('pendingInvite');
       setTimeout(() => {
         setLocation("/");
       }, 2500);
@@ -114,33 +211,18 @@ export function AcceptInvitation() {
     },
   });
 
-  // Handle redirect to login
-  const redirectToLogin = () => {
-    // Store invitation details for post-authentication processing
-    localStorage.setItem('pendingInvitation', JSON.stringify({
-      token,
-      organizationId: org,
-      role
-    }));
-    
-    // Redirect to login with invitation parameters
-    window.location.href = `/api/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-  };
-
   // No token provided
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-              Invalid Invitation
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+            <h2 className="text-xl font-semibold mb-2">Invalid Invitation</h2>
+            <p className="text-gray-600 mb-6">
               The invitation link appears to be invalid or incomplete.
             </p>
-            <Button onClick={() => setLocation("/dashboard")} variant="outline">
+            <Button onClick={() => setLocation("/")} className="w-full">
               Go to Dashboard
             </Button>
           </CardContent>
@@ -149,200 +231,128 @@ export function AcceptInvitation() {
     );
   }
 
-  // Loading invitation
-  if (invitationLoading || authState.isLoading) {
+  // Show different states based on authentication and processing
+  if (authState.isLoading || (invitationLoading && !invitationError)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <Loader2 className="w-12 h-12 text-purple-600 mx-auto mb-4 animate-spin" />
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-              Loading Invitation...
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              Please wait while we verify your invitation.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Invitation error or not found
-  if (invitationError || !invitation) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-              Invitation Not Found
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
-              This invitation has expired, been used already, or is invalid.
-            </p>
-            <Button onClick={() => setLocation("/dashboard")} variant="outline">
-              Go to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // User is not authenticated - show login options
-  if (!authState.isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
-            <CardContent className="p-8 text-center">
-              <div className="mb-6">
-                <Building className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                  You're Invited!
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Join {invitation.organization?.companyName || 'the organization'} as a {role}
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <Users className="w-5 h-5 text-slate-600 dark:text-slate-400 mr-2" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Organization Details
-                    </span>
-                  </div>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                    {invitation.organization?.companyName || 'Organization'}
-                  </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Role: {role}
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Sign in to accept this invitation
-                  </p>
-                  <Button 
-                    onClick={redirectToLogin}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                    size="lg"
-                  >
-                    Sign In to Join Organization
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // User is authenticated and invitation is valid - show accept button
-  if (acceptInvitationMutation.isSuccess) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 flex items-center justify-center p-6">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
-            <CardContent className="p-8 text-center">
-              <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                Welcome to the Team!
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400 mb-6">
-                You've successfully joined {invitation?.organization?.companyName || 'the team'}
-              </p>
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Redirecting to dashboard...
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Show accept invitation interface for authenticated users
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 flex items-center justify-center p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
           <CardContent className="p-8 text-center">
-            <div className="mb-6">
-              <Building className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                Accept Invitation
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                You've been invited to join {invitation.organization?.companyName || 'the organization'}
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <h2 className="text-xl font-semibold mb-2">
+              {processingInvite ? 'Joining Team' : 'Processing Invitation'}
+            </h2>
+            <p className="text-gray-600">
+              {processingInvite 
+                ? 'Adding you to the team...' 
+                : !authState.isAuthenticated 
+                  ? 'Redirecting to sign in...'
+                  : 'Please wait while we verify your invitation...'
+              }
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show redirect message for unauthenticated users
+  if (!authState.isAuthenticated && token && org && role) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="p-8 text-center">
+            <Users className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+            <h2 className="text-xl font-semibold mb-2">Team Invitation</h2>
+            <p className="text-gray-600 mb-6">
+              You need to sign in to accept this team invitation. Redirecting you now...
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => window.location.href = '/api/login'}
+                className="w-full"
+              >
+                Sign In to Join Team
+              </Button>
+              <p className="text-sm text-gray-500">
+                Don't have an account? You'll be able to create one after clicking above.
               </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                <div className="flex items-center justify-center mb-2">
-                  <Users className="w-5 h-5 text-slate-600 dark:text-slate-400 mr-2" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Organization Details
-                  </span>
-                </div>
-                <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                  {invitation.organization?.companyName || 'Organization'}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Role: {role}
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <Button 
-                  onClick={() => acceptInvitationMutation.mutate()}
-                  disabled={acceptInvitationMutation.isPending}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                  size="lg"
-                >
-                  {acceptInvitationMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Joining Organization...
-                    </>
-                  ) : (
-                    'Accept Invitation'
-                  )}
-                </Button>
-                
-                <Button 
-                  onClick={() => setLocation("/dashboard")}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Cancel
-                </Button>
-              </div>
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (invitationError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+            <h2 className="text-xl font-semibold mb-2">Invalid Invitation</h2>
+            <p className="text-gray-600 mb-6">
+              {invitationError === 'No invitation parameters found' 
+                ? 'The invitation link appears to be invalid or incomplete.'
+                : invitationError
+              }
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => setLocation("/")}
+                className="w-full"
+              >
+                Go to Dashboard
+              </Button>
+              <p className="text-sm text-gray-500">
+                Please contact the team admin for a new invitation.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Success state (invitation accepted)
+  if (invitation && !processingInvite) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="p-8 text-center">
+            <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
+            <h2 className="text-xl font-semibold mb-2">Welcome to the team!</h2>
+            <p className="text-gray-600 mb-6">
+              You've successfully joined {invitation.invitation?.organization?.companyName}. 
+              Redirecting you to the dashboard...
+            </p>
+            <Button 
+              onClick={() => setLocation("/")}
+              className="w-full"
+            >
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Fallback - should not reach here
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <Card className="w-full max-w-md mx-4">
+        <CardContent className="p-8 text-center">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+          <h2 className="text-xl font-semibold mb-2">Invitation Not Found</h2>
+          <p className="text-gray-600 mb-6">
+            This invitation has expired, been used already, or is invalid.
+          </p>
+          <Button onClick={() => setLocation("/")} className="w-full">
+            Go to Dashboard
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

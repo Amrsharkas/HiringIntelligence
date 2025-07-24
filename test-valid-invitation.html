@@ -1,33 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test Valid Invitation Links</title>
+    <title>Test Complete Invitation Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { margin: 5px; padding: 10px 15px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .success { color: green; } .error { color: red; } .info { color: blue; }
+        a { display: block; margin: 10px 0; padding: 10px; background: #e7f3ff; text-decoration: none; border-radius: 5px; }
+        a:hover { background: #d0e7ff; }
+    </style>
 </head>
 <body>
-    <h1>Test Valid Invitation Links</h1>
+    <h1>Test Complete Invitation Flow</h1>
     
-    <h2>Valid Tokens from Database:</h2>
-    
-    <h3>Test Token 1:</h3>
-    <a href="https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev/invite/accept?token=TEST123VALIDTOKEN&org=2&role=member" target="_blank">
-        Accept Invitation (TEST123VALIDTOKEN)
-    </a>
-    
-    <h3>Test Token 2:</h3>
-    <a href="https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev/invite/accept?token=dJOfp7ZBmC6ovcgBb-UZ1sv6RsdR3lEY&org=2&role=member" target="_blank">
-        Accept Invitation (dJOfp7ZBmC6ovcgBb-UZ1sv6RsdR3lEY)
-    </a>
-    
-    <h3>Test Token 3:</h3>
-    <a href="https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev/invite/accept?token=PeYyqdPbMYyBVK8inboR33nNs2Vp-zXb&org=2&role=member" target="_blank">
-        Accept Invitation (PeYyqdPbMYyBVK8inboR33nNs2Vp-zXb)
-    </a>
-    
-    <h2>Test API Calls:</h2>
-    <button onclick="testToken1()">Test Token 1 API</button>
-    <button onclick="testToken2()">Test Token 2 API</button>
-    <button onclick="testToken3()">Test Token 3 API</button>
-    <div id="result"></div>
+    <div class="test-section">
+        <h2>🔗 Valid Invitation Links (Click to Test Complete Flow)</h2>
+        <p><strong>Note:</strong> These links will test the complete invitation flow including authentication redirect and automatic team joining.</p>
+        
+        <a href="/invite/accept?token=TEST123VALIDTOKEN&org=2&role=member">
+            🎯 Test Invitation 1: TEST123VALIDTOKEN (Simple Test Token)
+        </a>
+        
+        <a href="/invite/accept?token=dJOfp7ZBmC6ovcgBb-UZ1sv6RsdR3lEY&org=2&role=member">
+            🎯 Test Invitation 2: dJOfp7ZBmC6ovcgBb-UZ1sv6RsdR3lEY (Real Token)
+        </a>
+        
+        <a href="/invite/accept?token=PeYyqdPbMYyBVK8inboR33nNs2Vp-zXb&org=2&role=member">
+            🎯 Test Invitation 3: PeYyqdPbMYyBVK8inboR33nNs2Vp-zXb (Another Real Token)
+        </a>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Test API Endpoints</h2>
+        <button onclick="testToken1()">Test API: TEST123VALIDTOKEN</button>
+        <button onclick="testToken2()">Test API: dJOfp7ZBmC6ovcgBb-UZ1sv6RsdR3lEY</button>
+        <button onclick="testToken3()">Test API: PeYyqdPbMYyBVK8inboR33nNs2Vp-zXb</button>
+        <button onclick="testInvalidToken()">Test Invalid Token</button>
+        <div id="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Expected Flow</h2>
+        <ol>
+            <li><strong>Click invitation link</strong> → Redirects to AcceptInvitation page</li>
+            <li><strong>If not logged in</strong> → Shows "Sign In to Join Team" with auto-redirect</li>
+            <li><strong>After login</strong> → Automatically processes invitation and joins team</li>
+            <li><strong>Success</strong> → Shows "Welcome to the team!" and redirects to dashboard</li>
+            <li><strong>Error</strong> → Shows clear error message with next steps</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Debug Information</h2>
+        <button onclick="checkCurrentAuth()">Check Auth Status</button>
+        <button onclick="checkPendingInvites()">Check Pending Invites</button>
+        <button onclick="clearPendingInvites()">Clear Pending Invites</button>
+        <div id="debug-result"></div>
+    </div>
     
     <script>
         async function testToken1() {
@@ -41,6 +72,10 @@
         async function testToken3() {
             await testAPI('PeYyqdPbMYyBVK8inboR33nNs2Vp-zXb');
         }
+
+        async function testInvalidToken() {
+            await testAPI('INVALID_TOKEN_123');
+        }
         
         async function testAPI(token) {
             try {
@@ -48,11 +83,52 @@
                 const response = await fetch(`/api/invitations/public/${token}`);
                 const data = await response.text();
                 console.log('Response:', response.status, data);
-                document.getElementById('result').innerHTML = `<h4>Token: ${token}</h4><pre>Status: ${response.status}\n${data}</pre>`;
+                
+                const statusClass = response.ok ? 'success' : 'error';
+                document.getElementById('result').innerHTML = `
+                    <h4>Token: ${token}</h4>
+                    <pre class="${statusClass}">Status: ${response.status}\n${data}</pre>
+                `;
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('result').innerHTML = `<h4>Token: ${token}</h4><pre>Error: ${error.message}</pre>`;
+                document.getElementById('result').innerHTML = `
+                    <h4>Token: ${token}</h4>
+                    <pre class="error">Error: ${error.message}</pre>
+                `;
             }
+        }
+
+        async function checkCurrentAuth() {
+            try {
+                const response = await fetch('/api/auth/user');
+                const data = await response.text();
+                const statusClass = response.ok ? 'success' : 'info';
+                document.getElementById('debug-result').innerHTML = `
+                    <h4>Authentication Status</h4>
+                    <pre class="${statusClass}">Status: ${response.status}\n${data}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('debug-result').innerHTML = `
+                    <h4>Authentication Status</h4>
+                    <pre class="error">Error: ${error.message}</pre>
+                `;
+            }
+        }
+
+        function checkPendingInvites() {
+            const pending = localStorage.getItem('pendingInvite');
+            document.getElementById('debug-result').innerHTML = `
+                <h4>Pending Invitations in localStorage</h4>
+                <pre class="info">${pending || 'None found'}</pre>
+            `;
+        }
+
+        function clearPendingInvites() {
+            localStorage.removeItem('pendingInvite');
+            document.getElementById('debug-result').innerHTML = `
+                <h4>Pending Invitations Cleared</h4>
+                <pre class="success">localStorage cleared successfully</pre>
+            `;
         }
     </script>
 </body>
