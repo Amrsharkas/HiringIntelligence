@@ -69,9 +69,10 @@ const LiveTeamStats = ({ teamMembers }: { teamMembers: any[] }) => {
 interface TeamManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenInviteCode?: () => void;
 }
 
-export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProps) {
+export function TeamManagementModal({ isOpen, onClose, onOpenInviteCode }: TeamManagementModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showInviteForm, setShowInviteForm] = useState(false);
@@ -376,13 +377,25 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                       <Users className="w-5 h-5" />
                       Team Members
                     </h3>
-                    <Button
-                      onClick={() => setShowInviteForm(true)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Invite Member
-                    </Button>
+                    <div className="flex gap-3">
+                      {onOpenInviteCode && (
+                        <Button
+                          onClick={onOpenInviteCode}
+                          variant="outline"
+                          className="px-4 py-2 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20"
+                        >
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          Enter Invite Code
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => setShowInviteForm(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg"
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Invite Member
+                      </Button>
+                    </div>
                   </div>
 
                   {membersLoading ? (

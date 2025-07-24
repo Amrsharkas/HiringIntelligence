@@ -28,6 +28,7 @@ import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { TeamManagementModal } from "@/components/TeamManagementModal";
 import { RecentActivityModal } from "@/components/RecentActivityModal";
+import { InviteCodeModal } from "@/components/InviteCodeModal";
 
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { InterviewManagementModal } from "@/components/InterviewManagementModal";
@@ -385,6 +386,7 @@ export default function EmployerDashboard() {
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isRecentActivityModalOpen, setIsRecentActivityModalOpen] = useState(false);
+  const [isInviteCodeModalOpen, setIsInviteCodeModalOpen] = useState(false);
 
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
   const [isInterviewManagementModalOpen, setIsInterviewManagementModalOpen] = useState(false);
@@ -719,11 +721,16 @@ export default function EmployerDashboard() {
       />
       <TeamManagementModal 
         isOpen={isTeamModalOpen} 
-        onClose={() => setIsTeamModalOpen(false)} 
+        onClose={() => setIsTeamModalOpen(false)}
+        onOpenInviteCode={() => setIsInviteCodeModalOpen(true)}
       />
       <RecentActivityModal 
         isOpen={isRecentActivityModalOpen} 
         onClose={() => setIsRecentActivityModalOpen(false)} 
+      />
+      <InviteCodeModal 
+        isOpen={isInviteCodeModalOpen} 
+        onClose={() => setIsInviteCodeModalOpen(false)} 
       />
 
       <CreateInterviewModal 

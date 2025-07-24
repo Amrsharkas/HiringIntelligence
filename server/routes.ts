@@ -152,35 +152,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email is required" });
       }
 
-      // Generate unique invitation token
+      // Generate unique invitation token and invite code
       const token = nanoid(32);
+      const inviteCode = generateInviteCode();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // Expires in 7 days
 
-      // Create invitation record
+      // Create invitation record with invite code
       const invitation = await storage.createInvitation({
         organizationId: organization.id,
         email,
         role,
         invitedBy: userId,
         expiresAt,
-        token
+        token,
+        inviteCode
       });
 
       // Get inviter info for email
       const inviter = await storage.getUser(userId);
       const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() : 'Team Admin';
 
-      // Send invitation email
-      console.log(`📧 Sending invitation email to ${email}...`);
-      const emailSent = await sendInvitationEmail({
-        to: email,
-        organizationName: organization.companyName,
-        inviterName,
-        invitationToken: token,
-        organizationId: organization.id,
-        role,
-      });
+      // Send invitation email with invite code
+      console.log(`📧 Sending invite code email to ${email} with code: ${inviteCode}...`);
+      const emailSent = await sendInviteCodeEmail(
+        email,
+        organization.companyName,
+        inviteCode,
+        role
+      );
 
       if (!emailSent) {
         console.error(`❌ Failed to send invitation email to ${email}`);
@@ -1167,6 +1167,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Test email error:', error);
       res.status(500).json({ message: 'Test email failed', error: error.message });
+    }
+  });
+
+  // Accept invitation using invite code
+  app.post("/api/invitations/accept-code", isAuthenticated, async (req: any, res) => {
+    try {
+      const { inviteCode } = req.body;
+      const userId = req.user.claims.sub;
+      
+      console.log(`🔄 Processing invite code acceptance: ${inviteCode} for user: ${userId}`);
+      
+      // Find invitation by invite code
+      const invitation = await storage.getInvitationByInviteCode(inviteCode);
+      
+      if (!invitation) {
+        console.log(`❌ Invalid invite code: ${inviteCode}`);
+        return res.status(400).json({ message: "Invalid invite code" });
+      }
+      
+      if (invitation.status !== 'pending') {
+        console.log(`❌ Invite code already used: ${inviteCode}`);
+        return res.status(400).json({ message: "Invite code has already been used" });
+      }
+      
+      if (invitation.expiresAt < new Date()) {
+        console.log(`❌ Invite code expired: ${inviteCode}`);
+        return res.status(400).json({ message: "Invite code has expired" });
+      }
+      
+      // Check if user is already a member of this organization
+      const existingMember = await storage.getOrganizationMember(userId, invitation.organizationId);
+      if (existingMember) {
+        console.log(`❌ User already member of organization: ${userId}`);
+        return res.status(400).json({ message: "You are already a member of this organization" });
+      }
+      
+      // Add user to organization
+      const member = await storage.addOrganizationMember({
+        organizationId: invitation.organizationId,
+        userId: userId,
+        role: invitation.role,
+        joinedAt: new Date(),
+      });
+      
+      // Update invitation status
+      await storage.updateInvitationStatus(invitation.id, 'accepted');
+      
+      // Get organization info
+      const organization = await storage.getOrganizationById(invitation.organizationId);
+      
+      console.log(`✅ Successfully accepted invite code: ${inviteCode} for user: ${userId}`);
+      
+      res.json({ 
+        message: `Welcome to ${organization?.companyName}!`,
+        organization,
+        member
+      });
+    } catch (error) {
+      console.error("Error accepting invite code:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // New invite code team invitation route
+  app.post("/api/invitations/invite-code", isAuthenticated, async (req: any, res) => {
+    try {
+      const { email, role } = req.body;
+      const userId = req.user.claims.sub;
+      
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(400).json({ message: "You must be part of an organization to invite members" });
+      }
+      
+      // Check if user is owner or admin
+      const userMember = await storage.getOrganizationMember(userId, organization.id);
+      if (!userMember || (userMember.role !== 'owner' && userMember.role !== 'admin')) {
+        return res.status(403).json({ message: "Only organization owners and admins can invite members" });
+      }
+      
+      // Generate invite code
+      const inviteCode = generateInviteCode();
+      
+      // Create invitation record
+      const invitation = await storage.createInvitation({
+        organizationId: organization.id,
+        email,
+        role: role || 'member',
+        inviteCode,
+        status: 'pending',
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      });
+      
+      // Send invite code email
+      await sendInviteCodeEmail(email, organization.companyName, inviteCode, role);
+      
+      res.json({ 
+        message: "Invitation sent successfully", 
+        inviteCode,
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          status: invitation.status,
+          expiresAt: invitation.expiresAt
+        }
+      });
+    } catch (error) {
+      console.error("Error sending invite code invitation:", error);
+      res.status(500).json({ message: "Failed to send invitation" });
     }
   });
 

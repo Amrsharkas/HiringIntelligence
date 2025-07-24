@@ -49,11 +49,13 @@ export interface IStorage {
   addOrganizationMember(member: { organizationId: number; userId: string; role: string }): Promise<OrganizationMember>;
   
   // Organization invitation operations
-  createInvitation(invitationData: InsertOrganizationInvitation & { token: string }): Promise<OrganizationInvitation>;
+  createInvitation(invitationData: InsertOrganizationInvitation): Promise<OrganizationInvitation>;
   getInvitationByToken(token: string): Promise<OrganizationInvitation | undefined>;
+  getInvitationByInviteCode(inviteCode: string): Promise<OrganizationInvitation | undefined>;
   getOrganizationInvitations(organizationId: number): Promise<OrganizationInvitation[]>;
   updateInvitationStatus(invitationId: number, status: string): Promise<void>;
   acceptInvitation(token: string, userId: string): Promise<{ organization: Organization; member: OrganizationMember } | null>;
+  getOrganizationMember(userId: string, organizationId: number): Promise<OrganizationMember | undefined>;
   
   // Team member operations
   addTeamMember(memberData: { organizationId: number; userId: string; role: string; joinedAt: Date }): Promise<OrganizationMember>;
@@ -189,7 +191,7 @@ export class DatabaseStorage implements IStorage {
     return invitation;
   }
 
-  async getInvitationByCode(inviteCode: string): Promise<OrganizationInvitation | undefined> {
+  async getInvitationByInviteCode(inviteCode: string): Promise<OrganizationInvitation | undefined> {
     const [invitation] = await db
       .select()
       .from(organizationInvitations)
@@ -218,6 +220,17 @@ export class DatabaseStorage implements IStorage {
       .update(organizationInvitations)
       .set({ status })
       .where(eq(organizationInvitations.id, invitationId));
+  }
+
+  async getOrganizationMember(userId: string, organizationId: number): Promise<OrganizationMember | undefined> {
+    const [member] = await db
+      .select()
+      .from(organizationMembers)
+      .where(and(
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.organizationId, organizationId)
+      ));
+    return member;
   }
 
   async addTeamMember(memberData: { organizationId: number; userId: string; role: string; joinedAt: Date }): Promise<OrganizationMember> {
@@ -278,7 +291,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Update invitation status
-    await this.updateInvitationStatus(token, 'accepted');
+    await this.updateInvitationStatus(invitation.id, 'accepted');
 
     // Get organization info
     const organization = await this.getOrganizationById(invitation.organizationId);
