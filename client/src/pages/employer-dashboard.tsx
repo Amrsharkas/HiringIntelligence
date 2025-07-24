@@ -26,7 +26,7 @@ import { ActiveJobsModal } from "@/components/ActiveJobsModal";
 import { CandidatesModal } from "@/components/SimpleCandidatesModal";
 
 import { AnalyticsModal } from "@/components/AnalyticsModal";
-
+import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { ShortlistedApplicantsModal } from "@/components/ShortlistedApplicantsModal";
 import { InviteCodeModal } from "@/components/InviteCodeModal";
 
@@ -356,6 +356,7 @@ export default function EmployerDashboard() {
   const [isCandidatesModalOpen, setIsCandidatesModalOpen] = useState(false);
 
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
+  const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
 
   const [isShortlistedApplicantsModalOpen, setIsShortlistedApplicantsModalOpen] = useState(false);
   const [isInviteCodeModalOpen, setIsInviteCodeModalOpen] = useState(false);
@@ -528,7 +529,7 @@ export default function EmployerDashboard() {
                 component: <LiveApplicantsCount />,
                 icon: Users, 
                 color: "green",
-                onClick: () => setIsAnalyticsModalOpen(true)
+                onClick: () => setIsApplicantsModalOpen(true)
               },
               { 
                 label: "Candidates", 
@@ -655,6 +656,11 @@ export default function EmployerDashboard() {
       <AnalyticsModal 
         isOpen={isAnalyticsModalOpen} 
         onClose={() => setIsAnalyticsModalOpen(false)} 
+      />
+
+      <ApplicantsModal 
+        isOpen={isApplicantsModalOpen} 
+        onClose={() => setIsApplicantsModalOpen(false)} 
       />
 
       <ShortlistedApplicantsModal 
