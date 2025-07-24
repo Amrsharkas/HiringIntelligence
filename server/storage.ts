@@ -58,6 +58,8 @@ export interface IStorage {
   // Team member operations
   addTeamMember(memberData: { organizationId: number; userId: string; role: string; joinedAt: Date }): Promise<OrganizationMember>;
   getTeamMemberByUserAndOrg(userId: string, organizationId: number): Promise<OrganizationMember | undefined>;
+  removeTeamMember(userId: string, organizationId: number): Promise<void>;
+  updateTeamMemberRole(userId: string, organizationId: number, newRole: string): Promise<OrganizationMember>;
   
   // Job operations
   createJob(job: InsertJob): Promise<Job>;
@@ -226,6 +228,27 @@ export class DatabaseStorage implements IStorage {
         eq(organizationMembers.userId, userId),
         eq(organizationMembers.organizationId, organizationId)
       ));
+    return member;
+  }
+
+  async removeTeamMember(userId: string, organizationId: number): Promise<void> {
+    await db
+      .delete(organizationMembers)
+      .where(and(
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.organizationId, organizationId)
+      ));
+  }
+
+  async updateTeamMemberRole(userId: string, organizationId: number, newRole: string): Promise<OrganizationMember> {
+    const [member] = await db
+      .update(organizationMembers)
+      .set({ role: newRole })
+      .where(and(
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.organizationId, organizationId)
+      ))
+      .returning();
     return member;
   }
 

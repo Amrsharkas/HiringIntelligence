@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Settings, Users, Building2, UserPlus, Crown, Shield, Briefcase, Target, UserCheck, Mail, Send } from "lucide-react";
+import { X, Plus, Settings, Users, Building2, UserPlus, Crown, Shield, Briefcase, Target, UserCheck, Mail, Send, Trash2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -78,6 +78,7 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('member');
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),
@@ -169,6 +170,41 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
     },
   });
 
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("DELETE", `/api/organizations/members/${userId}`);
+      return response.json();
+    },
+    onSuccess: (data, userId) => {
+      const removedMember = teamMembers.find(m => m.userId === userId);
+      toast({
+        title: "Member Removed",
+        description: `${removedMember?.name || removedMember?.email || 'Team member'} has been removed from the organization.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies/team"] });
+      setMemberToRemove(null);
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove team member. Please try again.",
+        variant: "destructive",
+      });
+      setMemberToRemove(null);
+    },
+  });
+
   const onSubmit = (data: OrganizationFormData) => {
     createOrganizationMutation.mutate(data);
   };
@@ -193,6 +229,32 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
       default:
         return "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300";
     }
+  };
+
+  // Get current user info and permissions
+  const { data: currentUser } = useQuery<any>({
+    queryKey: ["/api/auth/user"],
+    enabled: isOpen,
+  });
+
+  const canRemoveMember = (targetMember: any) => {
+    if (!currentUser || !organization) return false;
+    
+    const isOwner = organization.ownerId === currentUser.id;
+    const currentMember = teamMembers.find(m => m.userId === currentUser.id);
+    const isAdmin = currentMember?.role === 'admin';
+    
+    // Cannot remove yourself
+    if (targetMember.userId === currentUser.id) return false;
+    
+    // Cannot remove the owner
+    if (organization.ownerId === targetMember.userId) return false;
+    
+    // Only owner can remove admins
+    if (targetMember.role === 'admin' && !isOwner) return false;
+    
+    // Admins and owners can remove regular members
+    return isOwner || isAdmin;
   };
 
   if (!isOpen) return null;
@@ -370,6 +432,17 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                               <Badge className={getRoleBadgeColor(member.role)}>
                                 {member.role}
                               </Badge>
+                              {canRemoveMember(member) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setMemberToRemove(member.userId)}
+                                  className="ml-2 h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  title={`Remove ${member.name || member.email || 'member'}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </motion.div>
@@ -462,6 +535,79 @@ export function TeamManagementModal({ isOpen, onClose }: TeamManagementModalProp
                 </AnimatePresence>
               </div>
             )}
+
+            {/* Confirmation Modal for Member Removal */}
+            <AnimatePresence>
+              {memberToRemove && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+                  onClick={() => setMemberToRemove(null)}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                        <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                          Remove Team Member
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          This action cannot be undone
+                        </p>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const member = teamMembers.find(m => m.userId === memberToRemove);
+                      return (
+                        <p className="text-slate-700 dark:text-slate-300 mb-6">
+                          Are you sure you want to remove <strong>{member?.name || member?.email || 'this member'}</strong> from your organization? 
+                          They will lose access to all organization resources immediately.
+                        </p>
+                      );
+                    })()}
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setMemberToRemove(null)}
+                        disabled={removeMemberMutation.isPending}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => memberToRemove && removeMemberMutation.mutate(memberToRemove)}
+                        disabled={removeMemberMutation.isPending}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        {removeMemberMutation.isPending ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2"></div>
+                            Removing...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remove Member
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>

@@ -215,6 +215,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Remove team member endpoint - with permission checks
+  app.delete('/api/organizations/members/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const requesterId = req.user.claims.sub;
+      const targetUserId = req.params.userId;
+      
+      // Get requester's organization
+      const organization = await storage.getOrganizationByUser(requesterId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Check if requester has permission to remove members
+      const requesterMember = await storage.getTeamMemberByUserAndOrg(requesterId, organization.id);
+      const isOwner = organization.ownerId === requesterId;
+      const isAdmin = requesterMember?.role === 'admin';
+
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ message: "Only organization owners and admins can remove members" });
+      }
+
+      // Get target member to check their role
+      const targetMember = await storage.getTeamMemberByUserAndOrg(targetUserId, organization.id);
+      if (!targetMember) {
+        return res.status(404).json({ message: "Team member not found" });
+      }
+
+      // Prevent removing the owner
+      if (organization.ownerId === targetUserId) {
+        return res.status(403).json({ message: "Cannot remove the organization owner" });
+      }
+
+      // Only owner can remove admins
+      if (targetMember.role === 'admin' && !isOwner) {
+        return res.status(403).json({ message: "Only the organization owner can remove admins" });
+      }
+
+      // Prevent self-removal (use leave endpoint instead)
+      if (requesterId === targetUserId) {
+        return res.status(400).json({ message: "Use the leave organization endpoint to remove yourself" });
+      }
+
+      // Remove the team member
+      await storage.removeTeamMember(targetUserId, organization.id);
+
+      console.log(`✅ User ${requesterId} removed member ${targetUserId} from organization ${organization.id}`);
+      res.json({ message: "Team member removed successfully" });
+
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ message: "Failed to remove team member" });
+    }
+  });
+
+  // Update team member role endpoint
+  app.patch('/api/organizations/members/:userId/role', isAuthenticated, async (req: any, res) => {
+    try {
+      const requesterId = req.user.claims.sub;
+      const targetUserId = req.params.userId;
+      const { role } = req.body;
+
+      if (!role || !['member', 'admin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be 'member' or 'admin'" });
+      }
+
+      // Get requester's organization
+      const organization = await storage.getOrganizationByUser(requesterId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Only owner can change roles
+      if (organization.ownerId !== requesterId) {
+        return res.status(403).json({ message: "Only the organization owner can change member roles" });
+      }
+
+      // Check if target member exists
+      const targetMember = await storage.getTeamMemberByUserAndOrg(targetUserId, organization.id);
+      if (!targetMember) {
+        return res.status(404).json({ message: "Team member not found" });
+      }
+
+      // Cannot change owner's role
+      if (organization.ownerId === targetUserId) {
+        return res.status(403).json({ message: "Cannot change the organization owner's role" });
+      }
+
+      // Update the role
+      const updatedMember = await storage.updateTeamMemberRole(targetUserId, organization.id, role);
+
+      console.log(`✅ User ${requesterId} updated member ${targetUserId} role to ${role} in organization ${organization.id}`);
+      res.json({ 
+        message: "Team member role updated successfully",
+        member: updatedMember
+      });
+
+    } catch (error) {
+      console.error("Error updating team member role:", error);
+      res.status(500).json({ message: "Failed to update team member role" });
+    }
+  });
+
   // Public invitation lookup (no authentication required)
   app.get('/api/invitations/public/:token', async (req: any, res) => {
     try {
