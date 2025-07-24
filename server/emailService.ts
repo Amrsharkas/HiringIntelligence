@@ -70,7 +70,7 @@ export async function sendInviteCodeEmail(
               </div>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${baseUrl}" class="button">Join the Team</a>
+                <a href="${baseUrl}/" class="button">Join the Team</a>
               </div>
               
               <p>As a <strong>${role}</strong>, you'll be able to:</p>
