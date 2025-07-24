@@ -21,6 +21,12 @@ export async function sendInvitationEmail({
   invitationToken,
 }: InvitationEmailParams): Promise<boolean> {
   try {
+    console.log(`📧 Starting email send process...`);
+    console.log(`📧 To: ${to}`);
+    console.log(`📧 Organization: ${organizationName}`);
+    console.log(`📧 Inviter: ${inviterName}`);
+    console.log(`📧 Token: ${invitationToken.substring(0, 8)}...`);
+    
     const baseUrl = process.env.REPLIT_DEV_DOMAIN ? 
       `https://${process.env.REPLIT_DEV_DOMAIN}` : 
       'https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev';
@@ -96,7 +102,8 @@ This invitation will expire in 7 days.
 This invitation was sent by ${organizationName} through our hiring platform.
     `;
 
-    await mailService.send({
+    console.log(`📧 Sending email via SendGrid...`);
+    const emailData = {
       to,
       from: {
         email: 'raef@platohiring.com', // Plato Hiring official sender email
@@ -105,7 +112,17 @@ This invitation was sent by ${organizationName} through our hiring platform.
       subject: `Invitation to join ${organizationName} team`,
       text: emailText,
       html: emailHtml,
+    };
+    
+    console.log(`📧 Email data:`, {
+      to: emailData.to,
+      from: emailData.from,
+      subject: emailData.subject
     });
+    
+    const result = await mailService.send(emailData);
+    console.log(`📧 SendGrid response:`, result);
+    console.log(`✅ Email sent successfully via SendGrid`);
 
     return true;
   } catch (error) {
