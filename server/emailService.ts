@@ -99,7 +99,7 @@ This invitation was sent by ${organizationName} through our hiring platform.
     await mailService.send({
       to,
       from: {
-        email: 'adam.1.elshanawany@gmail.com', // Replace with your verified sender email
+        email: 'raef@platohiring.com', // Plato Hiring official sender email
         name: `${organizationName} Team`
       },
       subject: `Invitation to join ${organizationName} team`,
