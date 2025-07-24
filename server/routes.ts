@@ -291,9 +291,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const org = await storage.getOrganizationByUser(userId);
       const companyName = org?.companyName || 'Unknown Company';
       
-      // Instantly sync new job to Airtable
+      // Instantly sync new job to Airtable and store record ID
       try {
-        await jobPostingsAirtableService.addJobToAirtable({
+        const airtableRecordId = await jobPostingsAirtableService.addJobToAirtable({
           jobId: job.id.toString(),
           title: job.title,
           description: `${job.description}\n\nRequirements:\n${job.requirements}`,
@@ -302,7 +302,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           company: companyName,
           employerQuestions: job.employerQuestions || []
         });
-        console.log(`✅ Instantly synced new job ${job.id} to Airtable`);
+        
+        // Update job with Airtable record ID for future deletion
+        await storage.updateJob(job.id, { airtableRecordId });
+        console.log(`✅ Instantly synced new job ${job.id} to Airtable with record ID: ${airtableRecordId}`);
       } catch (syncError) {
         console.error('Error syncing new job to Airtable:', syncError);
         // Don't fail the creation if sync fails
@@ -361,12 +364,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const job = await storage.updateJob(jobId, jobData);
       
-      // Instant Airtable sync after job update
+      // Instant Airtable sync after job update and store record ID
       try {
         const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
         const organization = await storage.getOrganizationByUserId(req.user.id);
         
-        await jobPostingsAirtableService.updateJobInAirtable(jobId.toString(), {
+        const airtableRecordId = await jobPostingsAirtableService.updateJobInAirtable(jobId.toString(), {
           title: job.title,
           description: `${job.description}\n\nRequirements:\n${job.requirements}`,
           location: job.location,
@@ -375,7 +378,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           employerQuestions: job.employerQuestions || []
         });
         
-        console.log(`✅ Instantly synced job update ${jobId} to Airtable`);
+        // Update job with Airtable record ID if not already stored
+        if (!job.airtableRecordId && airtableRecordId) {
+          await storage.updateJob(jobId, { airtableRecordId });
+        }
+        
+        console.log(`✅ Instantly synced job update ${jobId} to Airtable with record ID: ${airtableRecordId}`);
       } catch (syncError) {
         console.error('Error syncing job update to Airtable:', syncError);
         // Don't fail the update if sync fails
@@ -421,30 +429,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteJob(jobId);
       console.log(`✅ Job ${jobId} marked as inactive in database`);
       
-      // Delete from all Airtable tables (wait for completion to ensure it happens)
+      // Delete from Airtable using proper record ID
       try {
         console.log(`🚀 Starting Airtable cleanup for job ${jobId}...`);
         
+        // Delete from platojobpostings table using record ID if available
+        if (job.airtableRecordId) {
+          console.log(`🎯 Using stored Airtable record ID: ${job.airtableRecordId}`);
+          const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
+          await jobPostingsAirtableService.deleteJobByRecordId(job.airtableRecordId);
+          console.log(`✅ Deleted job posting from Airtable using record ID ${job.airtableRecordId}`);
+        } else {
+          console.log(`⚠️  No Airtable record ID stored for job ${jobId}, skipping Airtable deletion`);
+        }
+        
+        // Delete related records from other tables using Job ID (these use different deletion methods)
         const { applicantsAirtableService } = await import('./applicantsAirtableService');
         const { airtableService } = await import('./airtableService');
-        const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
         
         // Delete applicants for this job
         await applicantsAirtableService.deleteApplicantsByJobId(jobId);
         console.log(`✅ Deleted applicants for job ${jobId} from Airtable`);
         
-        // Delete job matches (platojobmatches table)
+        // Delete job matches (platojobmatches table)  
         await airtableService.deleteJobMatchesByJobId(jobId);
         console.log(`✅ Deleted job matches for job ${jobId} from Airtable`);
-        
-        // Delete job posting (platojobpostings table)
-        await jobPostingsAirtableService.deleteJobPostingByJobId(jobId);
-        console.log(`✅ Deleted job posting ${jobId} from platojobpostings table`);
         
         console.log(`🎉 Successfully deleted job ${jobId} from all Airtable tables`);
       } catch (airtableError) {
         console.error(`❌ Error deleting job ${jobId} from Airtable tables:`, airtableError);
-        // Don't fail the request if Airtable cleanup fails - job is already deleted from database
+        // Show toast warning to user but don't fail the deletion
+        console.warn(`⚠️  Job ${jobId} deleted from database but Airtable cleanup failed. This may leave orphaned records.`);
       }
       
       res.json({ message: "Job deleted successfully" });

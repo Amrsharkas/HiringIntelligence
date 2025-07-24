@@ -152,7 +152,7 @@ export class JobPostingsAirtableService {
     }
   }
 
-  // Add/update a job posting in Airtable
+  // Add/update a job posting in Airtable - returns Airtable record ID
   async addJobToAirtable(jobData: {
     jobId: string;
     title: string;
@@ -161,7 +161,7 @@ export class JobPostingsAirtableService {
     salary?: string;
     company: string;
     employerQuestions?: string[];
-  }): Promise<void> {
+  }): Promise<string> {
     try {
       console.log(`📤 Adding job ${jobData.jobId} to Airtable...`);
       
@@ -208,6 +208,8 @@ export class JobPostingsAirtableService {
 
       const result = JSON.parse(responseText);
       console.log(`✅ Successfully added job ${jobData.jobId} to Airtable with record ID: ${result.id}`);
+      
+      return result.id; // Return the Airtable record ID
 
     } catch (error) {
       console.error('Error adding job to Airtable:', error);
@@ -290,7 +292,7 @@ export class JobPostingsAirtableService {
     }
   }
 
-  // Update existing job in Airtable
+  // Update existing job in Airtable - returns record ID
   async updateJobInAirtable(jobId: string, jobData: {
     title: string;
     description: string;
@@ -298,7 +300,7 @@ export class JobPostingsAirtableService {
     salary?: string;
     company: string;
     employerQuestions?: string[];
-  }): Promise<void> {
+  }): Promise<string> {
     try {
       // Find the record ID for this job
       const params = new URLSearchParams();
@@ -367,9 +369,40 @@ export class JobPostingsAirtableService {
 
       const result = JSON.parse(responseText);
       console.log(`✅ Successfully updated job ${jobId} in Airtable with record ID: ${result.id}`);
+      
+      return result.id; // Return the record ID
 
     } catch (error) {
       console.error(`Error updating job ${jobId} in Airtable:`, error);
+      throw error;
+    }
+  }
+
+  // Delete job posting by Airtable record ID
+  async deleteJobByRecordId(recordId: string): Promise<void> {
+    try {
+      console.log(`🗑️  Deleting job from Airtable with record ID: ${recordId}`);
+      
+      const response = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to delete job from Airtable: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      console.log(`✅ Successfully deleted job with record ID ${recordId} from Airtable`);
+
+    } catch (error) {
+      console.error(`❌ Error deleting job with record ID ${recordId} from Airtable:`, error);
       throw error;
     }
   }

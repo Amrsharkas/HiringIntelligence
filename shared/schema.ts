@@ -88,6 +88,7 @@ export const jobs = pgTable("jobs", {
   createdById: varchar("created_by_id").notNull().references(() => users.id),
   is_active: boolean("is_active").notNull().default(true),
   views: integer("views").notNull().default(0),
+  airtableRecordId: varchar("airtable_record_id"), // Store Airtable record ID for deletion
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
