@@ -77,12 +77,18 @@ export default function OrganizationSetup() {
     },
   });
 
-  // Check URL parameters for invite code
+  // Check URL parameters for invite code and organization ID
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteCode = urlParams.get('inviteCode');
+    const organizationId = urlParams.get('organizationId');
+    
     if (inviteCode) {
       joinForm.setValue('inviteCode', inviteCode);
+      setActiveTab('join');
+    }
+    if (organizationId) {
+      joinForm.setValue('organizationId', organizationId);
       setActiveTab('join');
     }
   }, [joinForm]);
