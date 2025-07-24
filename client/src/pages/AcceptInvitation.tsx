@@ -14,15 +14,21 @@ export function AcceptInvitation() {
   const queryClient = useQueryClient();
 
   const [authState, setAuthState] = useState({ isAuthenticated: false, isLoading: true, user: null });
-  const [invitation, setInvitation] = useState(null);
+  const [invitation, setInvitation] = useState<any>(null);
   const [invitationLoading, setInvitationLoading] = useState(true);
-  const [invitationError, setInvitationError] = useState(null);
+  const [invitationError, setInvitationError] = useState<string | null>(null);
 
-  // Parse URL parameters
-  const searchParams = new URLSearchParams(location.split('?')[1] || '');
-  const token = searchParams.get('token');
+  // Parse URL parameters - handle both query params and potential URL encoding issues
+  const urlParts = location.split('?');
+  const searchParams = new URLSearchParams(urlParts[1] || '');
+  let token = searchParams.get('token');
   const org = searchParams.get('org');
   const role = searchParams.get('role');
+
+  // Clean up token if it has extra parameters appended
+  if (token && token.includes('&')) {
+    token = token.split('&')[0];
+  }
 
   // Check authentication status once
   useEffect(() => {
@@ -67,7 +73,7 @@ export function AcceptInvitation() {
         console.log(`✅ Invitation data:`, data);
         setInvitation(data);
         setInvitationLoading(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching invitation:', error);
         setInvitationError(error.message);
         setInvitationLoading(false);
