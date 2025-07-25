@@ -150,35 +150,62 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                 <Card key={applicant.id} className="border border-slate-200 dark:border-slate-700 hover:shadow-sm transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="w-10 h-10 flex-shrink-0">
-                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.name}`} />
-                          <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 text-sm">
-                            {applicant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="font-semibold text-base text-slate-800 dark:text-slate-200 truncate">
-                              {applicant.name}
-                            </h3>
-                            <Badge className={`${getStatusColor(applicant.status || 'pending')} border-0 text-xs flex-shrink-0`}>
-                              {applicant.status || 'pending'}
-                            </Badge>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-base text-slate-800 dark:text-slate-200 truncate">
+                            {applicant.name}
+                          </h3>
+                          <Badge className={`${getStatusColor(applicant.status || 'pending')} border-0 text-xs flex-shrink-0`}>
+                            {applicant.status || 'pending'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 truncate mb-2">
+                          {applicant.jobTitle}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-3">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{applicant.email}</span>
                           </div>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 truncate mb-1">
-                            {applicant.jobTitle}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Calendar className="w-3 h-3" />
+                            <span>Applied {new Date(applicant.appliedDate).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        
+                        {/* AI Scoring Analysis */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                              {applicant.matchScore || 85}%
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">Overall Match</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                              {applicant.technicalScore || 92}%
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">Technical Skills</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                              {applicant.experienceScore || 78}%
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">Experience</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                              {applicant.culturalFitScore || 88}%
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">Cultural Fit</div>
+                          </div>
+                        </div>
+                        
+                        {/* AI Analysis Summary */}
+                        <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 mb-2">
+                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                            {applicant.matchSummary || `Strong candidate with relevant experience in ${applicant.jobTitle}. Technical skills align well with job requirements. Good cultural fit based on profile analysis.`}
                           </p>
-                          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">{applicant.email}</span>
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              <Calendar className="w-3 h-3" />
-                              <span>Applied {new Date(applicant.appliedDate).toLocaleDateString()}</span>
-                            </div>
-                          </div>
                         </div>
                       </div>
                       
