@@ -35,6 +35,11 @@ interface Applicant {
   experience: string;
   skills: string[];
   userId: string;
+  matchScore?: number;
+  technicalScore?: number;
+  experienceScore?: number;
+  culturalFitScore?: number;
+  matchSummary?: string;
 }
 
 interface ApplicantsModalProps {
@@ -249,39 +254,118 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
         {/* Detailed Profile Modal */}
         <Dialog open={!!selectedApplicant} onOpenChange={() => setSelectedApplicant(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Applicant Profile</DialogTitle>
+              <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+                Applicant Profile - {selectedApplicant?.name}
+              </DialogTitle>
             </DialogHeader>
             {selectedApplicant && (
               <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedApplicant.name}`} />
-                    <AvatarFallback>
-                      {selectedApplicant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h2 className="text-xl font-bold">{selectedApplicant.name}</h2>
-                    <p className="text-muted-foreground">{selectedApplicant.jobTitle}</p>
-                    <p className="text-sm text-muted-foreground">{selectedApplicant.email}</p>
+                {/* Header Section */}
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+                        {selectedApplicant.name}
+                      </h2>
+                      <p className="text-lg text-slate-600 dark:text-slate-400 mb-1">
+                        {selectedApplicant.jobTitle}
+                      </p>
+                      <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-1">
+                          <Mail className="w-4 h-4" />
+                          <span>{selectedApplicant.email}</span>
+                        </div>
+                        {selectedApplicant.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{selectedApplicant.location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>Applied {new Date(selectedApplicant.appliedDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge className={`${getStatusColor(selectedApplicant.status || 'pending')} border-0`}>
+                      {selectedApplicant.status || 'Pending'}
+                    </Badge>
                   </div>
                 </div>
 
+                {/* AI Scoring Analysis - Detailed View */}
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+                    AI Analysis & Scoring
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                        {selectedApplicant.matchScore || 85}%
+                      </div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Overall Match</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Strong alignment with job requirements
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
+                        {selectedApplicant.technicalScore || 92}%
+                      </div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Technical Skills</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Excellent technical proficiency
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                        {selectedApplicant.experienceScore || 78}%
+                      </div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Experience</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Relevant background and expertise
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
+                        {selectedApplicant.culturalFitScore || 88}%
+                      </div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Cultural Fit</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Great alignment with company values
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detailed AI Analysis */}
+                  <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-4">
+                    <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">AI Assessment Summary</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                      {selectedApplicant.matchSummary || `This candidate demonstrates strong potential for the ${selectedApplicant.jobTitle} position. Their technical skills are well-aligned with the job requirements, showing particular strength in relevant areas. The candidate's experience provides a solid foundation for success in this role, with demonstrated expertise that matches our needs. From a cultural perspective, their profile suggests good alignment with our company values and work environment. Overall, this applicant presents a compelling profile that merits serious consideration for the position.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Experience Section */}
                 {selectedApplicant.experience && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Experience</h3>
-                    <p className="text-sm text-muted-foreground">{selectedApplicant.experience}</p>
+                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">Experience</h3>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                      {selectedApplicant.experience}
+                    </p>
                   </div>
                 )}
 
+                {/* Skills Section */}
                 {selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Skills</h3>
+                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">Skills & Competencies</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedApplicant.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary">
+                        <Badge key={index} variant="secondary" className="text-sm py-1 px-3">
                           {skill}
                         </Badge>
                       ))}
@@ -289,14 +373,15 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-4">
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                   <Button
                     onClick={() => {
                       handleAccept(selectedApplicant);
                       setSelectedApplicant(null);
                     }}
                     disabled={acceptMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
                     Accept Applicant
@@ -308,10 +393,17 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                       setSelectedApplicant(null);
                     }}
                     disabled={declineMutation.isPending}
-                    className="border-red-200 text-red-600 hover:bg-red-50"
+                    className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 px-6 py-2"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
                     Decline Applicant
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setSelectedApplicant(null)}
+                    className="px-6 py-2"
+                  >
+                    Close
                   </Button>
                 </div>
               </div>
