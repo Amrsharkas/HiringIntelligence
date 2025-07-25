@@ -121,125 +121,97 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
+      <DialogContent className="max-w-4xl max-h-[85vh] p-0 flex flex-col">
+        <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
             Job Applicants ({pendingApplicants.length})
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center py-16">
               <div className="text-center">
-                <Clock className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <p>Loading applicants...</p>
+                <Clock className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-600" />
+                <p className="text-slate-600 dark:text-slate-400">Loading applicants...</p>
               </div>
             </div>
           ) : pendingApplicants.length === 0 ? (
-            <div className="text-center py-12">
-              <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold mb-2">No New Applicants</h3>
-              <p className="text-muted-foreground">
+            <div className="text-center py-16">
+              <User className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-600" />
+              <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-300">No New Applicants</h3>
+              <p className="text-slate-500 dark:text-slate-400">
                 When candidates apply to your jobs, they'll appear here for review.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {pendingApplicants.map((applicant) => (
-                <Card key={applicant.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-12 h-12">
+                <Card key={applicant.id} className="border border-slate-200 dark:border-slate-700 hover:shadow-sm transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.name}`} />
-                          <AvatarFallback>
+                          <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 text-sm">
                             {applicant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-lg">{applicant.name}</h3>
-                          <p className="text-sm text-muted-foreground">{applicant.jobTitle}</p>
-                        </div>
-                      </div>
-                      <Badge className={`${getStatusColor(applicant.status || 'pending')} border-0`}>
-                        {applicant.status || 'Pending'}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="w-4 h-4" />
-                        <span>{applicant.email}</span>
-                      </div>
-                      {applicant.location && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="w-4 h-4" />
-                          <span>{applicant.location}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span>Applied {new Date(applicant.appliedDate).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-
-                    {applicant.experience && (
-                      <div className="mb-4">
-                        <p className="text-sm font-medium mb-1">Experience</p>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {applicant.experience}
-                        </p>
-                      </div>
-                    )}
-
-                    {applicant.skills && applicant.skills.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-sm font-medium mb-2">Skills</p>
-                        <div className="flex flex-wrap gap-1">
-                          {applicant.skills.slice(0, 3).map((skill, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {skill}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-semibold text-base text-slate-800 dark:text-slate-200 truncate">
+                              {applicant.name}
+                            </h3>
+                            <Badge className={`${getStatusColor(applicant.status || 'pending')} border-0 text-xs flex-shrink-0`}>
+                              {applicant.status || 'pending'}
                             </Badge>
-                          ))}
-                          {applicant.skills.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{applicant.skills.length - 3} more
-                            </Badge>
-                          )}
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 truncate mb-1">
+                            {applicant.jobTitle}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="flex items-center gap-1">
+                              <Mail className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{applicant.email}</span>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Calendar className="w-3 h-3" />
+                              <span>Applied {new Date(applicant.appliedDate).toLocaleDateString()}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedApplicant(applicant)}
-                        className="flex-1"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Profile
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAccept(applicant)}
-                        disabled={acceptMutation.isPending}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Accept
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDecline(applicant.id)}
-                        disabled={declineMutation.isPending}
-                        className="border-red-200 text-red-600 hover:bg-red-50"
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Decline
-                      </Button>
+                      
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedApplicant(applicant)}
+                          className="text-xs px-3 py-1.5 h-8"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAccept(applicant)}
+                          disabled={acceptMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Accept
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDecline(applicant.id)}
+                          disabled={declineMutation.isPending}
+                          className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 text-xs px-3 py-1.5 h-8"
+                        >
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Decline
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
