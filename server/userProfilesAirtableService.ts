@@ -5,6 +5,7 @@ interface UserProfileRecord {
   id: string;
   fields: {
     'Name'?: string;
+    'UserID'?: string;
     'User ID'?: string;
     'Age'?: number;
     'Location'?: string;
@@ -50,7 +51,7 @@ interface UserProfile {
 
 class UserProfilesAirtableService {
   private baseUrl = 'https://api.airtable.com/v0';
-  private baseId = 'appGcpjK0s5VG5EiX'; // platouserprofiles base
+  private baseId = 'app3tA4UpKQCT2s17'; // platouserprofiles base
   private tableName = 'Table 1';
   private apiKey: string;
 
@@ -67,10 +68,11 @@ class UserProfilesAirtableService {
         return null;
       }
 
-      const params = new URLSearchParams();
-      params.append('filterByFormula', `{User ID} = "${userId}"`);
+      // Try different field name variations for User ID
+      let params = new URLSearchParams();
+      params.append('filterByFormula', `{UserID} = "${userId}"`);
       
-      const response = await fetch(
+      let response = await fetch(
         `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
         {
           headers: {
@@ -84,7 +86,28 @@ class UserProfilesAirtableService {
         throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
       }
 
-      const data: UserProfileResponse = await response.json();
+      let data: UserProfileResponse = await response.json();
+      
+      // If no match found, try alternative field name
+      if (data.records.length === 0) {
+        console.log(`❌ No profile found with UserID field, trying User ID field...`);
+        params = new URLSearchParams();
+        params.append('filterByFormula', `{User ID} = "${userId}"`);
+        
+        response = await fetch(
+          `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}?${params}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.ok) {
+          data = await response.json();
+        }
+      }
       
       if (data.records.length === 0) {
         console.log(`❌ No user profile found for user ID: ${userId}`);
@@ -99,7 +122,7 @@ class UserProfilesAirtableService {
       const userProfile: UserProfile = {
         id: record.id,
         name: record.fields['Name'] || 'Unknown User',
-        userId: record.fields['User ID'] || '',
+        userId: record.fields['UserID'] || record.fields['User ID'] || '',
         age: record.fields['Age'] || undefined,
         location: record.fields['Location'] || undefined,
         email: record.fields['Email'] || undefined,
@@ -160,7 +183,7 @@ class UserProfilesAirtableService {
       const userProfiles: UserProfile[] = allRecords.map(record => ({
         id: record.id,
         name: record.fields['Name'] || 'Unknown User',
-        userId: record.fields['User ID'] || '',
+        userId: record.fields['UserID'] || record.fields['User ID'] || '',
         age: record.fields['Age'] || undefined,
         location: record.fields['Location'] || undefined,
         email: record.fields['Email'] || undefined,

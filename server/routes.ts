@@ -1435,7 +1435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       const profilesBaseId = 'app3tA4UpKQCT2s17';
-      const profilesTableName = 'platouserprofiles';
+      const profilesTableName = 'Table%201';
       
       // Try by Name field
       let profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${userId}"`)}`;
@@ -1526,7 +1526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 2: Fetch the user profile using the actual UserID
       console.log(`👤 Step 2: Fetching user profile for UserID: "${actualUserId}"`);
       const profilesBaseId = 'app3tA4UpKQCT2s17';
-      const profilesTableName = 'platouserprofiles';
+      const profilesTableName = 'Table%201';
       
       // Try by UserID field first
       let profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{UserID} = "${actualUserId}"`)}`;

@@ -379,9 +379,11 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                 </div>
 
                 {/* Detailed User Profile from Airtable */}
-                {selectedUserProfile && (
-                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">Complete Profile</h3>
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">Complete Profile</h3>
+                  
+                  {selectedUserProfile ? (
+                    <div>
                     
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -448,8 +450,18 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                         </p>
                       </div>
                     )}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <User className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-600" />
+                      <h4 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-300">Profile Data Unavailable</h4>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        This applicant's detailed profile information is not available in our database.
+                        The AI analysis above is based on application data.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Fallback Experience Section */}
                 {!selectedUserProfile && selectedApplicant.experience && (
