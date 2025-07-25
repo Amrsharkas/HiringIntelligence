@@ -6,12 +6,14 @@ interface AirtableApplicantRecord {
   fields: {
     'Name'?: string;
     'Applicant Name'?: string;
-    'User ID': string;
+    'User ID'?: string;
+    'Applicant User ID'?: string;
     'Email'?: string;
     'Phone'?: string;
     'Job title': string;
     'Job description': string;
-    'Company name': string;
+    'Company'?: string;
+    'Company name'?: string;
     'Job ID': string;
     'User profile'?: string;
     'Notes'?: string;
@@ -110,12 +112,12 @@ class RealApplicantsAirtableService {
         const applicant = {
           id: record.id,
           name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
-          userId: record.fields['User ID'] || '',
+          userId: record.fields['Applicant User ID'] || record.fields['User ID'] || '',
           email: record.fields['Email'] || '',
           phone: record.fields['Phone'] || '',
           jobTitle: record.fields['Job title'] || '',
           jobDescription: record.fields['Job description'] || '',
-          companyName: record.fields['Company name'] || '',
+          companyName: record.fields['Company name'] || record.fields['Company'] || '',
           jobId: record.fields['Job ID'] || '',
           userProfile: record.fields['User profile'] || '',
           notes: record.fields['Notes'] || '',
@@ -194,12 +196,12 @@ class RealApplicantsAirtableService {
       const applicants: ApplicantWithProfile[] = allRecords.map(record => ({
         id: record.id,
         name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
-        userId: record.fields['User ID'] || '',
+        userId: record.fields['Applicant User ID'] || record.fields['User ID'] || '',
         email: record.fields['Email'] || '',
         phone: record.fields['Phone'] || '',
         jobTitle: record.fields['Job title'] || '',
         jobDescription: record.fields['Job description'] || '',
-        companyName: record.fields['Company name'] || '',
+        companyName: record.fields['Company name'] || record.fields['Company'] || '',
         jobId: record.fields['Job ID'] || '',
         userProfile: record.fields['User profile'] || '',
         notes: record.fields['Notes'] || '',
@@ -248,12 +250,12 @@ class RealApplicantsAirtableService {
       const applicant: ApplicantWithProfile = {
         id: record.id,
         name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
-        userId: record.fields['User ID'] || '',
+        userId: record.fields['Applicant User ID'] || record.fields['User ID'] || '',
         email: record.fields['Email'] || '',
         phone: record.fields['Phone'] || '',
         jobTitle: record.fields['Job title'] || '',
         jobDescription: record.fields['Job description'] || '',
-        companyName: record.fields['Company name'] || '',
+        companyName: record.fields['Company name'] || record.fields['Company'] || '',
         jobId: record.fields['Job ID'] || '',
         userProfile: record.fields['User profile'] || '',
         notes: record.fields['Notes'] || '',
