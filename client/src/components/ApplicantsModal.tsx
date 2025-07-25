@@ -49,6 +49,7 @@ interface ApplicantsModalProps {
 
 export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
+  const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -111,6 +112,31 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
   const handleDecline = (applicantId: string) => {
     declineMutation.mutate(applicantId);
+  };
+
+  // Function to fetch and display user profile
+  const handleViewProfile = async (applicant: Applicant) => {
+    try {
+      console.log('Fetching profile for user ID:', applicant.userId);
+      
+      // Fetch detailed user profile
+      const response = await fetch(`/api/user-profile/${applicant.userId}`);
+      if (response.ok) {
+        const userProfile = await response.json();
+        console.log('User profile fetched:', userProfile);
+        setSelectedUserProfile(userProfile);
+      } else {
+        console.error('Failed to fetch user profile:', response.status);
+        setSelectedUserProfile(null);
+      }
+      
+      // Set selected applicant to show the modal
+      setSelectedApplicant(applicant);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setSelectedUserProfile(null);
+      setSelectedApplicant(applicant);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -218,7 +244,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedApplicant(applicant)}
+                          onClick={() => handleViewProfile(applicant)}
                           className="text-xs px-3 py-1.5 h-8"
                         >
                           <Eye className="w-3 h-3 mr-1" />
@@ -253,7 +279,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         </div>
 
         {/* Detailed Profile Modal */}
-        <Dialog open={!!selectedApplicant} onOpenChange={() => setSelectedApplicant(null)}>
+        <Dialog open={!!selectedApplicant} onOpenChange={() => {
+          setSelectedApplicant(null);
+          setSelectedUserProfile(null);
+        }}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-slate-200">
@@ -349,8 +378,81 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   </div>
                 </div>
 
-                {/* Experience Section */}
-                {selectedApplicant.experience && (
+                {/* Detailed User Profile from Airtable */}
+                {selectedUserProfile && (
+                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">Complete Profile</h3>
+                    
+                    {/* Basic Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      {selectedUserProfile.age && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Age</label>
+                          <p className="text-slate-800 dark:text-slate-200">{selectedUserProfile.age}</p>
+                        </div>
+                      )}
+                      {selectedUserProfile.location && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Location</label>
+                          <p className="text-slate-800 dark:text-slate-200">{selectedUserProfile.location}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Professional Summary */}
+                    {selectedUserProfile.professionalSummary && (
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Professional Summary</label>
+                        <p className="text-slate-800 dark:text-slate-200 mt-1 leading-relaxed">
+                          {selectedUserProfile.professionalSummary}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Work Experience */}
+                    {selectedUserProfile.workExperience && (
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Work Experience</label>
+                        <p className="text-slate-800 dark:text-slate-200 mt-1 leading-relaxed">
+                          {selectedUserProfile.workExperience}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Education */}
+                    {selectedUserProfile.education && (
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Education</label>
+                        <p className="text-slate-800 dark:text-slate-200 mt-1 leading-relaxed">
+                          {selectedUserProfile.education}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {selectedUserProfile.skills && (
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Skills</label>
+                        <p className="text-slate-800 dark:text-slate-200 mt-1 leading-relaxed">
+                          {selectedUserProfile.skills}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Additional Information */}
+                    {selectedUserProfile.additionalInfo && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Additional Information</label>
+                        <p className="text-slate-800 dark:text-slate-200 mt-1 leading-relaxed">
+                          {selectedUserProfile.additionalInfo}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Fallback Experience Section */}
+                {!selectedUserProfile && selectedApplicant.experience && (
                   <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">Experience</h3>
                     <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -359,8 +461,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   </div>
                 )}
 
-                {/* Skills Section */}
-                {selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
+                {/* Fallback Skills Section */}
+                {!selectedUserProfile && selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
                   <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">Skills & Competencies</h3>
                     <div className="flex flex-wrap gap-2">

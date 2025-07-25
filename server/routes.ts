@@ -1067,6 +1067,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get detailed user profile by userId from Airtable
+  app.get('/api/user-profile/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      console.log(`🔍 Fetching detailed profile for user ID: ${userId}`);
+      
+      // Get user profile from platouserprofiles table
+      const { userProfilesAirtableService } = await import('./userProfilesAirtableService');
+      const userProfile = await userProfilesAirtableService.getUserProfileByUserId(userId);
+      
+      if (!userProfile) {
+        console.log(`❌ User profile not found for ID: ${userId}`);
+        return res.status(404).json({ message: "User profile not found" });
+      }
+      
+      console.log(`✅ Found user profile for ${userProfile.name || 'Unknown'}`);
+      res.json(userProfile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
   app.post('/api/applicants/:id/schedule-interview', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
