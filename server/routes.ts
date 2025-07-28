@@ -29,6 +29,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Debug endpoint for authentication diagnostics
+  app.get('/api/debug/auth', (req: any, res) => {
+    const debugInfo = {
+      hostname: req.hostname,
+      protocol: req.protocol,
+      headers: {
+        host: req.headers.host,
+        'user-agent': req.headers['user-agent'],
+        referer: req.headers.referer,
+        origin: req.headers.origin
+      },
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user ? {
+        hasUser: true,
+        hasClaims: !!req.user.claims,
+        userId: req.user.claims?.sub,
+        email: req.user.claims?.email,
+        expiresAt: req.user.expires_at
+      } : null,
+      session: {
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        returnTo: (req.session as any)?.returnTo
+      },
+      environment: {
+        replitDomains: process.env.REPLIT_DOMAINS,
+        replId: process.env.REPL_ID,
+        hasSessionSecret: !!process.env.SESSION_SECRET
+      }
+    };
+    
+    console.log('🔍 Auth Debug Info:', JSON.stringify(debugInfo, null, 2));
+    res.json(debugInfo);
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
