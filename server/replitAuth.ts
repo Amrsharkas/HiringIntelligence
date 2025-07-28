@@ -84,25 +84,8 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  // Get all configured domains plus current hostname
-  const configuredDomains = process.env.REPLIT_DOMAINS!.split(",");
-  const domainSet = new Set([...configuredDomains, process.env.REPLIT_DOMAIN || ""]);
-  const allDomains = Array.from(domainSet).filter(Boolean);
-  
-  // Create a universal strategy that can handle different callback URLs dynamically
-  const universalStrategy = new Strategy(
-    {
-      name: "replitauth:universal",
-      config,
-      scope: "openid email profile offline_access",
-      callbackURL: `https://${allDomains[0]}/api/callback`, // Primary callback URL
-    },
-    verify,
-  );
-  passport.use(universalStrategy);
-  
-  // Also create individual strategies for each domain for backward compatibility
-  for (const domain of allDomains) {
+  for (const domain of process.env
+    .REPLIT_DOMAINS!.split(",")) {
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
@@ -121,34 +104,23 @@ export async function setupAuth(app: Express) {
   app.get("/api/login", (req, res, next) => {
     // Store the 'next' parameter for post-login redirect
     if (req.query.next) {
-      (req.session as any).returnTo = req.query.next as string;
+      req.session.returnTo = req.query.next as string;
     }
     
-    // Always use the universal strategy to avoid domain mismatch issues
-    const strategyName = "replitauth:universal";
-    
-    console.log(`🔐 Using authentication strategy: ${strategyName} for hostname: ${req.hostname}`);
-    
-    passport.authenticate(strategyName, {
+    passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    // Always use the universal strategy for callbacks
-    const strategyName = "replitauth:universal";
-    
-    console.log(`🔄 Using callback strategy: ${strategyName} for hostname: ${req.hostname}`);
-    
-    passport.authenticate(strategyName, (err: any, user: any) => {
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any) => {
       if (err) {
         console.error("Authentication error:", err);
         return res.redirect("/api/login");
       }
       
       if (!user) {
-        console.error("No user returned from authentication");
         return res.redirect("/api/login");
       }
       
@@ -158,11 +130,9 @@ export async function setupAuth(app: Express) {
           return res.redirect("/api/login");
         }
         
-        console.log("✅ User successfully authenticated and logged in");
-        
         // Check if there's a stored return URL from invitation flow
-        const returnTo = (req.session as any).returnTo;
-        delete (req.session as any).returnTo; // Clean up
+        const returnTo = req.session.returnTo;
+        delete req.session.returnTo; // Clean up
         
         if (returnTo) {
           console.log(`🔄 Redirecting authenticated user to: ${returnTo}`);
@@ -170,7 +140,6 @@ export async function setupAuth(app: Express) {
         }
         
         // Default redirect to dashboard
-        console.log("🏠 Redirecting to dashboard");
         res.redirect("/");
       });
     })(req, res, next);
