@@ -603,7 +603,17 @@ export default function Landing() {
       {/* Authentication Modal */}
       <Dialog open={showAuthForm} onOpenChange={setShowAuthForm}>
         <DialogContent className="max-w-md border-0 bg-transparent shadow-none p-0">
-          <AuthForm onSuccess={() => setShowAuthForm(false)} />
+          <AuthForm 
+            onSuccess={() => setShowAuthForm(false)}
+            onSignUp={() => {
+              setShowAuthForm(false);
+              // Don't redirect - let the app routing handle this naturally
+            }}
+            onSignIn={() => {
+              setShowAuthForm(false);
+              // Don't redirect - let the app routing handle this naturally
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>

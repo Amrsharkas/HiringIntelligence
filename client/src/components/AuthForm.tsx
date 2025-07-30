@@ -34,9 +34,11 @@ type SignUpData = z.infer<typeof signUpSchema>;
 
 interface AuthFormProps {
   onSuccess?: () => void;
+  onSignUp?: () => void;
+  onSignIn?: () => void;
 }
 
-export function AuthForm({ onSuccess }: AuthFormProps) {
+export function AuthForm({ onSuccess, onSignUp, onSignIn }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -69,7 +71,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         title: "Welcome back!",
         description: "You've been signed in successfully.",
       });
-      onSuccess?.();
+      onSignIn?.() || onSuccess?.();
     } catch (error: any) {
       setError(error.message || 'Failed to sign in');
     } finally {
@@ -87,7 +89,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         title: "Welcome to Plato!",
         description: "Your account has been created successfully.",
       });
-      onSuccess?.();
+      onSignUp?.() || onSuccess?.();
     } catch (error: any) {
       setError(error.message || 'Failed to create account');
     } finally {
@@ -105,7 +107,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         title: "Welcome!",
         description: "You've been signed in with Google successfully.",
       });
-      onSuccess?.();
+      onSignIn?.() || onSuccess?.();
     } catch (error: any) {
       setError(error.message || 'Failed to sign in with Google');
     } finally {
