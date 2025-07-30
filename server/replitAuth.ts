@@ -96,6 +96,7 @@ export async function setupAuth(app: Express) {
       verify,
     );
     passport.use(strategy);
+    console.log(`🔧 Registered auth strategy for domain: ${domain}`);
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
@@ -104,17 +105,34 @@ export async function setupAuth(app: Express) {
   app.get("/api/login", (req, res, next) => {
     // Store the 'next' parameter for post-login redirect
     if (req.query.next) {
-      req.session.returnTo = req.query.next as string;
+      (req.session as any).returnTo = req.query.next as string;
     }
     
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+    // Find the matching domain or use the first configured domain
+    const domains = process.env.REPLIT_DOMAINS!.split(",");
+    const matchingDomain = domains.find(domain => req.hostname.includes(domain)) || domains[0];
+    
+    console.log(`🔐 Login attempt - hostname: ${req.hostname}, using domain: ${matchingDomain}`);
+    
+    try {
+      passport.authenticate(`replitauth:${matchingDomain}`, {
+        prompt: "login consent",
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
+    } catch (error) {
+      console.error("Login authentication error:", error);
+      res.status(500).json({ error: "Authentication setup failed", details: error.message });
+    }
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any) => {
+    // Find the matching domain or use the first configured domain
+    const domains = process.env.REPLIT_DOMAINS!.split(",");
+    const matchingDomain = domains.find(domain => req.hostname.includes(domain)) || domains[0];
+    
+    console.log(`🔄 Callback - hostname: ${req.hostname}, using domain: ${matchingDomain}`);
+    
+    passport.authenticate(`replitauth:${matchingDomain}`, (err: any, user: any) => {
       if (err) {
         console.error("Authentication error:", err);
         return res.redirect("/api/login");
@@ -131,8 +149,8 @@ export async function setupAuth(app: Express) {
         }
         
         // Check if there's a stored return URL from invitation flow
-        const returnTo = req.session.returnTo;
-        delete req.session.returnTo; // Clean up
+        const returnTo = (req.session as any).returnTo;
+        delete (req.session as any).returnTo; // Clean up
         
         if (returnTo) {
           console.log(`🔄 Redirecting authenticated user to: ${returnTo}`);
