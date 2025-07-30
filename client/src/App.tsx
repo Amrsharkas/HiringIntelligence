@@ -4,7 +4,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { usePendingInvitation } from "@/hooks/usePendingInvitation";
 import Landing from "@/pages/landing";
 import EmployerDashboard from "@/pages/employer-dashboard";
@@ -15,7 +15,7 @@ import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
 function Router() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useFirebaseAuth();
   const { processPendingInvitation } = usePendingInvitation();
 
   // Check if user has an organization

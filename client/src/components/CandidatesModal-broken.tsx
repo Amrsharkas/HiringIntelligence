@@ -54,7 +54,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 500);
     }
   }, [error, toast]);

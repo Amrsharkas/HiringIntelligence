@@ -3,12 +3,12 @@ import { useLocation } from 'wouter';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, AlertCircle, UserPlus, ArrowRight } from 'lucide-react';
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function InviteAccept() {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useFirebaseAuth();
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [inviteStatus, setInviteStatus] = useState<'loading' | 'processing' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
@@ -41,7 +41,8 @@ export default function InviteAccept() {
       // Redirect to login with return URL
       console.log('🔐 User not authenticated, redirecting to login...');
       const returnUrl = encodeURIComponent(`/invite/accept?token=${inviteToken}`);
-      window.location.href = `/api/login?redirect=${returnUrl}`;
+      setInviteStatus('error');
+      setMessage('Please log in first to accept this invitation');
       return;
     }
 
@@ -190,7 +191,7 @@ export default function InviteAccept() {
             </Button>
             {!isAuthenticated && (
               <Button 
-                onClick={() => window.location.href = '/api/login'}
+                onClick={() => window.location.href = '/'}
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 Sign In

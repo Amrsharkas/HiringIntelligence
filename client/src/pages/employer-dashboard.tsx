@@ -1,5 +1,5 @@
 import React, { useState, memo, useMemo } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,7 +111,7 @@ const LiveApplicantsCount = memo(() => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -140,7 +140,7 @@ const LiveCandidatesCount = memo(() => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -172,7 +172,7 @@ const LiveInterviewsCount = memo(() => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -202,7 +202,7 @@ const LiveRecentActivity = memo(() => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
       }
     },
@@ -220,7 +220,7 @@ const LiveRecentActivity = memo(() => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
       }
     },
@@ -238,7 +238,7 @@ const LiveRecentActivity = memo(() => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
       }
     },
@@ -256,7 +256,7 @@ const LiveRecentActivity = memo(() => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
       }
     },
@@ -348,7 +348,7 @@ StatNumber.displayName = 'StatNumber';
 InteractiveCard.displayName = 'InteractiveCard';
 
 export default function EmployerDashboard() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useFirebaseAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
@@ -373,7 +373,7 @@ export default function EmployerDashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -388,7 +388,7 @@ export default function EmployerDashboard() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "GET" });
+      await fetch("/", { method: "GET" });
       window.location.href = "/";
     } catch (error) {
       window.location.href = "/";

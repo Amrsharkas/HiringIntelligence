@@ -132,7 +132,7 @@ export default function EmployerDashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -166,7 +166,7 @@ export default function EmployerDashboard() {
             </p>
           </div>
           <Button
-            onClick={() => setLocation("/api/logout")}
+            onClick={() => setLocation("/")}
             variant="outline"
             className="hover:bg-slate-100 dark:hover:bg-slate-700"
           >

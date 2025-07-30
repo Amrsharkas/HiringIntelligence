@@ -65,7 +65,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 500);
     }
   }, [error, toast]);
@@ -153,7 +153,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -216,7 +216,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -259,7 +259,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }

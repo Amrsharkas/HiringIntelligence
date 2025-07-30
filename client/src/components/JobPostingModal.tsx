@@ -215,7 +215,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -248,7 +248,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }

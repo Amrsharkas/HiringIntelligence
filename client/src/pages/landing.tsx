@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { SupportTicketModal } from "@/components/SupportTicketModal";
+import { AuthForm } from "@/components/AuthForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Import company logos
 import fridgenoMoreLogo from "@assets/image_1752003678355.png";
@@ -50,8 +52,10 @@ export default function Landing() {
   const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
   const [showSupportModal, setShowSupportModal] = useState(false);
 
+  const [showAuthForm, setShowAuthForm] = useState(false);
+
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    setShowAuthForm(true);
   };
 
   const companyLogos = [
@@ -595,6 +599,13 @@ export default function Landing() {
         isOpen={showSupportModal} 
         onClose={() => setShowSupportModal(false)} 
       />
+
+      {/* Authentication Modal */}
+      <Dialog open={showAuthForm} onOpenChange={setShowAuthForm}>
+        <DialogContent className="max-w-md border-0 bg-transparent shadow-none p-0">
+          <AuthForm onSuccess={() => setShowAuthForm(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

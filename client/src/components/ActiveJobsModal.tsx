@@ -33,7 +33,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
@@ -60,7 +60,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }

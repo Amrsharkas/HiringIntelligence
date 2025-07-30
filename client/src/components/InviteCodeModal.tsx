@@ -82,7 +82,7 @@ export function InviteCodeModal({ isOpen, onClose }: InviteCodeModalProps) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
