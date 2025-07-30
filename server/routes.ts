@@ -1327,60 +1327,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Post-authentication hook to automatically process pending invitations
+  // Simplified endpoint - Firebase auth doesn't use session-based invitations
   app.post('/api/auth/process-pending-invitation', async (req: any, res) => {
-    try {
-      const pendingInvitation = req.session.pendingInvitation;
-      if (!pendingInvitation) {
-        return res.json({ success: true, message: "No pending invitation" });
-      }
-
-      console.log(`🔄 Processing pending invitation:`, pendingInvitation);
-      
-      const { token, organizationId, role } = pendingInvitation;
-      const userId = req.user.uid;
-
-      // Verify invitation is still valid
-      const invitation = await storage.getInvitationByToken(token);
-      if (!invitation || invitation.status !== 'pending' || new Date() > invitation.expiresAt) {
-        console.log(`❌ Invalid or expired invitation token: ${token}`);
-        delete req.session.pendingInvitation;
-        return res.status(400).json({ message: "Invalid or expired invitation" });
-      }
-
-      // Check if user is already part of this organization
-      const existingMember = await storage.getTeamMemberByUserAndOrg(userId, parseInt(organizationId));
-      if (existingMember) {
-        console.log(`ℹ️ User ${userId} is already a member of organization ${organizationId}`);
-        delete req.session.pendingInvitation;
-        return res.json({ success: true, message: "Already a team member" });
-      }
-
-      // Add user to the organization team
-      await storage.addTeamMember({
-        organizationId: parseInt(organizationId),
-        userId,
-        role,
-        joinedAt: new Date()
-      });
-
-      // Mark invitation as accepted
-      await storage.updateInvitationStatus(invitation.id, 'accepted');
-
-      console.log(`✅ Successfully added user ${userId} to organization ${organizationId} as ${role}`);
-      delete req.session.pendingInvitation;
-
-      res.json({
-        success: true,
-        message: "Successfully joined team!",
-        organizationId: parseInt(organizationId),
-        role
-      });
-
-    } catch (error) {
-      console.error("Error processing pending invitation:", error);
-      res.status(500).json({ message: "Failed to process invitation" });
-    }
+    res.json({ success: true, message: "No pending invitation to process" });
   });
 
   // Test endpoint for SendGrid email
