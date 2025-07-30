@@ -51,7 +51,7 @@ export default function Landing() {
   const [showSupportModal, setShowSupportModal] = useState(false);
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    setLocation('/auth');
   };
 
   const companyLogos = [
