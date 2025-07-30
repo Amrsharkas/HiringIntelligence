@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import FirebaseTest from "@/components/FirebaseTest";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -107,8 +108,15 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6">
+      
+      {/* Firebase Test Component */}
+      <div className="max-w-6xl mx-auto mb-8">
+        <FirebaseTest />
+      </div>
+      
+      <div className="flex items-center justify-center">
+        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center">
         {/* Left side - Hero content */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
@@ -415,6 +423,7 @@ export default function AuthPage() {
             </CardContent>
           </Card>
         </motion.div>
+        </div>
       </div>
     </div>
   );

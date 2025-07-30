@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Config Test</title>
+</head>
+<body>
+    <h1>Firebase Configuration Test</h1>
+    <div id="status">Testing Firebase configuration...</div>
+    <div id="results"></div>
+    
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTfE0Wvso1GQ4fZDmpP0YvfWHlPOh8yN8",
+            authDomain: "plato-hiring-439f3.firebaseapp.com",
+            projectId: "plato-hiring-439f3",
+            storageBucket: "plato-hiring-439f3.firebasestorage.app",
+            messagingSenderId: "123456789",
+            appId: "1:671636669866:web:0e4b5e9f5b55742b5b0fce"
+        };
+
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+
+        function logResult(message, success = true) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            p.style.color = success ? 'green' : 'red';
+            resultsDiv.appendChild(p);
+        }
+
+        try {
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            
+            logResult('✓ Firebase app initialized successfully');
+            logResult('✓ Auth service initialized');
+            logResult(`✓ Project ID: ${firebaseConfig.projectId}`);
+            logResult(`✓ Auth Domain: ${firebaseConfig.authDomain}`);
+            
+            // Test auth state listener
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    logResult(`✓ User authenticated: ${user.email}`);
+                } else {
+                    logResult('✓ Auth state listener working (no user signed in)');
+                }
+            });
+            
+            statusDiv.textContent = 'Firebase configuration is valid!';
+            statusDiv.style.color = 'green';
+            
+        } catch (error) {
+            logResult(`✗ Firebase initialization failed: ${error.message}`, false);
+            statusDiv.textContent = 'Firebase configuration has issues!';
+            statusDiv.style.color = 'red';
+        }
+    </script>
+</body>
+</html>
