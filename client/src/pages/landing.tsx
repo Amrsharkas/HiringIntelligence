@@ -15,9 +15,11 @@ import {
   Building2,
   Users,
   BarChart3,
-  Zap
+  Zap,
+  HelpCircle
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { SupportTicketModal } from "@/components/SupportTicketModal";
 
 // Import company logos
 import fridgenoMoreLogo from "@assets/image_1752003678355.png";
@@ -46,6 +48,7 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const handleLogin = () => {
     window.location.href = "/api/login";
@@ -121,6 +124,14 @@ export default function Landing() {
               Plato
             </div>
             <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                onClick={() => setShowSupportModal(true)}
+                className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium flex items-center gap-2"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Need Help?
+              </Button>
               <Button
                 variant="ghost"
                 onClick={handleLogin}
@@ -578,6 +589,12 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
+
+      {/* Support Ticket Modal */}
+      <SupportTicketModal 
+        isOpen={showSupportModal} 
+        onClose={() => setShowSupportModal(false)} 
+      />
     </div>
   );
 }

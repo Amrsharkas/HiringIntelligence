@@ -52,6 +52,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Support ticket endpoint
+  app.post('/api/support/ticket', async (req, res) => {
+    try {
+      const { name, email, issueType, description } = req.body;
+      
+      // Generate ticket ID
+      const ticketId = `PLATO-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      // Send email notification to support team
+      const emailService = await import('./sendgridEmailService');
+      
+      const supportEmailContent = `
+        <h2>New Support Ticket: ${ticketId}</h2>
+        <p><strong>From:</strong> ${name} (${email})</p>
+        <p><strong>Issue Type:</strong> ${issueType}</p>
+        <p><strong>Description:</strong></p>
+        <p>${description.replace(/\n/g, '<br>')}</p>
+        <hr>
+        <p><small>This ticket was automatically generated from the Plato Hiring platform.</small></p>
+      `;
+      
+      // Send to support team
+      await emailService.sendEmail({
+        to: 'support@platohiring.com',
+        from: 'support@platohiring.com',
+        subject: `New Support Ticket: ${issueType} - ${ticketId}`,
+        text: `New support ticket from ${name} (${email})\n\nIssue: ${issueType}\n\nDescription:\n${description}`,
+        html: supportEmailContent,
+      });
+      
+      // Send confirmation to user
+      const userConfirmationContent = `
+        <h2>Support Ticket Created</h2>
+        <p>Hi ${name},</p>
+        <p>Thank you for contacting Plato support. We've received your request and created ticket <strong>${ticketId}</strong> for you.</p>
+        <p><strong>Issue:</strong> ${issueType}</p>
+        <p>Our support team will review your request and respond within 24 hours. You'll receive updates at this email address.</p>
+        <p>If you need immediate assistance, you can reply to this email or contact us directly at support@platohiring.com.</p>
+        <br>
+        <p>Best regards,<br>The Plato Support Team</p>
+      `;
+      
+      await emailService.sendEmail({
+        to: email,
+        from: 'support@platohiring.com',
+        subject: `Support Ticket Created: ${ticketId}`,
+        text: `Hi ${name},\n\nThank you for contacting Plato support. We've created ticket ${ticketId} for your request about "${issueType}".\n\nOur team will respond within 24 hours.\n\nBest regards,\nThe Plato Support Team`,
+        html: userConfirmationContent,
+      });
+      
+      console.log(`✅ Support ticket created: ${ticketId} for ${email}`);
+      res.json({ ticketId, message: "Support ticket created successfully" });
+      
+    } catch (error) {
+      console.error("Error creating support ticket:", error);
+      res.status(500).json({ message: "Failed to create support ticket" });
+    }
+  });
+
   // Organization routes
   app.post('/api/organizations', isAuthenticated, async (req: any, res) => {
     try {
