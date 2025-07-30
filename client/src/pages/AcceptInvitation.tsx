@@ -57,7 +57,7 @@ export function AcceptInvitation() {
           // If not authenticated but has invite params, redirect to login
           if (token && org && role) {
             setTimeout(() => {
-              window.location.href = '/';
+              window.location.href = '/api/login';
             }, 1000);
           } else {
             setInvitationError('No invitation parameters found');
@@ -268,7 +268,7 @@ export function AcceptInvitation() {
             </p>
             <div className="space-y-3">
               <Button 
-                onClick={() => window.location.href = '/'}
+                onClick={() => window.location.href = '/api/login'}
                 className="w-full"
               >
                 Sign In to Join Team

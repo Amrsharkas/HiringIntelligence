@@ -63,7 +63,7 @@ export function ShortlistedApplicantsModal({
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/api/login";
         }, 500);
         return;
       }

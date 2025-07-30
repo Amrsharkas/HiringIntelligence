@@ -17,8 +17,8 @@ This is a standalone employer-facing web application designed to make hiring mor
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Firebase Authentication with JWT tokens
-- **Session Management**: Firebase token-based authentication
+- **Authentication**: Replit Auth with OpenID Connect
+- **Session Management**: PostgreSQL session store
 - **Build Tool**: Vite for development, ESBuild for production
 
 ### UI/UX Design Principles
@@ -30,11 +30,10 @@ This is a standalone employer-facing web application designed to make hiring mor
 ## Key Components
 
 ### Authentication System
-- **Provider**: Firebase Authentication with email/password and Google Sign-In
-- **Token Management**: JWT token-based authentication with Firebase Admin SDK
-- **Authorization**: Route-level protection using Firebase token verification
-- **User Management**: Automatic user creation in Firestore and PostgreSQL
-- **Multi-provider Support**: Email/password authentication and Google OAuth
+- **Provider**: Replit Auth with OpenID Connect integration
+- **Session Storage**: PostgreSQL-backed sessions with 7-day TTL
+- **Authorization**: Route-level protection for authenticated endpoints
+- **User Management**: Automatic user creation and role assignment
 
 ### Job Management
 - **AI-Powered Job Creation**: OpenAI integration for generating job descriptions and requirements
@@ -92,9 +91,9 @@ This is a standalone employer-facing web application designed to make hiring mor
 - **Schema Management**: Drizzle migrations for database evolution
 
 ### Authentication
-- **Firebase Auth**: Complete authentication system with multiple providers
-- **JWT Tokens**: Secure token-based authentication flow
-- **Session Management**: Firebase-managed authentication state with automatic token refresh
+- **Replit Auth**: Integrated authentication system
+- **OIDC**: OpenID Connect for secure authentication flow
+- **Session Management**: Secure session handling with proper expiration
 
 ### UI Components
 - **Radix UI**: Accessible component primitives
@@ -199,7 +198,6 @@ Changelog:
 - July 24, 2025. COMPLETED MAGIC LINK INVITATION SYSTEM - Fully replaced broken invite code system with streamlined magic link workflow. Created InviteAccept.tsx page for token-based invitation acceptance, implemented sendMagicLinkInvitationEmail function with professional HTML templates, added /api/invitations/accept endpoint for magic link processing, updated App.tsx routing for /invite/accept path, and integrated complete authentication flow with automatic team joining. Magic links use format https://platohiring.com/invite/accept?token=... for seamless one-click team joining experience.
 - July 24, 2025. Updated email sender branding from "Raef" to "Plato" - Modified sendMagicLinkInvitationEmail and sendInviteCodeEmail functions to display "Plato" as the sender name in all team invitation emails while maintaining the verified raef@platohiring.com sender address for deliverability.
 - July 24, 2025. REMOVED TEAM MANAGEMENT FUNCTIONALITY - Completely removed TeamManagementModal component and all team invitation features per user request due to non-functional magic links and persistent email sender issues. Cleaned up employer dashboard to remove all team management UI elements and replaced team management card with Recent Activity card. System now focuses solely on job posting, candidate management, and interview scheduling without team collaboration features.
-- July 30, 2025. MAJOR ARCHITECTURE CHANGE: COMPLETE FIREBASE AUTHENTICATION MIGRATION - Completely removed Replit Auth system and replaced with Firebase Authentication. Implemented comprehensive Firebase setup with email/password and Google Sign-In support. Created Firebase client configuration, admin SDK setup, and new useFirebaseAuth hook. Updated all frontend components to use Firebase authentication flow. Modified backend routes to use Firebase token verification middleware. Added modern authentication UI with AuthForm component featuring tabbed sign-in/sign-up interface. System now uses Firebase project "plato-244d4" with proper authorized domains configuration for both development and production environments.
 ```
 
 ## User Preferences

@@ -57,7 +57,7 @@ const LiveActivityStats = () => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/api/login";
         }, 500);
       }
     },
@@ -76,7 +76,7 @@ const LiveActivityStats = () => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/api/login";
         }, 500);
       }
     },
@@ -95,7 +95,7 @@ const LiveActivityStats = () => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/api/login";
         }, 500);
       }
     },
@@ -114,7 +114,7 @@ const LiveActivityStats = () => {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/api/login";
         }, 500);
       }
     },

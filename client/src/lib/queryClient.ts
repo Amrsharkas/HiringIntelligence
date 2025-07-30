@@ -38,17 +38,6 @@ export async function apiRequest(
     body: undefined as string | undefined,
     credentials: "include" as RequestCredentials,
   };
-
-  // Add Firebase auth token if available
-  try {
-    const { getIdToken } = await import('@/lib/firebase');
-    const token = await getIdToken();
-    if (token) {
-      fetchOptions.headers['Authorization'] = `Bearer ${token}`;
-    }
-  } catch (error) {
-    console.log('Firebase token not available:', error);
-  }
   
   if (data && ['POST', 'PUT', 'PATCH'].includes(requestMethod)) {
     fetchOptions.headers['Content-Type'] = 'application/json';
@@ -59,7 +48,7 @@ export async function apiRequest(
     url: requestUrl, 
     method: fetchOptions.method, 
     hasBody: !!fetchOptions.body,
-    headers: { ...fetchOptions.headers, Authorization: fetchOptions.headers.Authorization ? '[REDACTED]' : undefined }
+    headers: fetchOptions.headers 
   });
   
   const res = await fetch(requestUrl, fetchOptions);
@@ -75,22 +64,8 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const headers: Record<string, string> = {};
-    
-    // Add Firebase auth token if available
-    try {
-      const { getIdToken } = await import('@/lib/firebase');
-      const token = await getIdToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.log('Firebase token not available:', error);
-    }
-
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
-      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

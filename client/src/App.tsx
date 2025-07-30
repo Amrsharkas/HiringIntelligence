@@ -4,7 +4,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { usePendingInvitation } from "@/hooks/usePendingInvitation";
 import Landing from "@/pages/landing";
 import EmployerDashboard from "@/pages/employer-dashboard";
@@ -15,22 +15,15 @@ import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
 function Router() {
-  const { isAuthenticated, isLoading, user } = useFirebaseAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { processPendingInvitation } = usePendingInvitation();
 
   // Check if user has an organization
-  const { data: organization, isLoading: orgLoading, refetch: refetchOrg } = useQuery({
+  const { data: organization, isLoading: orgLoading } = useQuery({
     queryKey: ["/api/organizations/current"],
     enabled: isAuthenticated && !!user,
     retry: false,
-    refetchOnWindowFocus: true,
-    staleTime: 0, // Always treat as stale to ensure fresh data
   });
-
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 Auth state:', { isAuthenticated, user: !!user, organization: !!organization, orgLoading });
-  }, [isAuthenticated, user, organization, orgLoading]);
 
   // Automatically process pending invitations when user becomes authenticated
   useEffect(() => {
