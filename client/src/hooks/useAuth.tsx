@@ -1,10 +1,15 @@
-import { createContext, ReactNode, useContext } from "react";
-import {
-  useQuery,
-  useMutation,
-  UseMutationResult,
-} from "@tanstack/react-query";
-import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { 
+  User as FirebaseUser, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 type User = {
@@ -12,117 +17,146 @@ type User = {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  role: string;
-  isEmailVerified: boolean;
+  displayName: string | null;
+  photoURL: string | null;
+  emailVerified: boolean;
 };
 
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  error: Error | null;
   isAuthenticated: boolean;
-  loginMutation: UseMutationResult<User, Error, LoginData>;
-  logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<User, Error, RegisterData>;
-};
-
-type LoginData = {
-  email: string;
-  password: string;
-};
-
-type RegisterData = {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  
-  const {
-    data: user,
-    error,
-    isLoading,
-  } = useQuery<User | undefined, Error>({
-    queryKey: ["/api/auth/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    retry: false,
+
+  // Convert Firebase user to our User type
+  const mapFirebaseUser = (firebaseUser: FirebaseUser): User => ({
+    id: firebaseUser.uid,
+    email: firebaseUser.email || "",
+    firstName: firebaseUser.displayName?.split(" ")[0] || null,
+    lastName: firebaseUser.displayName?.split(" ").slice(1).join(" ") || null,
+    displayName: firebaseUser.displayName,
+    photoURL: firebaseUser.photoURL,
+    emailVerified: firebaseUser.emailVerified,
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/auth/login", credentials);
-      return await res.json();
-    },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
+  // Listen to auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(mapFirebaseUser(firebaseUser));
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: "Welcome back!",
         description: "You have been logged in successfully.",
       });
-    },
-    onError: (error: any) => {
+    } catch (error: any) {
       toast({
         title: "Login failed",
         description: error.message || "Please check your credentials and try again",
         variant: "destructive",
       });
-    },
-  });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const registerMutation = useMutation({
-    mutationFn: async (credentials: RegisterData) => {
-      const res = await apiRequest("POST", "/api/auth/register", credentials);
-      return await res.json();
-    },
-    onSuccess: () => {
+  const register = async (email: string, password: string, firstName?: string, lastName?: string) => {
+    try {
+      setIsLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update display name if provided
+      if (firstName || lastName) {
+        const displayName = [firstName, lastName].filter(Boolean).join(" ");
+        await updateProfile(userCredential.user, { displayName });
+      }
+      
       toast({
-        title: "Registration successful!",
-        description: "Please check your email to verify your account.",
+        title: "Account created!",
+        description: "Welcome to Plato Hiring. You can now start using the platform.",
       });
-    },
-    onError: (error: any) => {
+    } catch (error: any) {
       toast({
         title: "Registration failed",
         description: error.message || "Please try again",
         variant: "destructive",
       });
-    },
-  });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/auth/logout");
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-      queryClient.clear();
+  const loginWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast({
+        title: "Welcome!",
+        description: "You have been logged in with Google.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Google login failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(auth);
       toast({
         title: "Logged out",
         description: "You have been logged out successfully.",
       });
-    },
-    onError: (error: any) => {
+    } catch (error: any) {
       toast({
         title: "Logout failed",
         description: error.message || "Please try again",
         variant: "destructive",
       });
-    },
-  });
+      throw error;
+    }
+  };
 
   const contextValue: AuthContextType = {
-    user: user ?? null,
+    user,
     isLoading,
-    error,
     isAuthenticated: !!user,
-    loginMutation,
-    logoutMutation,
-    registerMutation,
+    login,
+    register,
+    loginWithGoogle,
+    logout,
   };
 
   return (
