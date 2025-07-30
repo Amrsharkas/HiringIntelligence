@@ -19,11 +19,18 @@ function Router() {
   const { processPendingInvitation } = usePendingInvitation();
 
   // Check if user has an organization
-  const { data: organization, isLoading: orgLoading } = useQuery({
+  const { data: organization, isLoading: orgLoading, refetch: refetchOrg } = useQuery({
     queryKey: ["/api/organizations/current"],
     enabled: isAuthenticated && !!user,
     retry: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always treat as stale to ensure fresh data
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 Auth state:', { isAuthenticated, user: !!user, organization: !!organization, orgLoading });
+  }, [isAuthenticated, user, organization, orgLoading]);
 
   // Automatically process pending invitations when user becomes authenticated
   useEffect(() => {

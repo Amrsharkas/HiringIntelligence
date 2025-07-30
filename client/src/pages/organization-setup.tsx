@@ -103,9 +103,13 @@ export default function OrganizationSetup() {
         title: "Success",
         description: "Organization created successfully! Welcome to your new workspace.",
       });
+      // Invalidate and refetch the organization data, which will trigger auto-redirect
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
-      // This will trigger a redirect to the dashboard
-      window.location.href = "/dashboard";
+      
+      // Give a moment for the query to settle then force navigation
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["/api/organizations/current"] });
+      }, 100);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -141,9 +145,13 @@ export default function OrganizationSetup() {
         title: "Welcome to the team!",
         description: response.message || "Successfully joined the organization!",
       });
+      // Invalidate and refetch the organization data, which will trigger auto-redirect
       queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
-      // This will trigger a redirect to the dashboard
-      window.location.href = "/dashboard";
+      
+      // Give a moment for the query to settle then force navigation
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["/api/organizations/current"] });
+      }, 100);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
