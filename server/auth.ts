@@ -10,7 +10,7 @@ import connectPg from "connect-pg-simple";
 
 declare global {
   namespace Express {
-    interface User extends Omit<User, 'password'> {}
+    interface User extends Omit<import("@shared/schema").User, 'password'> {}
   }
 }
 
@@ -56,29 +56,24 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Local strategy for email/password authentication
+  // Local strategy for username/password authentication
   passport.use(
     new LocalStrategy(
       {
-        usernameField: "email", // Use email instead of username
+        usernameField: "username",
         passwordField: "password",
       },
-      async (email, password, done) => {
+      async (username, password, done) => {
         try {
-          const user = await storage.getUserByEmail(email);
+          const user = await storage.getUserByUsername(username);
           if (!user) {
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: "Invalid username or password" });
           }
 
           const isValidPassword = await comparePasswords(password, user.password);
           if (!isValidPassword) {
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: "Invalid username or password" });
           }
-
-          // Check if user is verified (optional - can be enabled later)
-          // if (!user.isVerified) {
-          //   return done(null, false, { message: "Please verify your email address" });
-          // }
 
           return done(null, user);
         } catch (error) {
@@ -93,9 +88,12 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (error) {
-      done(error);
+      done(null, false);
     }
   });
 
