@@ -1071,8 +1071,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔍 Fetching detailed profile for user ID: ${userId}`);
       
       // Get user profile from platouserprofiles table
-      const { userProfilesAirtableService } = await import('./userProfilesAirtableService');
-      const userProfile = await userProfilesAirtableService.getUserProfileByUserId(userId);
+      const { UserProfilesAirtableService } = await import('./userProfilesAirtableService');
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const userProfilesService = new UserProfilesAirtableService(AIRTABLE_API_KEY);
+      const userProfile = await userProfilesService.getUserProfileByUserId(userId);
       
       if (!userProfile) {
         console.log(`❌ User profile not found for ID: ${userId}`);

@@ -200,44 +200,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <Calendar className="w-3 h-3" />
-                            <span>Applied {new Date(applicant.appliedDate).toLocaleDateString()}</span>
+                            <span>Applied {applicant.appliedDate ? new Date(applicant.appliedDate).toLocaleDateString() : 'Recently'}</span>
                           </div>
                         </div>
-                        
-                        {/* AI Scoring Analysis */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                              {applicant.matchScore || 85}%
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">Overall Match</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                              {applicant.technicalScore || 92}%
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">Technical Skills</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                              {applicant.experienceScore || 78}%
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">Experience</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                              {applicant.culturalFitScore || 88}%
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">Cultural Fit</div>
-                          </div>
-                        </div>
-                        
-                        {/* AI Analysis Summary */}
-                        <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 mb-2">
-                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
-                            {applicant.matchSummary || `Strong candidate with relevant experience in ${applicant.jobTitle}. Technical skills align well with job requirements. Good cultural fit based on profile analysis.`}
-                          </p>
-                        </div>
+
                       </div>
                       
                       <div className="flex items-center gap-2 flex-shrink-0 ml-4">
