@@ -149,13 +149,19 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   };
 
   const pendingApplicants = applicants.filter(app => app.status?.toLowerCase() === 'pending' || !app.status);
+  const allApplicants = applicants; // Show all applicants, not just pending ones
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 flex flex-col">
         <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
-            Job Applicants ({pendingApplicants.length})
+            Job Applicants ({allApplicants.length})
+            {pendingApplicants.length > 0 && pendingApplicants.length !== allApplicants.length && (
+              <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-2">
+                • {pendingApplicants.length} pending review
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -167,17 +173,17 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                 <p className="text-slate-600 dark:text-slate-400">Loading applicants...</p>
               </div>
             </div>
-          ) : pendingApplicants.length === 0 ? (
+          ) : allApplicants.length === 0 ? (
             <div className="text-center py-16">
               <User className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-600" />
-              <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-300">No New Applicants</h3>
+              <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-300">No Applicants Yet</h3>
               <p className="text-slate-500 dark:text-slate-400">
                 When candidates apply to your jobs, they'll appear here for review.
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {pendingApplicants.map((applicant) => (
+            <div className="space-y-3 max-h-full">
+              {allApplicants.map((applicant) => (
                 <Card key={applicant.id} className="border border-slate-200 dark:border-slate-700 hover:shadow-sm transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -250,25 +256,29 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                           <Eye className="w-3 h-3 mr-1" />
                           View
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAccept(applicant)}
-                          disabled={acceptMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Accept
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDecline(applicant.id)}
-                          disabled={declineMutation.isPending}
-                          className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 text-xs px-3 py-1.5 h-8"
-                        >
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Decline
-                        </Button>
+                        {(applicant.status?.toLowerCase() === 'pending' || !applicant.status) && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleAccept(applicant)}
+                              disabled={acceptMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Accept
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDecline(applicant.id)}
+                              disabled={declineMutation.isPending}
+                              className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 text-xs px-3 py-1.5 h-8"
+                            >
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Decline
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>
