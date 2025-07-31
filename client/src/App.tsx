@@ -20,10 +20,18 @@ function Router() {
   const { processPendingInvitation } = usePendingInvitation();
 
   // Check if user has an organization
-  const { data: organization, isLoading: orgLoading } = useQuery({
+  const { data: organization, isLoading: orgLoading, error: orgError } = useQuery({
     queryKey: ["/api/organizations/current"],
     enabled: isAuthenticated && !!user,
     retry: false,
+  });
+
+  console.log('🏢 Organization lookup:', { 
+    isAuthenticated, 
+    user: user?.email, 
+    organization: organization?.companyName, 
+    isLoading: orgLoading, 
+    error: orgError 
   });
 
   // Automatically process pending invitations when user becomes authenticated
@@ -53,7 +61,7 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route component={Landing} />
         </>
-      ) : !organization ? (
+      ) : (!organization && !orgError) || (orgError && orgError.message?.includes('404')) ? (
         <>
           <Route path="/" component={OrganizationSetup} />
           <Route path="/organization-setup" component={OrganizationSetup} />

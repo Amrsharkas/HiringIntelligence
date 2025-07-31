@@ -212,14 +212,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrganizationByUser(userId: string): Promise<Organization | undefined> {
-    const [result] = await db
-      .select()
+    console.log(`🔍 Looking up organization for user: ${userId}`);
+    
+    const result = await db
+      .select({
+        id: organizations.id,
+        companyName: organizations.companyName,
+        industry: organizations.industry,
+        companySize: organizations.companySize,
+        description: organizations.description,
+        ownerId: organizations.ownerId,
+        createdAt: organizations.createdAt,
+        updatedAt: organizations.updatedAt,
+      })
       .from(organizations)
       .innerJoin(organizationMembers, eq(organizations.id, organizationMembers.organizationId))
       .where(eq(organizationMembers.userId, userId))
       .limit(1);
     
-    return result?.organizations;
+    if (result.length === 0) {
+      console.log(`❌ No organization found for user: ${userId}`);
+      return undefined;
+    }
+    
+    console.log(`✅ Found organization for user ${userId}:`, result[0]);
+    return result[0];
   }
 
   async getOrganizationMembers(organizationId: number): Promise<any[]> {
