@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import fetch from "node-fetch";
 import { storage } from "./storage";
-import { mockAuth } from "./firebaseAuth";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { airtableMatchingService } from "./airtableMatchingService";
@@ -26,72 +26,36 @@ function generateInviteCode(): string {
 import { insertOrganizationInvitationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Use mock auth for Firebase integration
-  app.use(mockAuth);
+  // Auth middleware
+  await setupAuth(app);
 
-  // Support ticket endpoint
-  app.post('/api/support/ticket', async (req, res) => {
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const { name, email, issueType, description } = req.body;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       
-      // Generate ticket ID
-      const ticketId = `PLATO-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
       
-      // Send email notification to support team
-      const emailService = await import('./sendgridEmailService');
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
       
-      const supportEmailContent = `
-        <h2>New Support Ticket: ${ticketId}</h2>
-        <p><strong>From:</strong> ${name} (${email})</p>
-        <p><strong>Issue Type:</strong> ${issueType}</p>
-        <p><strong>Description:</strong></p>
-        <p>${description.replace(/\n/g, '<br>')}</p>
-        <hr>
-        <p><small>This ticket was automatically generated from the Plato Hiring platform.</small></p>
-      `;
-      
-      // Send to support team
-      await emailService.sendEmail({
-        to: 'support@platohiring.com',
-        from: 'support@platohiring.com',
-        subject: `New Support Ticket: ${issueType} - ${ticketId}`,
-        text: `New support ticket from ${name} (${email})\n\nIssue: ${issueType}\n\nDescription:\n${description}`,
-        html: supportEmailContent,
+      res.json({
+        ...user,
+        organization
       });
-      
-      // Send confirmation to user
-      const userConfirmationContent = `
-        <h2>Support Ticket Created</h2>
-        <p>Hi ${name},</p>
-        <p>Thank you for contacting Plato support. We've received your request and created ticket <strong>${ticketId}</strong> for you.</p>
-        <p><strong>Issue:</strong> ${issueType}</p>
-        <p>Our support team will review your request and respond within 24 hours. You'll receive updates at this email address.</p>
-        <p>If you need immediate assistance, you can reply to this email or contact us directly at support@platohiring.com.</p>
-        <br>
-        <p>Best regards,<br>The Plato Support Team</p>
-      `;
-      
-      await emailService.sendEmail({
-        to: email,
-        from: 'support@platohiring.com',
-        subject: `Support Ticket Created: ${ticketId}`,
-        text: `Hi ${name},\n\nThank you for contacting Plato support. We've created ticket ${ticketId} for your request about "${issueType}".\n\nOur team will respond within 24 hours.\n\nBest regards,\nThe Plato Support Team`,
-        html: userConfirmationContent,
-      });
-      
-      console.log(`✅ Support ticket created: ${ticketId} for ${email}`);
-      res.json({ ticketId, message: "Support ticket created successfully" });
-      
     } catch (error) {
-      console.error("Error creating support ticket:", error);
-      res.status(500).json({ message: "Failed to create support ticket" });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
   // Organization routes
-  app.post('/api/organizations', async (req: any, res) => {
+  app.post('/api/organizations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       console.log("Creating organization for user:", userId);
       console.log("Request body:", req.body);
       
@@ -111,9 +75,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/organizations/join', async (req: any, res) => {
+  app.post('/api/organizations/join', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const { organizationId } = req.body;
       
       // Add user as member to the organization
@@ -130,9 +94,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/organizations/current', async (req: any, res) => {
+  app.get('/api/organizations/current', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -146,9 +110,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/companies/team', async (req: any, res) => {
+  app.get('/api/companies/team', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -164,10 +128,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invitation routes
-  app.post('/api/organizations/invite', async (req: any, res) => {
+  app.post('/api/organizations/invite', isAuthenticated, async (req: any, res) => {
     try {
       console.log(`🚀 Invitation request received:`, req.body);
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -255,9 +219,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/organizations/invitations', async (req: any, res) => {
+  app.get('/api/organizations/invitations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -273,9 +237,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove team member endpoint - with permission checks
-  app.delete('/api/organizations/members/:userId', async (req: any, res) => {
+  app.delete('/api/organizations/members/:userId', isAuthenticated, async (req: any, res) => {
     try {
-      const requesterId = req.user.uid;
+      const requesterId = req.user.claims.sub;
       const targetUserId = req.params.userId;
       
       // Get requester's organization
@@ -327,9 +291,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update team member role endpoint
-  app.patch('/api/organizations/members/:userId/role', async (req: any, res) => {
+  app.patch('/api/organizations/members/:userId/role', isAuthenticated, async (req: any, res) => {
     try {
-      const requesterId = req.user.uid;
+      const requesterId = req.user.claims.sub;
       const targetUserId = req.params.userId;
       const { role } = req.body;
 
@@ -419,9 +383,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/invitations/accept', async (req: any, res) => {
+  app.post('/api/invitations/accept', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const { token } = req.body;
       
       if (!token) {
@@ -519,9 +483,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Job posting routes
-  app.post('/api/job-postings', async (req: any, res) => {
+  app.post('/api/job-postings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -572,9 +536,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/job-postings', async (req: any, res) => {
+  app.get('/api/job-postings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -589,9 +553,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/job-postings/count', async (req: any, res) => {
+  app.get('/api/job-postings/count', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -606,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/job-postings/:id', async (req: any, res) => {
+  app.put('/api/job-postings/:id', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
       const jobData = insertJobSchema.partial().parse(req.body);
@@ -645,10 +609,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/job-postings/:id', async (req: any, res) => {
+  app.delete('/api/job-postings/:id', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       console.log(`🗑️  User ${userId} attempting to delete job ${jobId}`);
       
@@ -721,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Job postings sync to Airtable
-  app.post('/api/job-postings/sync-to-airtable', async (req: any, res) => {
+  app.post('/api/job-postings/sync-to-airtable', isAuthenticated, async (req: any, res) => {
     try {
       const result = await jobPostingsAirtableService.syncJobPostingsToAirtable();
       res.json({ 
@@ -736,9 +700,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Count endpoints for dashboard
-  app.get('/api/applicants/count', async (req: any, res) => {
+  app.get('/api/applicants/count', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -760,9 +724,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/candidates/count', async (req: any, res) => {
+  app.get('/api/candidates/count', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -787,9 +751,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics endpoints for real data
-  app.get('/api/analytics/performance', async (req: any, res) => {
+  app.get('/api/analytics/performance', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -840,9 +804,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analytics/sources', async (req: any, res) => {
+  app.get('/api/analytics/sources', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -879,9 +843,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Real Applicants routes - from platojobapplications table
-  app.get('/api/real-applicants/:jobId?', async (req: any, res) => {
+  app.get('/api/real-applicants/:jobId?', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       const jobId = req.params.jobId ? parseInt(req.params.jobId) : null;
       
@@ -1047,9 +1011,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Original Applicants routes (now for platojobapplications table)
-  app.get('/api/applicants', async (req: any, res) => {
+  app.get('/api/applicants', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -1065,7 +1029,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/applicants/:jobId', async (req: any, res) => {
+  app.get('/api/applicants/:jobId', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
       const { applicantsAirtableService } = await import('./applicantsAirtableService');
@@ -1077,7 +1041,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/applicants/:id/accept', async (req: any, res) => {
+  app.post('/api/applicants/:id/accept', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       const { applicantsAirtableService } = await import('./applicantsAirtableService');
@@ -1090,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/applicants/:id/decline', async (req: any, res) => {
+  app.post('/api/applicants/:id/decline', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       const { applicantsAirtableService } = await import('./applicantsAirtableService');
@@ -1104,7 +1068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get detailed user profile by userId from Airtable
-  app.get('/api/user-profile/:userId', async (req: any, res) => {
+  app.get('/api/user-profile/:userId', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.params.userId;
       console.log(`🔍 Fetching detailed profile for user ID: ${userId}`);
@@ -1126,11 +1090,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/applicants/:id/schedule-interview', async (req: any, res) => {
+  app.post('/api/applicants/:id/schedule-interview', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       const { jobId, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       const interviewData = {
         jobId,
@@ -1152,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/real-applicants/:id/score', async (req: any, res) => {
+  app.patch('/api/real-applicants/:id/score', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       const { matchScore, matchSummary, componentScores } = req.body;
@@ -1185,7 +1149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI-powered job content generation
-  app.post('/api/ai/generate-description', async (req: any, res) => {
+  app.post('/api/ai/generate-description', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, companyName, location } = req.body;
       const description = await generateJobDescription(jobTitle, companyName, location);
@@ -1196,7 +1160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/ai/generate-requirements', async (req: any, res) => {
+  app.post('/api/ai/generate-requirements', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription } = req.body;
       const requirements = await generateJobRequirements(jobTitle, jobDescription);
@@ -1207,7 +1171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/ai/extract-skills', async (req: any, res) => {
+  app.post('/api/ai/extract-skills', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription } = req.body;
       const skills = await extractTechnicalSkills(jobTitle, jobDescription || "");
@@ -1220,7 +1184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  app.post('/api/ai/generate-employer-questions', async (req: any, res) => {
+  app.post('/api/ai/generate-employer-questions', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription, requirements } = req.body;
       
@@ -1261,10 +1225,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Shortlisted Applicants endpoints
-  app.post('/api/shortlisted-applicants', async (req: any, res) => {
+  app.post('/api/shortlisted-applicants', isAuthenticated, async (req: any, res) => {
     try {
       const { applicantId, applicantName, jobTitle, jobId, note } = req.body;
-      const employerId = req.user.uid;
+      const employerId = req.user.claims.sub;
       
       // Check if already shortlisted
       const isAlreadyShortlisted = await storage.isApplicantShortlisted(employerId, applicantId, jobId);
@@ -1293,9 +1257,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/shortlisted-applicants', async (req: any, res) => {
+  app.get('/api/shortlisted-applicants', isAuthenticated, async (req: any, res) => {
     try {
-      const employerId = req.user.uid;
+      const employerId = req.user.claims.sub;
       const shortlisted = await storage.getShortlistedApplicants(employerId);
       res.json(shortlisted);
     } catch (error) {
@@ -1304,7 +1268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete('/api/shortlisted-applicants/:id', async (req: any, res) => {
+  app.delete('/api/shortlisted-applicants/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
       await storage.removeFromShortlist(id);
@@ -1315,10 +1279,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/shortlisted-applicants/check/:applicantId/:jobId', async (req: any, res) => {
+  app.get('/api/shortlisted-applicants/check/:applicantId/:jobId', isAuthenticated, async (req: any, res) => {
     try {
       const { applicantId, jobId } = req.params;
-      const employerId = req.user.uid;
+      const employerId = req.user.claims.sub;
       const isShortlisted = await storage.isApplicantShortlisted(employerId, applicantId, jobId);
       res.json({ isShortlisted });
     } catch (error) {
@@ -1327,9 +1291,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simplified endpoint - Firebase auth doesn't use session-based invitations
-  app.post('/api/auth/process-pending-invitation', async (req: any, res) => {
-    res.json({ success: true, message: "No pending invitation to process" });
+  // Post-authentication hook to automatically process pending invitations
+  app.post('/api/auth/process-pending-invitation', isAuthenticated, async (req: any, res) => {
+    try {
+      const pendingInvitation = req.session.pendingInvitation;
+      if (!pendingInvitation) {
+        return res.json({ success: true, message: "No pending invitation" });
+      }
+
+      console.log(`🔄 Processing pending invitation:`, pendingInvitation);
+      
+      const { token, organizationId, role } = pendingInvitation;
+      const userId = req.user.claims.sub;
+
+      // Verify invitation is still valid
+      const invitation = await storage.getInvitationByToken(token);
+      if (!invitation || invitation.status !== 'pending' || new Date() > invitation.expiresAt) {
+        console.log(`❌ Invalid or expired invitation token: ${token}`);
+        delete req.session.pendingInvitation;
+        return res.status(400).json({ message: "Invalid or expired invitation" });
+      }
+
+      // Check if user is already part of this organization
+      const existingMember = await storage.getTeamMemberByUserAndOrg(userId, parseInt(organizationId));
+      if (existingMember) {
+        console.log(`ℹ️ User ${userId} is already a member of organization ${organizationId}`);
+        delete req.session.pendingInvitation;
+        return res.json({ success: true, message: "Already a team member" });
+      }
+
+      // Add user to the organization team
+      await storage.addTeamMember({
+        organizationId: parseInt(organizationId),
+        userId,
+        role,
+        joinedAt: new Date()
+      });
+
+      // Mark invitation as accepted
+      await storage.updateInvitationStatus(invitation.id, 'accepted');
+
+      console.log(`✅ Successfully added user ${userId} to organization ${organizationId} as ${role}`);
+      delete req.session.pendingInvitation;
+
+      res.json({
+        success: true,
+        message: "Successfully joined team!",
+        organizationId: parseInt(organizationId),
+        role
+      });
+
+    } catch (error) {
+      console.error("Error processing pending invitation:", error);
+      res.status(500).json({ message: "Failed to process invitation" });
+    }
   });
 
   // Test endpoint for SendGrid email
@@ -1360,10 +1375,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // New invite code team invitation route
-  app.post("/api/invitations/invite-code", async (req: any, res) => {
+  app.post("/api/invitations/invite-code", isAuthenticated, async (req: any, res) => {
     try {
       const { email, role } = req.body;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       // Get user's organization
       const organization = await storage.getOrganizationByUser(userId);
@@ -1455,7 +1470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get complete user profile from Airtable platouserprofiles table
-  app.get('/api/user-profile/:userId', async (req: any, res) => {
+  app.get('/api/user-profile/:userId', isAuthenticated, async (req: any, res) => {
     try {
       const { userId } = req.params;
       
@@ -1602,7 +1617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate comprehensive AI-powered job match analysis
-  app.post('/api/ai/job-match-analysis', async (req: any, res) => {
+  app.post('/api/ai/job-match-analysis', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription, jobRequirements, userProfile } = req.body;
       
@@ -1876,7 +1891,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
   
   // Real applicants - Decline candidate (update status in platojobapplications)
-  app.post('/api/real-applicants/:id/decline', async (req: any, res) => {
+  app.post('/api/real-applicants/:id/decline', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       
@@ -1918,7 +1933,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Fix most recent accepted candidate User ID
-  app.post('/api/fix-recent-candidate-userid', async (req: any, res) => {
+  app.post('/api/fix-recent-candidate-userid', isAuthenticated, async (req: any, res) => {
     try {
       console.log(`🔧 Fixing most recent accepted candidate User ID...`);
       
@@ -1989,7 +2004,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Undo accept applicant - move from platojobmatches back to platojobapplications
-  app.post('/api/real-applicants/:id/undo-accept', async (req: any, res) => {
+  app.post('/api/real-applicants/:id/undo-accept', isAuthenticated, async (req: any, res) => {
     try {
       const { applicantId, userId, applicantName, jobTitle, jobDescription, companyName } = req.body;
       
@@ -2052,7 +2067,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
       
       // Remove from local accepted applicants storage
-      const user = req.user.uid;
+      const user = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(user);
       if (organization) {
         try {
@@ -2079,7 +2094,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // AI-powered applicant profile analysis
-  app.post('/api/ai/analyze-applicant-profile', async (req: any, res) => {
+  app.post('/api/ai/analyze-applicant-profile', isAuthenticated, async (req: any, res) => {
     try {
       const { applicantData, jobTitle, jobDescription, requiredSkills } = req.body;
       const { analyzeApplicantProfile } = await import('./openai');
@@ -2092,7 +2107,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Airtable discovery and testing routes
-  app.get('/api/airtable/discover', async (req: any, res) => {
+  app.get('/api/airtable/discover', isAuthenticated, async (req: any, res) => {
     try {
       const structure = await airtableMatchingService.discoverAirtableStructure();
       res.json(structure);
@@ -2140,9 +2155,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Get all Airtable candidates (for general viewing)
-  app.get('/api/candidates', async (req: any, res) => {
+  app.get('/api/candidates', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -2158,7 +2173,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // NEW: Airtable-based candidate matching for specific job
-  app.get('/api/job-postings/:id/candidates', async (req: any, res) => {
+  app.get('/api/job-postings/:id/candidates', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
       
@@ -2193,11 +2208,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Accept a candidate (create or update application)
-  app.post('/api/job-postings/:jobId/candidates/:candidateId/accept', async (req: any, res) => {
+  app.post('/api/job-postings/:jobId/candidates/:candidateId/accept', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       // Get candidate info from request body
       const { candidateName, matchScore, matchReasoning } = req.body;
@@ -2269,11 +2284,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Decline a candidate
-  app.post('/api/job-postings/:jobId/candidates/:candidateId/decline', async (req: any, res) => {
+  app.post('/api/job-postings/:jobId/candidates/:candidateId/decline', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       // Get candidate info from request body
       const { candidateName, matchScore, matchReasoning } = req.body;
@@ -2306,11 +2321,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Schedule interview for accepted candidate
-  app.post('/api/job-postings/:jobId/candidates/:candidateId/schedule-interview', async (req: any, res) => {
+  app.post('/api/job-postings/:jobId/candidates/:candidateId/schedule-interview', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       const { candidateName, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
       
@@ -2342,7 +2357,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Get interviews for a job
-  app.get('/api/job-postings/:id/interviews', async (req: any, res) => {
+  app.get('/api/job-postings/:id/interviews', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
       const interviews = await storage.getInterviewsByJob(jobId);
@@ -2354,9 +2369,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Enhanced Candidates route - from platouserprofiles with score > 85
-  app.get('/api/enhanced-candidates', async (req: any, res) => {
+  app.get('/api/enhanced-candidates', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -2441,9 +2456,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.get('/api/companies/matches', async (req: any, res) => {
+  app.get('/api/companies/matches', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -2459,7 +2474,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Generate matches for a job (simulate AI matching)
-  app.post('/api/job-postings/:id/generate-matches', async (req: any, res) => {
+  app.post('/api/job-postings/:id/generate-matches', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
       const job = await storage.getJobById(jobId);
@@ -2492,7 +2507,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Format user profile with AI
-  app.post('/api/format-profile', async (req: any, res) => {
+  app.post('/api/format-profile', isAuthenticated, async (req: any, res) => {
     try {
       const { rawProfile } = req.body;
       
@@ -2592,7 +2607,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Cleanup route for testing - removes all candidates but keeps job postings
-  app.post('/api/cleanup-candidates', async (req: any, res) => {
+  app.post('/api/cleanup-candidates', isAuthenticated, async (req: any, res) => {
     try {
       console.log('🧹 Starting cleanup process...');
       await fullCleanup();
@@ -2611,9 +2626,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Interview Questions Management
-  app.get('/api/interview-questions/jobs', async (req: any, res) => {
+  app.get('/api/interview-questions/jobs', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -2628,7 +2643,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.get('/api/interview-questions/:jobId', async (req: any, res) => {
+  app.get('/api/interview-questions/:jobId', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = req.params.jobId;
       const questions = await interviewQuestionsService.getInterviewQuestions(jobId);
@@ -2639,7 +2654,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.put('/api/interview-questions/:jobId', async (req: any, res) => {
+  app.put('/api/interview-questions/:jobId', isAuthenticated, async (req: any, res) => {
     try {
       const jobId = req.params.jobId;
       const { questions } = req.body;
@@ -2657,10 +2672,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Accept/Decline Real Applicants from platojobapplications
-  app.post('/api/real-applicants/:id/accept', async (req: any, res) => {
+  app.post('/api/real-applicants/:id/accept', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       
       console.log(`Accepting applicant ${applicantId}...`);
@@ -2700,7 +2715,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.post('/api/real-applicants/:id/decline', async (req: any, res) => {
+  app.post('/api/real-applicants/:id/decline', isAuthenticated, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
@@ -2722,9 +2737,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Interview Management Endpoints
-  app.get('/api/interviews/count', async (req: any, res) => {
+  app.get('/api/interviews/count', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -2747,9 +2762,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.get('/api/interviews', async (req: any, res) => {
+  app.get('/api/interviews', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -2769,9 +2784,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.post('/api/interviews', async (req: any, res) => {
+  app.post('/api/interviews', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -2883,9 +2898,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.patch('/api/interviews/:id', async (req: any, res) => {
+  app.patch('/api/interviews/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       const interviewId = req.params.id;
       
@@ -3019,9 +3034,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.delete('/api/interviews/:id', async (req: any, res) => {
+  app.delete('/api/interviews/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       const interviewId = req.params.id;
       
@@ -3127,9 +3142,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Get accepted applicants for CreateInterviewModal (from platojobmatches table filtered by job ID)
-  app.get('/api/accepted-applicants/:jobId', async (req: any, res) => {
+  app.get('/api/accepted-applicants/:jobId', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       const jobId = req.params.jobId;
       
@@ -3188,9 +3203,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Test endpoint to add accepted applicants directly to platojobmatches for testing
-  app.post('/api/test/add-accepted-applicant', async (req: any, res) => {
+  app.post('/api/test/add-accepted-applicant', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const organization = await storage.getOrganizationByUser(userId);
       
       if (!organization) {
@@ -3287,10 +3302,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Accept invitation using token (for URL-based invites)
-  app.post('/api/invitations/accept', async (req: any, res) => {
+  app.post('/api/invitations/accept', isAuthenticated, async (req: any, res) => {
     try {
       const { token, orgId, inviteCode } = req.body;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       let invitation;
       
@@ -3349,10 +3364,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Accept invitation using invite code (specific endpoint as requested)
-  app.post('/api/invitations/accept-code', async (req: any, res) => {
+  app.post('/api/invitations/accept-code', isAuthenticated, async (req: any, res) => {
     try {
       const { orgId, inviteCode } = req.body;
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       
       console.log(`🔄 Processing invite code acceptance: ${inviteCode} for user: ${userId} with org ID: ${orgId}`);
       
@@ -3432,9 +3447,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Magic link invitation acceptance endpoint
-  app.post('/api/invitations/accept', async (req: any, res) => {
+  app.post('/api/invitations/accept', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.uid;
+      const userId = req.user.claims.sub;
       const { token } = req.body;
       
       console.log(`🔗 Processing magic link invitation acceptance for user: ${userId}, token: ${token}`);

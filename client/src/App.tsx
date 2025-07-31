@@ -4,12 +4,9 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { usePendingInvitation } from "@/hooks/usePendingInvitation";
 import Landing from "@/pages/landing";
-import AuthPage from "@/pages/auth-page";
-import VerifyEmailPage from "@/pages/verify-email";
-import ResetPasswordPage from "@/pages/reset-password";
 import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
 import { AcceptInvitation } from "@/pages/AcceptInvitation";
@@ -46,16 +43,13 @@ function Router() {
 
   return (
     <Switch>
-      {/* Auth routes - accessible without full auth checks */}
+      {/* Enhanced invitation routes - accessible without full auth checks */}
       <Route path="/invite/accept" component={InviteAccept} />
       <Route path="/accept-invitation" component={AcceptInvitation} />
-      <Route path="/verify-email" component={VerifyEmailPage} />
-      <Route path="/reset-password" component={ResetPasswordPage} />
       
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/auth" component={AuthPage} />
           <Route component={Landing} />
         </>
       ) : !organization ? (
@@ -82,10 +76,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <AuthProvider>
-            <Toaster />
-            <Router />
-          </AuthProvider>
+          <Toaster />
+          <Router />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
