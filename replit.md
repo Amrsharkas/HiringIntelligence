@@ -30,11 +30,12 @@ Preferred communication style: Simple, everyday language.
 - **Responsive design**: Mobile-first approach with adaptive layouts.
 
 ### Key Features
-- **Authentication System**: Replit Auth, PostgreSQL-backed sessions, route-level authorization, automatic user management.
+- **Authentication System**: Custom email/password authentication with auto-verification, PostgreSQL-backed sessions, route-level authorization, streamlined user management without email verification requirements.
 - **Job Management**: AI-powered creation, dynamic skill extraction, job lifecycle management, analytics.
 - **Candidate Matching**: Airtable integration, AI matching engine (GPT-4o) with rating system, real-time analysis, match reasoning, comprehensive profiles.
 - **Organization Management**: Company and team setup, email-based member invitation with SendGrid, role-based access control, settings.
 - **Data Flow**: Automated processes for job posting, candidate matching, and real-time dashboard updates.
+- **User Experience**: Streamlined authentication flow without email verification friction, all users automatically verified on signup.
 
 ## External Dependencies
 

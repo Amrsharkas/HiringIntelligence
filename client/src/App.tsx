@@ -11,7 +11,7 @@ import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
 import { AcceptInvitation } from "@/pages/AcceptInvitation";
 import InviteAccept from "@/pages/InviteAccept";
-import VerifyEmailPage from "@/pages/verify-email";
+
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -47,7 +47,6 @@ function Router() {
       {/* Enhanced invitation routes - accessible without full auth checks */}
       <Route path="/invite/accept" component={InviteAccept} />
       <Route path="/accept-invitation" component={AcceptInvitation} />
-      <Route path="/verify-email" component={VerifyEmailPage} />
       
       {!isAuthenticated ? (
         <>

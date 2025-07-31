@@ -35,7 +35,7 @@ export const users = pgTable("users", {
   username: varchar("username").unique(), // For username-based login
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("employer"),
-  isVerified: boolean("is_verified").notNull().default(false), // Email verification status
+  isVerified: boolean("is_verified").notNull().default(true), // Email verification status - auto-verified
   verificationToken: varchar("verification_token"), // For email verification
   resetPasswordToken: varchar("reset_password_token"), // For password reset
   resetPasswordExpires: timestamp("reset_password_expires"), // Reset token expiry

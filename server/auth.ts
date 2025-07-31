@@ -81,11 +81,8 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Invalid email or password" });
           }
 
-          // Check if email is verified
-          if (!user.isVerified) {
-            console.log(`⚠️ Email not verified for user: ${email}`);
-            return done(null, false, { message: "Please verify your email address before signing in" });
-          }
+          // Skip email verification check - all users are considered verified
+          console.log(`📧 Email verification check skipped - auto-verified users`)
 
           console.log(`✅ Login successful for user: ${email}`);
           return done(null, user);
@@ -130,8 +127,7 @@ export function setupAuth(app: Express) {
         }
       }
 
-      // Generate verification token and hash password
-      const verificationToken = nanoid(32);
+      // Hash password and create user as auto-verified
       const hashedPassword = await hashPassword(password);
       const newUser = await storage.createUser({
         email,
@@ -139,17 +135,10 @@ export function setupAuth(app: Express) {
         firstName,
         lastName,
         username,
-        isVerified: false, // Require email verification
-        verificationToken,
+        isVerified: true, // Auto-verify all users
       });
 
-      // Send verification email
-      try {
-        await sendVerificationEmail(newUser, verificationToken);
-        console.log(`✅ Verification email sent to ${email}`);
-      } catch (error) {
-        console.error('❌ Failed to send verification email:', error);
-      }
+      console.log(`✅ User ${email} created and auto-verified - no email verification required`);
 
       // Log the user in automatically
       req.login(newUser, (err) => {
