@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,6 +17,7 @@ import { useEffect } from "react";
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { processPendingInvitation } = usePendingInvitation();
+  const [location, setLocation] = useLocation();
 
   // Check if user has an organization
   const { data: organization, isLoading: orgLoading } = useQuery({
@@ -60,9 +61,14 @@ function Router() {
         </>
       ) : (
         <>
-          <Route path="/" component={EmployerDashboard} />
-          <Route path="/employer-dashboard" component={EmployerDashboard} />
+          <Route path="/" component={() => {
+            useEffect(() => {
+              setLocation('/dashboard');
+            }, []);
+            return null;
+          }} />
           <Route path="/dashboard" component={EmployerDashboard} />
+          <Route path="/employer-dashboard" component={EmployerDashboard} />
           <Route path="/organization-setup" component={EmployerDashboard} />
         </>
       )}
