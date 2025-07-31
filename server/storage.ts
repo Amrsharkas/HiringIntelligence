@@ -698,7 +698,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserEmailVerified(userId: string, verified: boolean): Promise<void> {
     await db.update(users)
-      .set({ emailVerified: verified })
+      .set({ isVerified: verified })
       .where(eq(users.id, userId));
   }
 }

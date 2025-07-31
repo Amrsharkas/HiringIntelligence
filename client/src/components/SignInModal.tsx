@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
-import { X, Lock, User } from "lucide-react";
+import { X, Lock, Mail } from "lucide-react";
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -14,14 +14,14 @@ interface SignInModalProps {
 }
 
 export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignInModalProps) {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { loginMutation } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await loginMutation.mutateAsync({ username, password });
+      await loginMutation.mutateAsync({ email, password });
       onClose();
     } catch (error) {
       console.error("Login failed:", error);
@@ -70,18 +70,18 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Username
+                  <Label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Email
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
-                      id="username"
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter your username"
+                      placeholder="your@email.com"
                       required
                     />
                   </div>

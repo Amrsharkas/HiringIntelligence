@@ -36,7 +36,6 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("employer"),
   isVerified: boolean("is_verified").notNull().default(false), // Email verification status
-  emailVerified: boolean("email_verified").notNull().default(false), // Email verification status
   verificationToken: varchar("verification_token"), // For email verification
   resetPasswordToken: varchar("reset_password_token"), // For password reset
   resetPasswordExpires: timestamp("reset_password_expires"), // Reset token expiry
@@ -291,7 +290,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 });
 
 export const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 

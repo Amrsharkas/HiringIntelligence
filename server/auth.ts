@@ -58,27 +58,39 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Local strategy for username/password authentication
+  // Local strategy for email/password authentication
   passport.use(
     new LocalStrategy(
       {
-        usernameField: "username",
+        usernameField: "email",
         passwordField: "password",
       },
-      async (username, password, done) => {
+      async (email, password, done) => {
         try {
-          const user = await storage.getUserByUsername(username);
+          console.log(`🔐 Login attempt for email: ${email}`);
+          const user = await storage.getUserByEmail(email);
           if (!user) {
-            return done(null, false, { message: "Invalid username or password" });
+            console.log(`❌ User not found for email: ${email}`);
+            return done(null, false, { message: "Invalid email or password" });
           }
 
+          console.log(`🔍 User found, checking password...`);
           const isValidPassword = await comparePasswords(password, user.password);
           if (!isValidPassword) {
-            return done(null, false, { message: "Invalid username or password" });
+            console.log(`❌ Invalid password for user: ${email}`);
+            return done(null, false, { message: "Invalid email or password" });
           }
 
+          // Check if email is verified
+          if (!user.isVerified) {
+            console.log(`⚠️ Email not verified for user: ${email}`);
+            return done(null, false, { message: "Please verify your email address before signing in" });
+          }
+
+          console.log(`✅ Login successful for user: ${email}`);
           return done(null, user);
         } catch (error) {
+          console.error(`❌ Login error for ${email}:`, error);
           return done(error);
         }
       }
@@ -160,18 +172,27 @@ export function setupAuth(app: Express) {
 
   // Login endpoint
   app.post("/api/login", (req, res, next) => {
+    console.log(`🔐 Login attempt with body:`, { email: req.body.email, passwordLength: req.body.password?.length });
+    
     passport.authenticate("local", (err: any, user: User | false, info: any) => {
+      console.log(`🔍 Passport auth result:`, { err: !!err, user: !!user, info });
+      
       if (err) {
+        console.error(`❌ Authentication error:`, err);
         return res.status(500).json({ error: "Authentication failed" });
       }
       if (!user) {
+        console.log(`❌ Authentication failed:`, info?.message);
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
 
       req.login(user, (loginErr) => {
         if (loginErr) {
+          console.error(`❌ Login session error:`, loginErr);
           return res.status(500).json({ error: "Login failed" });
         }
+        
+        console.log(`✅ Login successful for user:`, user.email);
         res.json({
           id: user.id,
           email: user.email,
