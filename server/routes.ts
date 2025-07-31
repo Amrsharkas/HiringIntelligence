@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import fetch from "node-fetch";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, requireAuth } from "./auth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { airtableMatchingService } from "./airtableMatchingService";
@@ -27,35 +27,32 @@ import { insertOrganizationInvitationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Get user's organization route
+  app.get('/api/organizations/current', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      const userId = req.user.id;
+      console.log("Fetching organization for user:", userId);
       
       // Get user's organization
       const organization = await storage.getOrganizationByUser(userId);
       
-      res.json({
-        ...user,
-        organization
-      });
+      if (!organization) {
+        return res.status(404).json({ message: "No organization found" });
+      }
+      
+      res.json(organization);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error("Error fetching organization:", error);
+      res.status(500).json({ message: "Failed to fetch organization" });
     }
   });
 
   // Organization routes
-  app.post('/api/organizations', isAuthenticated, async (req: any, res) => {
+  app.post('/api/organizations', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       console.log("Creating organization for user:", userId);
       console.log("Request body:", req.body);
       
@@ -75,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/organizations/join', isAuthenticated, async (req: any, res) => {
+  app.post('/api/organizations/join', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { organizationId } = req.body;

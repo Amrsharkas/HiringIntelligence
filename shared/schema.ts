@@ -25,14 +25,20 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table - Updated for custom authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(), // Hashed password
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  username: varchar("username").unique(), // For username-based login
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("employer"),
+  isVerified: boolean("is_verified").notNull().default(false), // Email verification status
+  verificationToken: varchar("verification_token"), // For email verification
+  resetPasswordToken: varchar("reset_password_token"), // For password reset
+  resetPasswordExpires: timestamp("reset_password_expires"), // Reset token expiry
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -258,6 +264,34 @@ export const scoredApplicants = pgTable("scored_applicants", {
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+// Auth schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isVerified: true,
+  verificationToken: true,
+  resetPasswordToken: true,
+  resetPasswordExpires: true,
+});
+
+export const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const registerSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  username: z.string().min(3, "Username must be at least 3 characters").optional(),
+});
+
+export type LoginData = z.infer<typeof loginSchema>;
+export type RegisterData = z.infer<typeof registerSchema>;
 
 // Shortlisted applicants table
 export const shortlistedApplicants = pgTable("shortlisted_applicants", {
