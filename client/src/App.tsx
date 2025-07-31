@@ -62,10 +62,16 @@ function Router() {
         </>
       ) : (
         <>
-          <Route path="/" component={EmployerDashboard} />
-          <Route path="/employer-dashboard" component={EmployerDashboard} />
           <Route path="/dashboard" component={EmployerDashboard} />
+          <Route path="/employer-dashboard" component={EmployerDashboard} />
           <Route path="/organization-setup" component={EmployerDashboard} />
+          <Route path="/">
+            {() => {
+              // Redirect authenticated users with organization to dashboard
+              window.location.href = "/dashboard";
+              return null;
+            }}
+          </Route>
         </>
       )}
       <Route component={NotFound} />
