@@ -1,290 +1,391 @@
 import { MailService } from '@sendgrid/mail';
-import { User, Job } from '@shared/schema';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
+const SENDGRID_API_KEY = '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';
 
 const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+mailService.setApiKey(SENDGRID_API_KEY);
 
-const FROM_EMAIL = 'raef@platohiring.com';
-const FROM_NAME = 'Plato Hiring Platform';
-
-interface EmailParams {
+interface InvitationEmailParams {
   to: string;
-  subject: string;
-  html: string;
+  organizationName: string;
+  inviterName: string;
+  invitationToken: string;
+  organizationId: number;
+  role: string;
 }
 
-async function sendEmail(params: EmailParams): Promise<boolean> {
+interface MagicLinkInvitationEmailParams {
+  to: string;
+  organizationName: string;
+  inviterName: string;
+  invitationToken: string;
+  organizationId: number;
+  role: string;
+}
+
+export async function sendMagicLinkInvitationEmail(params: MagicLinkInvitationEmailParams): Promise<boolean> {
   try {
-    await mailService.send({
+    console.log(`🔗 Sending magic link invitation email to ${params.to}...`);
+    
+    const magicLink = `https://platohiring.com/invite/accept?token=${params.invitationToken}`;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Team Invitation - ${params.organizationName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e0e0e0; }
+            .magic-link { background: #f8f9fa; border: 3px solid #667eea; padding: 25px; margin: 25px 0; text-align: center; border-radius: 12px; }
+            .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 15px 0; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+            .button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+            .steps { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 8px 8px; }
+            .icon { font-size: 48px; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="icon">🎉</div>
+              <h1>You're Invited to Join ${params.organizationName}</h1>
+            </div>
+            <div class="content">
+              <p>Hi there!</p>
+              
+              <p><strong>${params.inviterName}</strong> has invited you to join <strong>${params.organizationName}</strong> as a <strong>${params.role}</strong> on our AI-powered hiring platform.</p>
+              
+              <div class="magic-link">
+                <h3 style="color: #667eea; margin: 0 0 15px 0;">✨ One-Click Access</h3>
+                <p style="margin: 0 0 20px 0; color: #666;">Click the button below to instantly join the team!</p>
+                <a href="${magicLink}" class="button" style="color: white;">
+                  🚀 Join ${params.organizationName}
+                </a>
+              </div>
+              
+              <div class="steps">
+                <h3>What happens next:</h3>
+                <ol>
+                  <li><strong>Click "Join ${params.organizationName}"</strong> above</li>
+                  <li><strong>Sign in or create your account</strong> (if needed)</li>
+                  <li><strong>You'll automatically join the team</strong> and access the dashboard</li>
+                </ol>
+              </div>
+              
+              <p>🔒 <strong>Secure & Simple:</strong> This invitation link is unique to you and expires in 7 days for security.</p>
+              
+              <p>Welcome to the future of hiring! 🚀</p>
+              
+              <p>Best regards,<br>
+              <strong>${params.inviterName}</strong><br>
+              ${params.organizationName} Team</p>
+            </div>
+            <div class="footer">
+              <p>This invitation was sent to ${params.to}</p>
+              <p>If you have any questions, please contact ${params.inviterName} or the ${params.organizationName} team.</p>
+              <p style="font-size: 12px; color: #999;">
+                If you can't click the button above, copy and paste this link into your browser:<br>
+                <a href="${magicLink}" style="color: #667eea; word-break: break-all;">${magicLink}</a>
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textVersion = `
+You're Invited to Join ${params.organizationName}!
+
+Hi there!
+
+${params.inviterName} has invited you to join ${params.organizationName} as a ${params.role} on our AI-powered hiring platform.
+
+🔗 JOIN NOW: ${magicLink}
+
+What happens next:
+1. Click the link above
+2. Sign in or create your account (if needed)  
+3. You'll automatically join the team and access the dashboard
+
+This invitation link is unique to you and expires in 7 days for security.
+
+Welcome to the future of hiring!
+
+Best regards,
+${params.inviterName}
+${params.organizationName} Team
+
+---
+If you have any questions, please contact ${params.inviterName} or the ${params.organizationName} team.
+This invitation was sent to ${params.to}
+    `;
+
+    const msg = {
       to: params.to,
       from: {
-        email: FROM_EMAIL,
-        name: FROM_NAME
+        email: 'raef@platohiring.com', // Verified email address
+        name: 'Plato' // Display name shown to recipients
       },
-      subject: params.subject,
-      html: params.html,
-    });
-    console.log(`✅ Email sent successfully to ${params.to}`);
+      subject: `🎉 Join ${params.organizationName}'s Hiring Team`,
+      text: textVersion,
+      html: emailHtml,
+    };
+
+    console.log('📤 Sending magic link email via SendGrid...');
+    await mailService.send(msg);
+    console.log('✅ Magic link invitation email sent successfully!');
     return true;
+
   } catch (error) {
-    console.error('❌ SendGrid email error:', error);
+    console.error('❌ Error sending magic link invitation email:', error);
     return false;
   }
 }
 
-export async function sendVerificationEmail(user: User, verificationToken: string): Promise<boolean> {
-  const verificationUrl = `${process.env.BASE_URL || 'https://platohiring.com'}/verify-email?token=${verificationToken}`;
-  
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Verify Your Email - Plato Hiring</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600;">Welcome to Plato Hiring!</h1>
-        </div>
-        
-        <div style="background: white; padding: 40px 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #333; margin-bottom: 20px;">Hi ${user.firstName || 'there'}!</h2>
-          
-          <p style="font-size: 16px; margin-bottom: 25px;">
-            Thank you for signing up for Plato Hiring Platform. To complete your registration and start posting jobs, please verify your email address.
-          </p>
-          
-          <div style="text-align: center; margin: 35px 0;">
-            <a href="${verificationUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
-              Verify Email Address
-            </a>
+export async function sendInviteCodeEmail(
+  to: string, 
+  organizationName: string, 
+  inviteCode: string, 
+  role: string,
+  organizationId: string
+): Promise<boolean> {
+  try {
+    console.log(`📧 Sending invite code email to ${to} with code: ${inviteCode}...`);
+    
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN ? 
+      `https://${process.env.REPLIT_DEV_DOMAIN}` : 
+      'https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev';
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Team Invitation - ${organizationName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e0e0e0; }
+            .invite-code { background: #f8f9fa; border: 3px solid #667eea; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px; }
+            .invite-code h2 { color: #667eea; margin: 0; font-size: 32px; letter-spacing: 4px; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+            .steps { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 8px 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🎉 You're Invited to Join ${organizationName}</h1>
+            </div>
+            <div class="content">
+              <p>Hi there!</p>
+              
+              <p>You've been invited to join <strong>${organizationName}</strong> as a <strong>${role}</strong> on our hiring platform.</p>
+              
+              <div class="invite-code">
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">Your Invite Code:</p>
+                <h2>${inviteCode}</h2>
+              </div>
+              
+              <div class="invite-code">
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">Organization ID:</p>
+                <h2 style="font-size: 18px; word-break: break-all;">${organizationId}</h2>
+              </div>
+              
+              <div class="steps">
+                <h3>How to Join (4 Easy Steps):</h3>
+                <ol>
+                  <li><strong>Click "Join the Team"</strong> below to go to our platform</li>
+                  <li><strong>Sign up or log in</strong> with your account</li>
+                  <li><strong>Enter Organization ID:</strong> <code style="word-break: break-all;">${organizationId}</code></li>
+                  <li><strong>Enter your invite code:</strong> <code>${inviteCode}</code></li>
+                </ol>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://platohiring.com" class="button">Join the Team</a>
+              </div>
+              
+              <p>As a <strong>${role}</strong>, you'll be able to:</p>
+              <ul>
+                <li>📝 Create and manage job postings</li>
+                <li>👥 Review and interview candidates</li>
+                <li>📊 Access team analytics and insights</li>
+                <li>🤝 Collaborate with other team members</li>
+              </ul>
+              
+              <p>Welcome to the team!</p>
+            </div>
+            <div class="footer">
+              <p>This invitation will expire in 7 days.</p>
+              <p>If you have any questions, please contact your team administrator.</p>
+            </div>
           </div>
-          
-          <p style="font-size: 14px; color: #666; margin-top: 30px;">
-            If the button doesn't work, copy and paste this link into your browser:<br>
-            <a href="${verificationUrl}" style="color: #667eea; word-break: break-all;">${verificationUrl}</a>
-          </p>
-          
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          
-          <p style="font-size: 14px; color: #666; margin-bottom: 0;">
-            If you didn't create an account with us, please ignore this email.
-          </p>
-        </div>
-        
-        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-          © 2025 Plato Hiring Platform. All rights reserved.
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+        </body>
+      </html>
+    `;
 
-  return await sendEmail({
-    to: user.email,
-    subject: 'Verify Your Email - Plato Hiring Platform',
-    html
-  });
+    const msg = {
+      to,
+      from: {
+        email: 'raef@platohiring.com', // Verified email address
+        name: 'Plato' // Display name shown to recipients
+      },
+      subject: `You're invited to join ${organizationName}`,
+      html: emailHtml,
+    };
+
+    console.log(`📧 Attempting to send email via SendGrid...`);
+    await mailService.send(msg);
+    console.log(`✅ Invite code email sent successfully to ${to}`);
+    
+    return true;
+  } catch (error) {
+    console.error('SendGrid email error:', error);
+    return false;
+  }
 }
 
-export async function sendJobPostingConfirmation(user: User, job: Job): Promise<boolean> {
-  const dashboardUrl = `${process.env.BASE_URL || 'https://platohiring.com'}/`;
-  
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Job Posted Successfully - Plato Hiring</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600;">Job Posted Successfully! 🎉</h1>
-        </div>
-        
-        <div style="background: white; padding: 40px 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #333; margin-bottom: 20px;">Hi ${user.firstName || 'there'}!</h2>
-          
-          <p style="font-size: 16px; margin-bottom: 25px;">
-            Great news! Your job posting has been successfully created and is now live on the platform.
-          </p>
-          
-          <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #10b981;">
-            <h3 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">${job.title}</h3>
-            <p style="color: #666; margin: 5px 0;"><strong>Location:</strong> ${job.location}</p>
-            <p style="color: #666; margin: 5px 0;"><strong>Salary:</strong> ${job.salaryRange || 'Not specified'}</p>
-            <p style="color: #666; margin: 5px 0;"><strong>Type:</strong> Full-time</p>
+export async function sendInvitationEmail({
+  to,
+  organizationName,
+  inviterName,
+  invitationToken,
+  organizationId,
+  role,
+}: InvitationEmailParams): Promise<boolean> {
+  try {
+    console.log(`📧 Starting email send process...`);
+    console.log(`📧 To: ${to}`);
+    console.log(`📧 Organization: ${organizationName}`);
+    console.log(`📧 Inviter: ${inviterName}`);
+    console.log(`📧 Token: ${invitationToken.substring(0, 8)}...`);
+    
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN ? 
+      `https://${process.env.REPLIT_DEV_DOMAIN}` : 
+      'https://aaf75c66-e50d-4a18-aa02-4d25b1fb4a8e-00-2n2g8qamvw3by.pike.replit.dev';
+    
+    // Enhanced invitation URL with team identifiers for automatic access granting
+    const acceptUrl = `${baseUrl}/invite/accept?token=${invitationToken}&org=${organizationId}&role=${role}`;
+    
+    // Alternative direct signup/signin URLs with embedded team identifiers
+    const signupUrl = `${baseUrl}/auth/signup?invite=${invitationToken}&org=${organizationId}&role=${role}`;
+    const signinUrl = `${baseUrl}/auth/signin?invite=${invitationToken}&org=${organizationId}&role=${role}`;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Team Invitation - ${organizationName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e0e0e0; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 8px 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🎉 You're Invited to Join ${organizationName}</h1>
+            </div>
+            <div class="content">
+              <p>Hi there!</p>
+              
+              <p><strong>${inviterName}</strong> has invited you to join <strong>${organizationName}</strong> on our hiring platform.</p>
+              
+              <p>As a <strong>${role}</strong>, you'll be able to:</p>
+              <ul>
+                <li>📝 Create and manage job postings</li>
+                <li>👥 Review and interview candidates</li>
+                <li>📊 Access team analytics and insights</li>
+                <li>🤝 Collaborate with other team members</li>
+              </ul>
+              
+              <p>Click the button below to accept your invitation and get started:</p>
+              
+              <div style="text-align: center;">
+                <a href="${acceptUrl}" class="button">Accept Invitation & Join Team</a>
+              </div>
+              
+              <div style="margin: 20px 0; text-align: center;">
+                <p style="margin: 10px 0; color: #666;">Already have an account?</p>
+                <a href="${signinUrl}" style="color: #667eea; text-decoration: none;">Sign in to join this team</a>
+              </div>
+              
+              <div style="margin: 20px 0; text-align: center;">
+                <p style="margin: 10px 0; color: #666;">Need to create an account?</p>
+                <a href="${signupUrl}" style="color: #667eea; text-decoration: none;">Sign up and automatically join this team</a>
+              </div>
+              
+              <p><em>This invitation will expire in 7 days.</em></p>
+              
+              <p>If none of the buttons work, copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; color: #667eea;">${acceptUrl}</p>
+            </div>
+            <div class="footer">
+              <p>This invitation was sent by ${organizationName} through our hiring platform.</p>
+            </div>
           </div>
-          
-          <p style="font-size: 16px; margin-bottom: 25px;">
-            Our AI-powered matching system is already working to find the best candidates for your position. You'll receive notifications as qualified applicants start applying.
-          </p>
-          
-          <div style="text-align: center; margin: 35px 0;">
-            <a href="${dashboardUrl}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
-              View Dashboard
-            </a>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          
-          <p style="font-size: 14px; color: #666; margin-bottom: 0;">
-            Happy hiring! We'll keep you updated on your job's progress.
-          </p>
-        </div>
-        
-        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-          © 2025 Plato Hiring Platform. All rights reserved.
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+        </body>
+      </html>
+    `;
 
-  return await sendEmail({
-    to: user.email,
-    subject: `Job Posted: ${job.title} - Plato Hiring`,
-    html
-  });
-}
+    const emailText = `
+You're invited to join ${organizationName}!
 
-export async function sendApplicantMilestoneNotification(user: User, job: Job, applicantCount: number): Promise<boolean> {
-  const dashboardUrl = `${process.env.BASE_URL || 'https://platohiring.com'}/`;
-  
-  const milestoneMessage = applicantCount === 5 
-    ? "You've received your first 5 applicants!" 
-    : applicantCount === 10 
-    ? "Great progress - 10 candidates have applied!"
-    : "Excellent response - 15 qualified candidates!";
+${inviterName} has invited you to join ${organizationName} on our hiring platform.
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>New Applicants - ${job.title}</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-        <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600;">${milestoneMessage}</h1>
-        </div>
-        
-        <div style="background: white; padding: 40px 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #333; margin-bottom: 20px;">Hi ${user.firstName || 'there'}!</h2>
-          
-          <p style="font-size: 16px; margin-bottom: 25px;">
-            Your job posting is attracting quality candidates! You now have <strong>${applicantCount} applicants</strong> for your position.
-          </p>
-          
-          <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
-            <h3 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">${job.title}</h3>
-            <p style="color: #666; margin: 5px 0;"><strong>Location:</strong> ${job.location}</p>
-            <p style="color: #666; margin: 5px 0;"><strong>Applicants:</strong> ${applicantCount} candidates</p>
-          </div>
-          
-          <p style="font-size: 16px; margin-bottom: 25px;">
-            Review the applications in your dashboard and start scheduling interviews with the most promising candidates.
-          </p>
-          
-          <div style="text-align: center; margin: 35px 0;">
-            <a href="${dashboardUrl}" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
-              Review Applicants
-            </a>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          
-          <p style="font-size: 14px; color: #666; margin-bottom: 0;">
-            Keep up the momentum! Quality candidates are finding your posting.
-          </p>
-        </div>
-        
-        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-          © 2025 Plato Hiring Platform. All rights reserved.
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+As a team member, you'll be able to:
+• Create and manage job postings
+• Review and interview candidates  
+• Access team analytics and insights
+• Collaborate with other team members
 
-  return await sendEmail({
-    to: user.email,
-    subject: `${applicantCount} Applicants for ${job.title} - Plato Hiring`,
-    html
-  });
-}
+Accept your invitation: ${acceptUrl}
 
-export async function sendInterviewScheduledNotification(user: User, candidateName: string, jobTitle: string, interviewDate: string, interviewTime: string, timezone: string): Promise<boolean> {
-  const dashboardUrl = `${process.env.BASE_URL || 'https://platohiring.com'}/`;
-  
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Interview Scheduled - ${jobTitle}</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-        <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600;">Interview Scheduled! 📅</h1>
-        </div>
-        
-        <div style="background: white; padding: 40px 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #333; margin-bottom: 20px;">Hi ${user.firstName || 'there'}!</h2>
-          
-          <p style="font-size: 16px; margin-bottom: 25px;">
-            Your interview has been successfully scheduled! Here are the details:
-          </p>
-          
-          <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #8b5cf6;">
-            <h3 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">Interview Details</h3>
-            <p style="color: #666; margin: 8px 0;"><strong>Candidate:</strong> ${candidateName}</p>
-            <p style="color: #666; margin: 8px 0;"><strong>Position:</strong> ${jobTitle}</p>
-            <p style="color: #666; margin: 8px 0;"><strong>Date:</strong> ${interviewDate}</p>
-            <p style="color: #666; margin: 8px 0;"><strong>Time:</strong> ${interviewTime}</p>
-            <p style="color: #666; margin: 8px 0;"><strong>Timezone:</strong> ${timezone}</p>
-          </div>
-          
-          <p style="font-size: 16px; margin-bottom: 25px;">
-            We recommend preparing questions specific to the role and reviewing the candidate's profile beforehand. Good luck with your interview!
-          </p>
-          
-          <div style="text-align: center; margin: 35px 0;">
-            <a href="${dashboardUrl}" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">
-              View Dashboard
-            </a>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          
-          <p style="font-size: 14px; color: #666; margin-bottom: 0;">
-            You can manage all your interviews from your dashboard. Best of luck!
-          </p>
-        </div>
-        
-        <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-          © 2025 Plato Hiring Platform. All rights reserved.
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+This invitation will expire in 7 days.
 
-  return await sendEmail({
-    to: user.email,
-    subject: `Interview Scheduled: ${candidateName} for ${jobTitle}`,
-    html
-  });
+This invitation was sent by ${organizationName} through our hiring platform.
+    `;
+
+    console.log(`📧 Sending email via SendGrid...`);
+    const emailData = {
+      to,
+      from: {
+        email: 'raef@platohiring.com', // Plato Hiring official sender email
+        name: `${organizationName} Team`
+      },
+      subject: `Invitation to join ${organizationName} team`,
+      text: emailText,
+      html: emailHtml,
+    };
+    
+    console.log(`📧 Email data:`, {
+      to: emailData.to,
+      from: emailData.from,
+      subject: emailData.subject
+    });
+    
+    const result = await mailService.send(emailData);
+    console.log(`📧 SendGrid response:`, result);
+    console.log(`✅ Email sent successfully via SendGrid`);
+
+    return true;
+  } catch (error) {
+    console.error('SendGrid email error:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      console.error('SendGrid response details:', (error as any).response?.body);
+    }
+    return false;
+  }
 }

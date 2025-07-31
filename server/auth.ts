@@ -7,8 +7,6 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User, LoginData, RegisterData } from "@shared/schema";
 import connectPg from "connect-pg-simple";
-import { sendVerificationEmail } from "./emailService";
-import { nanoid } from "nanoid";
 
 declare global {
   namespace Express {
@@ -48,9 +46,8 @@ export function setupAuth(app: Express) {
     }),
     cookie: {
       httpOnly: true,
-      secure: false, // Allow non-HTTPS in development
+      secure: process.env.NODE_ENV === "production",
       maxAge: sessionTtl,
-      sameSite: 'lax', // Allow cross-site cookies for auth
     },
   };
 
@@ -59,36 +56,27 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Local strategy for email/password authentication
+  // Local strategy for username/password authentication
   passport.use(
     new LocalStrategy(
       {
-        usernameField: "email",
+        usernameField: "username",
         passwordField: "password",
       },
-      async (email, password, done) => {
+      async (username, password, done) => {
         try {
-          console.log(`🔐 Login attempt for email: ${email}`);
-          const user = await storage.getUserByEmail(email);
+          const user = await storage.getUserByUsername(username);
           if (!user) {
-            console.log(`❌ User not found for email: ${email}`);
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: "Invalid username or password" });
           }
 
-          console.log(`🔍 User found, checking password...`);
           const isValidPassword = await comparePasswords(password, user.password);
           if (!isValidPassword) {
-            console.log(`❌ Invalid password for user: ${email}`);
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: "Invalid username or password" });
           }
 
-          // Skip email verification check - all users are considered verified
-          console.log(`📧 Email verification check skipped - auto-verified users`)
-
-          console.log(`✅ Login successful for user: ${email}`);
           return done(null, user);
         } catch (error) {
-          console.error(`❌ Login error for ${email}:`, error);
           return done(error);
         }
       }
@@ -128,7 +116,7 @@ export function setupAuth(app: Express) {
         }
       }
 
-      // Hash password and create user as auto-verified
+      // Hash password and create user
       const hashedPassword = await hashPassword(password);
       const newUser = await storage.createUser({
         email,
@@ -136,10 +124,8 @@ export function setupAuth(app: Express) {
         firstName,
         lastName,
         username,
-        isVerified: true, // Auto-verify all users
+        isVerified: true, // Auto-verify for now, can be changed later
       });
-
-      console.log(`✅ User ${email} created and auto-verified - no email verification required`);
 
       // Log the user in automatically
       req.login(newUser, (err) => {
@@ -162,27 +148,18 @@ export function setupAuth(app: Express) {
 
   // Login endpoint
   app.post("/api/login", (req, res, next) => {
-    console.log(`🔐 Login attempt with body:`, { email: req.body.email, passwordLength: req.body.password?.length });
-    
     passport.authenticate("local", (err: any, user: User | false, info: any) => {
-      console.log(`🔍 Passport auth result:`, { err: !!err, user: !!user, info });
-      
       if (err) {
-        console.error(`❌ Authentication error:`, err);
         return res.status(500).json({ error: "Authentication failed" });
       }
       if (!user) {
-        console.log(`❌ Authentication failed:`, info?.message);
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
 
       req.login(user, (loginErr) => {
         if (loginErr) {
-          console.error(`❌ Login session error:`, loginErr);
           return res.status(500).json({ error: "Login failed" });
         }
-        
-        console.log(`✅ Login successful for user:`, user.email);
         res.json({
           id: user.id,
           email: user.email,
@@ -196,30 +173,6 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Email verification endpoint
-  app.get("/api/verify-email", async (req, res) => {
-    try {
-      const { token } = req.query;
-      
-      if (!token || typeof token !== 'string') {
-        return res.status(400).json({ error: "Invalid verification token" });
-      }
-
-      const user = await storage.getUserByVerificationToken(token);
-      if (!user) {
-        return res.status(400).json({ error: "Invalid or expired verification token" });
-      }
-
-      // Update user as verified
-      await storage.verifyUser(user.id);
-      
-      res.json({ message: "Email verified successfully" });
-    } catch (error) {
-      console.error("Email verification error:", error);
-      res.status(500).json({ error: "Verification failed" });
-    }
-  });
-
   // Logout endpoint
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
@@ -230,18 +183,11 @@ export function setupAuth(app: Express) {
 
   // Get current user endpoint
   app.get("/api/auth/user", (req, res) => {
-    console.log(`🔍 GET /api/auth/user - Session ID: ${req.sessionID}`);
-    console.log(`🔍 Session data:`, req.session);
-    console.log(`🔍 Is authenticated:`, req.isAuthenticated());
-    console.log(`🔍 User object:`, req.user);
-    
     if (!req.isAuthenticated() || !req.user) {
-      console.log(`❌ User not authenticated`);
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     const user = req.user as User;
-    console.log(`✅ Returning user data for: ${user.email}`);
     res.json({
       id: user.id,
       email: user.email,
@@ -256,16 +202,8 @@ export function setupAuth(app: Express) {
 
 // Middleware to check if user is authenticated
 export const requireAuth = (req: any, res: any, next: any) => {
-  console.log(`🔒 Auth check for ${req.method} ${req.path}`);
-  console.log(`🔒 Session ID: ${req.sessionID}`);
-  console.log(`🔒 Is authenticated: ${req.isAuthenticated()}`);
-  console.log(`🔒 User: ${req.user?.email || 'none'}`);
-  
   if (!req.isAuthenticated()) {
-    console.log(`❌ Authentication required for ${req.method} ${req.path}`);
     return res.status(401).json({ error: "Authentication required" });
   }
-  
-  console.log(`✅ Authentication passed for ${req.user.email}`);
   next();
 };

@@ -11,7 +11,6 @@ import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
 import { AcceptInvitation } from "@/pages/AcceptInvitation";
 import InviteAccept from "@/pages/InviteAccept";
-
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -20,20 +19,10 @@ function Router() {
   const { processPendingInvitation } = usePendingInvitation();
 
   // Check if user has an organization
-  const { data: organization, isLoading: orgLoading, error: orgError } = useQuery({
+  const { data: organization, isLoading: orgLoading } = useQuery({
     queryKey: ["/api/organizations/current"],
     enabled: isAuthenticated && !!user,
     retry: false,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
-
-  console.log('🏢 Organization lookup:', { 
-    isAuthenticated, 
-    user: user?.email, 
-    organization: organization?.companyName, 
-    isLoading: orgLoading, 
-    error: orgError 
   });
 
   // Automatically process pending invitations when user becomes authenticated
@@ -71,16 +60,10 @@ function Router() {
         </>
       ) : (
         <>
-          <Route path="/dashboard" component={EmployerDashboard} />
+          <Route path="/" component={EmployerDashboard} />
           <Route path="/employer-dashboard" component={EmployerDashboard} />
+          <Route path="/dashboard" component={EmployerDashboard} />
           <Route path="/organization-setup" component={EmployerDashboard} />
-          <Route path="/">
-            {() => {
-              // Redirect authenticated users with organization to dashboard
-              window.location.href = "/dashboard";
-              return null;
-            }}
-          </Route>
         </>
       )}
       <Route component={NotFound} />

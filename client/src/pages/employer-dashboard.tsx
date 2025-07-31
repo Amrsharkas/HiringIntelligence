@@ -1,7 +1,6 @@
 import React, { useState, memo, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
@@ -389,9 +388,7 @@ export default function EmployerDashboard() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
-      // Clear any cached auth data
-      queryClient.clear();
+      await fetch("/api/logout", { method: "GET" });
       window.location.href = "/";
     } catch (error) {
       window.location.href = "/";
@@ -422,7 +419,7 @@ export default function EmployerDashboard() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setLocation("/dashboard")}
+              onClick={() => setLocation("/employer-dashboard")}
               className="text-2xl font-bold text-black dark:text-white"
             >
               Plato

@@ -12,7 +12,6 @@ import {
   realInterviews,
   scoredApplicants,
   shortlistedApplicants,
-  emailVerificationTokens,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -37,8 +36,6 @@ import {
   type InsertScoredApplicant,
   type ShortlistedApplicant,
   type InsertShortlistedApplicant,
-  type EmailVerificationToken,
-  type InsertEmailVerificationToken,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -48,10 +45,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByVerificationToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
-  verifyUser(userId: string): Promise<void>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Organization operations
@@ -126,12 +121,6 @@ export interface IStorage {
   addToShortlist(shortlistedData: InsertShortlistedApplicant): Promise<ShortlistedApplicant>;
   getShortlistedApplicants(employerId: string): Promise<ShortlistedApplicant[]>;
   removeFromShortlist(id: string): Promise<void>;
-
-  // Email verification operations
-  createEmailVerificationToken(token: InsertEmailVerificationToken): Promise<EmailVerificationToken>;
-  getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined>;
-  markEmailVerificationTokenUsed(token: string): Promise<void>;
-  updateUserEmailVerified(userId: string, verified: boolean): Promise<void>;
   isApplicantShortlisted(employerId: string, applicantId: string, jobId: string): Promise<boolean>;
 }
 
@@ -150,22 +139,6 @@ export class DatabaseStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
-  }
-
-  async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
-    return user;
-  }
-
-  async verifyUser(userId: string): Promise<void> {
-    await db
-      .update(users)
-      .set({ 
-        isVerified: true, 
-        verificationToken: null,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId));
   }
 
   async createUser(userData: InsertUser): Promise<User> {
@@ -212,31 +185,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrganizationByUser(userId: string): Promise<Organization | undefined> {
-    console.log(`🔍 Looking up organization for user: ${userId}`);
-    
-    const result = await db
-      .select({
-        id: organizations.id,
-        companyName: organizations.companyName,
-        industry: organizations.industry,
-        companySize: organizations.companySize,
-        description: organizations.description,
-        ownerId: organizations.ownerId,
-        createdAt: organizations.createdAt,
-        updatedAt: organizations.updatedAt,
-      })
+    const [result] = await db
+      .select()
       .from(organizations)
       .innerJoin(organizationMembers, eq(organizations.id, organizationMembers.organizationId))
       .where(eq(organizationMembers.userId, userId))
       .limit(1);
     
-    if (result.length === 0) {
-      console.log(`❌ No organization found for user: ${userId}`);
-      return undefined;
-    }
-    
-    console.log(`✅ Found organization for user ${userId}:`, result[0]);
-    return result[0];
+    return result?.organizations;
   }
 
   async getOrganizationMembers(organizationId: number): Promise<any[]> {
@@ -694,29 +650,6 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return !!result;
-  }
-
-  // Email verification operations
-  async createEmailVerificationToken(tokenData: InsertEmailVerificationToken): Promise<EmailVerificationToken> {
-    const [token] = await db.insert(emailVerificationTokens).values(tokenData).returning();
-    return token;
-  }
-
-  async getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined> {
-    const [verificationToken] = await db.select().from(emailVerificationTokens).where(eq(emailVerificationTokens.token, token));
-    return verificationToken;
-  }
-
-  async markEmailVerificationTokenUsed(token: string): Promise<void> {
-    await db.update(emailVerificationTokens)
-      .set({ used: true })
-      .where(eq(emailVerificationTokens.token, token));
-  }
-
-  async updateUserEmailVerified(userId: string, verified: boolean): Promise<void> {
-    await db.update(users)
-      .set({ isVerified: verified })
-      .where(eq(users.id, userId));
   }
 }
 

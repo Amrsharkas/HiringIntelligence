@@ -96,7 +96,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
                 </Button>
               </div>
               <CardDescription className="text-slate-600 dark:text-slate-400">
-                Sign up to start using AI-powered hiring tools - no email verification required
+                Sign up to start using AI-powered hiring tools
               </CardDescription>
             </CardHeader>
             
