@@ -18,6 +18,8 @@ import {
   Zap
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import SignInModal from "@/components/SignInModal";
+import SignUpModal from "@/components/SignUpModal";
 
 // Import company logos
 import fridgenoMoreLogo from "@assets/image_1752003678355.png";
@@ -47,9 +49,8 @@ export default function Landing() {
   const { theme, toggleTheme } = useTheme();
   const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
 
-  const handleLogin = () => {
-    window.location.href = "/api/login";
-  };
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
 
   const companyLogos = [
     { name: "Fridge No More", logo: fridgenoMoreLogo },
@@ -123,16 +124,16 @@ export default function Landing() {
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
-                onClick={handleLogin}
+                onClick={() => setShowSignIn(true)}
                 className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
               >
-                Login
+                Sign In
               </Button>
               <Button
-                onClick={handleLogin}
+                onClick={() => setShowSignUp(true)}
                 className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Post a Job Now
+                Get Started
               </Button>
             </div>
           </div>
@@ -177,19 +178,19 @@ export default function Landing() {
             </p>
             <div className="flex items-center justify-center space-x-6">
               <Button
-                onClick={handleLogin}
+                onClick={() => setShowSignUp(true)}
                 size="lg"
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
               >
-                Post a Job Now
+                Get Started
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                onClick={handleLogin}
+                onClick={() => setShowSignIn(true)}
                 className="px-8 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-lg hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Login
+                Sign In
               </Button>
             </div>
           </motion.div>
@@ -569,7 +570,7 @@ export default function Landing() {
               Join hundreds of companies already using AI-powered hiring to find the perfect candidates faster.
             </p>
             <Button
-              onClick={handleLogin}
+              onClick={() => setShowSignUp(true)}
               size="lg"
               className="px-8 py-4 bg-white text-blue-600 hover:bg-blue-50 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
             >
@@ -578,6 +579,24 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
+      
+      {/* Authentication Modals */}
+      <SignInModal 
+        isOpen={showSignIn} 
+        onClose={() => setShowSignIn(false)}
+        onSwitchToSignUp={() => {
+          setShowSignIn(false);
+          setShowSignUp(true);
+        }}
+      />
+      <SignUpModal 
+        isOpen={showSignUp} 
+        onClose={() => setShowSignUp(false)}
+        onSwitchToSignIn={() => {
+          setShowSignUp(false);
+          setShowSignIn(true);
+        }}
+      />
     </div>
   );
 }

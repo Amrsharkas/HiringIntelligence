@@ -1,182 +1,240 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { registerSchema, type RegisterData } from "@shared/schema";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { X, Lock, User, Mail, UserPlus } from "lucide-react";
 
 interface SignUpModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSwitchToSignIn: () => void;
+  onSwitchToSignIn?: () => void;
 }
 
-export function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignUpModalProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const { toast } = useToast();
-
-  const form = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      firstName: "",
-      lastName: "",
-      username: "",
-    },
+export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignUpModalProps) {
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    firstName: "",
+    lastName: "",
+    password: "",
+    confirmPassword: ""
   });
+  const [passwordMatch, setPasswordMatch] = useState(true);
+  const { registerMutation } = useAuth();
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterData) => {
-      const response = await apiRequest("POST", "/api/register", data);
-      return response.json();
-    },
-    onSuccess: (user) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
-      toast({
-        title: "Welcome to Plato!",
-        description: "Your account has been created successfully.",
-      });
-      onClose();
-      form.reset();
-      // Refresh the page to load the dashboard
-      window.location.reload();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Sign up failed",
-        description: error.message || "Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onSubmit = (data: RegisterData) => {
-    registerMutation.mutate(data);
+  const handleInputChange = (field: string, value: string) => {
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    
+    // Check password match in real-time
+    if (field === "password" || field === "confirmPassword") {
+      if (field === "confirmPassword") {
+        setPasswordMatch(newFormData.password === value);
+      } else {
+        setPasswordMatch(value === newFormData.confirmPassword || newFormData.confirmPassword === "");
+      }
+    }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordMatch(false);
+      return;
+    }
+
+    try {
+      await registerMutation.mutateAsync({
+        username: formData.username,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        password: formData.password
+      });
+      onClose();
+    } catch (error) {
+      console.error("Registration failed:", error);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">Create Account</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                type="text"
-                placeholder="First name"
-                {...form.register("firstName")}
-              />
-              {form.formState.errors.firstName && (
-                <p className="text-sm text-red-500">{form.formState.errors.firstName.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                type="text"
-                placeholder="Last name"
-                {...form.register("lastName")}
-              />
-              {form.formState.errors.lastName && (
-                <p className="text-sm text-red-500">{form.formState.errors.lastName.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              {...form.register("email")}
-              className="w-full"
-            />
-            {form.formState.errors.email && (
-              <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="username">Username (Optional)</Label>
-            <Input
-              id="username"
-              type="text"
-              placeholder="Choose a username"
-              {...form.register("username")}
-              className="w-full"
-            />
-            {form.formState.errors.username && (
-              <p className="text-sm text-red-500">{form.formState.errors.username.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Create a password"
-                {...form.register("password")}
-                className="w-full pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            {form.formState.errors.password && (
-              <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={registerMutation.isPending}
-          >
-            {registerMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              "Create Account"
-            )}
-          </Button>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <button
-                type="button"
-                onClick={onSwitchToSignIn}
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Sign in
-              </button>
-            </p>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="w-full max-w-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xl">
+            <CardHeader className="space-y-1 pb-6">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Create Account
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <CardDescription className="text-slate-600 dark:text-slate-400">
+                Sign up to start using AI-powered hiring tools
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange("firstName", e.target.value)}
+                      className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange("lastName", e.target.value)}
+                      className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Doe"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Username
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      id="username"
+                      type="text"
+                      value={formData.username}
+                      onChange={(e) => handleInputChange("username", e.target.value)}
+                      className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Choose a username"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="your@email.com"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Create a secure password"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                      className={`pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        !passwordMatch ? "border-red-500 focus:ring-red-500" : ""
+                      }`}
+                      placeholder="Confirm your password"
+                      required
+                    />
+                  </div>
+                  {!passwordMatch && (
+                    <p className="text-sm text-red-500">Passwords do not match</p>
+                  )}
+                </div>
+                
+                <Button
+                  type="submit"
+                  disabled={registerMutation.isPending || !passwordMatch}
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                >
+                  {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                </Button>
+              </form>
+              
+              <div className="mt-6 text-center">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Already have an account?{" "}
+                  <button
+                    onClick={onSwitchToSignIn}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium hover:underline"
+                  >
+                    Sign in here  
+                  </button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

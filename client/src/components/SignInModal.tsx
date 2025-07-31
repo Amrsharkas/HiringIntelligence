@@ -1,137 +1,134 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { loginSchema, type LoginData } from "@shared/schema";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { X, Lock, User } from "lucide-react";
 
 interface SignInModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSwitchToSignUp: () => void;
+  onSwitchToSignUp?: () => void;
 }
 
-export function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignInModalProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const { toast } = useToast();
+export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignInModalProps) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const { loginMutation } = useAuth();
 
-  const form = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginData) => {
-      const response = await apiRequest("POST", "/api/login", data);
-      return response.json();
-    },
-    onSuccess: (user) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
-      toast({
-        title: "Welcome back!",
-        description: "You've been signed in successfully.",
-      });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await loginMutation.mutateAsync({ username, password });
       onClose();
-      form.reset();
-      // Refresh the page to load the dashboard
-      window.location.reload();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Sign in failed",
-        description: error.message || "Please check your email and password.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onSubmit = (data: LoginData) => {
-    loginMutation.mutate(data);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">Sign In</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              {...form.register("email")}
-              className="w-full"
-            />
-            {form.formState.errors.email && (
-              <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                {...form.register("password")}
-                className="w-full pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            {form.formState.errors.password && (
-              <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loginMutation.isPending}
-          >
-            {loginMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              "Sign In"
-            )}
-          </Button>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <button
-                type="button"
-                onClick={onSwitchToSignUp}
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Sign up
-              </button>
-            </p>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="w-full max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xl">
+            <CardHeader className="space-y-1 pb-6">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Welcome Back
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <CardDescription className="text-slate-600 dark:text-slate-400">
+                Sign in to your account to access your employer dashboard
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Username
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your username"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10 h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your password"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <Button
+                  type="submit"
+                  disabled={loginMutation.isPending}
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                >
+                  {loginMutation.isPending ? "Signing In..." : "Sign In"}
+                </Button>
+              </form>
+              
+              <div className="mt-6 text-center">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Don't have an account?{" "}
+                  <button
+                    onClick={onSwitchToSignUp}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium hover:underline"
+                  >
+                    Sign up here
+                  </button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

@@ -278,7 +278,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  username: z.string().min(1, "Username is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -287,7 +287,7 @@ export const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  username: z.string().min(3, "Username must be at least 3 characters").optional(),
+  username: z.string().min(3, "Username must be at least 3 characters"),
 });
 
 export type LoginData = z.infer<typeof loginSchema>;
