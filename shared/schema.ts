@@ -36,11 +36,22 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("employer"),
   isVerified: boolean("is_verified").notNull().default(false), // Email verification status
+  emailVerified: boolean("email_verified").notNull().default(false), // Email verification status
   verificationToken: varchar("verification_token"), // For email verification
   resetPasswordToken: varchar("reset_password_token"), // For password reset
   resetPasswordExpires: timestamp("reset_password_expires"), // Reset token expiry
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Email verification tokens table
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: serial("id").primaryKey(),
+  token: varchar("token").notNull().unique(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  used: boolean("used").notNull().default(false),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Organizations/Companies
@@ -264,6 +275,8 @@ export const scoredApplicants = pgTable("scored_applicants", {
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type InsertEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
 export type InsertUser = typeof users.$inferInsert;
 
 // Auth schemas

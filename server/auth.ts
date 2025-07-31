@@ -7,6 +7,8 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User, LoginData, RegisterData } from "@shared/schema";
 import connectPg from "connect-pg-simple";
+import { sendVerificationEmail } from "./emailService";
+import { nanoid } from "nanoid";
 
 declare global {
   namespace Express {
@@ -116,7 +118,8 @@ export function setupAuth(app: Express) {
         }
       }
 
-      // Hash password and create user
+      // Generate verification token and hash password
+      const verificationToken = nanoid(32);
       const hashedPassword = await hashPassword(password);
       const newUser = await storage.createUser({
         email,
@@ -124,8 +127,17 @@ export function setupAuth(app: Express) {
         firstName,
         lastName,
         username,
-        isVerified: true, // Auto-verify for now, can be changed later
+        isVerified: false, // Require email verification
+        verificationToken,
       });
+
+      // Send verification email
+      try {
+        await sendVerificationEmail(newUser, verificationToken);
+        console.log(`✅ Verification email sent to ${email}`);
+      } catch (error) {
+        console.error('❌ Failed to send verification email:', error);
+      }
 
       // Log the user in automatically
       req.login(newUser, (err) => {
@@ -171,6 +183,30 @@ export function setupAuth(app: Express) {
         });
       });
     })(req, res, next);
+  });
+
+  // Email verification endpoint
+  app.get("/api/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ error: "Invalid verification token" });
+      }
+
+      const user = await storage.getUserByVerificationToken(token);
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired verification token" });
+      }
+
+      // Update user as verified
+      await storage.verifyUser(user.id);
+      
+      res.json({ message: "Email verified successfully" });
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ error: "Verification failed" });
+    }
   });
 
   // Logout endpoint

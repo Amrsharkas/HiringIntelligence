@@ -11,7 +11,8 @@ import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { jobMatchesService } from "./jobMatchesAirtableService";
-import { sendInvitationEmail, sendInviteCodeEmail, sendMagicLinkInvitationEmail } from "./emailService";
+import { sendJobPostingConfirmation, sendApplicantMilestoneNotification, sendInterviewScheduledNotification } from "./emailService";
+import { trackApplicantMilestone } from "./applicantMilestoneTracker";
 import { nanoid } from "nanoid";
 
 // Utility function to generate human-readable invite codes
@@ -525,6 +526,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
       jobApplicationsAutoFill.autoFillJobApplication(job, companyName)
         .catch(error => console.error("Error auto-filling job application:", error));
+
+      // Send job posting confirmation email
+      try {
+        const user = req.user;
+        await sendJobPostingConfirmation(user, job);
+        console.log(`✅ Job posting confirmation email sent to ${user.email}`);
+      } catch (error) {
+        console.error('❌ Failed to send job posting confirmation email:', error);
+      }
       
       res.json(job);
     } catch (error) {
@@ -1869,6 +1879,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
       
       console.log(`✅ Successfully accepted applicant ${applicantName} (User ID: ${actualUserId})`);
+      
+      // Track applicant milestone after accepting
+      if (jobId) {
+        try {
+          await trackApplicantMilestone(parseInt(jobId));
+        } catch (error) {
+          console.error('❌ Failed to track applicant milestone:', error);
+        }
+      }
+      
       res.json({ 
         message: "Applicant accepted successfully",
         applicantName: applicantName,
@@ -2824,6 +2844,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       console.log(`✅ Created interview for ${candidateName} on ${scheduledDate} at ${scheduledTime}`);
 
+      // Send interview scheduled notification email
+      try {
+        await sendInterviewScheduledNotification(
+          user,
+          candidateName,
+          jobTitle,
+          scheduledDate,
+          scheduledTime,
+          timeZone || 'UTC'
+        );
+        console.log(`✅ Interview scheduled notification email sent to ${user.email}`);
+      } catch (error) {
+        console.error('❌ Failed to send interview scheduled notification email:', error);
+      }
+
       // Update the Airtable platojobmatches record with interview details
       try {
         const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
@@ -3519,6 +3554,29 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("Error accepting magic link invitation:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // Email verification endpoint
+  app.get('/api/verify-email', async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ error: 'Verification token is required' });
+      }
+
+      const { verifyEmailToken } = await import('./emailVerification');
+      const result = await verifyEmailToken(token);
+      
+      if (result.success) {
+        res.json({ message: result.message });
+      } else {
+        res.status(400).json({ error: result.message });
+      }
+    } catch (error) {
+      console.error('Email verification error:', error);
+      res.status(500).json({ error: 'Verification failed. Please try again.' });
     }
   });
 
