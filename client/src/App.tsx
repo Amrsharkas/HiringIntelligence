@@ -14,10 +14,19 @@ import InviteAccept from "@/pages/InviteAccept";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
+function DashboardRedirect() {
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    setLocation('/dashboard');
+  }, [setLocation]);
+  
+  return null;
+}
+
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { processPendingInvitation } = usePendingInvitation();
-  const [location, setLocation] = useLocation();
 
   // Check if user has an organization
   const { data: organization, isLoading: orgLoading } = useQuery({
@@ -61,15 +70,10 @@ function Router() {
         </>
       ) : (
         <>
-          <Route path="/" component={() => {
-            useEffect(() => {
-              setLocation('/dashboard');
-            }, []);
-            return null;
-          }} />
           <Route path="/dashboard" component={EmployerDashboard} />
           <Route path="/employer-dashboard" component={EmployerDashboard} />
           <Route path="/organization-setup" component={EmployerDashboard} />
+          <Route path="/" component={DashboardRedirect} />
         </>
       )}
       <Route component={NotFound} />

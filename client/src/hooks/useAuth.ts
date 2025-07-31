@@ -70,11 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-      window.location.href = "/";
+      queryClient.clear();
+      // Force navigation to landing page
+      window.location.href = '/';
     },
     onError: (error: Error) => {
       toast({
