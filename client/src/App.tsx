@@ -24,6 +24,8 @@ function Router() {
     queryKey: ["/api/organizations/current"],
     enabled: isAuthenticated && !!user,
     retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   console.log('🏢 Organization lookup:', { 
@@ -61,7 +63,7 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route component={Landing} />
         </>
-      ) : (!organization && !orgError) || (orgError && orgError.message?.includes('404')) ? (
+      ) : !organization ? (
         <>
           <Route path="/" component={OrganizationSetup} />
           <Route path="/organization-setup" component={OrganizationSetup} />

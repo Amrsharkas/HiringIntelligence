@@ -48,8 +48,9 @@ export function setupAuth(app: Express) {
     }),
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // Allow non-HTTPS in development
       maxAge: sessionTtl,
+      sameSite: 'lax', // Allow cross-site cookies for auth
     },
   };
 
@@ -229,11 +230,18 @@ export function setupAuth(app: Express) {
 
   // Get current user endpoint
   app.get("/api/auth/user", (req, res) => {
+    console.log(`🔍 GET /api/auth/user - Session ID: ${req.sessionID}`);
+    console.log(`🔍 Session data:`, req.session);
+    console.log(`🔍 Is authenticated:`, req.isAuthenticated());
+    console.log(`🔍 User object:`, req.user);
+    
     if (!req.isAuthenticated() || !req.user) {
+      console.log(`❌ User not authenticated`);
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     const user = req.user as User;
+    console.log(`✅ Returning user data for: ${user.email}`);
     res.json({
       id: user.id,
       email: user.email,
@@ -248,8 +256,16 @@ export function setupAuth(app: Express) {
 
 // Middleware to check if user is authenticated
 export const requireAuth = (req: any, res: any, next: any) => {
+  console.log(`🔒 Auth check for ${req.method} ${req.path}`);
+  console.log(`🔒 Session ID: ${req.sessionID}`);
+  console.log(`🔒 Is authenticated: ${req.isAuthenticated()}`);
+  console.log(`🔒 User: ${req.user?.email || 'none'}`);
+  
   if (!req.isAuthenticated()) {
+    console.log(`❌ Authentication required for ${req.method} ${req.path}`);
     return res.status(401).json({ error: "Authentication required" });
   }
+  
+  console.log(`✅ Authentication passed for ${req.user.email}`);
   next();
 };
