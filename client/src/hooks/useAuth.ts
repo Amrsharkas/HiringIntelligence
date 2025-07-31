@@ -73,11 +73,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear all React Query cache
       queryClient.clear();
-      // Force navigation to landing page
+      
+      // Clear any local storage items if they exist
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+      
+      console.log("✅ Logout successful, redirecting to homepage");
+      
+      // Force immediate navigation to homepage
       window.location.href = '/';
     },
     onError: (error: Error) => {
+      console.error("Logout failed:", error);
       toast({
         title: "Logout failed",
         description: error.message,

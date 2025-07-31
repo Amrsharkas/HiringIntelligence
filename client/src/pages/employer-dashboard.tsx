@@ -348,7 +348,7 @@ StatNumber.displayName = 'StatNumber';
 InteractiveCard.displayName = 'InteractiveCard';
 
 export default function EmployerDashboard() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
@@ -369,11 +369,11 @@ export default function EmployerDashboard() {
     if (!isLoading && !isAuthenticated) {
       toast({
         title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
+        description: "You are logged out. Redirecting to homepage...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -386,13 +386,8 @@ export default function EmployerDashboard() {
     refetchOnReconnect: false,
   });
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/logout", { method: "GET" });
-      window.location.href = "/";
-    } catch (error) {
-      window.location.href = "/";
-    }
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   if (isLoading || !isAuthenticated) {
