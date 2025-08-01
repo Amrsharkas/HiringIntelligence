@@ -147,24 +147,29 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     try {
       console.log('🔍 Fetching profile for:', applicant.name, 'User ID:', applicant.userId);
       
-      // Try to fetch detailed user profile using the name as identifier
-      const response = await fetch(`/api/user-profile/${encodeURIComponent(applicant.name)}`);
-      if (response.ok) {
-        const userProfile = await response.json();
-        console.log('✅ User profile fetched successfully:', userProfile);
-        setSelectedUserProfile(userProfile);
-      } else {
-        console.error('❌ Failed to fetch user profile:', response.status, response.statusText);
-        // Try with userId as fallback
-        const fallbackResponse = await fetch(`/api/user-profile/${encodeURIComponent(applicant.userId)}`);
-        if (fallbackResponse.ok) {
-          const fallbackProfile = await fallbackResponse.json();
-          console.log('✅ Fallback profile fetched:', fallbackProfile);
-          setSelectedUserProfile(fallbackProfile);
+      // Use public profile endpoint (no authentication required)
+      try {
+        const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.name)}`);
+        if (response.ok) {
+          const userProfile = await response.json();
+          console.log('✅ User profile fetched successfully:', userProfile);
+          setSelectedUserProfile(userProfile);
         } else {
-          console.error('❌ Fallback profile fetch also failed:', fallbackResponse.status);
-          setSelectedUserProfile(null);
+          console.error('❌ Failed to fetch user profile with name:', response.status, response.statusText);
+          // Try with userId as fallback
+          const fallbackResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.userId)}`);
+          if (fallbackResponse.ok) {
+            const fallbackProfile = await fallbackResponse.json();
+            console.log('✅ Fallback profile fetched:', fallbackProfile);
+            setSelectedUserProfile(fallbackProfile);
+          } else {
+            console.error('❌ Fallback profile fetch also failed:', fallbackResponse.status);
+            setSelectedUserProfile(null);
+          }
         }
+      } catch (error: any) {
+        console.error('❌ Error in profile fetch:', error);
+        setSelectedUserProfile(null);
       }
       
       // Set selected applicant to show the modal

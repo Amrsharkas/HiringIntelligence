@@ -1468,6 +1468,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public profile viewing endpoint (no authentication required for employer viewing profiles)
+  app.get("/api/public-profile/:identifier", async (req, res) => {
+    try {
+      const identifier = decodeURIComponent(req.params.identifier);
+      console.log(`🔍 PUBLIC: Public profile request for: "${identifier}"`);
+
+      // Use direct Airtable API call for now to avoid any service issues
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const profilesBaseId = 'app3tA4UpKQCT2s17';
+      const profilesTableName = 'Table%201';
+      
+      // Try by Name field
+      let profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${identifier}"`)}`;
+      
+      console.log(`🔍 PUBLIC: Fetching from Airtable: ${profilesUrl.substring(0, 100)}...`);
+      
+      const profilesResponse = await fetch(profilesUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!profilesResponse.ok) {
+        console.log(`❌ PUBLIC: Failed to fetch profiles: ${profilesResponse.status} ${profilesResponse.statusText}`);
+        return res.status(500).json({ error: 'Failed to fetch profile data' });
+      }
+      
+      const profilesData = await profilesResponse.json() as any;
+      console.log(`🔍 PUBLIC: Found ${profilesData.records?.length || 0} profiles matching Name: "${identifier}"`);
+      
+      if (!profilesData.records || profilesData.records.length === 0) {
+        console.log(`❌ PUBLIC: No profile found for identifier: "${identifier}"`);
+        return res.status(404).json({ error: "Profile not found" });
+      }
+
+      // Get the first matching profile
+      const profileRecord = profilesData.records[0];
+      const fields = profileRecord.fields;
+      
+      console.log(`✅ PUBLIC: Profile found! Available fields: ${Object.keys(fields).join(', ')}`);
+      
+      // Format the response
+      const profile = {
+        name: fields.Name || identifier,
+        email: fields.email || '',
+        userProfile: fields['User profile'] || 'No profile information available',
+        userId: fields['User ID'] || fields.UserID || '',
+        // Include all raw fields for debugging
+        rawFields: fields
+      };
+
+      console.log(`✅ PUBLIC: Profile data prepared for: ${profile.name}, User Profile length: ${profile.userProfile.length} characters`);
+      console.log(`🔍 PUBLIC: Profile data being sent to frontend:`, profile);
+      
+      res.json(profile);
+      
+    } catch (error) {
+      console.error('❌ PUBLIC: Error fetching public profile:', error);
+      res.status(500).json({ error: "Failed to fetch profile", details: error.message });
+    }
+  });
+
   // Get complete user profile from Airtable platouserprofiles table
   app.get('/api/user-profile/:userId', requireAuth, async (req: any, res) => {
     try {
