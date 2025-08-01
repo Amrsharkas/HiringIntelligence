@@ -2840,6 +2840,29 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Remove from shortlist (unshortlist)
+  app.post('/api/real-applicants/:id/unshortlist', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      
+      console.log(`🗑️ Removing applicant ${applicantId} from shortlist...`);
+      
+      // Update the status in Airtable back to "pending" or empty
+      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'pending');
+      
+      console.log(`✅ Successfully removed applicant ${applicantId} from shortlist`);
+      res.json({ 
+        success: true, 
+        message: "Candidate removed from shortlist successfully",
+        status: 'pending'
+      });
+    } catch (error) {
+      console.error("❌ Error removing applicant from shortlist:", error);
+      res.status(500).json({ message: "Failed to remove candidate from shortlist" });
+    }
+  });
+
   // Interview Management Endpoints
   app.get('/api/interviews/count', requireAuth, async (req: any, res) => {
     try {

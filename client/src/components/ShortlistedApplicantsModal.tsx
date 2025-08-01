@@ -38,18 +38,22 @@ export function ShortlistedApplicantsModal({
   const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const { data: shortlistedApplicants = [], isLoading } = useQuery<ShortlistedApplicant[]>({
-    queryKey: ["/api/shortlisted-applicants"],
+  // Fetch shortlisted applicants from real-applicants endpoint
+  const { data: applicants = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/real-applicants"],
     enabled: isOpen,
     refetchOnWindowFocus: false,
   });
 
+  // Filter to show only shortlisted applicants
+  const shortlistedApplicants = applicants.filter(app => app.status?.toLowerCase() === 'shortlisted');
+
   const removeFromShortlistMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest(`/api/shortlisted-applicants/${id}`, "DELETE");
+    mutationFn: async (applicantId: string) => {
+      return await apiRequest(`/api/real-applicants/${applicantId}/unshortlist`, "POST");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
       toast({
         title: "Success",
         description: "Applicant removed from shortlist",
@@ -75,16 +79,38 @@ export function ShortlistedApplicantsModal({
     },
   });
 
-  const handleViewProfile = (applicant: ShortlistedApplicant) => {
-    // Create a profile object compatible with DetailedProfileModal
-    const profileData = {
-      applicantId: applicant.applicantId,
-      name: applicant.applicantName,
-      jobTitle: applicant.jobTitle,
-      // Add other fields as needed for the profile modal
-    };
-    setSelectedApplicant(profileData);
-    setIsProfileModalOpen(true);
+  const handleViewProfile = async (applicant: any) => {
+    try {
+      console.log('🔍 SHORTLISTED: Fetching profile for:', applicant.name);
+      
+      // Use public profile endpoint
+      const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.name)}`);
+      if (response.ok) {
+        const userProfile = await response.json();
+        console.log('✅ SHORTLISTED: Profile fetched successfully:', userProfile);
+        setSelectedApplicant({
+          ...applicant,
+          userProfile: userProfile.userProfile,
+          profileData: userProfile
+        });
+      } else {
+        console.error('❌ SHORTLISTED: Failed to fetch profile:', response.status);
+        setSelectedApplicant({
+          ...applicant,
+          userProfile: null,
+          profileData: null
+        });
+      }
+      setIsProfileModalOpen(true);
+    } catch (error) {
+      console.error('❌ SHORTLISTED: Error fetching profile:', error);
+      setSelectedApplicant({
+        ...applicant,
+        userProfile: null,
+        profileData: null
+      });
+      setIsProfileModalOpen(true);
+    }
   };
 
   const handleRemoveFromShortlist = (id: string) => {
@@ -131,7 +157,7 @@ export function ShortlistedApplicantsModal({
                         <div className="space-y-1">
                           <CardTitle className="text-lg flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            {applicant.applicantName}
+                            {applicant.name}
                           </CardTitle>
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Briefcase className="h-4 w-4" />
@@ -166,20 +192,18 @@ export function ShortlistedApplicantsModal({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Calendar className="h-4 w-4" />
-                          <span>Shortlisted on {format(new Date(applicant.dateShortlisted), "MMM d, yyyy")}</span>
+                          <span>Applied {applicant.appliedDate ? new Date(applicant.appliedDate).toLocalDateString() : 'Recently'}</span>
                         </div>
                         
-                        {applicant.note && (
-                          <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <StickyNote className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span className="italic">"{applicant.note}"</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <User className="h-4 w-4" />
+                          <span>{applicant.email}</span>
+                        </div>
                       </div>
                       
                       <div className="mt-3 pt-3 border-t border-gray-100">
-                        <Badge variant="secondary" className="text-xs">
-                          Job ID: {applicant.jobId}
+                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                          Shortlisted
                         </Badge>
                       </div>
                     </CardContent>
@@ -191,11 +215,76 @@ export function ShortlistedApplicantsModal({
         </DialogContent>
       </Dialog>
 
-      {/* DetailedProfileModal temporarily disabled until component is created */}
+      {/* Profile Modal */}
       {selectedApplicant && isProfileModalOpen && (
-        <div className="hidden">
-          Profile modal would open here for {selectedApplicant.name}
-        </div>
+        <Dialog open={isProfileModalOpen} onOpenChange={() => {
+          setIsProfileModalOpen(false);
+          setSelectedApplicant(null);
+        }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+                Profile Details - {selectedApplicant.name}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Header Section */}
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+                      {selectedApplicant.name}
+                    </h2>
+                    <p className="text-lg text-slate-600 dark:text-slate-400 mb-1">
+                      {selectedApplicant.jobTitle}
+                    </p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {selectedApplicant.email}
+                    </p>
+                  </div>
+                  <Badge className="bg-blue-100 text-blue-800 border-0">
+                    Shortlisted
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Profile Content */}
+              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-200">
+                  Comprehensive Profile
+                </h3>
+                
+                {selectedApplicant.userProfile ? (
+                  <div className="prose prose-slate dark:prose-invert max-w-none">
+                    <div 
+                      className="whitespace-pre-wrap text-sm leading-relaxed"
+                      dangerouslySetInnerHTML={{ 
+                        __html: selectedApplicant.userProfile
+                          .replace(/^# /gm, '<h1 class="text-xl font-bold mt-6 mb-3">')
+                          .replace(/^## /gm, '<h2 class="text-lg font-semibold mt-4 mb-2">')
+                          .replace(/^### /gm, '<h3 class="text-md font-medium mt-3 mb-2">')
+                          .replace(/^\*\*(.*?)\*\*/gm, '<strong>$1</strong>')
+                          .replace(/^\* (.*?)$/gm, '<li>$1</li>')
+                          .replace(/^• (.*?)$/gm, '<li>$1</li>')
+                          .replace(/\n\n/g, '</p><p>')
+                          .replace(/^(?!<[h|l])/gm, '<p>')
+                          .replace(/$(?![>])/gm, '</p>')
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <User className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                    <p className="text-slate-500 dark:text-slate-400">
+                      Profile information is not available for this candidate.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
