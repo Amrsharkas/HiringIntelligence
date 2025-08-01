@@ -2677,23 +2677,33 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const userId = req.user.id;
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       
-      console.log(`Accepting applicant ${applicantId}...`);
+      console.log(`🔄 Accepting applicant ${applicantId}...`);
       
       // Get applicant details first
       const allApplicants = await realApplicantsAirtableService.getAllApplicants();
       const applicant = allApplicants.find(app => app.id === applicantId);
       
       if (!applicant) {
+        console.log(`❌ Applicant ${applicantId} not found`);
         return res.status(404).json({ message: "Applicant not found" });
       }
 
       // Get organization for company name
       const organization = await storage.getOrganizationByUser(userId);
       if (!organization) {
+        console.log(`❌ Organization not found for user ${userId}`);
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      // Create job match record
+      console.log(`🔄 Updating status to 'Accepted' in Airtable for applicant ${applicant.name}...`);
+      
+      // First, update the status in Airtable to "Accepted"
+      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'Accepted');
+      
+      console.log(`✅ Status updated to 'Accepted' in Airtable for ${applicant.name}`);
+      
+      // Then create job match record
+      console.log(`🔄 Creating job match record for ${applicant.name}...`);
       await jobMatchesAirtableService.createJobMatch(
         applicant.name,
         applicant.userId || applicant.id, // Use userId if available, otherwise use record ID
@@ -2702,15 +2712,18 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         organization.companyName
       );
 
-      console.log(`✅ Successfully accepted applicant ${applicant.name} and created job match`);
+      console.log(`✅ Successfully accepted applicant ${applicant.name}: Status updated + Job match created`);
       res.json({ 
         success: true, 
-        message: "Applicant accepted and job match created",
-        applicant 
+        message: "Candidate successfully accepted and status updated",
+        applicant: {
+          ...applicant,
+          status: 'Accepted'
+        }
       });
     } catch (error) {
-      console.error("Error accepting real applicant:", error);
-      res.status(500).json({ message: "Failed to accept applicant" });
+      console.error("❌ Error accepting real applicant:", error);
+      res.status(500).json({ message: "Error: Failed to update candidate status in Airtable. Please try again." });
     }
   });
 
@@ -2732,6 +2745,29 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("Error declining real applicant:", error);
       res.status(500).json({ message: "Failed to decline applicant" });
+    }
+  });
+
+  // Shortlist applicant
+  app.post('/api/real-applicants/:id/shortlist', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      
+      console.log(`🌟 Adding applicant ${applicantId} to shortlist...`);
+      
+      // Update the status in Airtable to "Shortlisted"
+      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'shortlisted');
+      
+      console.log(`✅ Successfully shortlisted applicant ${applicantId}`);
+      res.json({ 
+        success: true, 
+        message: "Candidate added to shortlist successfully",
+        status: 'Shortlisted'
+      });
+    } catch (error) {
+      console.error("❌ Error shortlisting applicant:", error);
+      res.status(500).json({ message: "Failed to add candidate to shortlist" });
     }
   });
 

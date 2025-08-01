@@ -277,7 +277,7 @@ class RealApplicantsAirtableService {
     }
   }
 
-  async updateApplicantStatus(recordId: string, status: 'accepted' | 'denied'): Promise<void> {
+  async updateApplicantStatus(recordId: string, status: 'accepted' | 'denied' | 'shortlisted'): Promise<void> {
     try {
       console.log(`Updating applicant ${recordId} status to ${status}...`);
       
@@ -291,7 +291,7 @@ class RealApplicantsAirtableService {
           },
           body: JSON.stringify({
             fields: {
-              'Status': status === 'accepted' ? 'Accepted' : 'Denied'
+              'Status': status === 'accepted' ? 'Accepted' : status === 'shortlisted' ? 'Shortlisted' : 'Denied'
             }
           })
         }

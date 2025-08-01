@@ -1,0 +1,79 @@
+1. 🚨 BUG FIX: "Accept Candidate" Button Throws Error
+Current Issue:
+When pressing the "Accept Candidate" button within the applicant modal, the system returns an error and fails to update the candidate’s status in Airtable.
+
+Required Behavior:
+
+✅ When the button is clicked:
+
+The system must update the candidate’s status to "Accepted" in Airtable (in the correct base and table).
+
+This update must include any related fields (e.g., status, shortlist, accepted, interview_stage, etc.).
+
+The update must be fully confirmed before triggering any follow-up logic.
+
+🔄 No follow-up logic (e.g., opening face-to-face interview scheduler or status advancement) should run until Airtable confirms that the status update is successful.
+
+📬 A visual confirmation message should appear saying:
+
+✅ Candidate successfully accepted and status updated.
+
+❌ If there’s any failure (network issue, Airtable delay, wrong base/table/field names), a clear error message should be shown (e.g., "Error: Failed to update candidate status in Airtable. Please try again.") — no silent failures allowed.
+
+2. ⭐ NEW FEATURE: "Shortlist" Button & Modal Inside Applicants Modal
+Goal:
+Allow employers to shortlist candidates directly from the applicants modal and view the shortlist separately.
+
+What to Build:
+
+Add a “Shortlist” button next to each applicant’s card inside the applicant modal.
+
+When clicked:
+
+That candidate is marked in Airtable with a field like shortlisted: true.
+
+Show a toast saying:
+
+📥 Candidate added to shortlist.
+
+Add a "View Shortlist" button (or tab) in the modal:
+
+Clicking it shows only candidates marked as shortlisted: true.
+
+Each candidate entry must have a "View Full Profile" button (see next section).
+
+3. 📄 ENSURE FULL PROFILE IS FETCHED & DISPLAYED ACCURATELY
+Problem:
+Currently, pressing “View Profile” does not fetch the complete, accurate, and processed profile.
+
+Required Behavior:
+
+When "View Profile" is clicked (whether in applicant view or shortlist):
+
+🔁 Fetch and display the following:
+
+Manually filled profile info (personal info, skills, education, etc.).
+
+AI Interview Analysis:
+
+Technical skills evaluation.
+
+Experience evaluation.
+
+Cultural fit evaluation.
+
+An overall blunt summary — NOT sugarcoated.
+
+Statements like:
+
+“The candidate demonstrated strong technical ability BUT struggled to explain real-world applications.”
+
+“Claims knowledge of XYZ tools but gave surface-level answers with no examples.”
+
+“Mentioned certifications but failed to provide proof; requires verification.”
+
+🧠 If the answers are weak, this should be clearly written in the summary (e.g., “Candidate lacked clarity in multiple answers and failed to show depth in critical thinking.”).
+
+💡 Each section should include suggested face-to-face interview follow-up questions based on weak points or gaps.
+
+💾 All this data must be saved and synced with Airtable under appropriate fields (full_profile_data, ai_summary, recommendations, etc.).
