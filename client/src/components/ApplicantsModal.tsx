@@ -21,7 +21,8 @@ import {
   XCircle,
   Eye,
   Clock,
-  Star
+  Star,
+  Phone
 } from "lucide-react";
 
 interface Applicant {
@@ -144,23 +145,32 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   // Function to fetch and display user profile
   const handleViewProfile = async (applicant: Applicant) => {
     try {
-      console.log('Fetching profile for user ID:', applicant.userId);
+      console.log('🔍 Fetching profile for:', applicant.name, 'User ID:', applicant.userId);
       
-      // Fetch detailed user profile
-      const response = await fetch(`/api/user-profile/${applicant.userId}`);
+      // Try to fetch detailed user profile using the name as identifier
+      const response = await fetch(`/api/user-profile/${encodeURIComponent(applicant.name)}`);
       if (response.ok) {
         const userProfile = await response.json();
-        console.log('User profile fetched:', userProfile);
+        console.log('✅ User profile fetched successfully:', userProfile);
         setSelectedUserProfile(userProfile);
       } else {
-        console.error('Failed to fetch user profile:', response.status);
-        setSelectedUserProfile(null);
+        console.error('❌ Failed to fetch user profile:', response.status, response.statusText);
+        // Try with userId as fallback
+        const fallbackResponse = await fetch(`/api/user-profile/${encodeURIComponent(applicant.userId)}`);
+        if (fallbackResponse.ok) {
+          const fallbackProfile = await fallbackResponse.json();
+          console.log('✅ Fallback profile fetched:', fallbackProfile);
+          setSelectedUserProfile(fallbackProfile);
+        } else {
+          console.error('❌ Fallback profile fetch also failed:', fallbackResponse.status);
+          setSelectedUserProfile(null);
+        }
       }
       
       // Set selected applicant to show the modal
       setSelectedApplicant(applicant);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error fetching user profile:', error);
       setSelectedUserProfile(null);
       setSelectedApplicant(applicant);
     }
@@ -417,10 +427,50 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">Complete Profile</h3>
                   
                   {selectedUserProfile ? (
-                    <div>
+                    <div className="space-y-6">
+                    
+                    {/* Professional Summary */}
+                    {selectedUserProfile.professionalSummary && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Professional Summary</label>
+                        <p className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md">
+                          {selectedUserProfile.professionalSummary}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Work Experience */}
+                    {selectedUserProfile.workExperience && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Work Experience</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
+                          {selectedUserProfile.workExperience}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Education */}
+                    {selectedUserProfile.education && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Education</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
+                          {selectedUserProfile.education}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {selectedUserProfile.skills && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Skills & Competencies</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
+                          {selectedUserProfile.skills}
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Basic Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedUserProfile.age && (
                         <div>
                           <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Age</label>
@@ -467,21 +517,73 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
                     {/* Skills */}
                     {selectedUserProfile.skills && (
-                      <div className="mb-4">
-                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Skills</label>
-                        <p className="text-slate-800 dark:text-slate-200 mt-1 leading-relaxed">
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Skills & Competencies</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
                           {selectedUserProfile.skills}
-                        </p>
+                        </div>
                       </div>
                     )}
+                    
+                    {/* Basic Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedUserProfile.age && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Age</label>
+                          <p className="text-slate-800 dark:text-slate-200 mt-1">{selectedUserProfile.age}</p>
+                        </div>
+                      )}
+
+                      {selectedUserProfile.location && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Location</label>
+                          <p className="text-slate-800 dark:text-slate-200 mt-1">{selectedUserProfile.location}</p>
+                        </div>
+                      )}
+
+                      {selectedUserProfile.salaryExpectation && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Salary Expectation</label>
+                          <p className="text-slate-800 dark:text-slate-200 mt-1">{selectedUserProfile.salaryExpectation}</p>
+                        </div>
+                      )}
+
+                      {selectedUserProfile.experienceLevel && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Experience Level</label>
+                          <p className="text-slate-800 dark:text-slate-200 mt-1">{selectedUserProfile.experienceLevel}</p>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Additional Information */}
                     {selectedUserProfile.additionalInfo && (
                       <div>
-                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Additional Information</label>
-                        <p className="text-slate-800 dark:text-slate-200 mt-1 leading-relaxed">
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Additional Information</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
                           {selectedUserProfile.additionalInfo}
-                        </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Contact Information */}
+                    {(selectedUserProfile.email || selectedUserProfile.phone) && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Contact Information</label>
+                        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-md space-y-2">
+                          {selectedUserProfile.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-slate-500" />
+                              <span className="text-slate-800 dark:text-slate-200">{selectedUserProfile.email}</span>
+                            </div>
+                          )}
+                          {selectedUserProfile.phone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-500" />
+                              <span className="text-slate-800 dark:text-slate-200">{selectedUserProfile.phone}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                     </div>
@@ -498,7 +600,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                 </div>
 
                 {/* Fallback Experience Section */}
-                {!selectedUserProfile && selectedApplicant.experience && (
+                {!selectedUserProfile && selectedApplicant?.experience && (
                   <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">Experience</h3>
                     <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -508,7 +610,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                 )}
 
                 {/* Fallback Skills Section */}
-                {!selectedUserProfile && selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
+                {!selectedUserProfile && selectedApplicant?.skills && selectedApplicant.skills.length > 0 && (
                   <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">Skills & Competencies</h3>
                     <div className="flex flex-wrap gap-2">
@@ -525,8 +627,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                 <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                   <Button
                     onClick={() => {
-                      handleAccept(selectedApplicant);
-                      setSelectedApplicant(null);
+                      if (selectedApplicant) {
+                        handleAccept(selectedApplicant);
+                        setSelectedApplicant(null);
+                      }
                     }}
                     disabled={acceptMutation.isPending}
                     className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
@@ -537,8 +641,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      handleDecline(selectedApplicant.id);
-                      setSelectedApplicant(null);
+                      if (selectedApplicant) {
+                        handleDecline(selectedApplicant.id);
+                        setSelectedApplicant(null);
+                      }
                     }}
                     disabled={declineMutation.isPending}
                     className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 px-6 py-2"
