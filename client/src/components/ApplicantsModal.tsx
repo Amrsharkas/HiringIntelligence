@@ -429,22 +429,42 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   {selectedUserProfile ? (
                     <div className="space-y-6">
                     
+                    {/* Full User Profile - Main Content */}
+                    {selectedUserProfile.userProfile && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Complete Profile</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line max-h-96 overflow-y-auto">
+                          {selectedUserProfile.userProfile}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Professional Summary */}
                     {selectedUserProfile.professionalSummary && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Professional Summary</label>
-                        <p className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md">
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
                           {selectedUserProfile.professionalSummary}
-                        </p>
+                        </div>
                       </div>
                     )}
 
                     {/* Work Experience */}
-                    {selectedUserProfile.workExperience && (
+                    {(selectedUserProfile.workExperience || selectedUserProfile.experience) && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Work Experience</label>
                         <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
-                          {selectedUserProfile.workExperience}
+                          {selectedUserProfile.workExperience || selectedUserProfile.experience}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Years of Experience */}
+                    {selectedUserProfile.yearsExperience && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Years of Experience</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md">
+                          {selectedUserProfile.yearsExperience}
                         </div>
                       </div>
                     )}
@@ -525,6 +545,79 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                       </div>
                     )}
                     
+                    {/* Certifications */}
+                    {selectedUserProfile.certifications && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Certifications</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
+                          {selectedUserProfile.certifications}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Languages */}
+                    {selectedUserProfile.languages && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Languages</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
+                          {selectedUserProfile.languages}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Interests */}
+                    {selectedUserProfile.interests && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Interests</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
+                          {selectedUserProfile.interests}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cover Letter */}
+                    {selectedUserProfile.coverLetter && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Cover Letter</label>
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line max-h-48 overflow-y-auto">
+                          {selectedUserProfile.coverLetter}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Professional Links */}
+                    {(selectedUserProfile.linkedinProfile || selectedUserProfile.githubProfile || selectedUserProfile.portfolioLink) && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Professional Links</label>
+                        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-md space-y-2">
+                          {selectedUserProfile.linkedinProfile && (
+                            <div>
+                              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">LinkedIn:</span>
+                              <a href={selectedUserProfile.linkedinProfile} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline ml-2">
+                                {selectedUserProfile.linkedinProfile}
+                              </a>
+                            </div>
+                          )}
+                          {selectedUserProfile.githubProfile && (
+                            <div>
+                              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">GitHub:</span>
+                              <a href={selectedUserProfile.githubProfile} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline ml-2">
+                                {selectedUserProfile.githubProfile}
+                              </a>
+                            </div>
+                          )}
+                          {selectedUserProfile.portfolioLink && (
+                            <div>
+                              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Portfolio:</span>
+                              <a href={selectedUserProfile.portfolioLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline ml-2">
+                                {selectedUserProfile.portfolioLink}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedUserProfile.age && (
@@ -552,6 +645,20 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                         <div>
                           <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Experience Level</label>
                           <p className="text-slate-800 dark:text-slate-200 mt-1">{selectedUserProfile.experienceLevel}</p>
+                        </div>
+                      )}
+
+                      {selectedUserProfile.availabilityDate && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Availability Date</label>
+                          <p className="text-slate-800 dark:text-slate-200 mt-1">{selectedUserProfile.availabilityDate}</p>
+                        </div>
+                      )}
+
+                      {selectedUserProfile.workPreference && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Work Preference</label>
+                          <p className="text-slate-800 dark:text-slate-200 mt-1">{selectedUserProfile.workPreference}</p>
                         </div>
                       )}
                     </div>
