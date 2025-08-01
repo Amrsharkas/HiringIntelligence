@@ -115,10 +115,14 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     },
     onSuccess: () => {
       toast({
-        title: "Candidate successfully shortlisted",
+        description: "Candidate successfully shortlisted",
       });
+      // Invalidate all related queries immediately to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants/count"] });
+      // Force refetch immediately
+      queryClient.refetchQueries({ queryKey: ["/api/real-applicants"] });
     },
     onError: (error: any) => {
       toast({

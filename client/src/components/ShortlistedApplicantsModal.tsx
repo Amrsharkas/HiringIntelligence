@@ -53,9 +53,10 @@ export function ShortlistedApplicantsModal({
       return await apiRequest(`/api/real-applicants/${applicantId}/unshortlist`, "POST");
     },
     onSuccess: () => {
+      // Invalidate and refetch immediately for instant UI update
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/real-applicants"] });
       toast({
-        title: "Success",
         description: "Applicant removed from shortlist",
       });
     },
