@@ -90,7 +90,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   // Decline applicant mutation
   const declineMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      await apiRequest(`/api/real-applicants/${applicantId}/decline`, "POST");
+      await apiRequest("POST", `/api/real-applicants/${applicantId}/decline`);
     },
     onSuccess: () => {
       toast({
@@ -111,7 +111,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   // Shortlist applicant mutation
   const shortlistMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      await apiRequest(`/api/real-applicants/${applicantId}/shortlist`, "POST");
+      await apiRequest("POST", `/api/real-applicants/${applicantId}/shortlist`);
     },
     onSuccess: () => {
       toast({
