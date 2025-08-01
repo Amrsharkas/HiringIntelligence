@@ -1573,6 +1573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fields = profileRecord.fields;
       
       console.log(`✅ Found profile! Available fields: ${Object.keys(fields).join(', ')}`);
+      console.log(`🔍 Raw profile data for debugging:`, JSON.stringify(fields, null, 2));
       
       const profile = {
         id: profileRecord.id,
@@ -1581,7 +1582,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: fields['Email'] || fields['email'] || null,
         phone: fields['Phone'] || fields['phone'] || null,
         location: fields['Location'] || fields['location'] || null,
-        userProfile: fields['User profile'] || fields['user profile'] || '',
+        // Try multiple field name variations for user profile content
+        userProfile: fields['User profile'] || fields['user profile'] || fields['User Profile'] || fields['Profile'] || fields['profile'] || '',
+        professionalSummary: fields['Professional Summary'] || fields['professional summary'] || '',
+        workExperience: fields['Work Experience'] || fields['work experience'] || fields['Experience'] || fields['experience'] || '',
         technicalAnalysis: fields['Technical Analysis'] || fields['technical analysis'] || '',
         personalAnalysis: fields['Personal Analysis'] || fields['personal analysis'] || '',
         professionalAnalysis: fields['Professional Analysis'] || fields['professional analysis'] || '',
@@ -1600,13 +1604,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         education: fields['Education'] || fields['education'] || null,
         certifications: fields['Certifications'] || fields['certifications'] || null,
         skills: fields['Skills'] || fields['skills'] || null,
-        experience: fields['Experience'] || fields['experience'] || null,
         languages: fields['Languages'] || fields['languages'] || null,
         interests: fields['Interests'] || fields['interests'] || null,
         coverLetter: fields['Cover Letter'] || fields['cover letter'] || null,
+        // Include all raw fields for debugging
+        rawFields: fields
       };
 
       console.log(`✅ Profile data prepared for: ${profile.name}, User Profile length: ${profile.userProfile.length} characters`);
+      console.log(`🔍 Profile data being sent to frontend:`, profile);
       res.json(profile);
       
     } catch (error) {
