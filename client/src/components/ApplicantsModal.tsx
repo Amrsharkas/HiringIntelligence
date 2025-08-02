@@ -121,8 +121,9 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/applicants/count"] });
-      // Force refetch immediately
+      // Force refetch immediately for both endpoints
       queryClient.refetchQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/shortlisted-applicants"] });
     },
     onError: (error: any) => {
       toast({

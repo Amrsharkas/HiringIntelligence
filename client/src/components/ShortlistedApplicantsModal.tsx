@@ -38,24 +38,22 @@ export function ShortlistedApplicantsModal({
   const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  // Fetch shortlisted applicants from real-applicants endpoint
-  const { data: applicants = [], isLoading } = useQuery<any[]>({
-    queryKey: ["/api/real-applicants"],
+  // Fetch shortlisted applicants from dedicated shortlisted endpoint
+  const { data: shortlistedApplicants = [], isLoading } = useQuery<ShortlistedApplicant[]>({
+    queryKey: ["/api/shortlisted-applicants"],
     enabled: isOpen,
     refetchOnWindowFocus: false,
   });
 
-  // Filter to show only shortlisted applicants
-  const shortlistedApplicants = applicants.filter(app => app.status?.toLowerCase() === 'shortlisted');
-
   const removeFromShortlistMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      return await apiRequest(`/api/real-applicants/${applicantId}/unshortlist`, "POST");
+      return await apiRequest("POST", `/api/real-applicants/${applicantId}/unshortlist`);
     },
     onSuccess: () => {
       // Invalidate and refetch immediately for instant UI update
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
-      queryClient.refetchQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/shortlisted-applicants"] });
       toast({
         description: "Applicant removed from shortlist",
       });
