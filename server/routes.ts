@@ -503,12 +503,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Instantly sync new job to Airtable and store record ID
       try {
+        // Build comprehensive salary information
+        let salaryInfo = job.salaryRange || '';
+        if (job.salaryMin && job.salaryMax) {
+          const currency = job.salaryRange?.includes('EGP') ? 'EGP' : 'USD';
+          salaryInfo = `${job.salaryMin}-${job.salaryMax} ${currency}`;
+          if (job.salaryNegotiable) salaryInfo += ' (Negotiable)';
+        }
+        
         const airtableRecordId = await jobPostingsAirtableService.addJobToAirtable({
           jobId: job.id.toString(),
           title: job.title,
           description: `${job.description}\n\nRequirements:\n${job.requirements}`,
           location: job.location,
-          salary: job.salaryRange || '',
+          salary: salaryInfo,
           company: companyName,
           employerQuestions: job.employerQuestions || []
         });

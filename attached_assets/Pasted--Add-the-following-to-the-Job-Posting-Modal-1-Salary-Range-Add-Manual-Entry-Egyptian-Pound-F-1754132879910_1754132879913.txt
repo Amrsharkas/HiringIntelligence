@@ -1,0 +1,82 @@
+
+✅ Add the following to the Job Posting Modal:
+1. Salary Range — Add Manual Entry + Egyptian Pound Formatting
+Keep current salary functionality as-is.
+
+Add new option for employers to:
+
+Enter "From" and "To" salary range manually (two input boxes).
+
+Format: EGP only (no currency selector).
+
+Add predefined dropdown ranges as quick selections (e.g., 8K–12K EGP, 12K–18K EGP) — selecting one should auto-fill the fields but still allow editing.
+
+Add an optional checkbox like “Negotiable” that overrides the range.
+
+Validation: Prevent extremely wide gaps unless intentionally marked as open-ended.
+
+2. Soft Skills — Add Dropdown + Manual Input
+Keep current soft skills entry.
+
+Add dropdown with common soft skills (e.g., Communication, Time Management, Teamwork).
+
+Allow employers to also manually enter custom skills.
+
+Both dropdown selections and manual entries should appear as tags below the input.
+
+3. Technical Skills — Add Dropdown + Manual Input
+Keep current technical skills logic.
+
+Add a suggested dropdown list based on job title/role (use AI context detection if possible).
+
+Allow manual writing of technical skills not listed in the dropdown.
+
+Display all skills (from dropdown or manual input) as tags.
+
+🧱 Add These New Metadata Fields (Just as Add-ons):
+All of the following are to be placed at the bottom or near the requirement section, without altering the current logic.
+
+A. Employment Type
+Dropdown: Full-time, Part-time, Freelance, Contract, Internship
+
+Required field
+
+Helps match candidate availability.
+
+B. Workplace Type
+Dropdown: On-site, Remote, Hybrid
+
+Required field
+
+Supports flexibility matching.
+
+C. Seniority Level
+Dropdown: Entry-level, Junior, Mid-level, Senior, Lead
+
+Required field
+
+Ensures experience expectations are clear.
+
+D. Industry
+Dropdown or tag selector (Tech, Marketing, Education, Finance, Legal, etc.)
+
+Required
+
+Assists with search and filtering.
+
+E. Languages Required
+Multi-select dropdown with fluency level: Basic / Intermediate / Fluent / Native
+
+Optional but helpful for roles requiring communication or localization.
+
+F. Certifications (Optional)
+Text input field for any required or preferred certifications (e.g., PMP, CPA).
+
+🔄 UX & Integration Guidelines:
+The current workflow and logic must remain intact — no fields or flows are to be removed or renamed.
+
+These enhancements are additions only and should not interfere with the existing job posting behavior.
+
+New fields should enhance the AI’s ability to match and filter candidates more accurately — especially if candidate filtering is based on job metadata.
+
+Use clear validation where applicable (e.g., salary range should not be negative or reversed).
