@@ -361,9 +361,10 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   });
 
   const generateDescription = async () => {
-    const jobTitle = form.getValues("title");
-    const location = form.getValues("location");
-    if (!jobTitle) {
+    const formData = form.getValues();
+    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, location } = formData;
+    
+    if (!title) {
       toast({
         title: "Missing Information",
         description: "Please enter a job title first.",
@@ -375,13 +376,34 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     setIsGeneratingDescription(true);
     try {
       const response = await apiRequest("POST", "/api/ai/generate-description", {
-        jobTitle,
-        location: location || "Remote",
-        companyName: (organization as any)?.name || "Our Company",
+        jobTitle: title,
+        employmentType,
+        workplaceType,
+        seniorityLevel,
+        industry,
+        certifications,
+        location: location || "Cairo, Egypt",
+        languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
+        companyName: (organization as any)?.companyName || "Our Company",
       });
       const data = await response.json();
       form.setValue("description", data.description);
+      toast({
+        title: "Description Generated",
+        description: "AI created a comprehensive job description based on all your inputs.",
+      });
     } catch (error) {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
       toast({
         title: "Error",
         description: "Failed to generate description. Please try again.",
@@ -393,10 +415,10 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   };
 
   const generateRequirements = async () => {
-    const jobTitle = form.getValues("title");
-    const jobDescription = form.getValues("description");
+    const formData = form.getValues();
+    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, description } = formData;
     
-    if (!jobTitle) {
+    if (!title) {
       toast({
         title: "Missing Information",
         description: "Please enter a job title first.",
@@ -408,12 +430,33 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     setIsGeneratingRequirements(true);
     try {
       const response = await apiRequest("POST", "/api/ai/generate-requirements", {
-        jobTitle,
-        jobDescription,
+        jobTitle: title,
+        employmentType,
+        workplaceType,
+        seniorityLevel,
+        industry,
+        certifications,
+        description: description || "",
+        languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
       });
       const data = await response.json();
       form.setValue("requirements", data.requirements);
+      toast({
+        title: "Requirements Generated",
+        description: "AI created detailed requirements based on your job specifications.",
+      });
     } catch (error) {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
       toast({
         title: "Error",
         description: "Failed to generate requirements. Please try again.",
@@ -522,9 +565,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       technicalSkills: selectedTechnicalSkills,
       employerQuestions: employerQuestionsArray,
       languagesRequired: validLanguages,
-      // Convert salary values to numbers if they exist
-      salaryMin: data.salaryMin ? parseInt(data.salaryMin) : null,
-      salaryMax: data.salaryMax ? parseInt(data.salaryMax) : null,
+      // Convert salary values to numbers if they exist  
+      salaryMin: data.salaryMin ? parseInt(data.salaryMin) : undefined,
+      salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
     };
 
     if (editJob) {
@@ -715,7 +758,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   <div className="flex items-center gap-2 mb-2">
                     <Checkbox
                       checked={usesEgpSalary}
-                      onCheckedChange={setUsesEgpSalary}
+                      onCheckedChange={(checked) => setUsesEgpSalary(checked === true)}
                     />
                     <Label className="text-sm">Use Egyptian Pound (EGP)</Label>
                   </div>

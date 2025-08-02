@@ -1158,8 +1158,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered job content generation
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
     try {
-      const { jobTitle, companyName, location } = req.body;
-      const description = await generateJobDescription(jobTitle, companyName, location);
+      const { 
+        jobTitle, 
+        companyName, 
+        location, 
+        employmentType, 
+        workplaceType, 
+        seniorityLevel, 
+        industry, 
+        certifications, 
+        languagesRequired 
+      } = req.body;
+      
+      const description = await generateJobDescription(
+        jobTitle, 
+        companyName, 
+        location, 
+        {
+          employmentType,
+          workplaceType,
+          seniorityLevel,
+          industry,
+          certifications,
+          languagesRequired
+        }
+      );
       res.json({ description });
     } catch (error) {
       console.error("Error generating description:", error);
@@ -1169,8 +1192,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
     try {
-      const { jobTitle, jobDescription } = req.body;
-      const requirements = await generateJobRequirements(jobTitle, jobDescription);
+      const { 
+        jobTitle, 
+        description, 
+        employmentType, 
+        workplaceType, 
+        seniorityLevel, 
+        industry, 
+        certifications, 
+        languagesRequired 
+      } = req.body;
+      
+      const requirements = await generateJobRequirements(
+        jobTitle, 
+        description, 
+        {
+          employmentType,
+          workplaceType,
+          seniorityLevel,
+          industry,
+          certifications,
+          languagesRequired
+        }
+      );
       res.json({ requirements });
     } catch (error) {
       console.error("Error generating requirements:", error);
