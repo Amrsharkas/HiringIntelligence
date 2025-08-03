@@ -1,7 +1,12 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
+if (!process.env.OPENAI_API_KEY) {
+  console.error("❌ OPENAI_API_KEY environment variable is not set");
+  throw new Error("OpenAI API key is required");
+}
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function generateJobDescription(
   jobTitle: string, 
@@ -64,7 +69,11 @@ Write in clear, accessible language that attracts top talent.`;
 
     return response.choices[0].message.content || "";
   } catch (error) {
-    throw new Error("Failed to generate job description: " + (error as Error).message);
+    console.error("❌ OpenAI API error in generateJobDescription:", error);
+    if (error instanceof Error) {
+      throw new Error("Failed to generate job description: " + error.message);
+    }
+    throw new Error("Failed to generate job description due to an unknown error");
   }
 }
 
@@ -144,7 +153,11 @@ Write in clear, professional language suitable for Egyptian job market.`;
 
     return response.choices[0].message.content || "";
   } catch (error) {
-    throw new Error("Failed to generate job requirements: " + (error as Error).message);
+    console.error("❌ OpenAI API error in generateJobRequirements:", error);
+    if (error instanceof Error) {
+      throw new Error("Failed to generate job requirements: " + error.message);
+    }
+    throw new Error("Failed to generate job requirements due to an unknown error");
   }
 }
 
