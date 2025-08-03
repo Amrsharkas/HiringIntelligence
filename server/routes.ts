@@ -2873,14 +2873,42 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.post('/api/real-applicants/:id/shortlist', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
+      const employerId = req.user.id;
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       
       console.log(`🌟 Adding applicant ${applicantId} to shortlist...`);
       
+      // Get the applicant details from Airtable first
+      const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
+      if (!applicant) {
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+      
       // Update the status in Airtable to "Shortlisted"
       await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'shortlisted');
       
-      console.log(`✅ Successfully shortlisted applicant ${applicantId}`);
+      // Check if already shortlisted to avoid duplicates
+      const isAlreadyShortlisted = await storage.isApplicantShortlisted(employerId, applicantId, applicant.jobId || '');
+      
+      if (!isAlreadyShortlisted) {
+        // Add to the shortlisted_applicants table for proper tracking
+        const shortlistedData = {
+          employerId: employerId,
+          applicantId: applicantId,
+          applicantName: applicant.name,
+          jobTitle: applicant.jobTitle || 'Unknown Position',
+          jobId: applicant.jobId || '',
+          dateShortlisted: new Date().toISOString(),
+          note: ''
+        };
+        
+        await storage.addToShortlist(shortlistedData);
+        console.log(`✅ Added applicant ${applicantId} to shortlisted_applicants table`);
+      } else {
+        console.log(`⚠️ Applicant ${applicantId} already shortlisted, skipping database insert`);
+      }
+      
+      console.log(`✅ Successfully shortlisted applicant ${applicantId} in both Airtable and database`);
       res.json({ 
         success: true, 
         message: "Candidate added to shortlist successfully",
@@ -2896,12 +2924,23 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.post('/api/real-applicants/:id/unshortlist', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
+      const employerId = req.user.id;
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       
       console.log(`🗑️ Removing applicant ${applicantId} from shortlist...`);
       
       // Update the status in Airtable back to "pending" or empty
       await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'pending');
+      
+      // Remove from shortlisted_applicants table
+      // First find the shortlisted record by applicantId and employerId
+      const shortlistedApplicants = await storage.getShortlistedApplicants(employerId);
+      const shortlistedRecord = shortlistedApplicants.find(sa => sa.applicantId === applicantId);
+      
+      if (shortlistedRecord) {
+        await storage.removeFromShortlist(shortlistedRecord.id);
+        console.log(`✅ Removed applicant ${applicantId} from shortlisted_applicants table`);
+      }
       
       console.log(`✅ Successfully removed applicant ${applicantId} from shortlist`);
       res.json({ 
