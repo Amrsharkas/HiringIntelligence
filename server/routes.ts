@@ -1157,6 +1157,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI-powered job content generation
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
+    console.log('🚀 AI DESCRIPTION ENDPOINT HIT!');
+    console.log('🚀 Request method:', req.method);
+    console.log('🚀 Request path:', req.path);
+    console.log('🚀 Request headers:', JSON.stringify(req.headers, null, 2));
     try {
       console.log('🤖 AI Description generation request received:', JSON.stringify(req.body, null, 2));
       
@@ -1203,6 +1207,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
+    console.log('🚀 AI REQUIREMENTS ENDPOINT HIT!');
+    console.log('🚀 Request method:', req.method);
+    console.log('🚀 Request path:', req.path);
+    console.log('🚀 Request headers:', JSON.stringify(req.headers, null, 2));
     try {
       console.log('🤖 AI Requirements generation request received:', JSON.stringify(req.body, null, 2));
       
