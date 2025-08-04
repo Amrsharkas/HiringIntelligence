@@ -1156,6 +1156,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI-powered job content generation
+  // Test authentication endpoint  
+  app.get('/api/test-auth', requireAuth, (req: any, res) => {
+    res.json({ 
+      message: "Authentication working", 
+      userId: req.user?.id,
+      userEmail: req.user?.email 
+    });
+  });
+
+  // Debug authentication endpoint for troubleshooting
+  app.post('/api/debug-auth', (req: any, res) => {
+    res.json({
+      isAuthenticated: req.isAuthenticated?.(),
+      user: req.user ? { 
+        id: req.user.id, 
+        email: req.user.email,
+        firstName: req.user.firstName 
+      } : null,
+      sessionID: req.sessionID,
+      hasSession: !!req.session,
+      cookies: req.headers.cookie ? 'Present' : 'Missing'
+    });
+  });
+
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
     try {
       console.log("🤖 AI Generate Description Request:", {
