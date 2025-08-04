@@ -1,7 +1,13 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is required");
+}
+
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 export async function generateJobDescription(
   jobTitle: string, 
@@ -17,6 +23,8 @@ export async function generateJobDescription(
   }
 ): Promise<string> {
   try {
+    console.log("🤖 generateJobDescription called with:", { jobTitle, companyName, location, metadata });
+    
     // Build context from metadata
     const contextParts = [];
     if (metadata?.employmentType) contextParts.push(`Employment: ${metadata.employmentType}`);
@@ -49,6 +57,7 @@ Important guidelines:
 
 Write in clear, accessible language that attracts top talent.`;
 
+    console.log("🤖 Making OpenAI API call...");
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
@@ -62,9 +71,18 @@ Write in clear, accessible language that attracts top talent.`;
       temperature: 0.7,
     });
 
-    return response.choices[0].message.content || "";
-  } catch (error) {
-    throw new Error("Failed to generate job description: " + (error as Error).message);
+    console.log("✅ OpenAI API call successful");
+    const result = response.choices[0].message.content || "";
+    console.log("🤖 Generated content length:", result.length);
+    return result;
+  } catch (error: any) {
+    console.error("❌ OpenAI API Error:", error);
+    console.error("❌ Error type:", typeof error);
+    console.error("❌ Error status:", error.status);
+    console.error("❌ Error code:", error.code);
+    console.error("❌ Error message:", error.message);
+    console.error("❌ Full error object:", JSON.stringify(error, null, 2));
+    throw new Error("Failed to generate job description: " + (error.message || error.toString()));
   }
 }
 

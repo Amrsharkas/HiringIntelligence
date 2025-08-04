@@ -1157,6 +1157,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered job content generation
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
     try {
+      console.log("🤖 AI Generate Description Request:", req.body);
+      
       const { 
         jobTitle, 
         companyName, 
@@ -1169,6 +1171,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         languagesRequired 
       } = req.body;
       
+      if (!jobTitle) {
+        return res.status(400).json({ message: "Job title is required" });
+      }
+      
+      console.log("🤖 Calling generateJobDescription...");
+      const { generateJobDescription } = await import('./openai');
       const description = await generateJobDescription(
         jobTitle, 
         companyName, 
@@ -1182,15 +1190,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           languagesRequired
         }
       );
+      
+      console.log("✅ Generated description successfully");
       res.json({ description });
-    } catch (error) {
-      console.error("Error generating description:", error);
-      res.status(500).json({ message: "Failed to generate job description" });
+    } catch (error: any) {
+      console.error("❌ Error generating description:", error);
+      console.error("❌ Error message:", error.message);
+      console.error("❌ Error stack:", error.stack);
+      res.status(500).json({ 
+        message: "Failed to generate job description",
+        error: error.message 
+      });
     }
   });
 
   app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
     try {
+      console.log("🤖 AI Generate Requirements Request:", req.body);
+      
       const { 
         jobTitle, 
         description, 
@@ -1202,6 +1219,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         languagesRequired 
       } = req.body;
       
+      if (!jobTitle) {
+        return res.status(400).json({ message: "Job title is required" });
+      }
+      
+      console.log("🤖 Calling generateJobRequirements...");
+      const { generateJobRequirements } = await import('./openai');
       const requirements = await generateJobRequirements(
         jobTitle, 
         description, 
@@ -1214,10 +1237,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           languagesRequired
         }
       );
+      
+      console.log("✅ Generated requirements successfully");
       res.json({ requirements });
-    } catch (error) {
-      console.error("Error generating requirements:", error);
-      res.status(500).json({ message: "Failed to generate job requirements" });
+    } catch (error: any) {
+      console.error("❌ Error generating requirements:", error);
+      console.error("❌ Error message:", error.message);
+      console.error("❌ Error stack:", error.stack);
+      res.status(500).json({ 
+        message: "Failed to generate job requirements",
+        error: error.message 
+      });
     }
   });
 
