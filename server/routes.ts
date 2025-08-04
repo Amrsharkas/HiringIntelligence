@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
-import { generateJobDescription, generateJobRequirements } from "./ai-service";
+import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { airtableMatchingService } from "./airtableMatchingService";
 import { airtableService, AirtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
@@ -503,20 +503,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Instantly sync new job to Airtable and store record ID
       try {
-        // Build comprehensive salary information
-        let salaryInfo = job.salaryRange || '';
-        if (job.salaryMin && job.salaryMax) {
-          const currency = job.salaryRange?.includes('EGP') ? 'EGP' : 'USD';
-          salaryInfo = `${job.salaryMin}-${job.salaryMax} ${currency}`;
-          if (job.salaryNegotiable) salaryInfo += ' (Negotiable)';
-        }
-        
         const airtableRecordId = await jobPostingsAirtableService.addJobToAirtable({
           jobId: job.id.toString(),
           title: job.title,
           description: `${job.description}\n\nRequirements:\n${job.requirements}`,
           location: job.location,
-          salary: salaryInfo,
+          salary: job.salaryRange || '',
           company: companyName,
           employerQuestions: job.employerQuestions || []
         });
@@ -684,39 +676,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("❌ Error deleting job:", error);
       res.status(500).json({ message: "Failed to delete job posting" });
-    }
-  });
-
-  // AI Generation Routes
-  app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
-    try {
-      const { jobTitle } = req.body;
-      
-      if (!jobTitle) {
-        return res.status(400).json({ error: "Job title is required" });
-      }
-
-      const description = await generateJobDescription(jobTitle);
-      res.json({ description });
-    } catch (error) {
-      console.error("Error generating job description:", error);
-      res.status(500).json({ error: "Failed to generate job description" });
-    }
-  });
-
-  app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
-    try {
-      const { jobTitle } = req.body;
-      
-      if (!jobTitle) {
-        return res.status(400).json({ error: "Job title is required" });
-      }
-
-      const requirements = await generateJobRequirements(jobTitle);
-      res.json({ requirements });
-    } catch (error) {
-      console.error("Error generating job requirements:", error);
-      res.status(500).json({ error: "Failed to generate job requirements" });
     }
   });
 
@@ -1191,37 +1150,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered job content generation
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
     try {
-      const { jobTitle } = req.body;
-
-      if (!jobTitle) {
-        return res.status(400).json({ error: "Job title is required" });
-      }
-
-      const { generateJobDescription } = await import('./ai-service');
-      const description = await generateJobDescription(jobTitle);
-      
+      const { jobTitle, companyName, location } = req.body;
+      const description = await generateJobDescription(jobTitle, companyName, location);
       res.json({ description });
     } catch (error) {
       console.error("Error generating description:", error);
-      res.status(500).json({ error: "Failed to generate description" });
+      res.status(500).json({ message: "Failed to generate job description" });
     }
   });
 
   app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
     try {
-      const { jobTitle } = req.body;
-
-      if (!jobTitle) {
-        return res.status(400).json({ error: "Job title is required" });
-      }
-
-      const { generateJobRequirements } = await import('./ai-service');
-      const requirements = await generateJobRequirements(jobTitle);
-      
+      const { jobTitle, jobDescription } = req.body;
+      const requirements = await generateJobRequirements(jobTitle, jobDescription);
       res.json({ requirements });
     } catch (error) {
       console.error("Error generating requirements:", error);
-      res.status(500).json({ error: "Failed to generate requirements" });
+      res.status(500).json({ message: "Failed to generate job requirements" });
+    }
+  });
+
+  app.post('/api/ai/extract-skills', requireAuth, async (req: any, res) => {
+    try {
+      const { jobTitle, jobDescription } = req.body;
+      const skills = await extractTechnicalSkills(jobTitle, jobDescription || "");
+      res.json({ skills });
+    } catch (error) {
+      console.error("Error extracting skills:", error);
+      res.status(500).json({ message: "Failed to extract technical skills" });
+    }
+  });
+
+
+
+  app.post('/api/ai/generate-employer-questions', requireAuth, async (req: any, res) => {
+    try {
+      const { jobTitle, jobDescription, requirements } = req.body;
+      
+      if (!jobTitle) {
+        return res.status(400).json({ message: "Job title is required" });
+      }
+
+      const { generateEmployerQuestions } = await import('./openai');
+      const questions = await generateEmployerQuestions(jobTitle, jobDescription, requirements);
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating employer questions:", error);
+      res.status(500).json({ message: "Failed to generate employer questions" });
     }
   });
 
@@ -2862,29 +2837,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("❌ Error shortlisting applicant:", error);
       res.status(500).json({ message: "Failed to add candidate to shortlist" });
-    }
-  });
-
-  // Remove from shortlist (unshortlist)
-  app.post('/api/real-applicants/:id/unshortlist', requireAuth, async (req: any, res) => {
-    try {
-      const applicantId = req.params.id;
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      
-      console.log(`🗑️ Removing applicant ${applicantId} from shortlist...`);
-      
-      // Update the status in Airtable back to "pending" or empty
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'pending');
-      
-      console.log(`✅ Successfully removed applicant ${applicantId} from shortlist`);
-      res.json({ 
-        success: true, 
-        message: "Candidate removed from shortlist successfully",
-        status: 'pending'
-      });
-    } catch (error) {
-      console.error("❌ Error removing applicant from shortlist:", error);
-      res.status(500).json({ message: "Failed to remove candidate from shortlist" });
     }
   });
 

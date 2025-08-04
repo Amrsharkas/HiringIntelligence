@@ -217,20 +217,8 @@ export function setupAuth(app: Express) {
 
 // Middleware to check if user is authenticated
 export const requireAuth = (req: any, res: any, next: any) => {
-  console.log("🔐 RequireAuth check:", {
-    isAuthenticated: req.isAuthenticated(),
-    hasUser: !!req.user,
-    userId: req.user?.id,
-    sessionID: req.sessionID,
-    path: req.path,
-    method: req.method
-  });
-  
   if (!req.isAuthenticated()) {
-    console.log("❌ Authentication failed - user not authenticated");
     return res.status(401).json({ error: "Authentication required" });
   }
-  
-  console.log("✅ Authentication successful for user:", req.user?.id);
   next();
 };

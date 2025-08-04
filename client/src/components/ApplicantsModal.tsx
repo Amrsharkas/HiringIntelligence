@@ -52,6 +52,7 @@ interface ApplicantsModalProps {
 export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
+  const [showShortlist, setShowShortlist] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -90,7 +91,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   // Decline applicant mutation
   const declineMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      await apiRequest("POST", `/api/real-applicants/${applicantId}/decline`);
+      await apiRequest(`/api/real-applicants/${applicantId}/decline`, "POST");
     },
     onSuccess: () => {
       toast({
@@ -111,19 +112,14 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   // Shortlist applicant mutation
   const shortlistMutation = useMutation({
     mutationFn: async (applicantId: string) => {
-      await apiRequest("POST", `/api/real-applicants/${applicantId}/shortlist`);
+      await apiRequest(`/api/real-applicants/${applicantId}/shortlist`, "POST");
     },
     onSuccess: () => {
       toast({
-        description: "Candidate successfully shortlisted",
+        title: "📥 Candidate added to shortlist",
+        description: "The candidate has been added to your shortlist.",
       });
-      // Invalidate all related queries immediately to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/applicants/count"] });
-      // Force refetch immediately for both endpoints
-      queryClient.refetchQueries({ queryKey: ["/api/real-applicants"] });
-      queryClient.refetchQueries({ queryKey: ["/api/shortlisted-applicants"] });
     },
     onError: (error: any) => {
       toast({
@@ -194,20 +190,37 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     }
   };
 
-  // Show only non-shortlisted applicants (pending or no status)
-  const availableApplicants = applicants.filter(app => 
-    app.status?.toLowerCase() !== 'shortlisted' && 
-    app.status?.toLowerCase() !== 'accepted' &&
-    app.status?.toLowerCase() !== 'denied'
-  );
+  const pendingApplicants = applicants.filter(app => app.status?.toLowerCase() === 'pending' || !app.status);
+  const shortlistedApplicants = applicants.filter(app => app.status?.toLowerCase() === 'shortlisted');
+  const currentApplicants = showShortlist ? shortlistedApplicants : pendingApplicants;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 flex flex-col">
         <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-          <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
-            Job Applicants ({availableApplicants.length})
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
+              {showShortlist ? `Shortlisted Candidates (${shortlistedApplicants.length})` : `Job Applicants (${pendingApplicants.length})`}
+            </DialogTitle>
+            <div className="flex gap-2">
+              <Button
+                variant={!showShortlist ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowShortlist(false)}
+                className="text-xs"
+              >
+                All Applicants
+              </Button>
+              <Button
+                variant={showShortlist ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowShortlist(true)}
+                className="text-xs"
+              >
+                View Shortlist ({shortlistedApplicants.length})
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -218,19 +231,22 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                 <p className="text-slate-600 dark:text-slate-400">Loading applicants...</p>
               </div>
             </div>
-          ) : availableApplicants.length === 0 ? (
+          ) : currentApplicants.length === 0 ? (
             <div className="text-center py-16">
               <User className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-600" />
               <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-300">
-                No New Applicants
+                {showShortlist ? "No Shortlisted Candidates" : "No New Applicants"}
               </h3>
               <p className="text-slate-500 dark:text-slate-400">
-                When candidates apply to your jobs, they'll appear here for review.
+                {showShortlist 
+                  ? "Candidates you shortlist will appear here for easy access." 
+                  : "When candidates apply to your jobs, they'll appear here for review."
+                }
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {availableApplicants.map((applicant) => (
+              {currentApplicants.map((applicant) => (
                 <Card key={applicant.id} className="border border-slate-200 dark:border-slate-700 hover:shadow-sm transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -267,37 +283,41 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                           className="text-xs px-3 py-1.5 h-8"
                         >
                           <Eye className="w-3 h-3 mr-1" />
-                          View Profile
+                          {showShortlist ? "View Full Profile" : "View"}
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleShortlist(applicant.id)}
-                          disabled={shortlistMutation.isPending}
-                          className="border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 text-xs px-3 py-1.5 h-8"
-                        >
-                          <Star className="w-3 h-3 mr-1" />
-                          Shortlist
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAccept(applicant)}
-                          disabled={acceptMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Accept
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDecline(applicant.id)}
-                          disabled={declineMutation.isPending}
-                          className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 text-xs px-3 py-1.5 h-8"
-                        >
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Decline
-                        </Button>
+                        {!showShortlist && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleShortlist(applicant.id)}
+                              disabled={shortlistMutation.isPending}
+                              className="border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 text-xs px-3 py-1.5 h-8"
+                            >
+                              <Star className="w-3 h-3 mr-1" />
+                              Shortlist
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleAccept(applicant)}
+                              disabled={acceptMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Accept
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDecline(applicant.id)}
+                              disabled={declineMutation.isPending}
+                              className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 text-xs px-3 py-1.5 h-8"
+                            >
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Decline
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>
