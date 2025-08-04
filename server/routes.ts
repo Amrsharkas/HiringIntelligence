@@ -1173,7 +1173,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         seniorityLevel, 
         industry, 
         certifications, 
-        languagesRequired 
+        languagesRequired,
+        salaryMin,
+        salaryMax,
+        salaryNegotiable,
+        softSkills,
+        technicalSkills
       } = req.body;
 
       if (!jobTitle) {
@@ -1192,7 +1197,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           seniorityLevel,
           industry,
           certifications,
-          languagesRequired
+          languagesRequired,
+          salaryMin,
+          salaryMax,
+          salaryNegotiable,
+          softSkills,
+          technicalSkills
         }
       );
       
@@ -1215,31 +1225,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { 
         jobTitle, 
-        description, 
+        jobDescription, 
         employmentType, 
         workplaceType, 
         seniorityLevel, 
         industry, 
         certifications, 
-        languagesRequired 
+        languagesRequired,
+        location,
+        salaryMin,
+        salaryMax,
+        salaryNegotiable,
+        softSkills,
+        technicalSkills
       } = req.body;
 
       if (!jobTitle) {
         return res.status(400).json({ message: "Job title is required" });
       }
       
-      console.log("🔄 Calling generateJobRequirements with:", { jobTitle, description: description?.substring(0, 50) + "..." });
+      console.log("🔄 Calling generateJobRequirements with:", { jobTitle, jobDescription: jobDescription?.substring(0, 50) + "..." });
       
       const requirements = await generateJobRequirements(
         jobTitle, 
-        description, 
+        jobDescription, 
         {
           employmentType,
           workplaceType,
           seniorityLevel,
           industry,
           certifications,
-          languagesRequired
+          languagesRequired,
+          location,
+          salaryMin,
+          salaryMax,
+          salaryNegotiable,
+          softSkills,
+          technicalSkills
         }
       );
       

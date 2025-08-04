@@ -14,6 +14,11 @@ export async function generateJobDescription(
     industry?: string;
     certifications?: string;
     languagesRequired?: Array<{ language: string; fluency: string }>;
+    salaryMin?: string;
+    salaryMax?: string;
+    salaryNegotiable?: boolean;
+    softSkills?: string[];
+    technicalSkills?: string[];
   }
 ): Promise<string> {
   try {
@@ -32,6 +37,26 @@ export async function generateJobDescription(
     if (metadata?.languagesRequired?.length) {
       const langStr = metadata.languagesRequired.map(l => `${l.language} (${l.fluency})`).join(', ');
       contextParts.push(`Languages required: ${langStr}`);
+    }
+    if (metadata?.salaryMin || metadata?.salaryMax) {
+      const salaryParts = [];
+      if (metadata.salaryMin && metadata.salaryMax) {
+        salaryParts.push(`${metadata.salaryMin} - ${metadata.salaryMax} EGP`);
+      } else if (metadata.salaryMin) {
+        salaryParts.push(`From ${metadata.salaryMin} EGP`);
+      } else if (metadata.salaryMax) {
+        salaryParts.push(`Up to ${metadata.salaryMax} EGP`);
+      }
+      if (metadata.salaryNegotiable) salaryParts.push('(Negotiable)');
+      contextParts.push(`Salary range: ${salaryParts.join(' ')}`);
+    } else if (metadata?.salaryNegotiable) {
+      contextParts.push('Salary: Negotiable');
+    }
+    if (metadata?.technicalSkills?.length) {
+      contextParts.push(`Key technical skills: ${metadata.technicalSkills.join(', ')}`);
+    }
+    if (metadata?.softSkills?.length) {
+      contextParts.push(`Important soft skills: ${metadata.softSkills.join(', ')}`);
     }
 
     const context = contextParts.length > 0 ? `\n\nJob Context:\n${contextParts.join('\n')}` : '';
@@ -83,6 +108,12 @@ export async function generateJobRequirements(
     industry?: string;
     certifications?: string;
     languagesRequired?: Array<{ language: string; fluency: string }>;
+    location?: string;
+    salaryMin?: string;
+    salaryMax?: string;
+    salaryNegotiable?: boolean;
+    softSkills?: string[];
+    technicalSkills?: string[];
   }
 ): Promise<string> {
   try {
@@ -98,10 +129,31 @@ export async function generateJobRequirements(
     if (metadata?.workplaceType) contextParts.push(`Work arrangement: ${metadata.workplaceType}`);
     if (metadata?.seniorityLevel) contextParts.push(`Seniority: ${metadata.seniorityLevel}`);
     if (metadata?.industry) contextParts.push(`Industry: ${metadata.industry}`);
+    if (metadata?.location) contextParts.push(`Location: ${metadata.location}`);
     if (metadata?.certifications) contextParts.push(`Required certifications: ${metadata.certifications}`);
     if (metadata?.languagesRequired?.length) {
       const langStr = metadata.languagesRequired.map(l => `${l.language} (${l.fluency})`).join(', ');
       contextParts.push(`Languages required: ${langStr}`);
+    }
+    if (metadata?.salaryMin || metadata?.salaryMax) {
+      const salaryParts = [];
+      if (metadata.salaryMin && metadata.salaryMax) {
+        salaryParts.push(`${metadata.salaryMin} - ${metadata.salaryMax} EGP`);
+      } else if (metadata.salaryMin) {
+        salaryParts.push(`From ${metadata.salaryMin} EGP`);
+      } else if (metadata.salaryMax) {
+        salaryParts.push(`Up to ${metadata.salaryMax} EGP`);
+      }
+      if (metadata.salaryNegotiable) salaryParts.push('(Negotiable)');
+      contextParts.push(`Salary range: ${salaryParts.join(' ')}`);
+    } else if (metadata?.salaryNegotiable) {
+      contextParts.push('Salary: Negotiable');
+    }
+    if (metadata?.technicalSkills?.length) {
+      contextParts.push(`Focus on technical skills: ${metadata.technicalSkills.join(', ')}`);
+    }
+    if (metadata?.softSkills?.length) {
+      contextParts.push(`Emphasize soft skills: ${metadata.softSkills.join(', ')}`);
     }
 
     const context = contextParts.length > 0 ? `\n\nContext:\n${contextParts.join('\n')}` : '';

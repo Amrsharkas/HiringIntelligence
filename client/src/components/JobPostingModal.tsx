@@ -362,7 +362,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
 
   const generateDescription = async () => {
     const formData = form.getValues();
-    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, location } = formData;
+    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, location, salaryMin, salaryMax, salaryNegotiable } = formData;
     
     if (!title) {
       toast({
@@ -377,12 +377,17 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     try {
       const response = await apiRequest("POST", "/api/ai/generate-description", {
         jobTitle: title,
-        employmentType,
-        workplaceType,
-        seniorityLevel,
-        industry,
-        certifications,
+        employmentType: employmentType || undefined,
+        workplaceType: workplaceType || undefined,
+        seniorityLevel: seniorityLevel || undefined,
+        industry: industry || undefined,
+        certifications: certifications || undefined,
         location: location || "Cairo, Egypt",
+        salaryMin: salaryMin || undefined,
+        salaryMax: salaryMax || undefined,
+        salaryNegotiable: salaryNegotiable || false,
+        softSkills: selectedSoftSkills.length > 0 ? selectedSoftSkills : undefined,
+        technicalSkills: selectedTechnicalSkills.length > 0 ? selectedTechnicalSkills : undefined,
         languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
         companyName: (organization as any)?.companyName || "Our Company",
       });
@@ -416,7 +421,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
 
   const generateRequirements = async () => {
     const formData = form.getValues();
-    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, description } = formData;
+    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, description, location, salaryMin, salaryMax, salaryNegotiable } = formData;
     
     if (!title) {
       toast({
@@ -431,12 +436,18 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     try {
       const response = await apiRequest("POST", "/api/ai/generate-requirements", {
         jobTitle: title,
-        employmentType,
-        workplaceType,
-        seniorityLevel,
-        industry,
-        certifications,
-        description: description || "",
+        jobDescription: description || undefined,
+        employmentType: employmentType || undefined,
+        workplaceType: workplaceType || undefined,
+        seniorityLevel: seniorityLevel || undefined,
+        industry: industry || undefined,
+        certifications: certifications || undefined,
+        location: location || "Cairo, Egypt",
+        salaryMin: salaryMin || undefined,
+        salaryMax: salaryMax || undefined,
+        salaryNegotiable: salaryNegotiable || false,
+        softSkills: selectedSoftSkills.length > 0 ? selectedSoftSkills : undefined,
+        technicalSkills: selectedTechnicalSkills.length > 0 ? selectedTechnicalSkills : undefined,
         languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
       });
       const data = await response.json();
