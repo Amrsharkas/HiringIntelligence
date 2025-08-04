@@ -503,20 +503,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Instantly sync new job to Airtable and store record ID
       try {
-        // Build comprehensive salary information
-        let salaryInfo = job.salaryRange || '';
-        if (job.salaryMin && job.salaryMax) {
-          const currency = job.salaryRange?.includes('EGP') ? 'EGP' : 'USD';
-          salaryInfo = `${job.salaryMin}-${job.salaryMax} ${currency}`;
-          if (job.salaryNegotiable) salaryInfo += ' (Negotiable)';
-        }
-        
         const airtableRecordId = await jobPostingsAirtableService.addJobToAirtable({
           jobId: job.id.toString(),
           title: job.title,
           description: `${job.description}\n\nRequirements:\n${job.requirements}`,
           location: job.location,
-          salary: salaryInfo,
+          salary: job.salaryRange || '',
           company: companyName,
           employerQuestions: job.employerQuestions || []
         });
@@ -739,13 +731,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Count from job matches table (AI matched candidates)
-      const { jobMatchesService } = await import('./jobMatchesAirtableService');
-      const matches = await jobMatchesService.getJobMatches();
+      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
+      const jobMatchesService = new JobMatchesAirtableService();
+      const matches = await jobMatchesService.getAllJobMatches();
       
       // Filter for this organization's job matches
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
-      const organizationMatches = matches.filter((match: any) => organizationJobIds.has(match.jobId));
+      const organizationMatches = matches.filter(match => organizationJobIds.has(match.jobId));
       
       res.json({ count: organizationMatches.length });
     } catch (error) {
@@ -1157,97 +1150,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-powered job content generation
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
     try {
-      console.log("🤖 AI Generate Description Request:", req.body);
-      
-      const { 
-        jobTitle, 
-        companyName, 
-        location, 
-        employmentType, 
-        workplaceType, 
-        seniorityLevel, 
-        industry, 
-        certifications, 
-        languagesRequired 
-      } = req.body;
-      
-      if (!jobTitle) {
-        return res.status(400).json({ message: "Job title is required" });
-      }
-      
-      console.log("🤖 Calling generateJobDescription...");
-      const { generateJobDescription } = await import('./openai');
-      const description = await generateJobDescription(
-        jobTitle, 
-        companyName, 
-        location, 
-        {
-          employmentType,
-          workplaceType,
-          seniorityLevel,
-          industry,
-          certifications,
-          languagesRequired
-        }
-      );
-      
-      console.log("✅ Generated description successfully");
+      const { jobTitle, companyName, location } = req.body;
+      const description = await generateJobDescription(jobTitle, companyName, location);
       res.json({ description });
-    } catch (error: any) {
-      console.error("❌ Error generating description:", error);
-      console.error("❌ Error message:", error.message);
-      console.error("❌ Error stack:", error.stack);
-      res.status(500).json({ 
-        message: "Failed to generate job description",
-        error: error.message 
-      });
+    } catch (error) {
+      console.error("Error generating description:", error);
+      res.status(500).json({ message: "Failed to generate job description" });
     }
   });
 
   app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
     try {
-      console.log("🤖 AI Generate Requirements Request:", req.body);
-      
-      const { 
-        jobTitle, 
-        description, 
-        employmentType, 
-        workplaceType, 
-        seniorityLevel, 
-        industry, 
-        certifications, 
-        languagesRequired 
-      } = req.body;
-      
-      if (!jobTitle) {
-        return res.status(400).json({ message: "Job title is required" });
-      }
-      
-      console.log("🤖 Calling generateJobRequirements...");
-      const { generateJobRequirements } = await import('./openai');
-      const requirements = await generateJobRequirements(
-        jobTitle, 
-        description, 
-        {
-          employmentType,
-          workplaceType,
-          seniorityLevel,
-          industry,
-          certifications,
-          languagesRequired
-        }
-      );
-      
-      console.log("✅ Generated requirements successfully");
+      const { jobTitle, jobDescription } = req.body;
+      const requirements = await generateJobRequirements(jobTitle, jobDescription);
       res.json({ requirements });
-    } catch (error: any) {
-      console.error("❌ Error generating requirements:", error);
-      console.error("❌ Error message:", error.message);
-      console.error("❌ Error stack:", error.stack);
-      res.status(500).json({ 
-        message: "Failed to generate job requirements",
-        error: error.message 
-      });
+    } catch (error) {
+      console.error("Error generating requirements:", error);
+      res.status(500).json({ message: "Failed to generate job requirements" });
     }
   });
 
@@ -2678,7 +2597,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/debug-userids', async (req, res) => {
     try {
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const realApplicantsService = new (await import('./realApplicantsAirtableService')).realApplicantsAirtableService;
+      const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService(AIRTABLE_API_KEY);
       const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
       
       // Get all applicants
@@ -2848,14 +2767,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       console.log(`🔄 Updating status to 'Accepted' in Airtable for applicant ${applicant.name}...`);
       
       // First, update the status in Airtable to "Accepted"
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
+      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'Accepted');
       
       console.log(`✅ Status updated to 'Accepted' in Airtable for ${applicant.name}`);
       
       // Then create job match record
       console.log(`🔄 Creating job match record for ${applicant.name}...`);
-      const { jobMatchesService } = await import('./jobMatchesAirtableService');
-      await jobMatchesService.createJobMatch(
+      await jobMatchesAirtableService.createJobMatch(
         applicant.name,
         applicant.userId || applicant.id, // Use userId if available, otherwise use record ID
         applicant.jobTitle,

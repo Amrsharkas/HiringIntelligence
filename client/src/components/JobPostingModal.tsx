@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -23,22 +22,9 @@ const jobFormSchema = z.object({
   requirements: z.string().min(1, "Job requirements are required"),
   location: z.string().min(1, "Location is required"),
   salaryRange: z.string().optional(),
-  salaryMin: z.string().optional(),
-  salaryMax: z.string().optional(),
-  salaryNegotiable: z.boolean().default(false),
   softSkills: z.array(z.string()).default([]),
   technicalSkills: z.array(z.string()).default([]),
   employerQuestions: z.array(z.string()).default([]),
-  // New metadata fields
-  employmentType: z.string().min(1, "Employment type is required"),
-  workplaceType: z.string().min(1, "Workplace type is required"),
-  seniorityLevel: z.string().min(1, "Seniority level is required"),
-  industry: z.string().min(1, "Industry is required"),
-  languagesRequired: z.array(z.object({
-    language: z.string(),
-    fluency: z.string()
-  })).default([]),
-  certifications: z.string().optional(),
 });
 
 type JobFormData = z.infer<typeof jobFormSchema>;
@@ -53,80 +39,6 @@ const SALARY_RANGES = [
   "$200,000+",
   "Competitive",
   "To be discussed"
-];
-
-// Egyptian Pound salary ranges for quick selection
-const EGP_SALARY_RANGES = [
-  "8K–12K EGP",
-  "12K–18K EGP", 
-  "18K–25K EGP",
-  "25K–35K EGP",
-  "35K–50K EGP",
-  "50K–75K EGP",
-  "75K–100K EGP",
-  "100K+ EGP"
-];
-
-// New metadata options
-const EMPLOYMENT_TYPES = [
-  "Full-time",
-  "Part-time", 
-  "Freelance",
-  "Contract",
-  "Internship"
-];
-
-const WORKPLACE_TYPES = [
-  "On-site",
-  "Remote",
-  "Hybrid"
-];
-
-const SENIORITY_LEVELS = [
-  "Entry-level",
-  "Junior",
-  "Mid-level",
-  "Senior",
-  "Lead"
-];
-
-const INDUSTRIES = [
-  "Technology",
-  "Marketing",
-  "Education",
-  "Finance",
-  "Legal",
-  "Healthcare",
-  "Retail",
-  "Manufacturing",
-  "Consulting",
-  "Real Estate",
-  "Media",
-  "Government",
-  "Non-profit",
-  "Construction",
-  "Transportation",
-  "Other"
-];
-
-const LANGUAGES = [
-  "Arabic",
-  "English", 
-  "French",
-  "German",
-  "Spanish",
-  "Italian",
-  "Turkish",
-  "Chinese",
-  "Japanese",
-  "Russian"
-];
-
-const FLUENCY_LEVELS = [
-  "Basic",
-  "Intermediate", 
-  "Fluent",
-  "Native"
 ];
 
 const TECHNICAL_SKILLS = [
@@ -163,8 +75,6 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   const [employerQuestions, setEmployerQuestions] = useState<string[]>(['']);
   const [activeTab, setActiveTab] = useState('details');
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  const [selectedLanguages, setSelectedLanguages] = useState<Array<{language: string, fluency: string}>>([]);
-  const [usesEgpSalary, setUsesEgpSalary] = useState(false);
 
   const form = useForm<JobFormData>({
     resolver: zodResolver(jobFormSchema),
@@ -174,18 +84,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       requirements: "",
       location: "",
       salaryRange: "",
-      salaryMin: "",
-      salaryMax: "",
-      salaryNegotiable: false,
       softSkills: [],
       technicalSkills: [],
-      employerQuestions: [],
-      employmentType: "",
-      workplaceType: "",
-      seniorityLevel: "",
-      industry: "",
-      languagesRequired: [],
-      certifications: "",
     },
   });
 
@@ -361,10 +261,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   });
 
   const generateDescription = async () => {
-    const formData = form.getValues();
-    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, location } = formData;
-    
-    if (!title) {
+    const jobTitle = form.getValues("title");
+    const location = form.getValues("location");
+    if (!jobTitle) {
       toast({
         title: "Missing Information",
         description: "Please enter a job title first.",
@@ -376,34 +275,13 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     setIsGeneratingDescription(true);
     try {
       const response = await apiRequest("POST", "/api/ai/generate-description", {
-        jobTitle: title,
-        employmentType,
-        workplaceType,
-        seniorityLevel,
-        industry,
-        certifications,
-        location: location || "Cairo, Egypt",
-        languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
-        companyName: (organization as any)?.companyName || "Our Company",
+        jobTitle,
+        location: location || "Remote",
+        companyName: (organization as any)?.name || "Our Company",
       });
       const data = await response.json();
       form.setValue("description", data.description);
-      toast({
-        title: "Description Generated",
-        description: "AI created a comprehensive job description based on all your inputs.",
-      });
     } catch (error) {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to generate description. Please try again.",
@@ -415,10 +293,10 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   };
 
   const generateRequirements = async () => {
-    const formData = form.getValues();
-    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, description } = formData;
+    const jobTitle = form.getValues("title");
+    const jobDescription = form.getValues("description");
     
-    if (!title) {
+    if (!jobTitle) {
       toast({
         title: "Missing Information",
         description: "Please enter a job title first.",
@@ -430,33 +308,12 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     setIsGeneratingRequirements(true);
     try {
       const response = await apiRequest("POST", "/api/ai/generate-requirements", {
-        jobTitle: title,
-        employmentType,
-        workplaceType,
-        seniorityLevel,
-        industry,
-        certifications,
-        description: description || "",
-        languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
+        jobTitle,
+        jobDescription,
       });
       const data = await response.json();
       form.setValue("requirements", data.requirements);
-      toast({
-        title: "Requirements Generated",
-        description: "AI created detailed requirements based on your job specifications.",
-      });
     } catch (error) {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to generate requirements. Please try again.",
@@ -556,18 +413,11 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     const validQuestions = employerQuestions.filter(q => q.trim() !== '');
     const employerQuestionsArray = validQuestions.length > 0 ? validQuestions : [];
     
-    // Filter out empty language requirements
-    const validLanguages = selectedLanguages.filter(lang => lang.language && lang.fluency);
-    
     const jobData = {
       ...data,
       softSkills: selectedSoftSkills,
       technicalSkills: selectedTechnicalSkills,
       employerQuestions: employerQuestionsArray,
-      languagesRequired: validLanguages,
-      // Convert salary values to numbers if they exist  
-      salaryMin: data.salaryMin ? parseInt(data.salaryMin) : undefined,
-      salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
     };
 
     if (editJob) {
@@ -631,109 +481,6 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
               )}
             </div>
 
-            {/* Job Metadata Section */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Employment Type</Label>
-                <Controller
-                  name="employmentType"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select employment type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EMPLOYMENT_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.employmentType && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.employmentType.message}</p>
-                )}
-              </div>
-              <div>
-                <Label>Workplace Type</Label>
-                <Controller
-                  name="workplaceType"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select workplace type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WORKPLACE_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.workplaceType && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.workplaceType.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Seniority Level</Label>
-                <Controller
-                  name="seniorityLevel"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select seniority level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SENIORITY_LEVELS.map((level) => (
-                          <SelectItem key={level} value={level}>
-                            {level}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.seniorityLevel && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.seniorityLevel.message}</p>
-                )}
-              </div>
-              <div>
-                <Label>Industry</Label>
-                <Controller
-                  name="industry"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select industry" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INDUSTRIES.map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.industry && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.industry.message}</p>
-                )}
-              </div>
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="flex items-center gap-2">
@@ -754,71 +501,24 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   <DollarSign className="w-4 h-4 text-green-600" />
                   Salary Range
                 </Label>
-                <div className="mt-2 space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Checkbox
-                      checked={usesEgpSalary}
-                      onCheckedChange={(checked) => setUsesEgpSalary(checked === true)}
-                    />
-                    <Label className="text-sm">Use Egyptian Pound (EGP)</Label>
-                  </div>
-                  <Controller
-                    name="salaryRange"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select salary range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(usesEgpSalary ? EGP_SALARY_RANGES : SALARY_RANGES).map((range) => (
-                            <SelectItem key={range} value={range}>
-                              {range}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Manual Salary Entry */}
-            <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Manual Salary Entry (Optional)</Label>
-              <div className="grid grid-cols-3 gap-4 mt-2">
-                <div>
-                  <Label className="text-xs text-slate-600 dark:text-slate-400">Minimum {usesEgpSalary ? 'EGP' : 'USD'}</Label>
-                  <Input
-                    {...form.register("salaryMin")}
-                    placeholder={usesEgpSalary ? "8000" : "50000"}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-slate-600 dark:text-slate-400">Maximum {usesEgpSalary ? 'EGP' : 'USD'}</Label>
-                  <Input
-                    {...form.register("salaryMax")}
-                    placeholder={usesEgpSalary ? "15000" : "75000"}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <div className="flex items-center gap-2">
-                    <Controller
-                      name="salaryNegotiable"
-                      control={form.control}
-                      render={({ field }) => (
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      )}
-                    />
-                    <Label className="text-xs text-slate-600 dark:text-slate-400">Negotiable</Label>
-                  </div>
-                </div>
+                <Controller
+                  name="salaryRange"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select salary range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SALARY_RANGES.map((range) => (
+                          <SelectItem key={range} value={range}>
+                            {range}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
@@ -1001,102 +701,6 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   )}
                 </div>
               </div>
-            </div>
-
-            {/* Languages Required Section */}
-            <div>
-              <Label>Languages Required (Optional)</Label>
-              <div className="mt-2 space-y-3">
-                {selectedLanguages.map((langReq, index) => (
-                  <div key={index} className="flex gap-3 items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                    <div className="flex-1">
-                      <Select
-                        value={langReq.language}
-                        onValueChange={(value) => {
-                          const newLanguages = [...selectedLanguages];
-                          newLanguages[index] = { ...langReq, language: value };
-                          setSelectedLanguages(newLanguages);
-                          form.setValue("languagesRequired", newLanguages);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LANGUAGES.map((lang) => (
-                            <SelectItem key={lang} value={lang}>
-                              {lang}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex-1">
-                      <Select
-                        value={langReq.fluency}
-                        onValueChange={(value) => {
-                          const newLanguages = [...selectedLanguages];
-                          newLanguages[index] = { ...langReq, fluency: value };
-                          setSelectedLanguages(newLanguages);
-                          form.setValue("languagesRequired", newLanguages);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select fluency level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FLUENCY_LEVELS.map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {level}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        const newLanguages = selectedLanguages.filter((_, i) => i !== index);
-                        setSelectedLanguages(newLanguages);
-                        form.setValue("languagesRequired", newLanguages);
-                      }}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    const newLanguages = [...selectedLanguages, { language: "", fluency: "" }];
-                    setSelectedLanguages(newLanguages);
-                    form.setValue("languagesRequired", newLanguages);
-                  }}
-                  className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Language Requirement
-                </Button>
-              </div>
-            </div>
-
-            {/* Certifications Section */}
-            <div>
-              <Label htmlFor="certifications">Required Certifications (Optional)</Label>
-              <Textarea
-                id="certifications"
-                {...form.register("certifications")}
-                placeholder="e.g., AWS Certified Solutions Architect, PMP, Google Analytics Certified, etc."
-                rows={3}
-                className="mt-2"
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                List any professional certifications that are required or preferred for this role
-              </p>
             </div>
               </TabsContent>
 

@@ -1,163 +1,38 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY environment variable is required");
-}
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-export async function generateJobDescription(
-  jobTitle: string, 
-  companyName?: string, 
-  location?: string,
-  metadata?: {
-    employmentType?: string;
-    workplaceType?: string;
-    seniorityLevel?: string;
-    industry?: string;
-    certifications?: string;
-    languagesRequired?: Array<{ language: string; fluency: string }>;
-  }
-): Promise<string> {
+export async function generateJobDescription(jobTitle: string, companyName?: string, location?: string): Promise<string> {
   try {
-    console.log("🤖 generateJobDescription called with:", { jobTitle, companyName, location, metadata });
-    
-    // Build context from metadata
-    const contextParts = [];
-    if (metadata?.employmentType) contextParts.push(`Employment: ${metadata.employmentType}`);
-    if (metadata?.workplaceType) contextParts.push(`Work arrangement: ${metadata.workplaceType}`);
-    if (metadata?.seniorityLevel) contextParts.push(`Seniority: ${metadata.seniorityLevel}`);
-    if (metadata?.industry) contextParts.push(`Industry: ${metadata.industry}`);
-    if (metadata?.certifications) contextParts.push(`Required certifications: ${metadata.certifications}`);
-    if (metadata?.languagesRequired?.length) {
-      const langStr = metadata.languagesRequired.map(l => `${l.language} (${l.fluency})`).join(', ');
-      contextParts.push(`Languages required: ${langStr}`);
-    }
+    const prompt = `Generate a compelling job description for a ${jobTitle} position${companyName ? ` at ${companyName}` : ''}${location ? ` in ${location}` : ''}. 
+    Include key responsibilities, day-to-day tasks, and what makes this role exciting. 
+    Keep it professional but engaging, around 150-200 words.
+    ${location ? `Make sure to mention the location as ${location} in the description.` : ''}`;
 
-    const context = contextParts.length > 0 ? `\n\nJob Context:\n${contextParts.join('\n')}` : '';
-
-    const prompt = `Generate a comprehensive and engaging job description for: ${jobTitle}${companyName ? ` at ${companyName}` : ''}${location ? ` in ${location}` : ' in Cairo, Egypt'}.${context}
-
-Create a professional job description with these sections:
-1. **Company Overview** - Brief description of the company and its mission
-2. **Role Summary** - What this position is about and its primary objectives  
-3. **Key Responsibilities** - Main duties and accountabilities
-4. **Team & Collaboration** - How this role fits within the team structure
-5. **Impact & Growth** - Career development opportunities and impact on the organization
-
-Important guidelines:
-- Use friendly but professional tone suitable for Egyptian job market
-- Make it specific to the ${metadata?.seniorityLevel || 'mid-level'} level
-- Incorporate the ${metadata?.industry || 'technology'} industry context
-- Emphasize growth opportunities and learning potential
-- Keep it engaging and informative, around 3-4 paragraphs total
-
-Write in clear, accessible language that attracts top talent.`;
-
-    console.log("🤖 Making OpenAI API call...");
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
-        { 
-          role: "system", 
-          content: "You are an expert HR professional specializing in Egyptian job market recruitment. Create compelling job descriptions that attract qualified candidates while being culturally appropriate and professionally engaging." 
-        },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 1000,
-      temperature: 0.7,
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 300,
     });
 
-    console.log("✅ OpenAI API call successful");
-    const result = response.choices[0].message.content || "";
-    console.log("🤖 Generated content length:", result.length);
-    return result;
-  } catch (error: any) {
-    console.error("❌ OpenAI API Error:", error);
-    console.error("❌ Error type:", typeof error);
-    console.error("❌ Error status:", error.status);
-    console.error("❌ Error code:", error.code);
-    console.error("❌ Error message:", error.message);
-    console.error("❌ Full error object:", JSON.stringify(error, null, 2));
-    throw new Error("Failed to generate job description: " + (error.message || error.toString()));
+    return response.choices[0].message.content || "";
+  } catch (error) {
+    throw new Error("Failed to generate job description: " + (error as Error).message);
   }
 }
 
-export async function generateJobRequirements(
-  jobTitle: string, 
-  jobDescription?: string,
-  metadata?: {
-    employmentType?: string;
-    workplaceType?: string;
-    seniorityLevel?: string;
-    industry?: string;
-    certifications?: string;
-    languagesRequired?: Array<{ language: string; fluency: string }>;
-  }
-): Promise<string> {
+export async function generateJobRequirements(jobTitle: string, jobDescription?: string): Promise<string> {
   try {
-    // Build context from metadata
-    const contextParts = [];
-    if (jobDescription) contextParts.push(`Job Description: ${jobDescription}`);
-    if (metadata?.employmentType) contextParts.push(`Employment: ${metadata.employmentType}`);
-    if (metadata?.workplaceType) contextParts.push(`Work arrangement: ${metadata.workplaceType}`);
-    if (metadata?.seniorityLevel) contextParts.push(`Seniority: ${metadata.seniorityLevel}`);
-    if (metadata?.industry) contextParts.push(`Industry: ${metadata.industry}`);
-    if (metadata?.certifications) contextParts.push(`Required certifications: ${metadata.certifications}`);
-    if (metadata?.languagesRequired?.length) {
-      const langStr = metadata.languagesRequired.map(l => `${l.language} (${l.fluency})`).join(', ');
-      contextParts.push(`Languages required: ${langStr}`);
-    }
-
-    const context = contextParts.length > 0 ? `\n\nContext:\n${contextParts.join('\n')}` : '';
-
-    const prompt = `Generate comprehensive job requirements for: ${jobTitle} position.${context}
-
-Create a detailed requirements list organized in these sections:
-
-## Technical Skills & Experience
-- Core technical skills needed for this role
-- Experience levels required (years)
-- Specific tools, technologies, or software
-
-## Soft Skills & Competencies  
-- Communication and interpersonal abilities
-- Leadership or teamwork skills
-- Problem-solving and analytical thinking
-
-## Education & Certifications
-- Minimum education requirements
-- Preferred degrees or specializations
-- Professional certifications (if applicable)
-
-## Language Proficiency
-- Language requirements with fluency levels
-- Communication context (written/verbal)
-
-Important guidelines:
-- Make requirements appropriate for ${metadata?.seniorityLevel || 'mid-level'} level
-- Include both mandatory and preferred qualifications
-- Be specific about experience requirements
-- Consider the ${metadata?.industry || 'technology'} industry standards
-- Format as clear bullet points under each section
-- Keep requirements realistic and achievable
-
-Write in clear, professional language suitable for Egyptian job market.`;
+    const prompt = `Generate job requirements for a ${jobTitle} position. 
+    ${jobDescription ? `Context: ${jobDescription}` : ''}
+    Include required skills, experience levels, education, and qualifications.
+    Format as a clear, bulleted list. Keep it concise but comprehensive.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
-        { 
-          role: "system", 
-          content: "You are an expert HR professional specializing in creating detailed job requirements for the Egyptian market. Focus on realistic qualifications that attract qualified candidates while maintaining professional standards." 
-        },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 800,
-      temperature: 0.6,
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 300,
     });
 
     return response.choices[0].message.content || "";
