@@ -739,14 +739,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Count from job matches table (AI matched candidates)
-      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-      const jobMatchesService = new JobMatchesAirtableService();
-      const matches = await jobMatchesService.getAllJobMatches();
+      const { jobMatchesService } = await import('./jobMatchesAirtableService');
+      const matches = await jobMatchesService.getJobMatches();
       
       // Filter for this organization's job matches
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
-      const organizationMatches = matches.filter(match => organizationJobIds.has(match.jobId));
+      const organizationMatches = matches.filter((match: any) => organizationJobIds.has(match.jobId));
       
       res.json({ count: organizationMatches.length });
     } catch (error) {
@@ -2649,7 +2648,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/debug-userids', async (req, res) => {
     try {
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const realApplicantsService = new (await import('./realApplicantsAirtableService')).RealApplicantsAirtableService(AIRTABLE_API_KEY);
+      const realApplicantsService = new (await import('./realApplicantsAirtableService')).realApplicantsAirtableService;
       const airtableService2 = new (await import('./airtableService')).AirtableService(AIRTABLE_API_KEY);
       
       // Get all applicants
@@ -2819,13 +2818,14 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       console.log(`🔄 Updating status to 'Accepted' in Airtable for applicant ${applicant.name}...`);
       
       // First, update the status in Airtable to "Accepted"
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'Accepted');
+      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
       
       console.log(`✅ Status updated to 'Accepted' in Airtable for ${applicant.name}`);
       
       // Then create job match record
       console.log(`🔄 Creating job match record for ${applicant.name}...`);
-      await jobMatchesAirtableService.createJobMatch(
+      const { jobMatchesService } = await import('./jobMatchesAirtableService');
+      await jobMatchesService.createJobMatch(
         applicant.name,
         applicant.userId || applicant.id, // Use userId if available, otherwise use record ID
         applicant.jobTitle,
