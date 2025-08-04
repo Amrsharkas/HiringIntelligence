@@ -565,9 +565,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       technicalSkills: selectedTechnicalSkills,
       employerQuestions: employerQuestionsArray,
       languagesRequired: validLanguages,
-      // Convert salary values to numbers if they exist  
-      salaryMin: data.salaryMin ? parseInt(data.salaryMin) : undefined,
-      salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
+      // Keep salary values as strings for the API
+      salaryMin: data.salaryMin || undefined,
+      salaryMax: data.salaryMax || undefined,
     };
 
     if (editJob) {

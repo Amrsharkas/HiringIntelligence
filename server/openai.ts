@@ -17,6 +17,11 @@ export async function generateJobDescription(
   }
 ): Promise<string> {
   try {
+    console.log("🤖 Generating job description for:", { jobTitle, companyName, location, metadata });
+    
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
+    }
     // Build context from metadata
     const contextParts = [];
     if (metadata?.employmentType) contextParts.push(`Employment: ${metadata.employmentType}`);
@@ -81,6 +86,11 @@ export async function generateJobRequirements(
   }
 ): Promise<string> {
   try {
+    console.log("🤖 Generating job requirements for:", { jobTitle, jobDescription: jobDescription?.substring(0, 50) + "...", metadata });
+    
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
+    }
     // Build context from metadata
     const contextParts = [];
     if (jobDescription) contextParts.push(`Job Description: ${jobDescription}`);
