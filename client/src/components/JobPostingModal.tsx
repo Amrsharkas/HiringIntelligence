@@ -361,8 +361,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   });
 
   const generateDescription = async () => {
-    const formData = form.getValues();
-    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, location, salaryMin, salaryMax, salaryNegotiable } = formData;
+    const title = form.watch("title");
     
     if (!title) {
       toast({
@@ -377,25 +376,12 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     try {
       const response = await apiRequest("POST", "/api/ai/generate-description", {
         jobTitle: title,
-        employmentType: employmentType || undefined,
-        workplaceType: workplaceType || undefined,
-        seniorityLevel: seniorityLevel || undefined,
-        industry: industry || undefined,
-        certifications: certifications || undefined,
-        location: location || "Cairo, Egypt",
-        salaryMin: salaryMin || undefined,
-        salaryMax: salaryMax || undefined,
-        salaryNegotiable: salaryNegotiable || false,
-        softSkills: selectedSoftSkills.length > 0 ? selectedSoftSkills : undefined,
-        technicalSkills: selectedTechnicalSkills.length > 0 ? selectedTechnicalSkills : undefined,
-        languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
-        companyName: (organization as any)?.companyName || "Our Company",
       });
       const data = await response.json();
       form.setValue("description", data.description);
       toast({
         title: "Description Generated",
-        description: "AI created a comprehensive job description based on all your inputs.",
+        description: "AI created a comprehensive job description.",
       });
     } catch (error) {
       if (isUnauthorizedError(error as Error)) {
@@ -420,8 +406,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   };
 
   const generateRequirements = async () => {
-    const formData = form.getValues();
-    const { title, employmentType, workplaceType, seniorityLevel, industry, certifications, description, location, salaryMin, salaryMax, salaryNegotiable } = formData;
+    const title = form.watch("title");
     
     if (!title) {
       toast({
@@ -436,25 +421,12 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     try {
       const response = await apiRequest("POST", "/api/ai/generate-requirements", {
         jobTitle: title,
-        jobDescription: description || undefined,
-        employmentType: employmentType || undefined,
-        workplaceType: workplaceType || undefined,
-        seniorityLevel: seniorityLevel || undefined,
-        industry: industry || undefined,
-        certifications: certifications || undefined,
-        location: location || "Cairo, Egypt",
-        salaryMin: salaryMin || undefined,
-        salaryMax: salaryMax || undefined,
-        salaryNegotiable: salaryNegotiable || false,
-        softSkills: selectedSoftSkills.length > 0 ? selectedSoftSkills : undefined,
-        technicalSkills: selectedTechnicalSkills.length > 0 ? selectedTechnicalSkills : undefined,
-        languagesRequired: selectedLanguages.filter(lang => lang.language && lang.fluency),
       });
       const data = await response.json();
       form.setValue("requirements", data.requirements);
       toast({
         title: "Requirements Generated",
-        description: "AI created detailed requirements based on your job specifications.",
+        description: "AI created detailed requirements for the job.",
       });
     } catch (error) {
       if (isUnauthorizedError(error as Error)) {
@@ -478,73 +450,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     }
   };
 
-  // Dynamic technical skills extraction with improved performance
-  const [isExtractingSkills, setIsExtractingSkills] = useState(false);
-  const [lastExtractedText, setLastExtractedText] = useState("");
 
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if ((name === "title" || name === "description") && (value.title || value.description)) {
-        const currentText = `${value.title || ""} ${value.description || ""}`;
-        
-        // Only extract if the text has meaningfully changed (avoid unnecessary API calls)
-        if (currentText.length > 10 && currentText !== lastExtractedText) {
-          const extractSkills = async () => {
-            setIsExtractingSkills(true);
-            try {
-              const response = await apiRequest("POST", "/api/ai/extract-skills", {
-                jobTitle: value.title || "",
-                jobDescription: value.description || "",
-              });
-              const data = await response.json();
-              setDynamicTechnicalSkills(data.skills || []);
-              setLastExtractedText(currentText);
-            } catch (error) {
-              console.error("Failed to extract skills:", error);
-              // Provide fallback skills for common job titles
-              if (value.title) {
-                const fallbackSkills = getFallbackSkills(value.title);
-                setDynamicTechnicalSkills(fallbackSkills);
-              }
-            } finally {
-              setIsExtractingSkills(false);
-            }
-          };
-
-          const debounceTimer = setTimeout(extractSkills, 200); // 200ms debounce delay
-          return () => clearTimeout(debounceTimer);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [form, lastExtractedText]);
-
-  // Fallback skills for common job titles
-  const getFallbackSkills = (jobTitle: string): string[] => {
-    const title = jobTitle.toLowerCase();
-    
-    if (title.includes('react') || title.includes('frontend') || title.includes('front-end')) {
-      return ['React', 'JavaScript', 'TypeScript', 'CSS', 'HTML', 'Git'];
-    }
-    if (title.includes('backend') || title.includes('back-end') || title.includes('api')) {
-      return ['Node.js', 'Python', 'SQL', 'REST API', 'Git', 'Docker'];
-    }
-    if (title.includes('fullstack') || title.includes('full-stack')) {
-      return ['JavaScript', 'React', 'Node.js', 'SQL', 'Git', 'TypeScript'];
-    }
-    if (title.includes('data') || title.includes('analyst')) {
-      return ['Python', 'SQL', 'Excel', 'Tableau', 'R', 'Statistics'];
-    }
-    if (title.includes('devops') || title.includes('cloud')) {
-      return ['AWS', 'Docker', 'Kubernetes', 'Linux', 'Git', 'CI/CD'];
-    }
-    if (title.includes('mobile') || title.includes('ios') || title.includes('android')) {
-      return ['React Native', 'Swift', 'Kotlin', 'Flutter', 'Git', 'Mobile Development'];
-    }
-    
-    return ['JavaScript', 'Git', 'Communication', 'Problem Solving']; // Generic fallback
-  };
 
   const handleSoftSkillToggle = (skill: string) => {
     setSelectedSoftSkills(prev => 

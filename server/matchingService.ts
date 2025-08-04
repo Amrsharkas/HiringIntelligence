@@ -1,5 +1,5 @@
 import { candidateService } from './candidateService';
-import { generateCandidateMatchRating } from './openai';
+// Note: generateCandidateMatchRating function removed - using simplified AI service
 import { storage } from './storage';
 
 export class MatchingService {

@@ -1,6 +1,6 @@
 // Auto-fill job applications table when employers post jobs
 import fetch from 'node-fetch';
-import { generateJobDescription, generateJobRequirements } from './openai';
+import { generateJobDescription, generateJobRequirements } from './ai-service';
 
 export class JobApplicationsAutoFill {
   private apiKey: string;

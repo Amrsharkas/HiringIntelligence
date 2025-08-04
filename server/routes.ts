@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
-import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
+import { generateJobDescription, generateJobRequirements } from "./ai-service";
 import { airtableMatchingService } from "./airtableMatchingService";
 import { airtableService, AirtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
@@ -687,6 +687,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Generation Routes
+  app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
+    try {
+      const { jobTitle } = req.body;
+      
+      if (!jobTitle) {
+        return res.status(400).json({ error: "Job title is required" });
+      }
+
+      const description = await generateJobDescription(jobTitle);
+      res.json({ description });
+    } catch (error) {
+      console.error("Error generating job description:", error);
+      res.status(500).json({ error: "Failed to generate job description" });
+    }
+  });
+
+  app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
+    try {
+      const { jobTitle } = req.body;
+      
+      if (!jobTitle) {
+        return res.status(400).json({ error: "Job title is required" });
+      }
+
+      const requirements = await generateJobRequirements(jobTitle);
+      res.json({ requirements });
+    } catch (error) {
+      console.error("Error generating job requirements:", error);
+      res.status(500).json({ error: "Failed to generate job requirements" });
+    }
+  });
+
 
 
   // Job postings sync to Airtable
@@ -1156,175 +1189,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI-powered job content generation
-  // Test authentication endpoint  
-  app.get('/api/test-auth', requireAuth, (req: any, res) => {
-    res.json({ 
-      message: "Authentication working", 
-      userId: req.user?.id,
-      userEmail: req.user?.email 
-    });
-  });
-
-  // Debug authentication endpoint for troubleshooting
-  app.post('/api/debug-auth', (req: any, res) => {
-    res.json({
-      isAuthenticated: req.isAuthenticated?.(),
-      user: req.user ? { 
-        id: req.user.id, 
-        email: req.user.email,
-        firstName: req.user.firstName 
-      } : null,
-      sessionID: req.sessionID,
-      hasSession: !!req.session,
-      cookies: req.headers.cookie ? 'Present' : 'Missing'
-    });
-  });
-
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
     try {
-      console.log("🤖 AI Generate Description Request:", {
-        userId: req.user?.id,
-        isAuthenticated: req.isAuthenticated?.(),
-        body: req.body
-      });
-
-      const { 
-        jobTitle, 
-        companyName, 
-        location, 
-        employmentType, 
-        workplaceType, 
-        seniorityLevel, 
-        industry, 
-        certifications, 
-        languagesRequired,
-        salaryMin,
-        salaryMax,
-        salaryNegotiable,
-        softSkills,
-        technicalSkills
-      } = req.body;
+      const { jobTitle } = req.body;
 
       if (!jobTitle) {
-        return res.status(400).json({ message: "Job title is required" });
+        return res.status(400).json({ error: "Job title is required" });
       }
+
+      const { generateJobDescription } = await import('./ai-service');
+      const description = await generateJobDescription(jobTitle);
       
-      console.log("🔄 Calling generateJobDescription with:", { jobTitle, companyName, location });
-      
-      const description = await generateJobDescription(
-        jobTitle, 
-        companyName, 
-        location, 
-        {
-          employmentType,
-          workplaceType,
-          seniorityLevel,
-          industry,
-          certifications,
-          languagesRequired,
-          salaryMin,
-          salaryMax,
-          salaryNegotiable,
-          softSkills,
-          technicalSkills
-        }
-      );
-      
-      console.log("✅ Generated description successfully");
       res.json({ description });
     } catch (error) {
-      console.error("❌ Error generating description:", error);
-      console.error("❌ Error stack:", error.stack);
-      res.status(500).json({ message: "Failed to generate job description", error: error.message });
+      console.error("Error generating description:", error);
+      res.status(500).json({ error: "Failed to generate description" });
     }
   });
 
   app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
     try {
-      console.log("🤖 AI Generate Requirements Request:", {
-        userId: req.user?.id,
-        isAuthenticated: req.isAuthenticated?.(),
-        body: req.body
-      });
-
-      const { 
-        jobTitle, 
-        jobDescription, 
-        employmentType, 
-        workplaceType, 
-        seniorityLevel, 
-        industry, 
-        certifications, 
-        languagesRequired,
-        location,
-        salaryMin,
-        salaryMax,
-        salaryNegotiable,
-        softSkills,
-        technicalSkills
-      } = req.body;
+      const { jobTitle } = req.body;
 
       if (!jobTitle) {
-        return res.status(400).json({ message: "Job title is required" });
+        return res.status(400).json({ error: "Job title is required" });
       }
+
+      const { generateJobRequirements } = await import('./ai-service');
+      const requirements = await generateJobRequirements(jobTitle);
       
-      console.log("🔄 Calling generateJobRequirements with:", { jobTitle, jobDescription: jobDescription?.substring(0, 50) + "..." });
-      
-      const requirements = await generateJobRequirements(
-        jobTitle, 
-        jobDescription, 
-        {
-          employmentType,
-          workplaceType,
-          seniorityLevel,
-          industry,
-          certifications,
-          languagesRequired,
-          location,
-          salaryMin,
-          salaryMax,
-          salaryNegotiable,
-          softSkills,
-          technicalSkills
-        }
-      );
-      
-      console.log("✅ Generated requirements successfully");
       res.json({ requirements });
     } catch (error) {
-      console.error("❌ Error generating requirements:", error);
-      console.error("❌ Error stack:", error.stack);
-      res.status(500).json({ message: "Failed to generate job requirements", error: error.message });
-    }
-  });
-
-  app.post('/api/ai/extract-skills', requireAuth, async (req: any, res) => {
-    try {
-      const { jobTitle, jobDescription } = req.body;
-      const skills = await extractTechnicalSkills(jobTitle, jobDescription || "");
-      res.json({ skills });
-    } catch (error) {
-      console.error("Error extracting skills:", error);
-      res.status(500).json({ message: "Failed to extract technical skills" });
-    }
-  });
-
-
-
-  app.post('/api/ai/generate-employer-questions', requireAuth, async (req: any, res) => {
-    try {
-      const { jobTitle, jobDescription, requirements } = req.body;
-      
-      if (!jobTitle) {
-        return res.status(400).json({ message: "Job title is required" });
-      }
-
-      const { generateEmployerQuestions } = await import('./openai');
-      const questions = await generateEmployerQuestions(jobTitle, jobDescription, requirements);
-      res.json({ questions });
-    } catch (error) {
-      console.error("Error generating employer questions:", error);
-      res.status(500).json({ message: "Failed to generate employer questions" });
+      console.error("Error generating requirements:", error);
+      res.status(500).json({ error: "Failed to generate requirements" });
     }
   });
 
