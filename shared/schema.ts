@@ -89,9 +89,17 @@ export const jobs = pgTable("jobs", {
   salaryRange: varchar("salary_range"),
   salaryMin: integer("salary_min"),
   salaryMax: integer("salary_max"),
+  salaryNegotiable: boolean("salary_negotiable").default(false),
   softSkills: text("soft_skills").array(),
   technicalSkills: text("technical_skills").array(),
   employerQuestions: text("employer_questions").array(),
+  // New metadata fields
+  employmentType: varchar("employment_type").notNull(), // Full-time, Part-time, Freelance, Contract, Internship
+  workplaceType: varchar("workplace_type").notNull(), // On-site, Remote, Hybrid
+  seniorityLevel: varchar("seniority_level").notNull(), // Entry-level, Junior, Mid-level, Senior, Lead
+  industry: varchar("industry").notNull(), // Tech, Marketing, Education, Finance, Legal, etc.
+  languagesRequired: jsonb("languages_required"), // Array of {language, fluency} objects
+  certifications: text("certifications"), // Optional required certifications
   organizationId: varchar("organization_id").notNull().references(() => organizations.id),
   createdById: varchar("created_by_id").notNull().references(() => users.id),
   is_active: boolean("is_active").notNull().default(true),
