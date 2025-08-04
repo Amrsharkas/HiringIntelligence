@@ -1340,11 +1340,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get('/api/shortlisted-applicants', requireAuth, async (req: any, res) => {
     try {
-      const employerId = req.user.id;
-      const shortlisted = await storage.getShortlistedApplicants(employerId);
-      res.json(shortlisted);
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.json([]);
+      }
+
+      console.log("🌟 Fetching shortlisted applicants from Airtable...");
+      
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      
+      // Get all applicants
+      const allApplicants = await realApplicantsAirtableService.getAllApplicants();
+      
+      // Filter to only show applicants for this organization's jobs
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+      const organizationApplicants = allApplicants.filter(app => organizationJobIds.has(app.jobId));
+      
+      // Filter to only shortlisted applicants
+      const shortlistedApplicants = organizationApplicants.filter(app => 
+        app.status && app.status.toLowerCase() === 'shortlisted'
+      );
+      
+      console.log(`✅ Found ${shortlistedApplicants.length} shortlisted applicants out of ${organizationApplicants.length} total`);
+      
+      // Transform to match the expected interface
+      const transformedApplicants = shortlistedApplicants.map(app => ({
+        id: app.id,
+        employerId: userId,
+        applicantId: app.id,
+        applicantName: app.name,
+        name: app.name,
+        email: app.name, // Using name as email placeholder since email isn't available
+        jobTitle: app.jobTitle,
+        jobId: app.jobId,
+        note: app.notes || null,
+        appliedDate: app.applicationDate,
+        dateShortlisted: app.applicationDate, // Using application date as shortlist date
+        createdAt: app.applicationDate,
+        updatedAt: app.applicationDate,
+      }));
+      
+      res.json(transformedApplicants);
     } catch (error) {
-      console.error("Error fetching shortlisted applicants:", error);
+      console.error("❌ Error fetching shortlisted applicants:", error);
       res.status(500).json({ message: "Failed to fetch shortlisted applicants" });
     }
   });
@@ -2903,22 +2944,26 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.post('/api/real-applicants/:id/shortlist', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
+      const userId = req.user?.id;
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       
-      console.log(`🌟 Adding applicant ${applicantId} to shortlist...`);
+      console.log(`🌟 SHORTLIST REQUEST: User ${userId} adding applicant ${applicantId} to shortlist...`);
       
       // Update the status in Airtable to "Shortlisted"
       await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'shortlisted');
       
-      console.log(`✅ Successfully shortlisted applicant ${applicantId}`);
+      console.log(`✅ SHORTLIST SUCCESS: Applicant ${applicantId} status updated to 'shortlisted' in Airtable`);
+      
       res.json({ 
         success: true, 
         message: "Candidate added to shortlist successfully",
-        status: 'Shortlisted'
+        status: 'shortlisted',
+        applicantId: applicantId
       });
     } catch (error) {
-      console.error("❌ Error shortlisting applicant:", error);
-      res.status(500).json({ message: "Failed to add candidate to shortlist" });
+      console.error("❌ SHORTLIST ERROR:", error);
+      console.error("❌ Error details:", error.message);
+      res.status(500).json({ message: "Failed to add candidate to shortlist", error: error.message });
     }
   });
 
