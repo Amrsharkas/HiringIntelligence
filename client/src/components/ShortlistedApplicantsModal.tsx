@@ -25,6 +25,14 @@ interface ShortlistedApplicant {
   dateShortlisted: string;
   createdAt: string;
   updatedAt: string;
+  userProfile?: string;
+  companyName?: string;
+  jobDescription?: string;
+  matchScore?: number;
+  matchSummary?: string;
+  technicalSkillsScore?: number;
+  experienceScore?: number;
+  culturalFitScore?: number;
 }
 
 interface ShortlistedApplicantsModalProps {
@@ -48,17 +56,46 @@ export function ShortlistedApplicantsModal({
     refetchOnWindowFocus: false,
   });
 
-  const removeFromShortlistMutation = useMutation({
-    mutationFn: async (applicantId: string) => {
-      return await apiRequest("POST", `/api/real-applicants/${applicantId}/unshortlist`);
+  const acceptApplicantMutation = useMutation({
+    mutationFn: async (shortlistId: string) => {
+      return await apiRequest("POST", `/api/shortlisted-applicants/${shortlistId}/accept`);
     },
     onSuccess: () => {
-      // Invalidate and refetch immediately for instant UI update
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
-      queryClient.refetchQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
       toast({
-        description: "Applicant removed from shortlist",
+        description: "Candidate accepted and moved to interviews",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to accept candidate",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const denyApplicantMutation = useMutation({
+    mutationFn: async (shortlistId: string) => {
+      return await apiRequest("POST", `/api/shortlisted-applicants/${shortlistId}/deny`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      toast({
+        description: "Candidate removed from shortlist",
       });
     },
     onError: (error: any) => {
@@ -81,76 +118,7 @@ export function ShortlistedApplicantsModal({
     },
   });
 
-  // Accept applicant mutation
-  const acceptMutation = useMutation({
-    mutationFn: async (applicant: ShortlistedApplicant) => {
-      await apiRequest(`/api/real-applicants/${applicant.applicantId}/accept`, "POST", {
-        jobId: applicant.jobId,
-        userId: applicant.applicantId,
-        name: applicant.applicantName
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "✅ Candidate successfully accepted and status updated",
-        description: "The candidate status has been updated to 'Accepted' in Airtable.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
-    },
-    onError: (error: any) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: error.message || "Error: Failed to update candidate status in Airtable. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
 
-  // Decline applicant mutation
-  const declineMutation = useMutation({
-    mutationFn: async (applicantId: string) => {
-      await apiRequest("POST", `/api/real-applicants/${applicantId}/decline`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Applicant Declined",
-        description: "The applicant has been declined.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
-    },
-    onError: (error: any) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to decline applicant",
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleViewProfile = async (applicant: any) => {
     try {
@@ -186,14 +154,16 @@ export function ShortlistedApplicantsModal({
     }
   };
 
-  const handleRemoveFromShortlist = (id: string) => {
-    if (window.confirm("Are you sure you want to remove this applicant from your shortlist?")) {
-      removeFromShortlistMutation.mutate(id);
+  const handleAccept = (applicant: ShortlistedApplicant) => {
+    if (window.confirm("Accept this candidate and move them to interviews?")) {
+      acceptApplicantMutation.mutate(applicant.id);
     }
   };
 
-  const handleAccept = (applicant: ShortlistedApplicant) => {
-    acceptMutation.mutate(applicant);
+  const handleDeny = (applicant: ShortlistedApplicant) => {
+    if (window.confirm("Remove this candidate from your shortlist?")) {
+      denyApplicantMutation.mutate(applicant.id);
+    }
   };
 
   const handleDecline = (applicantId: string) => {
@@ -258,7 +228,7 @@ export function ShortlistedApplicantsModal({
                           <Button
                             size="sm"
                             onClick={() => handleAccept(applicant)}
-                            disabled={acceptMutation.isPending}
+                            disabled={acceptApplicantMutation.isPending}
                             className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -267,22 +237,12 @@ export function ShortlistedApplicantsModal({
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleDecline(applicant.applicantId)}
-                            disabled={declineMutation.isPending}
+                            onClick={() => handleDeny(applicant)}
+                            disabled={denyApplicantMutation.isPending}
                             className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 text-xs px-3 py-1.5 h-8"
                           >
                             <XCircle className="h-3 w-3 mr-1" />
-                            Decline
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRemoveFromShortlist(applicant.applicantId)}
-                            disabled={removeFromShortlistMutation.isPending}
-                            className="border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-900/20 text-xs px-3 py-1.5 h-8"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Remove
+                            Deny
                           </Button>
                         </div>
                       </div>

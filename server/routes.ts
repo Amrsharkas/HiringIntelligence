@@ -1347,43 +1347,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      console.log("🌟 Fetching shortlisted applicants from Airtable...");
+      console.log("🌟 Fetching shortlisted applicants from database...");
       
+      // Get shortlisted applicants from database
+      const shortlistedApplicants = await storage.getShortlistedApplicants(userId);
+      
+      console.log(`✅ Found ${shortlistedApplicants.length} shortlisted applicants in database`);
+      
+      // Get full applicant details from Airtable for each shortlisted applicant
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const enrichedApplicants = [];
       
-      // Get all applicants
-      const allApplicants = await realApplicantsAirtableService.getAllApplicants();
+      for (const shortlisted of shortlistedApplicants) {
+        try {
+          const applicantDetails = await realApplicantsAirtableService.getApplicantById(shortlisted.applicantId);
+          if (applicantDetails) {
+            enrichedApplicants.push({
+              id: shortlisted.id,
+              employerId: shortlisted.employerId,
+              applicantId: shortlisted.applicantId,
+              applicantName: shortlisted.applicantName,
+              name: applicantDetails.name,
+              email: applicantDetails.name, // Using name as placeholder
+              jobTitle: shortlisted.jobTitle,
+              jobId: shortlisted.jobId,
+              note: shortlisted.note,
+              appliedDate: applicantDetails.applicationDate,
+              dateShortlisted: shortlisted.dateShortlisted,
+              createdAt: shortlisted.createdAt,
+              updatedAt: shortlisted.updatedAt,
+              // Include all the applicant details for display
+              userProfile: applicantDetails.userProfile,
+              companyName: applicantDetails.companyName,
+              jobDescription: applicantDetails.jobDescription,
+              matchScore: applicantDetails.matchScore || applicantDetails.savedMatchScore,
+              matchSummary: applicantDetails.matchSummary || applicantDetails.savedMatchSummary,
+              technicalSkillsScore: applicantDetails.technicalSkillsScore,
+              experienceScore: applicantDetails.experienceScore,
+              culturalFitScore: applicantDetails.culturalFitScore,
+            });
+          }
+        } catch (error) {
+          console.error(`❌ Error enriching applicant ${shortlisted.applicantId}:`, error);
+          // Include basic info even if enrichment fails
+          enrichedApplicants.push(shortlisted);
+        }
+      }
       
-      // Filter to only show applicants for this organization's jobs
-      const organizationJobs = await storage.getJobsByOrganization(organization.id);
-      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
-      const organizationApplicants = allApplicants.filter(app => organizationJobIds.has(app.jobId));
-      
-      // Filter to only shortlisted applicants
-      const shortlistedApplicants = organizationApplicants.filter(app => 
-        app.status && app.status.toLowerCase() === 'shortlisted'
-      );
-      
-      console.log(`✅ Found ${shortlistedApplicants.length} shortlisted applicants out of ${organizationApplicants.length} total`);
-      
-      // Transform to match the expected interface
-      const transformedApplicants = shortlistedApplicants.map(app => ({
-        id: app.id,
-        employerId: userId,
-        applicantId: app.id,
-        applicantName: app.name,
-        name: app.name,
-        email: app.name, // Using name as email placeholder since email isn't available
-        jobTitle: app.jobTitle,
-        jobId: app.jobId,
-        note: app.notes || null,
-        appliedDate: app.applicationDate,
-        dateShortlisted: app.applicationDate, // Using application date as shortlist date
-        createdAt: app.applicationDate,
-        updatedAt: app.applicationDate,
-      }));
-      
-      res.json(transformedApplicants);
+      res.json(enrichedApplicants);
     } catch (error) {
       console.error("❌ Error fetching shortlisted applicants:", error);
       res.status(500).json({ message: "Failed to fetch shortlisted applicants" });
@@ -2945,25 +2956,146 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const applicantId = req.params.id;
       const userId = req.user?.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      console.log(`🌟 DATABASE SHORTLIST: User ${userId} adding applicant ${applicantId} to shortlist...`);
+      
+      // Get applicant details from Airtable
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
       
-      console.log(`🌟 SHORTLIST REQUEST: User ${userId} adding applicant ${applicantId} to shortlist...`);
+      if (!applicant) {
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+
+      // Check if already shortlisted
+      const isAlreadyShortlisted = await storage.isApplicantShortlisted(userId, applicantId, applicant.jobId);
+      if (isAlreadyShortlisted) {
+        return res.status(400).json({ message: "Applicant already shortlisted for this job" });
+      }
       
-      // Update the status in Airtable to "Shortlisted"
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'shortlisted');
+      // Add to database shortlist
+      const shortlistedData = {
+        id: `shortlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        employerId: userId,
+        applicantId: applicantId,
+        applicantName: applicant.name,
+        jobTitle: applicant.jobTitle,
+        jobId: applicant.jobId,
+        note: null,
+        dateShortlisted: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       
-      console.log(`✅ SHORTLIST SUCCESS: Applicant ${applicantId} status updated to 'shortlisted' in Airtable`);
+      await storage.addToShortlist(shortlistedData);
+      
+      console.log(`✅ DATABASE SHORTLIST SUCCESS: Applicant ${applicantId} added to database shortlist`);
       
       res.json({ 
         success: true, 
         message: "Candidate added to shortlist successfully",
-        status: 'shortlisted',
         applicantId: applicantId
       });
     } catch (error) {
-      console.error("❌ SHORTLIST ERROR:", error);
+      console.error("❌ DATABASE SHORTLIST ERROR:", error);
       console.error("❌ Error details:", error.message);
       res.status(500).json({ message: "Failed to add candidate to shortlist", error: error.message });
+    }
+  });
+
+  // Accept shortlisted applicant (move to interviews)
+  app.post('/api/shortlisted-applicants/:id/accept', requireAuth, async (req: any, res) => {
+    try {
+      const shortlistId = req.params.id;
+      const userId = req.user?.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      console.log(`✅ ACCEPT SHORTLISTED: User ${userId} accepting shortlisted applicant ${shortlistId}...`);
+      
+      // Get shortlisted applicant details
+      const shortlistedApplicants = await storage.getShortlistedApplicants(userId);
+      const shortlistedApplicant = shortlistedApplicants.find(app => app.id === shortlistId);
+      
+      if (!shortlistedApplicant) {
+        return res.status(404).json({ message: "Shortlisted applicant not found" });
+      }
+
+      // Get full applicant details from Airtable
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const applicantDetails = await realApplicantsAirtableService.getApplicantById(shortlistedApplicant.applicantId);
+      
+      if (!applicantDetails) {
+        return res.status(404).json({ message: "Applicant details not found" });
+      }
+
+      // Create interview record
+      const interviewData = {
+        id: `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        candidateName: shortlistedApplicant.applicantName,
+        candidateEmail: applicantDetails.name, // Using name as email placeholder
+        candidateId: shortlistedApplicant.applicantId,
+        jobId: shortlistedApplicant.jobId,
+        jobTitle: shortlistedApplicant.jobTitle,
+        scheduledDate: new Date().toISOString().split('T')[0], // Today's date as placeholder
+        scheduledTime: '10:00', // Default time placeholder
+        timeZone: 'UTC',
+        interviewType: 'video' as const,
+        meetingLink: null,
+        interviewer: userId,
+        status: 'scheduled' as const,
+        notes: `Moved from shortlist to interview`,
+        organizationId: organization.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      await storage.createRealInterview(interviewData);
+      
+      // Remove from shortlist
+      await storage.removeFromShortlist(shortlistId);
+      
+      console.log(`✅ ACCEPT SUCCESS: Applicant ${shortlistedApplicant.applicantId} moved to interviews`);
+      
+      res.json({ 
+        success: true, 
+        message: "Candidate accepted and moved to interviews",
+        interviewId: interviewData.id
+      });
+    } catch (error) {
+      console.error("❌ ACCEPT ERROR:", error);
+      res.status(500).json({ message: "Failed to accept candidate", error: error.message });
+    }
+  });
+
+  // Deny shortlisted applicant (remove from shortlist)
+  app.post('/api/shortlisted-applicants/:id/deny', requireAuth, async (req: any, res) => {
+    try {
+      const shortlistId = req.params.id;
+      const userId = req.user?.id;
+      
+      console.log(`❌ DENY SHORTLISTED: User ${userId} denying shortlisted applicant ${shortlistId}...`);
+      
+      // Simply remove from shortlist
+      await storage.removeFromShortlist(shortlistId);
+      
+      console.log(`✅ DENY SUCCESS: Applicant removed from shortlist`);
+      
+      res.json({ 
+        success: true, 
+        message: "Candidate removed from shortlist"
+      });
+    } catch (error) {
+      console.error("❌ DENY ERROR:", error);
+      res.status(500).json({ message: "Failed to deny candidate", error: error.message });
     }
   });
 
