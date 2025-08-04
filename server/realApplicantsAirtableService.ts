@@ -279,7 +279,12 @@ class RealApplicantsAirtableService {
 
   async updateApplicantStatus(recordId: string, status: 'accepted' | 'denied' | 'shortlisted'): Promise<void> {
     try {
-      console.log(`Updating applicant ${recordId} status to ${status}...`);
+      console.log(`🔄 UPDATING STATUS: Applicant ${recordId} -> ${status}`);
+      
+      // First try to add Status field if it doesn't exist
+      await this.ensureStatusFieldExists();
+      
+      const statusValue = status === 'accepted' ? 'accepted' : status === 'shortlisted' ? 'shortlisted' : 'denied';
       
       const response = await fetch(
         `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/${recordId}`,
@@ -291,7 +296,7 @@ class RealApplicantsAirtableService {
           },
           body: JSON.stringify({
             fields: {
-              'Status': status === 'accepted' ? 'Accepted' : status === 'shortlisted' ? 'Shortlisted' : 'Denied'
+              'Status': statusValue
             }
           })
         }
@@ -299,15 +304,57 @@ class RealApplicantsAirtableService {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`❌ AIRTABLE ERROR: ${response.status} ${response.statusText} - ${errorText}`);
         throw new Error(`Failed to update applicant status: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const result = await response.json();
-      console.log(`✅ Successfully updated applicant ${recordId} status to ${status}`);
+      console.log(`✅ STATUS UPDATE SUCCESS: Applicant ${recordId} status set to '${statusValue}'`);
+      console.log(`✅ Updated fields:`, result.fields);
       return result;
     } catch (error) {
-      console.error('❌ Error updating applicant status:', error);
+      console.error('❌ STATUS UPDATE ERROR:', error);
+      console.error('❌ Error details:', error.message);
       throw error;
+    }
+  }
+
+  private async ensureStatusFieldExists(): Promise<void> {
+    try {
+      // Try to create the Status field if it doesn't exist
+      const response = await fetch(
+        `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}/fields`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: 'Status',
+            type: 'singleSelect',
+            options: {
+              choices: [
+                { name: 'pending' },
+                { name: 'shortlisted' },
+                { name: 'accepted' },
+                { name: 'denied' }
+              ]
+            }
+          })
+        }
+      );
+
+      if (response.ok) {
+        console.log('✅ Created Status field in Airtable');
+      } else if (response.status === 422) {
+        // Field already exists, which is fine
+        console.log('ℹ️ Status field already exists in Airtable');
+      } else {
+        console.log('⚠️ Could not create Status field, proceeding anyway');
+      }
+    } catch (error) {
+      console.log('⚠️ Could not ensure Status field exists, proceeding anyway:', error.message);
     }
   }
 
