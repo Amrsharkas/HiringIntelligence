@@ -157,9 +157,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   const queryClient = useQueryClient();
   const [selectedSoftSkills, setSelectedSoftSkills] = useState<string[]>([]);
   const [selectedTechnicalSkills, setSelectedTechnicalSkills] = useState<string[]>([]);
+  const [dynamicTechnicalSkills, setDynamicTechnicalSkills] = useState<string[]>([]);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isGeneratingRequirements, setIsGeneratingRequirements] = useState(false);
-  const [dynamicTechnicalSkills, setDynamicTechnicalSkills] = useState<string[]>([]);
   const [employerQuestions, setEmployerQuestions] = useState<string[]>(['']);
   const [activeTab, setActiveTab] = useState('details');
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
@@ -905,15 +905,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                       );
                     })}
                   </div>
-                  {isExtractingSkills && (
-                    <div className="flex items-center justify-center pt-2">
-                      <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                      <span className="text-xs text-blue-500 ml-2">AI analyzing skills...</span>
-                    </div>
-                  )}
-                  {!isExtractingSkills && dynamicTechnicalSkills.length === 0 && (form.watch("title") || form.watch("description")) && (
+                  {dynamicTechnicalSkills.length === 0 && (form.watch("title") || form.watch("description")) && (
                     <div className="text-xs text-slate-400 pt-2 text-center">
-                      Add more job details to get AI skill suggestions
+                      AI skill suggestions have been simplified for better performance
                     </div>
                   )}
                 </div>
