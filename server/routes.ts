@@ -1161,18 +1161,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Alias endpoint for compatibility
+  // Direct OpenAI fetch implementation for descriptions
   app.post('/api/generate-description', requireAuth, async (req: any, res) => {
+    const { title, jobTitle } = req.body;
+    const actualTitle = title || jobTitle;
+    if (!actualTitle) return res.status(400).json({ error: "Missing job title" });
+
+    console.log("🔄 Generate Description Request:", { title: actualTitle });
+
     try {
-      const { title, jobTitle, companyName, location } = req.body;
-      const actualTitle = title || jobTitle;
-      console.log("🔄 AI Generation Request (alias):", { title: actualTitle, companyName, location });
-      const description = await generateJobDescription(actualTitle, companyName, location);
-      res.json({ description });
-    } catch (error) {
-      console.error("❌ Error generating description (alias):", error);
-      console.error("❌ Error details:", (error as Error).message);
-      res.status(500).json({ message: "Failed to generate job description", error: (error as Error).message });
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            { role: "system", content: "You are a professional HR assistant generating detailed job descriptions." },
+            { role: "user", content: `Generate a professional job description for the title: ${actualTitle}` }
+          ],
+          temperature: 0.7
+        })
+      });
+
+      console.log("🔄 OpenAI Response Status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ OpenAI API Error:", response.status, errorText);
+        return res.status(500).json({ error: `OpenAI API Error: ${response.status}` });
+      }
+
+      const data = await response.json();
+      const output = data.choices?.[0]?.message?.content;
+      
+      console.log("✅ Generated description successfully");
+      res.json({ description: output });
+    } catch (err: any) {
+      console.error("❌ OpenAI error:", err);
+      console.error("❌ Error details:", err.response?.data || err.message);
+      res.status(500).json({ error: "Failed to generate description" });
     }
   });
 
@@ -1189,18 +1219,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Alias endpoint for requirements compatibility
+  // Direct OpenAI fetch implementation for requirements
   app.post('/api/generate-requirements', requireAuth, async (req: any, res) => {
+    const { title, jobTitle } = req.body;
+    const actualTitle = title || jobTitle;
+    if (!actualTitle) return res.status(400).json({ error: "Missing job title" });
+
+    console.log("🔄 Generate Requirements Request:", { title: actualTitle });
+
     try {
-      const { title, jobTitle, jobDescription } = req.body;
-      const actualTitle = title || jobTitle;
-      console.log("🔄 AI Requirements Request (alias):", { title: actualTitle, hasDescription: !!jobDescription });
-      const requirements = await generateJobRequirements(actualTitle, jobDescription);
-      res.json({ requirements });
-    } catch (error) {
-      console.error("❌ Error generating requirements (alias):", error);
-      console.error("❌ Error details:", (error as Error).message);
-      res.status(500).json({ message: "Failed to generate job requirements", error: (error as Error).message });
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            { role: "system", content: "You are a helpful assistant writing job requirement sections." },
+            { role: "user", content: `List the job requirements for a ${actualTitle} role.` }
+          ],
+          temperature: 0.6
+        })
+      });
+
+      console.log("🔄 OpenAI Response Status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ OpenAI API Error:", response.status, errorText);
+        return res.status(500).json({ error: `OpenAI API Error: ${response.status}` });
+      }
+
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content;
+      
+      console.log("✅ Generated requirements successfully");
+      res.json({ requirements: text });
+    } catch (err: any) {
+      console.error("❌ OpenAI error:", err);
+      console.error("❌ Error details:", err.response?.data || err.message);
+      res.status(500).json({ error: "Failed to generate requirements" });
     }
   });
 
