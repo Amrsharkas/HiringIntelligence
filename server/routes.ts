@@ -1151,22 +1151,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/generate-description', requireAuth, async (req: any, res) => {
     try {
       const { jobTitle, companyName, location } = req.body;
+      console.log("🔄 AI Generation Request:", { jobTitle, companyName, location });
       const description = await generateJobDescription(jobTitle, companyName, location);
       res.json({ description });
     } catch (error) {
-      console.error("Error generating description:", error);
-      res.status(500).json({ message: "Failed to generate job description" });
+      console.error("❌ Error generating description:", error);
+      console.error("❌ Error details:", (error as Error).message);
+      res.status(500).json({ message: "Failed to generate job description", error: (error as Error).message });
+    }
+  });
+
+  // Alias endpoint for compatibility
+  app.post('/api/generate-description', requireAuth, async (req: any, res) => {
+    try {
+      const { title, jobTitle, companyName, location } = req.body;
+      const actualTitle = title || jobTitle;
+      console.log("🔄 AI Generation Request (alias):", { title: actualTitle, companyName, location });
+      const description = await generateJobDescription(actualTitle, companyName, location);
+      res.json({ description });
+    } catch (error) {
+      console.error("❌ Error generating description (alias):", error);
+      console.error("❌ Error details:", (error as Error).message);
+      res.status(500).json({ message: "Failed to generate job description", error: (error as Error).message });
     }
   });
 
   app.post('/api/ai/generate-requirements', requireAuth, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription } = req.body;
+      console.log("🔄 AI Requirements Request:", { jobTitle, hasDescription: !!jobDescription });
       const requirements = await generateJobRequirements(jobTitle, jobDescription);
       res.json({ requirements });
     } catch (error) {
-      console.error("Error generating requirements:", error);
-      res.status(500).json({ message: "Failed to generate job requirements" });
+      console.error("❌ Error generating requirements:", error);
+      console.error("❌ Error details:", (error as Error).message);
+      res.status(500).json({ message: "Failed to generate job requirements", error: (error as Error).message });
+    }
+  });
+
+  // Alias endpoint for requirements compatibility
+  app.post('/api/generate-requirements', requireAuth, async (req: any, res) => {
+    try {
+      const { title, jobTitle, jobDescription } = req.body;
+      const actualTitle = title || jobTitle;
+      console.log("🔄 AI Requirements Request (alias):", { title: actualTitle, hasDescription: !!jobDescription });
+      const requirements = await generateJobRequirements(actualTitle, jobDescription);
+      res.json({ requirements });
+    } catch (error) {
+      console.error("❌ Error generating requirements (alias):", error);
+      console.error("❌ Error details:", (error as Error).message);
+      res.status(500).json({ message: "Failed to generate job requirements", error: (error as Error).message });
     }
   });
 

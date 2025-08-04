@@ -1,8 +1,12 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+if (!process.env.OPENAI_API_KEY) {
+  console.error("🔑 OPENAI_API_KEY environment variable is not set!");
+}
+
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "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"
+  apiKey: process.env.OPENAI_API_KEY!
 });
 
 export async function generateJobDescription(jobTitle: string, companyName?: string, location?: string): Promise<string> {
