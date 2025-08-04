@@ -1,10 +1,15 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY || "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"
+});
 
 export async function generateJobDescription(jobTitle: string, companyName?: string, location?: string): Promise<string> {
   try {
+    console.log("🤖 Generating job description for:", { jobTitle, companyName, location });
+    console.log("🔑 OpenAI API Key available:", !!process.env.OPENAI_API_KEY);
+    
     const prompt = `Generate a compelling job description for a ${jobTitle} position${companyName ? ` at ${companyName}` : ''}${location ? ` in ${location}` : ''}. 
     Include key responsibilities, day-to-day tasks, and what makes this role exciting. 
     Keep it professional but engaging, around 150-200 words.
@@ -16,14 +21,19 @@ export async function generateJobDescription(jobTitle: string, companyName?: str
       max_tokens: 300,
     });
 
-    return response.choices[0].message.content || "";
+    const description = response.choices[0].message.content || "";
+    console.log("✅ Generated job description successfully, length:", description.length);
+    return description;
   } catch (error) {
+    console.error("❌ OpenAI API Error:", error);
     throw new Error("Failed to generate job description: " + (error as Error).message);
   }
 }
 
 export async function generateJobRequirements(jobTitle: string, jobDescription?: string): Promise<string> {
   try {
+    console.log("🤖 Generating job requirements for:", { jobTitle, hasDescription: !!jobDescription });
+    
     const prompt = `Generate job requirements for a ${jobTitle} position. 
     ${jobDescription ? `Context: ${jobDescription}` : ''}
     Include required skills, experience levels, education, and qualifications.
@@ -35,8 +45,11 @@ export async function generateJobRequirements(jobTitle: string, jobDescription?:
       max_tokens: 300,
     });
 
-    return response.choices[0].message.content || "";
+    const requirements = response.choices[0].message.content || "";
+    console.log("✅ Generated job requirements successfully, length:", requirements.length);
+    return requirements;
   } catch (error) {
+    console.error("❌ OpenAI API Error for requirements:", error);
     throw new Error("Failed to generate job requirements: " + (error as Error).message);
   }
 }
