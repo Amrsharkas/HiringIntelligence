@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Eye, Trash2, Calendar, User, Briefcase, StickyNote } from "lucide-react";
+import { Eye, Trash2, Calendar, User, Briefcase, StickyNote, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 // Temporarily removing DetailedProfileModal import as it needs to be created separately
 
@@ -16,9 +16,12 @@ interface ShortlistedApplicant {
   employerId: string;
   applicantId: string;
   applicantName: string;
+  name: string;
+  email: string;
   jobTitle: string;
   jobId: string;
   note?: string;
+  appliedDate: string;
   dateShortlisted: string;
   createdAt: string;
   updatedAt: string;
@@ -78,6 +81,77 @@ export function ShortlistedApplicantsModal({
     },
   });
 
+  // Accept applicant mutation
+  const acceptMutation = useMutation({
+    mutationFn: async (applicant: ShortlistedApplicant) => {
+      await apiRequest(`/api/real-applicants/${applicant.applicantId}/accept`, "POST", {
+        jobId: applicant.jobId,
+        userId: applicant.applicantId,
+        name: applicant.applicantName
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "✅ Candidate successfully accepted and status updated",
+        description: "The candidate status has been updated to 'Accepted' in Airtable.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Error: Failed to update candidate status in Airtable. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Decline applicant mutation
+  const declineMutation = useMutation({
+    mutationFn: async (applicantId: string) => {
+      await apiRequest("POST", `/api/real-applicants/${applicantId}/decline`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Applicant Declined",
+        description: "The applicant has been declined.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to decline applicant",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleViewProfile = async (applicant: any) => {
     try {
       console.log('🔍 SHORTLISTED: Fetching profile for:', applicant.name);
@@ -116,6 +190,14 @@ export function ShortlistedApplicantsModal({
     if (window.confirm("Are you sure you want to remove this applicant from your shortlist?")) {
       removeFromShortlistMutation.mutate(id);
     }
+  };
+
+  const handleAccept = (applicant: ShortlistedApplicant) => {
+    acceptMutation.mutate(applicant);
+  };
+
+  const handleDecline = (applicantId: string) => {
+    declineMutation.mutate(applicantId);
   };
 
   return (
@@ -168,19 +250,38 @@ export function ShortlistedApplicantsModal({
                             size="sm"
                             variant="outline"
                             onClick={() => handleViewProfile(applicant)}
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-1 text-xs px-3 py-1.5 h-8"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3 w-3 mr-1" />
                             View Profile
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
-                            onClick={() => handleRemoveFromShortlist(applicant.id)}
-                            disabled={removeFromShortlistMutation.isPending}
-                            className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleAccept(applicant)}
+                            disabled={acceptMutation.isPending}
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDecline(applicant.applicantId)}
+                            disabled={declineMutation.isPending}
+                            className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20 text-xs px-3 py-1.5 h-8"
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Decline
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemoveFromShortlist(applicant.applicantId)}
+                            disabled={removeFromShortlistMutation.isPending}
+                            className="border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-900/20 text-xs px-3 py-1.5 h-8"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
                             Remove
                           </Button>
                         </div>
@@ -191,7 +292,7 @@ export function ShortlistedApplicantsModal({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Calendar className="h-4 w-4" />
-                          <span>Applied {applicant.appliedDate ? new Date(applicant.appliedDate).toLocalDateString() : 'Recently'}</span>
+                          <span>Applied {applicant.appliedDate ? new Date(applicant.appliedDate).toLocaleDateString() : 'Recently'}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-sm text-gray-600">
