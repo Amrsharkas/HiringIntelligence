@@ -236,7 +236,7 @@ export async function generateCandidateMatchRating(
     // Use the complete user profile from Airtable for comprehensive analysis
     const userProfile = candidate.userProfile || candidate.rawData?.['User profile'] || '';
     
-    const prompt = `You are an expert recruiter analyzing candidate-job fit. Rate this candidate for the job posting on a scale of 1-100.
+    const prompt = `You are an EXTREMELY STRICT recruiter. Be brutally honest. Do NOT inflate scores. A candidate needs SUBSTANTIAL qualifications to score well.
 
 JOB POSTING DETAILS:
 - Title: ${job.title}
@@ -252,37 +252,36 @@ Name: ${candidate.name}
 Complete User Profile:
 ${userProfile}
 
-ANALYSIS INSTRUCTIONS:
-Analyze the candidate's full profile against the job requirements, considering:
-1. Background and experience relevance to the role
-2. Skills alignment (both technical and soft skills)
-3. Location compatibility and remote work considerations
-4. Career interests and growth trajectory
-5. Educational background and qualifications
-6. Industry experience and transferable skills
+STRICT SCORING RULES - BE BRUTAL AND HONEST:
+- Empty/minimal profiles (like just "rower" or single words): 5-15 points
+- No relevant experience or skills: 10-25 points
+- Minimal relevant experience with major gaps: 25-40 points
+- Some relevant experience but notable gaps: 40-55 points
+- Good relevant experience with minor gaps: 55-70 points
+- Strong qualifications meeting most requirements: 70-80 points
+- Exceptional candidates exceeding most requirements: 80-90 points
+- Perfect match with all requirements exceeded: 90-95 points
 
-Provide a comprehensive match analysis with:
-- score: Precise rating from 1-100 (use specific numbers like 73, 84, 92, not round numbers like 70, 80, 90) where:
-  * 95-100: Exceptional match, ideal candidate with perfect alignment
-  * 85-94: Strong match, well-qualified with excellent fit
-  * 75-84: Good match, qualified with minor gaps or areas for growth
-  * 65-74: Moderate match, some relevant experience but notable gaps
-  * 55-64: Basic match, limited alignment with several concerns
-  * 45-54: Weak match, significant gaps in key requirements
-  * Below 45: Poor match, fundamental misalignment
+CRITICAL EVALUATION:
+- If the profile has no substantial information, score 5-15
+- If there's no relevant experience for this specific job, score 10-25
+- If there are major skill gaps, be honest about low scores
+- Only give high scores (70+) to truly qualified candidates
+- Be HARSH and REALISTIC
 
-- reasoning: 2-3 concise sentences explaining match quality, highlighting specific strengths and key concerns
+Examples of LOW scores:
+- Profile with just "rower" for marketing job = 8-12 points
+- No relevant skills or experience = 10-20 points
+- Wrong industry/field = 15-25 points
 
-Be specific with numbers - avoid common scores like 70, 75, 80, 85, 90. Use precise values like 73, 78, 82, 87, 91.
-
-Respond with JSON in this exact format: { "score": number, "reasoning": "explanation" }`;
+Respond with JSON in this exact format: { "score": number, "reasoning": "honest explanation of why this specific score was given" }`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
-          content: "You are an expert recruiter and hiring manager with deep experience in candidate assessment. Analyze candidates thoroughly considering both technical fit and growth potential. Be objective but recognize transferable skills."
+          content: "You are an EXTREMELY STRICT recruiter who gives brutally honest assessments. Do NOT inflate scores. Be harsh and realistic. Candidates with minimal or irrelevant information should get very low scores (5-25). Only exceptional candidates deserve high scores (75+)."
         },
         {
           role: "user",
@@ -339,7 +338,7 @@ export async function analyzeApplicantProfile(
     `;
 
     const prompt = `
-    Analyze this job applicant's profile and provide a comprehensive assessment for the given position.
+    You are an EXTREMELY STRICT and HONEST recruiter. Evaluate this applicant with brutal honesty. DO NOT inflate scores.
     
     JOB DETAILS:
     Position: ${jobTitle}
@@ -349,17 +348,22 @@ export async function analyzeApplicantProfile(
     APPLICANT PROFILE:
     ${profile}
     
-    Please provide:
-    1. Profile Score: Rate from 1-100 based on overall qualification for this specific role (avoid round numbers like 70, 80, 90)
-    2. Analysis: 2-3 sentence summary of the applicant's fit for this role
-    3. Strengths: Top 3-4 strengths that make them a good candidate (array of strings)
-    4. Improvements: 2-3 areas for development or concerns (array of strings)
+    STRICT SCORING CRITERIA:
+    - Empty/minimal profiles (like just "rower"): 5-15 points
+    - No relevant experience: 10-25 points  
+    - Some relevant skills but major gaps: 25-45 points
+    - Good skills with minor gaps: 45-65 points
+    - Strong qualifications: 65-80 points
+    - Exceptional fit: 80-90 points
+    - Perfect match: 90-95 points
+    
+    Be BRUTALLY HONEST. If the profile lacks substance, information, or relevant experience, give a very low score.
     
     Respond in JSON format: {
       "profileScore": number,
-      "analysis": "detailed analysis text",
-      "strengths": ["strength1", "strength2", "strength3"],
-      "improvements": ["improvement1", "improvement2"]
+      "analysis": "honest, direct analysis explaining the low/high score",
+      "strengths": ["actual strengths found, empty array if none"],
+      "improvements": ["specific areas needing improvement"]
     }
     `;
 

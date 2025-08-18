@@ -1484,6 +1484,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for AI scoring accuracy
+  app.post('/api/test-scoring', async (req: any, res) => {
+    try {
+      const { profile, jobDescription } = req.body;
+      console.log(`🧪 Testing AI scoring with profile: "${profile}"`);
+      
+      const { ApplicantScoringService } = await import('./applicantScoringService');
+      const scoringService = new ApplicantScoringService();
+      
+      const result = await scoringService.scoreApplicant(profile || 'rower', jobDescription || 'Marketing Manager position requiring 7 years of experience in marketing strategies');
+      
+      res.json({ 
+        success: true,
+        testProfile: profile || 'rower',
+        result,
+        message: `Score: ${result.score}/100 - ${result.summary}`
+      });
+    } catch (error) {
+      console.error('Test scoring error:', error);
+      res.status(500).json({ message: 'Test scoring failed', error: error.message });
+    }
+  });
+
   // Test endpoint for SendGrid email
   app.post('/api/test-email', async (req: any, res) => {
     try {

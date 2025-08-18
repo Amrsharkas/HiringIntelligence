@@ -19,7 +19,19 @@ class ApplicantScoringService {
     try {
       console.log('Scoring applicant using OpenAI...');
       
-      const prompt = `You're evaluating a job applicant. Given the following job description and their AI-generated profile, return a match score between 0 and 100, and provide a 1-sentence summary of your reasoning.
+      // Check for minimal profiles and give very low scores immediately
+      const profileLength = userProfile.trim().length;
+      const profileWords = userProfile.trim().split(/\s+/).length;
+      
+      if (profileLength < 20 || profileWords < 5) {
+        console.log(`⚠️ Profile too short (${profileLength} chars, ${profileWords} words) - giving low score`);
+        return {
+          score: Math.floor(Math.random() * 10) + 5, // 5-14 points for minimal profiles
+          summary: "Insufficient profile information provided. Profile contains minimal data for proper evaluation."
+        };
+      }
+      
+      const prompt = `You are an EXTREMELY STRICT recruiter evaluating a job applicant. Be brutally honest and accurate. A candidate must have SUBSTANTIAL relevant experience and skills to score well.
 
 Job Description:
 ${jobDescription}
@@ -27,19 +39,30 @@ ${jobDescription}
 Applicant Profile:
 ${userProfile}
 
+CRITICAL EVALUATION CRITERIA:
+- If the profile is empty, vague, or has minimal information (like just "rower" or single words), score 0-15
+- If there's no relevant experience or skills mentioned, score 0-25
+- If there's some relevant experience but major gaps, score 25-45
+- If there's good relevant experience with minor gaps, score 45-65
+- If there's strong relevant experience with most requirements met, score 65-80
+- Only score 80+ if the candidate is exceptionally qualified with all key requirements
+
+SCORING RULES:
+- Be HARSH and REALISTIC
+- Incomplete profiles = Very low scores (0-15)
+- Irrelevant experience = Low scores (0-30)
+- Questionable fit = Medium scores (30-50)
+- Good fit = Higher scores (50-70)
+- Exceptional fit = High scores (70-85)
+- Perfect fit = Very high scores (85-95)
+
 Please respond with JSON in the following format:
 {
   "score": <number between 0-100>,
-  "summary": "<one sentence explaining the match score>"
+  "summary": "<one sentence explaining why this specific score was given>"
 }
 
-Guidelines:
-- Score 0-30: Poor match, major skill gaps or misalignment
-- Score 31-60: Fair match, some relevant experience but notable gaps
-- Score 61-85: Good match, solid alignment with most requirements
-- Score 86-100: Excellent match, strong alignment with all key requirements
-
-Avoid round numbers like 70, 80, 90. Use specific numbers like 67, 73, 82, 91, etc.`;
+Be honest and accurate. Don't inflate scores. A profile with minimal information should get a very low score.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
