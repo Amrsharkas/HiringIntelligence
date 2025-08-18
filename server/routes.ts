@@ -926,77 +926,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Step 3: Score ONLY new applicants and save to database immediately
+        // Step 3: Score ONLY new applicants using DETAILED AI SCORING and save to database immediately
         if (needScoring.length > 0) {
-          console.log(`🤖 DATABASE SCORING: Processing ${needScoring.length} new applicants`);
+          console.log(`🤖 BRUTAL AI SCORING: Processing ${needScoring.length} new applicants with detailed analysis`);
           
-          const scoringData = needScoring.map(app => ({
-            id: app.id,
-            userProfile: app.userProfile!,
-            jobDescription: app.jobDescription
-          }));
-          
-          try {
-            const scores = await applicantScoringService.batchScoreApplicants(scoringData);
-            const scoresMap = new Map(scores.map(s => [s.applicantId, { score: s.score, summary: s.summary }]));
-            
-            // Save each new score to database immediately
-            for (const app of needScoring) {
-              const newScore = scoresMap.get(app.id);
-              if (newScore) {
-                try {
-                  // Save to database first - PRIMARY STORAGE
-                  const dbScoredApplicant = await storage.createScoredApplicant({
-                    applicantId: app.id,
-                    matchScore: newScore.score,
-                    matchSummary: newScore.summary,
-                    technicalSkillsScore: null,
-                    experienceScore: null,
-                    culturalFitScore: null,
-                    jobId: app.jobId,
-                    organizationId: organizationId
-                  });
+          // Process each applicant individually for detailed scoring
+          for (const app of needScoring) {
+            try {
+              console.log(`🔍 Scoring applicant: ${app.name} for job: ${app.jobTitle}`);
+              
+              // Use the new detailed scoring method for brutal honesty
+              const detailedScore = await applicantScoringService.scoreApplicantDetailed(
+                app.userProfile,
+                app.jobTitle || 'Position',
+                app.jobDescription,
+                app.jobDescription, // Using job description as requirements for now
+                [] // No specific skills list yet
+              );
+              
+              console.log(`📊 DETAILED SCORES for ${app.name}:`);
+              console.log(`   Overall: ${detailedScore.overallMatch}%`);
+              console.log(`   Technical: ${detailedScore.technicalSkills}%`);
+              console.log(`   Experience: ${detailedScore.experience}%`);
+              console.log(`   Cultural: ${detailedScore.culturalFit}%`);
+              console.log(`   Summary: ${detailedScore.summary}`);
+              
+              // Save to database first - PRIMARY STORAGE with all detailed scores
+              const dbScoredApplicant = await storage.createScoredApplicant({
+                applicantId: app.id,
+                matchScore: detailedScore.overallMatch,
+                matchSummary: detailedScore.summary,
+                technicalSkillsScore: detailedScore.technicalSkills,
+                experienceScore: detailedScore.experience,
+                culturalFitScore: detailedScore.culturalFit,
+                jobId: app.jobId,
+                organizationId: organizationId
+              });
+              
+              console.log(`💾 DATABASE: Saved detailed scores for ${app.name} (Overall: ${detailedScore.overallMatch}%, ID: ${dbScoredApplicant.id})`);
+              
+              // Add to final applicants list with detailed database scores
+              applicantsWithScores.push({
+                ...app,
+                matchScore: detailedScore.overallMatch,
+                matchSummary: detailedScore.summary,
+                savedMatchScore: detailedScore.overallMatch,
+                savedMatchSummary: detailedScore.summary,
+                technicalSkillsScore: detailedScore.technicalSkills,
+                experienceScore: detailedScore.experience,
+                culturalFitScore: detailedScore.culturalFit
+              });
                   
-                  console.log(`💾 DATABASE: Saved score ${newScore.score} for ${app.name} (ID: ${dbScoredApplicant.id})`);
-                  
-                  // Add to final applicants list with database score
-                  applicantsWithScores.push({
-                    ...app,
-                    matchScore: newScore.score,
-                    matchSummary: newScore.summary,
-                    savedMatchScore: newScore.score,
-                    savedMatchSummary: newScore.summary,
-                    technicalSkillsScore: null,
-                    experienceScore: null,
-                    culturalFitScore: null
-                  });
-                  
-                } catch (dbError) {
-                  console.error(`❌ DATABASE ERROR saving score for ${app.name}:`, dbError);
-                  // Fallback: add with default scores
-                  applicantsWithScores.push({
-                    ...app,
-                    matchScore: 0,
-                    matchSummary: 'Database error - could not save score',
-                    savedMatchScore: 0,
-                    savedMatchSummary: 'Database error - could not save score'
-                  });
-                }
-              }
-            }
-          } catch (scoringError) {
-            console.error(`❌ SCORING ERROR:`, scoringError);
-            // Add all failed scoring to applicants with 0 scores
-            for (const app of needScoring) {
+            } catch (scoringError) {
+              console.error(`❌ SCORING ERROR for ${app.name}:`, scoringError);
+              
+              // Add with minimal score on error
               applicantsWithScores.push({
                 ...app,
                 matchScore: 0,
-                matchSummary: 'Scoring service error',
+                matchSummary: 'Error during AI scoring - manual review required',
                 savedMatchScore: 0,
-                savedMatchSummary: 'Scoring service error'
+                savedMatchSummary: 'Error during AI scoring - manual review required',
+                technicalSkillsScore: 0,
+                experienceScore: 0,
+                culturalFitScore: 0
               });
             }
           }
+        }
         }
         
         // Final result: All applicants with persistent scores
@@ -1481,6 +1478,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing pending invitation:", error);
       res.status(500).json({ message: "Failed to process invitation" });
+    }
+  });
+
+  // Clear all scoring data to force re-scoring with new brutal AI system
+  app.post('/api/clear-all-scores', async (req: any, res) => {
+    try {
+      console.log('🧹 CLEARING ALL SCORING DATA to force new brutal AI re-scoring...');
+      
+      // Clear all scored applicants from database
+      await storage.clearAllScoredApplicants();
+      
+      console.log('✅ All scoring data cleared. Next applicant load will trigger new brutal AI scoring.');
+      res.json({ 
+        success: true, 
+        message: 'All scoring data cleared. Applicants will be re-scored using the new brutal AI system on next load.' 
+      });
+    } catch (error) {
+      console.error('Error clearing scores:', error);
+      res.status(500).json({ message: 'Failed to clear scores', error: error.message });
+    }
+  });
+
+  // Test endpoint for detailed AI scoring accuracy  
+  app.post('/api/test-detailed-scoring', async (req: any, res) => {
+    try {
+      const { 
+        profile = 'rower', 
+        jobTitle = 'Senior Software Developer',
+        jobDescription = 'We are looking for a senior software developer with 5+ years of experience in React, Node.js, and TypeScript to build scalable web applications.',
+        jobRequirements = 'Bachelor\'s degree in Computer Science, 5+ years React experience, expertise in Node.js, TypeScript, database design, API development',
+        jobSkills = ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'REST APIs']
+      } = req.body;
+      
+      console.log(`🧪 Testing DETAILED AI scoring for: "${jobTitle}"`);
+      console.log(`👤 Profile: "${profile}"`);
+      
+      const { ApplicantScoringService } = await import('./applicantScoringService');
+      const scoringService = new ApplicantScoringService();
+      
+      const result = await scoringService.scoreApplicantDetailed(
+        profile, 
+        jobTitle, 
+        jobDescription, 
+        jobRequirements, 
+        jobSkills
+      );
+      
+      res.json({ 
+        success: true,
+        testData: {
+          profile,
+          jobTitle,
+          jobDescription,
+          jobRequirements,
+          jobSkills
+        },
+        detailedScores: result,
+        message: `Overall: ${result.overallMatch}% | Technical: ${result.technicalSkills}% | Experience: ${result.experience}% | Culture: ${result.culturalFit}%`
+      });
+    } catch (error) {
+      console.error('Detailed scoring test error:', error);
+      res.status(500).json({ message: 'Detailed scoring test failed', error: error.message });
     }
   });
 
