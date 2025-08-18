@@ -717,10 +717,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       const applicants = await realApplicantsAirtableService.getAllApplicants();
       
-      // Filter to only show applicants for this organization's jobs
+      // Filter to only show applicants for this organization's jobs AND exclude accepted applicants
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
-      const filteredApplicants = applicants.filter(app => organizationJobIds.has(app.jobId));
+      const filteredApplicants = applicants.filter(app => 
+        organizationJobIds.has(app.jobId) && app.status !== 'Accepted'
+      );
       
       res.json({ count: filteredApplicants.length });
     } catch (error) {
