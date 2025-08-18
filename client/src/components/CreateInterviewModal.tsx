@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Users, Briefcase, X, Clock, Link as LinkIcon, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,9 +9,16 @@ import { isUnauthorizedError } from '@/lib/authUtils';
 interface CreateInterviewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  preSelectedApplicant?: {
+    id: string;
+    name: string;
+    jobTitle: string;
+    jobId: string;
+    userId: string;
+  };
 }
 
-export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalProps) {
+export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: CreateInterviewModalProps) {
   const [selectedJob, setSelectedJob] = useState('');
   const [selectedApplicant, setSelectedApplicant] = useState('');
   const [interviewData, setInterviewData] = useState({
@@ -25,6 +32,30 @@ export function CreateInterviewModal({ isOpen, onClose }: CreateInterviewModalPr
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Handle pre-selected applicant data
+  useEffect(() => {
+    if (preSelectedApplicant && isOpen) {
+      setSelectedJob(preSelectedApplicant.jobId);
+      setSelectedApplicant(preSelectedApplicant.userId);
+    }
+  }, [preSelectedApplicant, isOpen]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedJob('');
+      setSelectedApplicant('');
+      setInterviewData({
+        scheduledDate: '',
+        scheduledTime: '',
+        timeZone: 'UTC',
+        interviewType: 'video',
+        meetingLink: '',
+        notes: ''
+      });
+    }
+  }, [isOpen]);
 
   // Fetch active jobs first
   const { data: jobs = [] } = useQuery({

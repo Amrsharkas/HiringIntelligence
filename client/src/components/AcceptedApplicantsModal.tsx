@@ -23,11 +23,13 @@ interface AcceptedApplicant {
 interface AcceptedApplicantsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onScheduleInterview?: (applicant: any) => void;
 }
 
 export default function AcceptedApplicantsModal({
   isOpen,
   onClose,
+  onScheduleInterview,
 }: AcceptedApplicantsModalProps) {
   // Fetch all accepted applicants across all jobs
   const { data: acceptedApplicants = [], isLoading, error } = useQuery<AcceptedApplicant[]>({
@@ -36,10 +38,20 @@ export default function AcceptedApplicantsModal({
   });
 
   const handleScheduleInterview = (applicantId: string, jobId: string, applicantName: string, jobTitle: string) => {
-    // This would open an interview scheduling modal
-    // For now, we'll show a placeholder action
-    console.log(`Scheduling interview for ${applicantName} for ${jobTitle} position`);
-    // TODO: Open CreateInterviewModal with pre-filled data
+    const applicantData = {
+      id: applicantId,
+      name: applicantName,
+      jobTitle: jobTitle,
+      jobId: jobId,
+      userId: applicantId
+    };
+    
+    if (onScheduleInterview) {
+      onScheduleInterview(applicantData);
+      onClose(); // Close accepted applicants modal
+    } else {
+      console.log(`Scheduling interview for ${applicantName} for ${jobTitle} position`);
+    }
   };
 
   if (error) {

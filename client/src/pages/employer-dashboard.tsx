@@ -365,6 +365,7 @@ export default function EmployerDashboard() {
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
   const [isInterviewManagementModalOpen, setIsInterviewManagementModalOpen] = useState(false);
   const [isAcceptedApplicantsModalOpen, setIsAcceptedApplicantsModalOpen] = useState(false);
+  const [selectedApplicantForInterview, setSelectedApplicantForInterview] = useState<any>(null);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -390,6 +391,11 @@ export default function EmployerDashboard() {
 
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+
+  const handleScheduleInterview = (applicantData: any) => {
+    setSelectedApplicantForInterview(applicantData);
+    setIsCreateInterviewModalOpen(true);
   };
 
   if (isLoading || !isAuthenticated) {
@@ -671,7 +677,11 @@ export default function EmployerDashboard() {
 
       <CreateInterviewModal 
         isOpen={isCreateInterviewModalOpen} 
-        onClose={() => setIsCreateInterviewModalOpen(false)} 
+        onClose={() => {
+          setIsCreateInterviewModalOpen(false);
+          setSelectedApplicantForInterview(null);
+        }}
+        preSelectedApplicant={selectedApplicantForInterview}
       />
       <InterviewManagementModal 
         isOpen={isInterviewManagementModalOpen} 
@@ -681,6 +691,7 @@ export default function EmployerDashboard() {
       <AcceptedApplicantsModal 
         isOpen={isAcceptedApplicantsModalOpen} 
         onClose={() => setIsAcceptedApplicantsModalOpen(false)} 
+        onScheduleInterview={handleScheduleInterview}
       />
     </div>
   );
