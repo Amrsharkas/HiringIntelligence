@@ -371,29 +371,29 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        {selectedApplicant.technicalScore || 92}%
+                        {selectedApplicant.technicalScore !== undefined ? `${selectedApplicant.technicalScore}%` : 'Pending AI Analysis'}
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Technical Skills</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Excellent technical proficiency
+                        {selectedApplicant.technicalScore !== undefined ? 'AI assessment complete' : 'Analyzing technical proficiency...'}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                        {selectedApplicant.experienceScore || 78}%
+                        {selectedApplicant.experienceScore !== undefined ? `${selectedApplicant.experienceScore}%` : 'Pending AI Analysis'}
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Experience</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Relevant background and expertise
+                        {selectedApplicant.experienceScore !== undefined ? 'AI assessment complete' : 'Analyzing experience relevance...'}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
-                        {selectedApplicant.culturalFitScore || 88}%
+                        {selectedApplicant.culturalFitScore !== undefined ? `${selectedApplicant.culturalFitScore}%` : 'Pending AI Analysis'}
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Cultural Fit</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Great alignment with company values
+                        {selectedApplicant.culturalFitScore !== undefined ? 'AI assessment complete' : 'Analyzing cultural alignment...'}
                       </div>
                     </div>
                   </div>
