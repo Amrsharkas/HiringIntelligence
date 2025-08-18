@@ -146,12 +146,15 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     shortlistMutation.mutate(applicantId);
   };
 
-  // Function to fetch and display user profile
+  // Function to fetch and display user profile - OPTIMIZED FOR SPEED
   const handleViewProfile = async (applicant: Applicant) => {
     try {
+      // Show modal immediately with applicant data
+      setSelectedApplicant(applicant);
+      
       console.log('🔍 Fetching profile for:', applicant.name, 'User ID:', applicant.userId);
       
-      // Use public profile endpoint (no authentication required)
+      // Fetch profile in background without blocking modal display
       try {
         const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.name)}`);
         if (response.ok) {
@@ -175,11 +178,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         console.error('❌ Error in profile fetch:', error);
         setSelectedUserProfile(null);
       }
-      
-      // Set selected applicant to show the modal
-      setSelectedApplicant(applicant);
     } catch (error) {
-      console.error('❌ Error fetching user profile:', error);
+      console.error('❌ Error in handleViewProfile:', error);
       setSelectedUserProfile(null);
       setSelectedApplicant(applicant);
     }

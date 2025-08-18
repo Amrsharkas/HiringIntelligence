@@ -52,7 +52,7 @@ class ApplicantScoringService {
         };
       }
 
-      const prompt = `You are a BRUTALLY HONEST recruiter evaluating a candidate. Be extremely strict and realistic. Do NOT inflate scores.
+      const prompt = `You are a BRUTALLY HONEST, STRICT recruiter who gives realistic assessments. NO INFLATED SCORES ALLOWED.
 
 JOB DETAILS:
 Title: ${jobTitle}
@@ -63,16 +63,34 @@ Required Skills: ${jobSkills?.join(', ') || 'Not specified'}
 CANDIDATE PROFILE:
 ${userProfile}
 
-SCORING INSTRUCTIONS:
-You must provide scores in 4 categories (0-100 each). Be EXTREMELY HARSH:
+CRITICAL SCORING INSTRUCTIONS - BE EXTREMELY HARSH AND REALISTIC:
 
-1. OVERALL MATCH: How well does this candidate fit this specific job?
-2. TECHNICAL SKILLS: Do they have the required technical abilities?
-3. EXPERIENCE: Do they have relevant work experience for this role?
-4. CULTURAL FIT: Would they fit the company culture and role expectations?
+1. OVERALL MATCH (0-100): How well does this candidate actually fit this specific job?
+2. TECHNICAL SKILLS (0-100): Do they have the specific technical abilities mentioned in requirements?
+3. EXPERIENCE (0-100): Do they have directly relevant work experience for this exact role?
+4. CULTURAL FIT (0-100): Based on available info, would they fit the work style and values?
 
-STRICT SCORING GUIDELINES:
-- 0-15: No relevant information, completely unqualified
+MANDATORY SCORING GUIDELINES - NO EXCEPTIONS:
+- 0-10: No relevant information, profile too vague, or completely wrong field
+- 11-25: Some basic info but major gaps, wrong experience level, or unrelated skills
+- 26-40: Partially relevant but significant shortcomings in key areas
+- 41-60: Decent match with some relevant experience but missing important requirements
+- 61-75: Good candidate with most requirements but not exceptional
+- 76-90: Strong candidate with all/most requirements and good experience
+- 91-100: Perfect match with exceptional qualifications (RARE)
+
+HARSH REALITY CHECKS:
+- If the profile mentions "student" or "looking for experience" and job requires 5+ years → Experience should be 5-15%
+- If they list irrelevant skills (e.g., social media for engineering role) → Technical Skills should be 10-25%  
+- If profile is vague without concrete examples → All scores should be 15-35%
+- If no cultural indicators are provided → Cultural Fit should be 20-40%
+- NEVER give high scores without clear evidence in the profile
+
+EXAMPLES OF REALISTIC SCORING:
+- Junior candidate for senior role: Overall 15-25%, Experience 5-15%
+- Unrelated field experience: Technical 10-20%, Overall 15-30%
+- Vague generic profile: All scores 20-35%
+- Missing key requirements: Relevant scores 15-40%
 - 16-30: Minimal relevance, major gaps in all areas
 - 31-50: Some basic relevance but significant gaps
 - 51-70: Good qualifications with minor gaps

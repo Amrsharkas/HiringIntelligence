@@ -1606,6 +1606,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Force immediate re-scoring of all applicants with brutal AI
+  app.post('/api/force-rescoring', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      console.log('🚀 FORCE RESCORING: Starting brutal AI re-scoring for all applicants...');
+      
+      // Clear all existing scores first
+      await storage.clearAllScoredApplicants();
+      console.log('🗑️ All existing scores cleared');
+      
+      // Import services
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const { applicantScoringService } = await import('./applicantScoringService');
+      
+      // Get all applicants
+      let applicants = await realApplicantsAirtableService.getAllApplicants();
+      
+      // Filter to organization jobs
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+      applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
+      
+      console.log(`🎯 Processing ${applicants.length} applicants for brutal AI scoring...`);
+      
+      let scoredCount = 0;
+      const results = [];
+      
+      for (const app of applicants) {
+        if (app.userProfile && app.jobDescription) {
+          try {
+            console.log(`🔍 Brutally scoring: ${app.name} for job: ${app.jobTitle}`);
+            
+            const detailedScore = await applicantScoringService.scoreApplicantDetailed(
+              app.userProfile,
+              app.jobTitle || 'Position',
+              app.jobDescription,
+              app.jobDescription,
+              []
+            );
+            
+            // Save to database
+            await storage.createScoredApplicant({
+              applicantId: app.id,
+              matchScore: detailedScore.overallMatch,
+              matchSummary: detailedScore.summary,
+              technicalSkillsScore: detailedScore.technicalSkills,
+              experienceScore: detailedScore.experience,
+              culturalFitScore: detailedScore.culturalFit,
+              jobId: app.jobId,
+              organizationId: organization.id
+            });
+            
+            console.log(`✅ ${app.name}: Overall ${detailedScore.overallMatch}%, Tech ${detailedScore.technicalSkills}%, Exp ${detailedScore.experience}%, Culture ${detailedScore.culturalFit}%`);
+            
+            results.push({
+              name: app.name,
+              scores: detailedScore
+            });
+            
+            scoredCount++;
+          } catch (error) {
+            console.error(`❌ Error scoring ${app.name}:`, error);
+          }
+        }
+      }
+      
+      console.log(`🎉 FORCE RESCORING COMPLETE: ${scoredCount} applicants scored with brutal AI`);
+      
+      res.json({ 
+        success: true, 
+        message: `Successfully re-scored ${scoredCount} applicants with brutal AI system`,
+        scoredCount,
+        results: results.slice(0, 3) // Show first 3 results
+      });
+    } catch (error) {
+      console.error('❌ Error in force rescoring:', error);
+      res.status(500).json({ 
+        message: "Failed to force rescoring", 
+        error: error.message 
+      });
+    }
+  });
+
   // Test endpoint for detailed AI scoring accuracy  
   app.post('/api/test-detailed-scoring', async (req: any, res) => {
     try {
