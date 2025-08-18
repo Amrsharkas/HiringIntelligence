@@ -1015,7 +1015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Original Applicants routes (now for platojobapplications table)
+  // Original Applicants routes (now for platojobapplications table) - UPDATED WITH BRUTAL AI SCORING
   app.get('/api/applicants', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -1025,8 +1025,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      const { applicantsAirtableService } = await import('./applicantsAirtableService');
-      const applicants = await applicantsAirtableService.getAllApplicantsByOrganization(organization.id);
+      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      const { applicantScoringService } = await import('./applicantScoringService');
+      
+      console.log('🔄 MIGRATING TO BRUTAL AI SCORING: Fetching applicants with new scoring system');
+      let applicants = await realApplicantsAirtableService.getAllApplicants();
+      
+      // Filter to only show applicants for this organization's jobs
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+      applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
+
+      // APPLY BRUTAL AI SCORING SYSTEM TO ALL APPLICANTS
+      if (applicants.length > 0) {
+        console.log(`🤖 BRUTAL AI SCORING: Processing ${applicants.length} applicants with detailed analysis`);
+        
+        // Get existing scored applicants from database
+        const allScoredApplicants = await storage.getScoredApplicantsByOrganization(organization.id);
+        const scoredApplicantsMap = new Map(allScoredApplicants.map(s => [s.applicantId, s]));
+        
+        console.log(`🔍 Found ${allScoredApplicants.length} previously scored applicants in database`);
+        
+        const applicantsWithScores: any[] = [];
+        
+        for (const app of applicants) {
+          const dbScore = scoredApplicantsMap.get(app.id);
+          
+          if (dbScore) {
+            // Use existing database score
+            console.log(`✅ ${app.name}: Using database score ${dbScore.matchScore}%`);
+            applicantsWithScores.push({
+              ...app,
+              matchScore: dbScore.matchScore,
+              matchSummary: dbScore.matchSummary || 'Database score',
+              technicalSkillsScore: dbScore.technicalSkillsScore,
+              experienceScore: dbScore.experienceScore,
+              culturalFitScore: dbScore.culturalFitScore
+            });
+          } else if (app.userProfile && app.jobDescription) {
+            // NEW SCORING NEEDED - USE BRUTAL AI
+            console.log(`🔍 Scoring applicant: ${app.name} for job: ${app.jobTitle}`);
+            
+            try {
+              const detailedScore = await applicantScoringService.scoreApplicantDetailed(
+                app.userProfile,
+                app.jobTitle || 'Position',
+                app.jobDescription,
+                app.jobDescription,
+                []
+              );
+              
+              console.log(`📊 BRUTAL SCORES for ${app.name}:`);
+              console.log(`   Overall: ${detailedScore.overallMatch}%`);
+              console.log(`   Technical: ${detailedScore.technicalSkills}%`);
+              console.log(`   Experience: ${detailedScore.experience}%`);
+              console.log(`   Cultural: ${detailedScore.culturalFit}%`);
+              
+              // Save to database
+              await storage.createScoredApplicant({
+                applicantId: app.id,
+                matchScore: detailedScore.overallMatch,
+                matchSummary: detailedScore.summary,
+                technicalSkillsScore: detailedScore.technicalSkills,
+                experienceScore: detailedScore.experience,
+                culturalFitScore: detailedScore.culturalFit,
+                jobId: app.jobId,
+                organizationId: organization.id
+              });
+              
+              console.log(`💾 Saved brutal scores for ${app.name}`);
+              
+              applicantsWithScores.push({
+                ...app,
+                matchScore: detailedScore.overallMatch,
+                matchSummary: detailedScore.summary,
+                technicalSkillsScore: detailedScore.technicalSkills,
+                experienceScore: detailedScore.experience,
+                culturalFitScore: detailedScore.culturalFit
+              });
+            } catch (scoringError) {
+              console.error(`❌ SCORING ERROR for ${app.name}:`, scoringError);
+              applicantsWithScores.push({
+                ...app,
+                matchScore: 0,
+                matchSummary: 'Error during AI scoring - manual review required',
+                technicalSkillsScore: 0,
+                experienceScore: 0,
+                culturalFitScore: 0
+              });
+            }
+          } else {
+            // No profile data
+            applicantsWithScores.push({
+              ...app,
+              matchScore: 0,
+              matchSummary: 'Insufficient data for scoring',
+              technicalSkillsScore: 0,
+              experienceScore: 0,
+              culturalFitScore: 0
+            });
+          }
+        }
+        
+        applicants = applicantsWithScores;
+        console.log(`🎯 FINAL: ${applicants.length} applicants with brutal AI scores`);
+      }
+
+      // Sort by match score (highest first)
+      applicants.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+      
       res.json(applicants);
     } catch (error) {
       console.error("Error fetching applicants:", error);
