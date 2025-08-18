@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -52,8 +52,26 @@ interface ApplicantsModalProps {
 export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
+  const [scoringTimeout, setScoringTimeout] = useState<boolean>(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Timeout mechanism for AI scoring
+  useEffect(() => {
+    if (selectedApplicant && 
+        selectedApplicant.technicalScore === undefined && 
+        selectedApplicant.experienceScore === undefined && 
+        selectedApplicant.culturalFitScore === undefined) {
+      // Start 10-second timeout for scoring
+      const timer = setTimeout(() => {
+        setScoringTimeout(true);
+      }, 10000); // 10 seconds
+
+      return () => clearTimeout(timer);
+    } else {
+      setScoringTimeout(false);
+    }
+  }, [selectedApplicant]);
 
   // Fetch all applicants for this organization
   const { data: applicants = [], isLoading } = useQuery<Applicant[]>({
@@ -151,6 +169,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     try {
       // Show modal immediately with applicant data
       setSelectedApplicant(applicant);
+      setScoringTimeout(false); // Reset timeout when viewing a new applicant
       
       console.log('🔍 Fetching profile for:', applicant.name, 'User ID:', applicant.userId);
       
@@ -371,29 +390,41 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        {selectedApplicant.technicalScore !== undefined ? `${selectedApplicant.technicalScore}%` : 'Pending AI Analysis'}
+                        {selectedApplicant.technicalScore !== undefined 
+                          ? `${selectedApplicant.technicalScore}%` 
+                          : scoringTimeout ? 'N/A' : 'Pending AI Analysis'}
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Technical Skills</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {selectedApplicant.technicalScore !== undefined ? 'AI assessment complete' : 'Analyzing technical proficiency...'}
+                        {selectedApplicant.technicalScore !== undefined 
+                          ? 'AI assessment complete' 
+                          : scoringTimeout ? 'Analysis unavailable' : 'Analyzing technical proficiency...'}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                        {selectedApplicant.experienceScore !== undefined ? `${selectedApplicant.experienceScore}%` : 'Pending AI Analysis'}
+                        {selectedApplicant.experienceScore !== undefined 
+                          ? `${selectedApplicant.experienceScore}%` 
+                          : scoringTimeout ? 'N/A' : 'Pending AI Analysis'}
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Experience</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {selectedApplicant.experienceScore !== undefined ? 'AI assessment complete' : 'Analyzing experience relevance...'}
+                        {selectedApplicant.experienceScore !== undefined 
+                          ? 'AI assessment complete' 
+                          : scoringTimeout ? 'Analysis unavailable' : 'Analyzing experience relevance...'}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
-                        {selectedApplicant.culturalFitScore !== undefined ? `${selectedApplicant.culturalFitScore}%` : 'Pending AI Analysis'}
+                        {selectedApplicant.culturalFitScore !== undefined 
+                          ? `${selectedApplicant.culturalFitScore}%` 
+                          : scoringTimeout ? 'N/A' : 'Pending AI Analysis'}
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Cultural Fit</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {selectedApplicant.culturalFitScore !== undefined ? 'AI assessment complete' : 'Analyzing cultural alignment...'}
+                        {selectedApplicant.culturalFitScore !== undefined 
+                          ? 'AI assessment complete' 
+                          : scoringTimeout ? 'Analysis unavailable' : 'Analyzing cultural alignment...'}
                       </div>
                     </div>
                   </div>
