@@ -184,7 +184,12 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.open(interview.meetingLink, '_blank')}
+                onClick={() => {
+                  const url = interview.meetingLink.startsWith('http://') || interview.meetingLink.startsWith('https://') 
+                    ? interview.meetingLink 
+                    : `https://${interview.meetingLink}`;
+                  window.open(url, '_blank');
+                }}
                 className="h-6 px-2"
               >
                 <ExternalLink className="h-3 w-3" />
