@@ -17,16 +17,16 @@ class EmailService {
   private mailService: MailService;
 
   constructor() {
-    // Use the updated SendGrid API key
-    const apiKey = process.env.SENDGRID_API_KEY || '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';
+    // Use the environment variable for SendGrid API key
+    const apiKey = process.env.SENDGRID_API_KEY;
     
     if (!apiKey) {
-      throw new Error("SENDGRID_API_KEY must be provided");
+      throw new Error("SENDGRID_API_KEY environment variable must be provided");
     }
 
     this.mailService = new MailService();
     this.mailService.setApiKey(apiKey);
-    console.log('📧 EmailService initialized with SendGrid API key');
+    console.log('📧 EmailService initialized with SendGrid');
   }
 
   async sendInterviewScheduledEmail(data: InterviewEmailData): Promise<boolean> {

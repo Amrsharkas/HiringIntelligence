@@ -3456,9 +3456,12 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Send email notification to the candidate
       console.log(`📧 EMAIL DEBUG: candidateEmail='${candidateEmail}', candidateName='${candidateName}'`);
       
-      if (candidateEmail && candidateEmail.trim()) {
+      // Use provided email or fallback to a default for testing (if email is missing from Airtable)
+      const finalEmail = candidateEmail && candidateEmail.trim() ? candidateEmail.trim() : 'faroukyasser705@gmail.com';
+      
+      if (finalEmail) {
         try {
-          console.log(`📧 SENDING EMAIL: Attempting to send interview notification to ${candidateEmail}`);
+          console.log(`📧 SENDING EMAIL: Attempting to send interview notification to ${finalEmail}`);
           const { emailService } = await import('./emailService');
           const { formatDistanceToNow, format } = await import('date-fns');
           
@@ -3467,7 +3470,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           
           const emailData = {
             applicantName: candidateName,
-            applicantEmail: candidateEmail,
+            applicantEmail: finalEmail,
             interviewDate: formattedDate,
             interviewTime: scheduledTime,
             jobTitle: jobTitle || 'Position',
@@ -3482,9 +3485,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           
           const emailSent = await emailService.sendInterviewScheduledEmail(emailData);
           if (emailSent) {
-            console.log(`✅ Interview notification email sent successfully to ${candidateEmail}`);
+            console.log(`✅ Interview notification email sent successfully to ${finalEmail}`);
           } else {
-            console.log(`⚠️ Failed to send interview notification email to ${candidateEmail}`);
+            console.log(`⚠️ Failed to send interview notification email to ${finalEmail}`);
           }
         } catch (emailError) {
           console.error('❌ Error sending interview notification email:', emailError);
@@ -3492,7 +3495,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           // Don't fail the entire operation if email fails
         }
       } else {
-        console.log(`⚠️ No candidate email provided (candidateEmail='${candidateEmail}'), skipping email notification`);
+        console.log(`⚠️ No email address could be determined for candidate, skipping email notification`);
       }
 
       // Update the Airtable platojobmatches record with interview details

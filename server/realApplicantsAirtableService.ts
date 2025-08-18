@@ -10,6 +10,9 @@ interface AirtableApplicantRecord {
     'Applicant User ID'?: string;
     'Email'?: string;
     'Applicant email'?: string;
+    'Applicant Email'?: string;
+    'User Email'?: string;
+    'email'?: string;
     'Phone'?: string;
     'Job title': string;
     'Job description': string;
@@ -115,7 +118,7 @@ class RealApplicantsAirtableService {
           id: record.id,
           name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
           userId: record.fields['Applicant User ID'] || record.fields['User ID'] || '',
-          email: record.fields['Applicant Email'] || record.fields['Email'] || '',
+          email: record.fields['Applicant Email'] || record.fields['Email'] || record.fields['Applicant email'] || record.fields['User Email'] || record.fields['email'] || '',
           phone: record.fields['Phone'] || '',
           jobTitle: record.fields['Job title'] || '',
           jobDescription: record.fields['Job description'] || '',

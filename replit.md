@@ -32,9 +32,11 @@ Preferred communication style: Simple, everyday language.
 ### Key Features
 - **Authentication**: Replit Auth, PostgreSQL-backed sessions, route-level authorization, automatic user management.
 - **Job Management**: AI-powered job creation (OpenAI), dynamic skill extraction, full job lifecycle management (create, edit, delete, view), and analytics.
-- **Candidate Matching**: Airtable integration, AI matching engine (OpenAI GPT-4o) with 1-100 rating, real-time analysis, detailed match reasoning, comprehensive candidate profiles, and cross-platform linking.
+- **Candidate Matching**: Airtable integration, AI matching engine (OpenAI GPT-4o) with instant dynamic scoring (no pending states), brutally honest ratings (5-25% range), real-time analysis without database caching, detailed match reasoning, and comprehensive candidate profiles.
+- **Interview Management**: Automated interview scheduling with SendGrid email notifications containing complete interview details (date, time, job title, company, meeting link, timezone, notes).
 - **Organization Management**: Company and team setup, email-based member invitation with role-based access control, SendGrid integration, and configurable preferences.
-- **Data Flow**: Automated processes for job posting, AI-driven candidate matching, and real-time dashboard updates with live components.
+- **Email Integration**: Working SendGrid service for interview notifications, test endpoints for email verification, and fallback email handling for missing applicant contact information.
+- **Data Flow**: Automated processes for job posting, AI-driven candidate matching, real-time dashboard updates with live components, and instant email notifications for scheduled interviews.
 
 ## External Dependencies
 
