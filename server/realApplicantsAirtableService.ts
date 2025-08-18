@@ -115,7 +115,7 @@ class RealApplicantsAirtableService {
           id: record.id,
           name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
           userId: record.fields['Applicant User ID'] || record.fields['User ID'] || '',
-          email: record.fields['Applicant email'] || record.fields['Email'] || '',
+          email: record.fields['Applicant Email'] || record.fields['Email'] || '',
           phone: record.fields['Phone'] || '',
           jobTitle: record.fields['Job title'] || '',
           jobDescription: record.fields['Job description'] || '',
@@ -187,7 +187,7 @@ class RealApplicantsAirtableService {
       if (allRecords.length > 0) {
         console.log('🔍 RAW AIRTABLE DATA - First applicant fields:');
         console.log('🔍 Available field names:', Object.keys(allRecords[0].fields));
-        console.log('🔍 Applicant email field value:', allRecords[0].fields['Applicant email']);
+        console.log('🔍 Applicant Email field value:', allRecords[0].fields['Applicant Email']);
         console.log('🔍 Match Score field value:', allRecords[0].fields['Match Score']);
         console.log('🔍 Match Summary field value:', allRecords[0].fields['Match Summary']);
         console.log('🔍 Technical Skills Score field value:', allRecords[0].fields['Technical Skills Score']);
@@ -200,7 +200,7 @@ class RealApplicantsAirtableService {
         id: record.id,
         name: record.fields['Applicant Name'] || record.fields['Name'] || 'Unknown Applicant',
         userId: record.fields['Applicant User ID'] || record.fields['User ID'] || '',
-        email: record.fields['Applicant email'] || record.fields['Email'] || '',
+        email: record.fields['Applicant Email'] || record.fields['Email'] || '',
         phone: record.fields['Phone'] || '',
         jobTitle: record.fields['Job title'] || '',
         jobDescription: record.fields['Job description'] || '',
