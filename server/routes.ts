@@ -878,130 +878,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
       }
 
-      // COMPREHENSIVE DATABASE-BACKED SCORE PERSISTENCE SYSTEM
+      // DYNAMIC AI SCORING SYSTEM - ALWAYS FRESH ANALYSIS
       if (applicants.length > 0) {
-        console.log(`🗄️  DATABASE-BACKED SCORING: Processing ${applicants.length} applicants`);
+        console.log(`🤖 DYNAMIC AI SCORING: Processing ${applicants.length} applicants with fresh AI analysis`);
         
-        // Step 1: Get all scored applicants from database for this organization
-        const organizationId = organization.id;
-        const allScoredApplicants = await storage.getScoredApplicantsByOrganization(organizationId);
-        const scoredApplicantsMap = new Map(allScoredApplicants.map(s => [s.applicantId, s]));
-        
-        console.log(`🔍 Found ${allScoredApplicants.length} total scored applicants in database`);
-        
-        // Step 2: Apply database scores to applicants and determine which need scoring
         const applicantsWithScores: any[] = [];
-        const needScoring: any[] = [];
         
+        // Process each applicant with fresh AI scoring every time
         for (const app of applicants) {
-          const dbScore = scoredApplicantsMap.get(app.id);
-          
-          if (dbScore) {
-            // Apply database score - NO RECALCULATION EVER
-            console.log(`✅ ${app.name}: Using database score ${dbScore.matchScore} (scored: ${dbScore.scoredAt})`);
-            applicantsWithScores.push({
-              ...app,
-              matchScore: dbScore.matchScore,
-              matchSummary: dbScore.matchSummary || 'Database score',
-              savedMatchScore: dbScore.matchScore,
-              savedMatchSummary: dbScore.matchSummary || 'Database score',
-              technicalSkillsScore: dbScore.technicalSkillsScore,
-              experienceScore: dbScore.experienceScore,
-              culturalFitScore: dbScore.culturalFitScore
-            });
-          } else if (app.userProfile && app.jobDescription) {
-            // Needs scoring - add to scoring queue
-            console.log(`❌ ${app.name}: NO database score found - adding to scoring queue`);
-            needScoring.push(app);
-          } else {
-            // No profile data - skip scoring
-            console.log(`⚠️  ${app.name}: Missing profile/job data - cannot score`);
-            applicantsWithScores.push({
-              ...app,
-              matchScore: 0,
-              matchSummary: 'Insufficient data for scoring',
-              savedMatchScore: 0,
-              savedMatchSummary: 'Insufficient data for scoring'
-            });
-          }
-        }
-        
-        // Step 3: Score ONLY new applicants using DETAILED AI SCORING and save to database immediately
-        if (needScoring.length > 0) {
-          console.log(`🤖 BRUTAL AI SCORING: Processing ${needScoring.length} new applicants with detailed analysis`);
-          
-          // Process each applicant individually for detailed scoring
-          for (const app of needScoring) {
+          if (app.userProfile && app.jobDescription) {
             try {
-              console.log(`🔍 Scoring applicant: ${app.name} for job: ${app.jobTitle}`);
+              console.log(`🔍 Fresh AI scoring for: ${app.name} applying for: ${app.jobTitle}`);
               
-              // Use the new detailed scoring method for brutal honesty
+              // Use detailed AI scoring for completely fresh analysis
               const detailedScore = await applicantScoringService.scoreApplicantDetailed(
                 app.userProfile,
                 app.jobTitle || 'Position',
                 app.jobDescription,
-                app.jobDescription, // Using job description as requirements for now
+                app.jobDescription, // Using job description as requirements
                 [] // No specific skills list yet
               );
               
-              console.log(`📊 DETAILED SCORES for ${app.name}:`);
+              console.log(`📊 FRESH AI SCORES for ${app.name}:`);
               console.log(`   Overall: ${detailedScore.overallMatch}%`);
               console.log(`   Technical: ${detailedScore.technicalSkills}%`);
               console.log(`   Experience: ${detailedScore.experience}%`);
               console.log(`   Cultural: ${detailedScore.culturalFit}%`);
               console.log(`   Summary: ${detailedScore.summary}`);
               
-              // Save to database first - PRIMARY STORAGE with all detailed scores
-              const dbScoredApplicant = await storage.createScoredApplicant({
-                applicantId: app.id,
-                matchScore: detailedScore.overallMatch,
-                matchSummary: detailedScore.summary,
-                technicalSkillsScore: detailedScore.technicalSkills,
-                experienceScore: detailedScore.experience,
-                culturalFitScore: detailedScore.culturalFit,
-                jobId: app.jobId,
-                organizationId: organizationId
-              });
-              
-              console.log(`💾 DATABASE: Saved detailed scores for ${app.name} (Overall: ${detailedScore.overallMatch}%, ID: ${dbScoredApplicant.id})`);
-              
-              // Add to final applicants list with detailed database scores
+              // Add to final list with fresh scores (no database caching)
               applicantsWithScores.push({
                 ...app,
                 matchScore: detailedScore.overallMatch,
                 matchSummary: detailedScore.summary,
-                savedMatchScore: detailedScore.overallMatch,
-                savedMatchSummary: detailedScore.summary,
                 technicalSkillsScore: detailedScore.technicalSkills,
                 experienceScore: detailedScore.experience,
                 culturalFitScore: detailedScore.culturalFit
               });
-                  
+              
             } catch (scoringError) {
               console.error(`❌ SCORING ERROR for ${app.name}:`, scoringError);
               
-              // Add with minimal score on error
+              // Add with error score on failure
               applicantsWithScores.push({
                 ...app,
                 matchScore: 0,
                 matchSummary: 'Error during AI scoring - manual review required',
-                savedMatchScore: 0,
-                savedMatchSummary: 'Error during AI scoring - manual review required',
                 technicalSkillsScore: 0,
                 experienceScore: 0,
                 culturalFitScore: 0
               });
             }
+          } else {
+            // No profile data - cannot score
+            console.log(`⚠️  ${app.name}: Missing profile/job data - cannot score`);
+            applicantsWithScores.push({
+              ...app,
+              matchScore: 0,
+              matchSummary: 'Insufficient data for AI scoring',
+              technicalSkillsScore: 0,
+              experienceScore: 0,
+              culturalFitScore: 0
+            });
           }
         }
         
-        // Final result: All applicants with persistent scores
+        // All applicants now have dynamic scores
         applicants = applicantsWithScores;
-        console.log(`🎯 FINAL RESULT: ${applicants.length} applicants with persistent database scores`);
+        console.log(`🎯 DYNAMIC RESULT: ${applicants.length} applicants with fresh AI scores`);
         
-        // Log final scoring status
+        // Log fresh scoring status
         applicants.forEach(app => {
-          console.log(`📊 ${app.name}: Final score = ${app.matchScore} (${app.matchScore > 0 ? 'DATABASE PERSISTENT' : 'NO SCORE'})`);
+          console.log(`📊 ${app.name}: Fresh AI score = ${app.matchScore}% (DYNAMIC ANALYSIS)`);
         });
       }
 
