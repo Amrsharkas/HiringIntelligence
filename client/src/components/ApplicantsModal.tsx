@@ -73,6 +73,17 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     }
   }, [selectedApplicant]);
 
+  // Auto-refresh applicants data every 10 seconds when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
+  }, [isOpen, queryClient]);
+
   // Fetch all applicants for this organization
   const { data: applicants = [], isLoading } = useQuery<Applicant[]>({
     queryKey: ["/api/real-applicants"],
