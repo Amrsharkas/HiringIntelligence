@@ -1488,22 +1488,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/test-email', async (req: any, res) => {
     try {
       const { email } = req.body;
-      console.log(`📧 Testing email send to: ${email}`);
+      console.log(`📧 Testing interview email send to: ${email}`);
       
-      // TODO: Re-implement test invitation email
-      // const emailSent = await sendInvitationEmail({
-      //   to: email || 'test@example.com',
-      //   organizationName: 'Test Organization',
-      //   inviterName: 'Test Admin',
-      //   invitationToken: 'test-token-12345',
-      //   organizationId: 1,
-      //   role: 'member',
-      // });
-      const emailSent = true; // Temporarily disable test emails
+      const { emailService } = await import('./emailService');
+      const { format } = await import('date-fns');
+      
+      // Test interview email data
+      const emailData = {
+        applicantName: 'Test Candidate',
+        applicantEmail: email || 'test@example.com',
+        interviewDate: format(new Date(), 'EEEE, MMMM do, yyyy'),
+        interviewTime: '2:00 PM',
+        jobTitle: 'Test Position',
+        companyName: 'Plato Hiring',
+        interviewType: 'video',
+        meetingLink: 'https://meet.google.com/test-link',
+        timeZone: 'UTC',
+        notes: 'This is a test interview notification email.'
+      };
+      
+      const emailSent = await emailService.sendInterviewScheduledEmail(emailData);
 
       res.json({ 
         success: emailSent,
-        message: emailSent ? 'Test email sent successfully!' : 'Failed to send test email'
+        message: emailSent ? 'Test interview email sent successfully!' : 'Failed to send test interview email',
+        emailData
       });
     } catch (error) {
       console.error('Test email error:', error);
@@ -3220,8 +3229,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       console.log(`✅ Created interview for ${candidateName} on ${scheduledDate} at ${scheduledTime}`);
 
       // Send email notification to the candidate
+      console.log(`📧 EMAIL DEBUG: candidateEmail='${candidateEmail}', candidateName='${candidateName}'`);
+      
       if (candidateEmail && candidateEmail.trim()) {
         try {
+          console.log(`📧 SENDING EMAIL: Attempting to send interview notification to ${candidateEmail}`);
           const { emailService } = await import('./emailService');
           const { formatDistanceToNow, format } = await import('date-fns');
           
@@ -3241,18 +3253,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             notes: notes
           };
           
+          console.log(`📧 EMAIL DATA:`, emailData);
+          
           const emailSent = await emailService.sendInterviewScheduledEmail(emailData);
           if (emailSent) {
-            console.log(`✅ Interview notification email sent to ${candidateEmail}`);
+            console.log(`✅ Interview notification email sent successfully to ${candidateEmail}`);
           } else {
             console.log(`⚠️ Failed to send interview notification email to ${candidateEmail}`);
           }
         } catch (emailError) {
           console.error('❌ Error sending interview notification email:', emailError);
+          console.error('❌ Email error details:', emailError.message);
           // Don't fail the entire operation if email fails
         }
       } else {
-        console.log(`⚠️ No candidate email provided, skipping email notification`);
+        console.log(`⚠️ No candidate email provided (candidateEmail='${candidateEmail}'), skipping email notification`);
       }
 
       // Update the Airtable platojobmatches record with interview details

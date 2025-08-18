@@ -17,12 +17,16 @@ class EmailService {
   private mailService: MailService;
 
   constructor() {
-    if (!process.env.SENDGRID_API_KEY) {
-      throw new Error("SENDGRID_API_KEY environment variable must be set");
+    // Use the updated SendGrid API key
+    const apiKey = process.env.SENDGRID_API_KEY || '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';
+    
+    if (!apiKey) {
+      throw new Error("SENDGRID_API_KEY must be provided");
     }
 
     this.mailService = new MailService();
-    this.mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    this.mailService.setApiKey(apiKey);
+    console.log('📧 EmailService initialized with SendGrid API key');
   }
 
   async sendInterviewScheduledEmail(data: InterviewEmailData): Promise<boolean> {
@@ -32,7 +36,7 @@ class EmailService {
 
       await this.mailService.send({
         to: data.applicantEmail,
-        from: 'hiring@company.com', // You can change this to your verified sender
+        from: 'noreply@platohiring.com', // Verified sender email
         subject: `Interview Scheduled - ${data.jobTitle} Position`,
         text: emailText,
         html: emailHTML,
