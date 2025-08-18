@@ -1920,7 +1920,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Real applicants - Accept candidate (move from platojobapplications to platojobmatches)
-  app.post('/api/real-applicants/:id/accept', async (req: any, res) => {
+  app.post('/api/real-applicants/:id/accept', requireAuth, async (req: any, res) => {
     try {
       const airtableRecordId = req.params.id; // This is the Airtable record ID like "recTL77B7HtjJyRqA"
       

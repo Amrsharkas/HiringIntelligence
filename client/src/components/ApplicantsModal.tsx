@@ -64,7 +64,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   // Accept applicant mutation
   const acceptMutation = useMutation({
     mutationFn: async (applicant: Applicant) => {
-      await apiRequest(`/api/real-applicants/${applicant.id}/accept`, "POST", {
+      await apiRequest("POST", `/api/real-applicants/${applicant.id}/accept`, {
         jobId: applicant.jobId,
         userId: applicant.userId,
         name: applicant.name
