@@ -994,7 +994,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-        }
         
         // Final result: All applicants with persistent scores
         applicants = applicantsWithScores;

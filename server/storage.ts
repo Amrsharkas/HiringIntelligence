@@ -116,6 +116,7 @@ export interface IStorage {
   createScoredApplicant(scored: InsertScoredApplicant): Promise<ScoredApplicant>;
   updateScoredApplicant(applicantId: string, scored: Partial<InsertScoredApplicant>): Promise<ScoredApplicant>;
   getScoredApplicantsByOrganization(organizationId: number): Promise<ScoredApplicant[]>;
+  clearAllScoredApplicants(): Promise<void>;
   
   // Shortlisted Applicants operations
   addToShortlist(shortlistedData: InsertShortlistedApplicant): Promise<ShortlistedApplicant>;
@@ -617,6 +618,10 @@ export class DatabaseStorage implements IStorage {
       .from(scoredApplicants)
       .where(eq(scoredApplicants.organizationId, organizationId))
       .orderBy(desc(scoredApplicants.scoredAt));
+  }
+
+  async clearAllScoredApplicants(): Promise<void> {
+    await db.delete(scoredApplicants);
   }
 
   // Shortlisted Applicants operations
