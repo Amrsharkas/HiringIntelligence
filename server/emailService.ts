@@ -37,7 +37,7 @@ class EmailService {
       await this.mailService.send({
         to: data.applicantEmail,
         from: 'noreply@platohiring.com', // Verified sender email
-        subject: `Interview Scheduled - ${data.jobTitle} Position`,
+        subject: `🎯 Interview Scheduled: ${data.applicantName} - ${data.jobTitle} at ${data.companyName}`,
         text: emailText,
         html: emailHTML,
       });
@@ -52,12 +52,16 @@ class EmailService {
 
   private generateInterviewEmailHTML(data: InterviewEmailData): string {
     const meetingLinkSection = data.meetingLink ? `
-      <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="color: #2563eb; margin: 0 0 12px 0;">Interview Link</h3>
+      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 24px; border-radius: 12px; margin: 24px 0; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🔗 Join Your Interview</h3>
+        <p style="color: #d1fae5; margin: 0 0 16px 0; font-size: 16px;">Click below to join the meeting for ${data.applicantName}</p>
         <a href="${this.formatMeetingLink(data.meetingLink)}" 
-           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          Join Interview
+           style="background: white; color: #059669; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+          🚀 JOIN INTERVIEW NOW
         </a>
+        <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.2); border-radius: 6px;">
+          <p style="color: #d1fae5; margin: 0; font-size: 14px; word-break: break-all;">Meeting Link: ${data.meetingLink}</p>
+        </div>
       </div>
     ` : '';
 
@@ -92,10 +96,10 @@ class EmailService {
             <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Interview Details</h2>
           </div>
 
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #374151; margin: 0 0 8px 0; font-size: 18px;">Hello ${data.applicantName}!</h3>
-            <p style="color: #6b7280; margin: 0; line-height: 1.6;">
-              We're pleased to invite you for an interview for the <strong>${data.jobTitle}</strong> position at <strong>${data.companyName}</strong>.
+          <div style="text-align: center; margin-bottom: 32px; padding: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; border: 2px solid #2563eb;">
+            <h3 style="color: #1e40af; margin: 0 0 12px 0; font-size: 24px;">👋 Hello ${data.applicantName}!</h3>
+            <p style="color: #1f2937; margin: 0; line-height: 1.6; font-size: 18px;">
+              We're excited to invite you for an interview for the <strong style="color: #2563eb;">${data.jobTitle}</strong> position at <strong style="color: #2563eb;">${data.companyName}</strong>.
             </p>
           </div>
 
@@ -156,31 +160,49 @@ class EmailService {
   }
 
   private generateInterviewEmailText(data: InterviewEmailData): string {
-    const meetingLinkSection = data.meetingLink ? `
-Interview Link: ${this.formatMeetingLink(data.meetingLink)}
+    const meetingLinkText = data.meetingLink ? `
+🔗 INTERVIEW MEETING LINK FOR ${data.applicantName.toUpperCase()}:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${data.meetingLink}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 CLICK THE LINK ABOVE TO JOIN YOUR INTERVIEW
+
 ` : '';
 
-    const notesSection = data.notes ? `
-Additional Notes: ${data.notes}
+    const notesText = data.notes ? `
+📝 IMPORTANT NOTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${data.notes}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ` : '';
 
     return `
-Interview Scheduled - ${data.jobTitle} Position
+🎯 INTERVIEW SCHEDULED: ${data.jobTitle} at ${data.companyName}
 
-Hello ${data.applicantName}!
+👋 Hello ${data.applicantName.toUpperCase()}!
 
-We're pleased to invite you for an interview for the ${data.jobTitle} position at ${data.companyName}.
+We're excited to invite you for an interview for the ${data.jobTitle} position at ${data.companyName}.
 
-Interview Details:
-- Date: ${data.interviewDate}
-- Time: ${data.interviewTime} ${data.timeZone}
-- Type: ${data.interviewType}
-- Company: ${data.companyName}
-${meetingLinkSection}${notesSection}
-Please reply to this email if you need to reschedule or have any questions. We look forward to speaking with you!
+📅 INTERVIEW DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 Date: ${data.interviewDate}
+⏰ Time: ${data.interviewTime} (${data.timeZone})
+💼 Role: ${data.jobTitle}
+🏢 Company: ${data.companyName}
+📹 Type: ${data.interviewType}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${meetingLinkText}${notesText}
+
+Please confirm your attendance by replying to this email.
+If you need to reschedule or have questions, don't hesitate to contact us.
+
+We're excited to meet you, ${data.applicantName}!
 
 Best regards,
-The ${data.companyName} Hiring Team
+${data.companyName} Hiring Team
     `.trim();
   }
 
