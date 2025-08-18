@@ -62,10 +62,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         selectedApplicant.technicalScore === undefined && 
         selectedApplicant.experienceScore === undefined && 
         selectedApplicant.culturalFitScore === undefined) {
-      // Start 10-second timeout for scoring
+      // Start 5-second timeout for scoring
       const timer = setTimeout(() => {
         setScoringTimeout(true);
-      }, 10000); // 10 seconds
+      }, 5000); // 5 seconds
 
       return () => clearTimeout(timer);
     } else {

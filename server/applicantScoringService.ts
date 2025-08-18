@@ -43,10 +43,10 @@ class ApplicantScoringService {
       if (profileLength < 10 || profileWords < 3) {
         console.log(`❌ Profile extremely minimal (${profileLength} chars, ${profileWords} words) - automatic low scores`);
         return {
-          overallMatch: Math.floor(Math.random() * 8) + 2, // 2-9%
-          technicalSkills: Math.floor(Math.random() * 5) + 1, // 1-5%
-          experience: Math.floor(Math.random() * 5) + 1, // 1-5%
-          culturalFit: Math.floor(Math.random() * 10) + 5, // 5-14%
+          overallMatch: Math.floor(Math.random() * 5) + 1, // 1-5%
+          technicalSkills: Math.floor(Math.random() * 3) + 1, // 1-3%
+          experience: Math.floor(Math.random() * 3) + 1, // 1-3%
+          culturalFit: Math.floor(Math.random() * 8) + 2, // 2-9%
           summary: "Profile contains insufficient information for proper evaluation",
           reasoning: `Extremely minimal profile with only ${profileWords} words cannot be properly assessed against job requirements.`
         };
@@ -63,16 +63,22 @@ Required Skills: ${jobSkills?.join(', ') || 'Not specified'}
 CANDIDATE PROFILE:
 ${userProfile}
 
-CRITICAL SCORING INSTRUCTIONS - BE EXTREMELY HARSH AND REALISTIC:
+CRITICAL SCORING INSTRUCTIONS - BE EXTREMELY HARSH AND REALISTIC - MOST CANDIDATES SHOULD SCORE POORLY:
 
-1. OVERALL MATCH (0-100): How well does this candidate actually fit this specific job?
-2. TECHNICAL SKILLS (0-100): Do they have the specific technical abilities mentioned in requirements?
-3. EXPERIENCE (0-100): Do they have directly relevant work experience for this exact role?
-4. CULTURAL FIT (0-100): Based on available info, would they fit the work style and values?
+1. OVERALL MATCH (0-100): How well does this candidate actually fit this specific job? BE STRICT - most should score 20-40%.
+2. TECHNICAL SKILLS (0-100): Do they have the exact technical abilities mentioned in requirements? DEMAND SPECIFICS - generic mentions = low scores.
+3. EXPERIENCE (0-100): Do they have directly relevant work experience for this exact role and level? YEARS MATTER - junior for senior = very low score.
+4. CULTURAL FIT (0-100): Based on available info, would they fit the work style and values? MINIMAL INFO = LOW SCORE.
 
 MANDATORY SCORING GUIDELINES - NO EXCEPTIONS:
-- 0-10: No relevant information, profile too vague, or completely wrong field
-- 11-25: Some basic info but major gaps, wrong experience level, or unrelated skills
+- 0-15: No relevant information, profile too vague, completely wrong field, or irrelevant experience
+- 16-30: Some basic info but major gaps, wrong experience level, unrelated skills, or entry-level for senior role
+- 31-45: Has some relevant background but missing key requirements, insufficient experience, or skills don't match
+- 46-60: Meets some requirements but has notable gaps, moderate experience, or some skill mismatches
+- 61-75: Good match with minor gaps, relevant experience, most skills present
+- 76-85: Strong match with all major requirements, solid experience, excellent skills
+- 86-95: Exceptional candidate, exceeds requirements, extensive relevant experience
+- 96-100: Perfect match, world-class expertise, ideal candidate (EXTREMELY RARE)
 - 26-40: Partially relevant but significant shortcomings in key areas
 - 41-60: Decent match with some relevant experience but missing important requirements
 - 61-75: Good candidate with most requirements but not exceptional
@@ -120,7 +126,7 @@ Return JSON in this exact format:
         messages: [
           {
             role: "system",
-            content: "You are an EXTREMELY STRICT recruiter who gives honest, harsh assessments. Do NOT be generous with scores. A candidate with irrelevant experience or minimal information should get very low scores (0-25)."
+            content: "You are an EXTREMELY STRICT recruiter who gives honest, harsh assessments. CRITICAL: Most candidates should score 10-40%. Be brutally honest - irrelevant experience = 0-15%, missing skills = 0-20%, generic profiles = 10-30%. DO NOT be generous. Protect the company from bad hires."
           },
           {
             role: "user",
