@@ -402,7 +402,7 @@ export default function EmployerDashboard() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30">
       {/* Modern Header */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
@@ -452,11 +452,11 @@ export default function EmployerDashboard() {
       </motion.header>
 
       {/* Main Content Area */}
-      <div className="h-[calc(100vh-4rem)] p-6 overflow-hidden">
+      <div className="p-6 pb-20">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="h-full grid grid-rows-[auto_1fr_1fr] gap-6"
+          className="grid gap-6"
         >
           {/* Top Action Cards */}
           <div className="grid grid-cols-3 gap-6">
