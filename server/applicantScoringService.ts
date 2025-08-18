@@ -52,7 +52,7 @@ class ApplicantScoringService {
         };
       }
 
-      const prompt = `You are a BRUTALLY HONEST, STRICT recruiter who gives realistic assessments. NO INFLATED SCORES ALLOWED.
+      const prompt = `You are a BRUTALLY HONEST, STRICT recruiter who gives EXTREMELY HARSH and REALISTIC assessments. MOST CANDIDATES SHOULD SCORE 5-25%. NO INFLATED SCORES ALLOWED.
 
 JOB DETAILS:
 Title: ${jobTitle}
@@ -63,12 +63,12 @@ Required Skills: ${jobSkills?.join(', ') || 'Not specified'}
 CANDIDATE PROFILE:
 ${userProfile}
 
-CRITICAL SCORING INSTRUCTIONS - BE EXTREMELY HARSH AND REALISTIC - MOST CANDIDATES SHOULD SCORE POORLY:
+CRITICAL SCORING INSTRUCTIONS - BE BRUTALLY HARSH AND COMPLETELY HONEST:
 
-1. OVERALL MATCH (0-100): How well does this candidate actually fit this specific job? BE STRICT - most should score 20-40%.
-2. TECHNICAL SKILLS (0-100): Do they have the exact technical abilities mentioned in requirements? DEMAND SPECIFICS - generic mentions = low scores.
-3. EXPERIENCE (0-100): Do they have directly relevant work experience for this exact role and level? YEARS MATTER - junior for senior = very low score.
-4. CULTURAL FIT (0-100): Based on available info, would they fit the work style and values? MINIMAL INFO = LOW SCORE.
+1. OVERALL MATCH (0-100): MOST candidates should score 5-25%. Only perfect matches score above 50%.
+2. TECHNICAL SKILLS (0-100): If exact skills not explicitly mentioned = 0-15%. No assumptions allowed.
+3. EXPERIENCE (0-100): Wrong field/level = 0-20%. No relevant experience mentioned = 0-10%.
+4. CULTURAL FIT (0-100): No personality/values mentioned = 5-20%. Generic = 10-25%.
 
 MANDATORY SCORING GUIDELINES - NO EXCEPTIONS:
 - 0-15: No relevant information, profile too vague, completely wrong field, or irrelevant experience
@@ -126,7 +126,7 @@ Return JSON in this exact format:
         messages: [
           {
             role: "system",
-            content: "You are an EXTREMELY STRICT recruiter who gives honest, harsh assessments. CRITICAL: Most candidates should score 10-40%. Be brutally honest - irrelevant experience = 0-15%, missing skills = 0-20%, generic profiles = 10-30%. DO NOT be generous. Protect the company from bad hires."
+            content: "You are an EXTREMELY STRICT recruiter who protects companies from bad hires. CRITICAL: 90% of candidates should score 5-25%. AVERAGE SCORE should be 15%. Only 1 in 100 candidates should score above 60%. Be brutally honest - no relevant skills mentioned = 0-10%, wrong field = 0-15%, generic profiles = 5-20%. MOST CANDIDATES ARE NOT SUITABLE."
           },
           {
             role: "user",
