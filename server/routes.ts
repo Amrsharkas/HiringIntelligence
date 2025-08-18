@@ -2041,7 +2041,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       
       // Step 6: Store accepted applicant locally for interview scheduling
       const user = req.user as any;
-      const userId = user.claims.sub;
+      const userId = user.id; // Use direct user.id instead of user.claims.sub for local auth
       const organization = await storage.getOrganizationByUser(userId);
       
       if (organization) {
