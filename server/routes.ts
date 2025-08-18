@@ -3530,6 +3530,62 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Get accepted applicants for CreateInterviewModal (from platojobmatches table filtered by job ID)
+  // Get all accepted applicants across all jobs for an organization
+  app.get('/api/accepted-applicants', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get accepted applicants from platojobmatches table filtered by Company
+      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
+      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP'; // Correct base ID for platojobmatches
+      
+      console.log(`🔍 Fetching ALL accepted applicants from platojobmatches table for Organization: ${organization.companyName}`);
+      
+      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
+      const filterFormula = `{Company name}='${organization.companyName}'`;
+      const fullUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+
+      const response = await fetch(fullUrl, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`Airtable error response:`, errorText);
+        throw new Error(`Failed to fetch accepted applicants: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Found ${data.records.length} total accepted applicants for organization ${organization.companyName}`);
+
+      // Transform to expected format
+      const formattedApplicants = data.records.map((record: any) => ({
+        id: record.fields['User ID'] || record.id,
+        applicantName: record.fields['Name'] || 'Unknown',
+        jobTitle: record.fields['Job title'] || 'Unknown Position',
+        jobId: record.fields['Job ID'] || '',
+        status: 'Accepted',
+        acceptedDate: record.fields['Created'] || new Date().toISOString(),
+        userId: record.fields['User ID'] || record.id,
+        email: record.fields['Email'] || '',
+        airtableRecordId: record.id
+      }));
+
+      res.json(formattedApplicants);
+    } catch (error) {
+      console.error("Error fetching all accepted applicants:", error);
+      res.status(500).json({ message: "Failed to fetch accepted applicants" });
+    }
+  });
+
   app.get('/api/accepted-applicants/:jobId', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;

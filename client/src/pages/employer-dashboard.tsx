@@ -32,6 +32,7 @@ import { InviteCodeModal } from "@/components/InviteCodeModal";
 
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { InterviewManagementModal } from "@/components/InterviewManagementModal";
+import AcceptedApplicantsModal from "@/components/AcceptedApplicantsModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -363,6 +364,7 @@ export default function EmployerDashboard() {
 
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
   const [isInterviewManagementModalOpen, setIsInterviewManagementModalOpen] = useState(false);
+  const [isAcceptedApplicantsModalOpen, setIsAcceptedApplicantsModalOpen] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -595,10 +597,10 @@ export default function EmployerDashboard() {
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-left hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                  onClick={() => setIsApplicantsModalOpen(true)}
+                  onClick={() => setIsAcceptedApplicantsModalOpen(true)}
                 >
                   <Users className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-3" />
-                  View Applicants
+                  Accepted Applicants
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -674,6 +676,11 @@ export default function EmployerDashboard() {
       <InterviewManagementModal 
         isOpen={isInterviewManagementModalOpen} 
         onClose={() => setIsInterviewManagementModalOpen(false)} 
+      />
+
+      <AcceptedApplicantsModal 
+        isOpen={isAcceptedApplicantsModalOpen} 
+        onClose={() => setIsAcceptedApplicantsModalOpen(false)} 
       />
     </div>
   );
