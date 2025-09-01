@@ -176,15 +176,22 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
       
       for (const file of files) {
         try {
+          console.log(`🔄 Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
           const fileData = await extractTextFromFile(file);
+          console.log(`📄 Extracted text length: ${fileData?.length}`);
+          
           const response = await apiRequest('POST', '/api/resume-profiles/process', {
             resumeText: fileData,
             fileName: file.name,
             fileType: file.type
           });
+          
+          console.log(`✅ API response status: ${response.status}`);
           const result = await response.json();
+          console.log(`✅ Processing complete for ${file.name}`);
           processedResults.push({ file: file.name, result, success: true });
         } catch (error) {
+          console.error(`❌ Processing failed for ${file.name}:`, error);
           processedResults.push({ 
             file: file.name, 
             error: error instanceof Error ? error.message : 'Unknown error',
