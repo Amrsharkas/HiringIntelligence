@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { FileText, Search, User, Briefcase, Star, Upload, Users } from 'lucide-react';
+import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2 } from 'lucide-react';
 
 interface ResumeProfile {
   id: string;
@@ -52,10 +52,10 @@ interface ResumeSearcherModalProps {
 export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'upload' | 'search' | 'results'>('upload');
-  const [resumeText, setResumeText] = useState('');
-  const [bulkResumes, setBulkResumes] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch company job postings
   const { data: jobs = [] } = useQuery<any[]>({
@@ -68,53 +68,98 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     enabled: activeTab === 'results',
   });
 
-  // Process individual resume
-  const processResumeMutation = useMutation({
-    mutationFn: async (resumeData: { resumeText: string }) => {
-      const response = await apiRequest('POST', '/api/resume-profiles/process', resumeData);
-      return response.json();
-    },
-    onSuccess: () => {
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const validFiles = files.filter(file => 
+      file.type === 'application/pdf' || 
+      file.type === 'text/plain' || 
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    );
+    
+    if (validFiles.length !== files.length) {
       toast({
-        title: 'Resume Processed',
-        description: 'Resume has been analyzed and profile created successfully.',
+        title: "Some files were skipped",
+        description: "Only PDF, DOC, DOCX, and TXT files are supported.",
+        variant: "destructive",
       });
+    }
+    
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllFiles = () => {
+    setSelectedFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Extract text from file
+  const extractTextFromFile = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        resolve(text);
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  };
+
+  // Process multiple resume files
+  const processFilesMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      const processedResults = [];
+      
+      for (const file of files) {
+        try {
+          const resumeText = await extractTextFromFile(file);
+          const response = await apiRequest('POST', '/api/resume-profiles/process', {
+            resumeText,
+            fileName: file.name
+          });
+          const result = await response.json();
+          processedResults.push({ file: file.name, result, success: true });
+        } catch (error) {
+          processedResults.push({ 
+            file: file.name, 
+            error: error instanceof Error ? error.message : 'Unknown error',
+            success: false 
+          });
+        }
+      }
+      
+      return processedResults;
+    },
+    onSuccess: (results) => {
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+      
+      toast({
+        title: "Resume Processing Complete",
+        description: `${successCount} resumes processed successfully${failureCount > 0 ? `, ${failureCount} failed` : ''}`,
+      });
+      
       queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+      clearAllFiles();
       setActiveTab('results');
-      setResumeText('');
     },
     onError: (error: Error) => {
       toast({
-        title: 'Processing Failed',
+        title: "Processing Failed",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
 
-  // Process bulk resumes
-  const processBulkMutation = useMutation({
-    mutationFn: async (bulkData: { resumesText: string }) => {
-      const response = await apiRequest('POST', '/api/resume-profiles/process-bulk', bulkData);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: 'Bulk Processing Complete',
-        description: `Successfully processed ${data.processedCount} resumes.`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
-      setActiveTab('results');
-      setBulkResumes('');
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Bulk Processing Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
+
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
@@ -165,63 +210,109 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
         {activeTab === 'upload' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Individual Resume Processing */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Single Resume
-                  </CardTitle>
-                  <CardDescription>
-                    Paste a single resume text for AI analysis and profile creation
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Textarea
-                    value={resumeText}
-                    onChange={(e) => setResumeText(e.target.value)}
-                    placeholder="Paste resume content here..."
-                    className="min-h-[200px]"
+            {/* File Upload Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  Upload Resume Files
+                </CardTitle>
+                <CardDescription>
+                  Upload single or multiple resume files (PDF, DOC, DOCX, TXT) for AI analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* File Input */}
+                <div className="space-y-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={handleFileSelect}
+                    className="hidden"
                   />
-                  <Button
-                    onClick={() => processResumeMutation.mutate({ resumeText })}
-                    disabled={!resumeText.trim() || processResumeMutation.isPending}
-                    className="w-full"
-                  >
-                    {processResumeMutation.isPending ? 'Processing...' : 'Process Resume'}
-                  </Button>
-                </CardContent>
-              </Card>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Select Files
+                    </Button>
+                    
+                    {selectedFiles.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={clearAllFiles}
+                        className="flex items-center gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
 
-              {/* Bulk Resume Processing */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Bulk Resumes
-                  </CardTitle>
-                  <CardDescription>
-                    Paste multiple resumes separated by "---" for batch processing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Textarea
-                    value={bulkResumes}
-                    onChange={(e) => setBulkResumes(e.target.value)}
-                    placeholder="Paste multiple resumes here, separated by '---' between each resume..."
-                    className="min-h-[200px]"
-                  />
+                  {/* Selected Files Display */}
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Selected Files ({selectedFiles.length})</h4>
+                      <div className="grid gap-2 max-h-40 overflow-y-auto">
+                        {selectedFiles.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2 bg-muted rounded-md"
+                          >
+                            <div className="flex items-center gap-2">
+                              <File className="h-4 w-4" />
+                              <span className="text-sm truncate">{file.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({(file.size / 1024).toFixed(1)} KB)
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(index)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Process Button */}
                   <Button
-                    onClick={() => processBulkMutation.mutate({ resumesText: bulkResumes })}
-                    disabled={!bulkResumes.trim() || processBulkMutation.isPending}
+                    onClick={() => processFilesMutation.mutate(selectedFiles)}
+                    disabled={selectedFiles.length === 0 || processFilesMutation.isPending}
                     className="w-full"
                   >
-                    {processBulkMutation.isPending ? 'Processing Bulk...' : 'Process Bulk Resumes'}
+                    {processFilesMutation.isPending ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''}...
+                      </div>
+                    ) : (
+                      `Process ${selectedFiles.length} Resume${selectedFiles.length !== 1 ? 's' : ''}`
+                    )}
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+
+                {/* File Format Help */}
+                <div className="text-xs text-muted-foreground">
+                  <p>Supported formats: PDF, DOC, DOCX, TXT</p>
+                  <p>Note: Text extraction works best with text-based files. Scanned PDFs may not process correctly.</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
