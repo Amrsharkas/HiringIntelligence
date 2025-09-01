@@ -180,7 +180,11 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
   const handleNext = () => {
     if (currentStep === 'upload' && selectedFiles.length > 0) {
       setCurrentStep('job-selection');
-    } else if (currentStep === 'job-selection' && selectedJobId) {
+    }
+  };
+
+  const handleAnalyzeClick = () => {
+    if (currentStep === 'job-selection' && selectedJobId) {
       setCurrentStep('processing');
       processAndQualifyMutation.mutate();
     }
@@ -533,7 +537,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
             
             {currentStep === 'job-selection' && (
               <Button 
-                onClick={handleNext}
+                onClick={handleAnalyzeClick}
                 disabled={!selectedJobId}
               >
                 Analyze & Score CVs <Target className="w-4 h-4 ml-1" />
