@@ -23,7 +23,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
 import { ActiveJobsModal } from "@/components/ActiveJobsModal";
-import { CandidatesModal } from "@/components/SimpleCandidatesModal";
+import { ResumeSearcherModal } from "@/components/ResumeSearcherModal";
 
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { ApplicantsModal } from "@/components/ApplicantsModal";
@@ -290,7 +290,7 @@ const LiveRecentActivity = memo(() => {
       activities.push({
         id: 'candidates-matched',
         color: 'bg-purple-600 dark:bg-purple-400',
-        text: `${candidatesCount.count} headhunting candidate${candidatesCount.count !== 1 ? 's' : ''} matched to jobs`,
+        text: `${candidatesCount.count} resume profile${candidatesCount.count !== 1 ? 's' : ''} processed`,
         time: '30 minutes ago'
       });
     }
@@ -535,7 +535,7 @@ export default function EmployerDashboard() {
                 onClick: () => setIsApplicantsModalOpen(true)
               },
               { 
-                label: "Headhunting", 
+                label: "Resume Searcher", 
                 component: <LiveCandidatesCount />,
                 icon: Target, 
                 color: "purple",
@@ -598,7 +598,7 @@ export default function EmployerDashboard() {
                   onClick={() => setIsCandidatesModalOpen(true)}
                 >
                   <Eye className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
-                  Browse Headhunting
+                  Resume Searcher
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -651,7 +651,7 @@ export default function EmployerDashboard() {
         isOpen={isActiveJobsModalOpen} 
         onClose={() => setIsActiveJobsModalOpen(false)} 
       />
-      <CandidatesModal 
+      <ResumeSearcherModal 
         isOpen={isCandidatesModalOpen} 
         onClose={() => setIsCandidatesModalOpen(false)} 
       />
