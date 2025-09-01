@@ -41,10 +41,16 @@ interface QualificationResult {
   id: number;
   candidateId: string;
   candidateName: string;
+  fileName: string;
   jobId: number;
   qualificationScore: number;
+  technicalSkillsScore: number;
+  experienceScore: number;
+  culturalFitScore: number;
   matchedSkills: string[];
   missingSkills: string[];
+  summary: string;
+  reasoning: string;
   decision: string;
   passThreshold: number;
   autoAdvanceEnabled: boolean;
@@ -401,13 +407,21 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-2">
-                            <h4 className="font-medium">Description</h4>
-                            <p className="text-sm text-gray-600 line-clamp-3">{selectedJob.description}</p>
-                            
-                            <h4 className="font-medium">Requirements</h4>
-                            <p className="text-sm text-gray-600 line-clamp-3">{selectedJob.requirements}</p>
-                          </div>
+                          <ScrollArea className="h-[300px]">
+                            <div className="space-y-4 pr-4">
+                              <div>
+                                <h4 className="font-medium text-gray-900 mb-2">Job Description</h4>
+                                <p className="text-sm text-gray-600 leading-relaxed">{selectedJob.description}</p>
+                              </div>
+                              
+                              <Separator />
+                              
+                              <div>
+                                <h4 className="font-medium text-gray-900 mb-2">Requirements</h4>
+                                <p className="text-sm text-gray-600 leading-relaxed">{selectedJob.requirements}</p>
+                              </div>
+                            </div>
+                          </ScrollArea>
                         </CardContent>
                       </Card>
                     )}
@@ -475,7 +489,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                       <Card>
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-purple-600">
-                            {Math.round(qualificationResults.reduce((acc, r) => acc + r.score, 0) / qualificationResults.length)}%
+                            {Math.round(qualificationResults.reduce((acc, r) => acc + r.qualificationScore, 0) / qualificationResults.length)}%
                           </div>
                           <div className="text-sm text-gray-600">Average Score</div>
                         </CardContent>
@@ -483,7 +497,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                       <Card>
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {Math.max(...qualificationResults.map(r => r.score))}%
+                            {Math.max(...qualificationResults.map(r => r.qualificationScore))}%
                           </div>
                           <div className="text-sm text-gray-600">Highest Score</div>
                         </CardContent>
@@ -493,49 +507,114 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                     {/* Individual CV Analysis */}
                     <div className="space-y-4">
                       {qualificationResults
-                        .sort((a, b) => b.score - a.score)
+                        .sort((a, b) => b.qualificationScore - a.qualificationScore)
                         .map((result, index) => (
-                        <Card key={index} className="border-blue-200 bg-blue-50">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between mb-4">
+                        <Card key={index} className="border-l-4 border-l-blue-500 shadow-lg">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-blue-600 text-white font-bold text-lg flex items-center justify-center">
-                                  {result.score}%
+                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg">
+                                  {result.qualificationScore}%
                                 </div>
                                 <div>
-                                  <h4 className="font-semibold text-lg">{result.candidateName}</h4>
-                                  <p className="text-sm text-gray-600">{result.fileName}</p>
+                                  <CardTitle className="text-xl flex items-center gap-2">
+                                    <FileText className="w-5 h-5" />
+                                    Candidate Profile Analysis
+                                  </CardTitle>
+                                  <CardDescription className="text-base">
+                                    <span className="font-medium">{result.fileName}</span>
+                                  </CardDescription>
+                                </div>
+                              </div>
+                              <Badge 
+                                variant={result.qualificationScore >= 70 ? "default" : result.qualificationScore >= 50 ? "secondary" : "destructive"}
+                                className="text-lg px-4 py-2"
+                              >
+                                Overall Match
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                            
+                            {/* Enhanced Score Breakdown */}
+                            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-6">
+                              <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5" />
+                                Skill Assessment Breakdown
+                              </h4>
+                              <div className="grid grid-cols-3 gap-6">
+                                <div className="text-center">
+                                  <div className="text-2xl font-bold text-blue-600 mb-2">{result.technicalSkillsScore}%</div>
+                                  <div className="text-sm text-gray-600 font-medium mb-2">Technical Skills</div>
+                                  <Progress value={result.technicalSkillsScore} className="h-3" />
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-2xl font-bold text-green-600 mb-2">{result.experienceScore}%</div>
+                                  <div className="text-sm text-gray-600 font-medium mb-2">Experience Level</div>
+                                  <Progress value={result.experienceScore} className="h-3" />
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-2xl font-bold text-orange-600 mb-2">{result.culturalFitScore}%</div>
+                                  <div className="text-sm text-gray-600 font-medium mb-2">Cultural Fit</div>
+                                  <Progress value={result.culturalFitScore} className="h-3" />
                                 </div>
                               </div>
                             </div>
 
-                            {/* Detailed Scoring Breakdown */}
-                            <div className="grid grid-cols-3 gap-4 mb-4">
-                              <div className="text-center">
-                                <div className="text-lg font-bold text-purple-600">{result.technicalSkillsScore}%</div>
-                                <div className="text-xs text-gray-600">Technical Skills</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-bold text-green-600">{result.experienceScore}%</div>
-                                <div className="text-xs text-gray-600">Experience</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-bold text-orange-600">{result.culturalFitScore}%</div>
-                                <div className="text-xs text-gray-600">Cultural Fit</div>
-                              </div>
-                            </div>
-
-                            {/* AI Analysis Summary */}
-                            <div className="space-y-3">
-                              <div>
-                                <span className="text-sm font-medium text-gray-700">Summary:</span>
-                                <p className="text-sm mt-1 text-gray-600">{result.summary}</p>
+                            {/* Comprehensive AI Analysis */}
+                            <div className="space-y-4">
+                              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                                  <Star className="w-5 h-5" />
+                                  Executive Summary
+                                </h4>
+                                <p className="text-sm leading-relaxed text-blue-800">{result.summary}</p>
                               </div>
                               
-                              <div>
-                                <span className="text-sm font-medium text-gray-700">Detailed Analysis:</span>
-                                <p className="text-sm mt-1 text-gray-600">{result.reasoning}</p>
+                              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                                <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                                  <Target className="w-5 h-5" />
+                                  Detailed Analysis & Recommendations
+                                </h4>
+                                <p className="text-sm leading-relaxed text-green-800">{result.reasoning}</p>
                               </div>
+
+                              {/* Skills Assessment */}
+                              {(result.matchedSkills?.length > 0 || result.missingSkills?.length > 0) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {result.matchedSkills?.length > 0 && (
+                                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                                      <h4 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2">
+                                        <CheckCircle className="w-5 h-5" />
+                                        Matched Skills & Qualifications
+                                      </h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        {result.matchedSkills.map((skill, idx) => (
+                                          <Badge key={idx} variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
+                                            {skill}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {result.missingSkills?.length > 0 && (
+                                    <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                                      <h4 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+                                        <XCircle className="w-5 h-5" />
+                                        Development Areas
+                                      </h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        {result.missingSkills.map((skill, idx) => (
+                                          <Badge key={idx} variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
+                                            {skill}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
@@ -549,7 +628,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
         </ScrollArea>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-4 border-t bg-yellow-100 p-4 -m-4 mt-4">
+        <div className="flex justify-between items-center pt-4 border-t bg-white p-4 -m-4 mt-4">
           <div className="flex gap-2">
             {currentStep !== 'upload' && currentStep !== 'processing' && (
               <Button variant="outline" onClick={resetFlow}>
@@ -573,30 +652,16 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
             )}
             
             {currentStep === 'job-selection' && (
-              <div className="space-x-2">
-                <Button 
-                  onClick={handleAnalyzeClick}
-                  disabled={!selectedJobId}
-                  className="bg-red-500 border-4 border-yellow-500"
-                  style={{ minWidth: '200px', minHeight: '50px' }}
-                >
-                  ANALYZE & SCORE CVS <Target className="w-4 h-4 ml-1" />
-                </Button>
-                <Button variant="outline" onClick={() => {
-                  console.log('🔧 DEBUG CLICK: Current state', { 
-                    currentStep, 
-                    selectedJobId, 
-                    selectedJob: selectedJob ? 'FOUND' : 'NOT FOUND',
-                    jobsLength: jobs.length
-                  });
-                }}>
-                  Debug State
-                </Button>
-              </div>
+              <Button 
+                onClick={handleAnalyzeClick}
+                disabled={!selectedJobId}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Analyze & Score CVs <Target className="w-4 h-4 ml-1" />
+              </Button>
             )}
             
-            {/* Debug info - remove after fixing */}
-            {console.log('🎯 BUTTON DEBUG - currentStep:', currentStep, 'selectedJobId:', selectedJobId, 'should show button:', currentStep === 'job-selection')}
+
           </div>
         </div>
       </DialogContent>
