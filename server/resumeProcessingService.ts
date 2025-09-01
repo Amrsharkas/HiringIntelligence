@@ -26,9 +26,12 @@ export interface JobMatchScore {
 
 export class ResumeProcessingService {
   private async extractTextFromFile(fileData: string, fileType: string): Promise<string> {
+    console.log(`🔄 Extracting text from file type: ${fileType}, data length: ${fileData?.length}`);
+    
     if (fileType === 'application/pdf') {
       // For PDF files, use OpenAI to extract text from base64 data
       try {
+        console.log('📄 Processing PDF with OpenAI...');
         const response = await openai.chat.completions.create({
           model: "gpt-4o",
           messages: [
@@ -46,13 +49,15 @@ export class ResumeProcessingService {
         const extractedText = response.choices[0].message.content;
         
         if (!extractedText || extractedText.length < 50) {
+          console.error(`❌ Insufficient text extracted from PDF. Length: ${extractedText?.length}`);
           throw new Error("Insufficient text extracted from PDF");
         }
         
+        console.log(`✅ PDF text extraction successful. Length: ${extractedText.length}`);
         return extractedText;
       } catch (error) {
         console.error("PDF extraction failed:", error);
-        throw new Error("Unable to extract text from PDF file. Please try uploading a text-based PDF or convert to TXT format.");
+        throw new Error(`Unable to extract text from PDF file: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType === 'application/msword') {
       // For DOC/DOCX files, use OpenAI to extract text
@@ -91,7 +96,9 @@ export class ResumeProcessingService {
   async processResume(resumeText: string, fileType?: string): Promise<ProcessedResume> {
     try {
       // Extract text from file if needed
+      console.log(`🔄 Starting resume processing. File type: ${fileType}, text length: ${resumeText?.length}`);
       const extractedText = fileType ? await this.extractTextFromFile(resumeText, fileType) : resumeText;
+      console.log(`📄 Text extraction complete. Extracted length: ${extractedText?.length}`);
       
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
@@ -139,7 +146,8 @@ Extract all relevant information. If any field is missing, use an empty string f
       };
     } catch (error) {
       console.error("Error processing resume:", error);
-      throw new Error("Failed to process resume with AI");
+      console.error("Error details:", error instanceof Error ? error.message : error);
+      throw new Error(`Failed to process resume with AI: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

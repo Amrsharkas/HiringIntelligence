@@ -4306,7 +4306,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
 
       // Process resume with AI
+      console.log(`🔄 Processing resume for organization ${organization.id}, file type: ${fileType}, text length: ${resumeText?.length}`);
       const processedResume = await resumeProcessingService.processResume(resumeText, fileType);
+      console.log(`✅ Resume processed successfully:`, { name: processedResume.name, email: processedResume.email });
       
       // Save to database
       const profileData = {
@@ -4344,7 +4346,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       res.json({ success: true, profile: savedProfile });
     } catch (error) {
       console.error("Error processing resume:", error);
-      res.status(500).json({ message: "Failed to process resume" });
+      console.error("Request body:", { resumeTextLength: req.body?.resumeText?.length, fileType: req.body?.fileType });
+      res.status(500).json({ 
+        message: "Failed to process resume", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 
