@@ -10,6 +10,11 @@ interface DetailedApplicantScore {
   culturalFit: number; // 0-100
   summary: string;
   reasoning: string;
+  candidateIdentity?: string;
+  strengths?: string[];
+  gaps?: string[];
+  roleMatchAnalysis?: string;
+  hiringRecommendation?: string;
 }
 
 interface ApplicantScore {
@@ -52,7 +57,7 @@ class ApplicantScoringService {
         };
       }
 
-      const prompt = `You are a BRUTALLY HONEST, STRICT recruiter who gives EXTREMELY HARSH and REALISTIC assessments. MOST CANDIDATES SHOULD SCORE 5-25%. NO INFLATED SCORES ALLOWED.
+      const prompt = `You are an expert recruitment consultant conducting a comprehensive candidate evaluation. Provide honest, detailed analysis with realistic scoring.
 
 JOB DETAILS:
 Title: ${jobTitle}
@@ -63,70 +68,81 @@ Required Skills: ${jobSkills?.join(', ') || 'Not specified'}
 CANDIDATE PROFILE:
 ${userProfile}
 
-CRITICAL SCORING INSTRUCTIONS - BE BRUTALLY HARSH AND COMPLETELY HONEST:
+PROVIDE A COMPREHENSIVE CANDIDATE ANALYSIS INCLUDING:
 
-1. OVERALL MATCH (0-100): MOST candidates should score 5-25%. Only perfect matches score above 50%.
-2. TECHNICAL SKILLS (0-100): If exact skills not explicitly mentioned = 0-15%. No assumptions allowed.
-3. EXPERIENCE (0-100): Wrong field/level = 0-20%. No relevant experience mentioned = 0-10%.
-4. CULTURAL FIT (0-100): No personality/values mentioned = 5-20%. Generic = 10-25%.
+1. CANDIDATE IDENTITY & BACKGROUND:
+   - Who is this person professionally?
+   - What is their career trajectory and current position?
+   - Key educational background and certifications
+   - Years of experience and domain expertise
 
-MANDATORY SCORING GUIDELINES - NO EXCEPTIONS:
-- 0-15: No relevant information, profile too vague, completely wrong field, or irrelevant experience
-- 16-30: Some basic info but major gaps, wrong experience level, unrelated skills, or entry-level for senior role
-- 31-45: Has some relevant background but missing key requirements, insufficient experience, or skills don't match
-- 46-60: Meets some requirements but has notable gaps, moderate experience, or some skill mismatches
-- 61-75: Good match with minor gaps, relevant experience, most skills present
-- 76-85: Strong match with all major requirements, solid experience, excellent skills
-- 86-95: Exceptional candidate, exceeds requirements, extensive relevant experience
-- 96-100: Perfect match, world-class expertise, ideal candidate (EXTREMELY RARE)
-- 26-40: Partially relevant but significant shortcomings in key areas
-- 41-60: Decent match with some relevant experience but missing important requirements
-- 61-75: Good candidate with most requirements but not exceptional
-- 76-90: Strong candidate with all/most requirements and good experience
-- 91-100: Perfect match with exceptional qualifications (RARE)
+2. DETAILED SCORING BREAKDOWN:
+   - OVERALL MATCH (0-100): Realistic assessment of role fit
+   - TECHNICAL SKILLS (0-100): Specific skills alignment with job requirements
+   - EXPERIENCE (0-100): Relevant experience level and quality
+   - CULTURAL FIT (0-100): Soft skills, communication style, work preferences
 
-HARSH REALITY CHECKS:
-- If the profile mentions "student" or "looking for experience" and job requires 5+ years → Experience should be 5-15%
-- If they list irrelevant skills (e.g., social media for engineering role) → Technical Skills should be 10-25%  
-- If profile is vague without concrete examples → All scores should be 15-35%
-- If no cultural indicators are provided → Cultural Fit should be 20-40%
-- NEVER give high scores without clear evidence in the profile
+3. STRENGTHS ANALYSIS:
+   - Key competencies that make this candidate valuable
+   - Standout achievements and accomplishments
+   - Transferable skills from related fields
+   - Leadership qualities and problem-solving abilities
 
-EXAMPLES OF REALISTIC SCORING:
-- Junior candidate for senior role: Overall 15-25%, Experience 5-15%
-- Unrelated field experience: Technical 10-20%, Overall 15-30%
-- Vague generic profile: All scores 20-35%
-- Missing key requirements: Relevant scores 15-40%
-- 16-30: Minimal relevance, major gaps in all areas
-- 31-50: Some basic relevance but significant gaps
-- 51-70: Good qualifications with minor gaps
-- 71-85: Strong qualifications meeting most requirements
-- 86-95: Exceptional candidate exceeding requirements
-- 96-100: Perfect match (extremely rare)
+4. GAPS & DEVELOPMENT AREAS:
+   - Missing technical skills or certifications
+   - Experience gaps relative to job requirements
+   - Areas where the candidate needs growth
+   - Potential training or development needs
 
-CRITICAL RULES:
-- If profile mentions completely unrelated skills (like "rower" for a developer job), give 5-15 points max
-- If no relevant experience is mentioned, technical skills should be 0-20
-- If no education/background info, experience should be 0-25
-- Be honest about gaps - don't assume qualifications that aren't explicitly stated
-- A good candidate should score 60-75, exceptional 75-85, perfect 85+
+5. ROLE MATCH REASONING:
+   - Why this candidate fits or doesn't fit the specific role
+   - How their background aligns with job responsibilities
+   - Risk assessment for hiring this candidate
+   - Potential for growth and advancement in the role
 
-Return JSON in this exact format:
+6. HIRING RECOMMENDATION:
+   - Clear recommendation with rationale
+   - Suggested interview focus areas
+   - Onboarding considerations if hired
+   - Alternative roles that might be better suited
+
+SCORING GUIDELINES:
+- 80-100: Exceptional match with all key requirements
+- 60-79: Strong candidate with minor gaps
+- 40-59: Potential candidate with notable development needs
+- 20-39: Limited fit with significant training required
+- 0-19: Poor match or insufficient relevant experience
+
+RESPONSE FORMAT - Return ONLY valid JSON in this exact structure:
 {
-  "overallMatch": <0-100>,
-  "technicalSkills": <0-100>, 
-  "experience": <0-100>,
-  "culturalFit": <0-100>,
-  "summary": "Honest one-sentence assessment of candidate fit",
-  "reasoning": "Detailed explanation of scoring rationale, highlighting specific gaps and strengths"
+  "overallMatch": 65,
+  "technicalSkills": 70,
+  "experience": 85,
+  "culturalFit": 50,
+  "summary": "John is a senior software engineer with 8 years of experience in full-stack development. He has strong technical skills in React, Node.js, and cloud platforms, with proven leadership experience in agile environments.",
+  "reasoning": "CANDIDATE IDENTITY: John Smith is an experienced full-stack developer with strong technical leadership skills and proven track record in enterprise software development.\n\nSTRENGTHS: Extensive experience with required tech stack (React, Node.js, AWS), proven leadership and mentoring abilities, strong problem-solving skills demonstrated through successful project deliveries, excellent communication skills.\n\nGAPS & DEVELOPMENT AREAS: Limited experience with specific domain mentioned in job requirements, no mentioned experience with CI/CD pipeline management, missing specific certifications preferred for the role.\n\nROLE MATCH REASONING: Strong technical fit with minor gaps in domain expertise. Candidate's leadership experience aligns well with team lead responsibilities. Risk is low due to strong foundational skills.\n\nHIRING RECOMMENDATION: Recommend for interview with focus on domain knowledge assessment and leadership scenarios. Strong potential for success with minimal onboarding.",
+  "candidateIdentity": "John Smith is an experienced full-stack developer with strong technical leadership skills and proven track record in enterprise software development.",
+  "strengths": [
+    "Extensive experience with required tech stack (React, Node.js, AWS)",
+    "Proven leadership and mentoring abilities", 
+    "Strong problem-solving skills demonstrated through successful project deliveries",
+    "Excellent communication skills evidenced by technical writing and presentations"
+  ],
+  "gaps": [
+    "Limited experience with specific domain (healthcare/fintech) mentioned in job requirements",
+    "No mentioned experience with CI/CD pipeline management",
+    "Missing specific certifications preferred for the role"
+  ],
+  "roleMatchAnalysis": "Strong technical fit with minor gaps in domain expertise. Candidate's leadership experience aligns well with team lead responsibilities. Risk is low due to strong foundational skills.",
+  "hiringRecommendation": "Recommend for interview with focus on domain knowledge assessment and leadership scenarios. Strong potential for success with minimal onboarding."
 }`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
         messages: [
           {
             role: "system",
-            content: "You are an EXTREMELY STRICT recruiter who protects companies from bad hires. CRITICAL: 90% of candidates should score 5-25%. AVERAGE SCORE should be 15%. Only 1 in 100 candidates should score above 60%. Be brutally honest - no relevant skills mentioned = 0-10%, wrong field = 0-15%, generic profiles = 5-20%. MOST CANDIDATES ARE NOT SUITABLE."
+            content: "You are a professional recruitment consultant providing comprehensive candidate analysis. Analyze each candidate thoroughly and provide detailed insights about their professional background, strengths, gaps, and role fit. Be realistic but fair in your assessments."
           },
           {
             role: "user",
@@ -134,7 +150,7 @@ Return JSON in this exact format:
           }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.1
+        temperature: 0.3
       });
 
       const result = JSON.parse(response.choices[0].message.content || '{}');

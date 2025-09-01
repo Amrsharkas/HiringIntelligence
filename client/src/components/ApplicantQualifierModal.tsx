@@ -243,7 +243,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-600" />
@@ -489,7 +489,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                       <Card>
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-purple-600">
-                            {Math.round(qualificationResults.reduce((acc, r) => acc + r.qualificationScore, 0) / qualificationResults.length)}%
+                            {qualificationResults.length > 0 ? Math.round(qualificationResults.reduce((acc, r) => acc + (r.qualificationScore || 0), 0) / qualificationResults.length) : 0}%
                           </div>
                           <div className="text-sm text-gray-600">Average Score</div>
                         </CardContent>
@@ -497,7 +497,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                       <Card>
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {Math.max(...qualificationResults.map(r => r.qualificationScore))}%
+                            {qualificationResults.length > 0 ? Math.max(...qualificationResults.map(r => r.qualificationScore || 0)) : 0}%
                           </div>
                           <div className="text-sm text-gray-600">Highest Score</div>
                         </CardContent>
