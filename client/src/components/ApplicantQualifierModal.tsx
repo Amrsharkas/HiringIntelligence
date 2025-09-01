@@ -210,6 +210,16 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
   };
 
   const selectedJob = jobs.find(job => job.id === selectedJobId);
+  
+  // Debug logging
+  console.log('🔍 RENDER DEBUG:', {
+    currentStep,
+    selectedJobId,
+    selectedJobType: typeof selectedJobId,
+    jobsLength: jobs.length,
+    jobIds: jobs.map(j => ({ id: j.id, type: typeof j.id })),
+    selectedJob: selectedJob ? 'FOUND' : 'NOT FOUND'
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -552,10 +562,15 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
               <Button 
                 onClick={handleAnalyzeClick}
                 disabled={!selectedJobId}
+                className="bg-red-500 border-4 border-yellow-500"
+                style={{ minWidth: '200px', minHeight: '50px' }}
               >
-                Analyze & Score CVs <Target className="w-4 h-4 ml-1" />
+                ANALYZE & SCORE CVS <Target className="w-4 h-4 ml-1" />
               </Button>
             )}
+            
+            {/* Debug info - remove after fixing */}
+            {console.log('🎯 BUTTON DEBUG - currentStep:', currentStep, 'selectedJobId:', selectedJobId, 'should show button:', currentStep === 'job-selection')}
           </div>
         </div>
       </DialogContent>
