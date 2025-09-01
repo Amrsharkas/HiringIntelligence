@@ -74,7 +74,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     const validFiles = files.filter(file => 
       file.type === 'application/pdf' || 
       file.type === 'text/plain' || 
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.type === 'application/msword' // .doc files
     );
     
     if (validFiles.length !== files.length) {
@@ -103,12 +104,34 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const extractTextFromFile = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        resolve(text);
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
+      
+      if (file.type === 'application/pdf') {
+        // For PDF files, we'll send the base64 data to the server for processing
+        reader.onload = (e) => {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.readAsArrayBuffer(file);
+      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/msword') {
+        // For DOCX files, we'll send the base64 data to the server for processing
+        reader.onload = (e) => {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read DOCX file'));
+        reader.readAsArrayBuffer(file);
+      } else {
+        // For text files, read as text
+        reader.onload = (e) => {
+          const text = e.target?.result as string;
+          resolve(text);
+        };
+        reader.onerror = () => reject(new Error('Failed to read text file'));
+        reader.readAsText(file);
+      }
     });
   };
 
@@ -119,10 +142,11 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
       
       for (const file of files) {
         try {
-          const resumeText = await extractTextFromFile(file);
+          const fileData = await extractTextFromFile(file);
           const response = await apiRequest('POST', '/api/resume-profiles/process', {
-            resumeText,
-            fileName: file.name
+            resumeText: fileData,
+            fileName: file.name,
+            fileType: file.type
           });
           const result = await response.json();
           processedResults.push({ file: file.name, result, success: true });

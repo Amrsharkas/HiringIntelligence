@@ -25,8 +25,74 @@ export interface JobMatchScore {
 }
 
 export class ResumeProcessingService {
-  async processResume(resumeText: string): Promise<ProcessedResume> {
+  private async extractTextFromFile(fileData: string, fileType: string): Promise<string> {
+    if (fileType === 'application/pdf') {
+      // For PDF files, use OpenAI to extract text from base64 data
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system", 
+              content: "You are a resume text extractor. The user will provide you with base64 encoded PDF data. Extract all text content from it and return only the readable resume text content. Be thorough and include all relevant information like name, contact details, experience, education, skills, etc."
+            },
+            {
+              role: "user",
+              content: `Extract all readable text from this resume PDF (base64): ${fileData.substring(0, 4000)}...`
+            }
+          ],
+          max_tokens: 3000,
+        });
+        const extractedText = response.choices[0].message.content;
+        
+        if (!extractedText || extractedText.length < 50) {
+          throw new Error("Insufficient text extracted from PDF");
+        }
+        
+        return extractedText;
+      } catch (error) {
+        console.error("PDF extraction failed:", error);
+        throw new Error("Unable to extract text from PDF file. Please try uploading a text-based PDF or convert to TXT format.");
+      }
+    } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType === 'application/msword') {
+      // For DOC/DOCX files, use OpenAI to extract text
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a resume text extractor. The user will provide you with base64 encoded DOC/DOCX data. Extract all text content from it and return only the readable resume text content. Be thorough and include all relevant information like name, contact details, experience, education, skills, etc."
+            },
+            {
+              role: "user", 
+              content: `Extract all readable text from this resume document (base64): ${fileData.substring(0, 4000)}...`
+            }
+          ],
+          max_tokens: 3000,
+        });
+        const extractedText = response.choices[0].message.content;
+        
+        if (!extractedText || extractedText.length < 50) {
+          throw new Error("Insufficient text extracted from document");
+        }
+        
+        return extractedText;
+      } catch (error) {
+        console.error("DOC/DOCX extraction failed:", error);
+        throw new Error("Unable to extract text from document file. Please try converting to TXT format.");
+      }
+    } else {
+      // For text files, return as-is
+      return fileData;
+    }
+  }
+
+  async processResume(resumeText: string, fileType?: string): Promise<ProcessedResume> {
     try {
+      // Extract text from file if needed
+      const extractedText = fileType ? await this.extractTextFromFile(resumeText, fileType) : resumeText;
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
         messages: [
@@ -51,7 +117,7 @@ Extract all relevant information. If any field is missing, use an empty string f
           },
           {
             role: "user",
-            content: `Analyze this resume and extract structured information:\n\n${resumeText}`
+            content: `Analyze this resume and extract structured information:\n\n${extractedText}`
           }
         ],
         response_format: { type: "json_object" },

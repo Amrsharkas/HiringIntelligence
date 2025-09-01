@@ -4299,14 +4299,14 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const { resumeText } = req.body;
+      const { resumeText, fileType } = req.body;
       
       if (!resumeText || resumeText.trim().length < 50) {
         return res.status(400).json({ message: "Resume text is required and must be substantial" });
       }
 
       // Process resume with AI
-      const processedResume = await resumeProcessingService.processResume(resumeText);
+      const processedResume = await resumeProcessingService.processResume(resumeText, fileType);
       
       // Save to database
       const profileData = {
