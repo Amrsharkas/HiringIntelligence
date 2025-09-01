@@ -4549,6 +4549,142 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Process and qualify applicants - Combined CV parsing and AI scoring
+  app.post('/api/applicants/process-and-qualify', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const {
+        fileName,
+        fileType,
+        fileData,
+        jobId,
+        jobTitle,
+        jobDescription,
+        jobRequirements,
+        passThreshold = 70,
+        autoAdvanceEnabled = true
+      } = req.body;
+
+      if (!fileName || !fileType || !fileData || !jobId) {
+        return res.status(400).json({ message: "Missing required fields: fileName, fileType, fileData, jobId" });
+      }
+
+      console.log(`🔄 Processing and qualifying CV: ${fileName} for job: ${jobTitle}`);
+
+      // Step 1: Extract text from CV using ResumeProcessingService
+      const { ResumeProcessingService } = await import('./resumeProcessingService');
+      const resumeService = new ResumeProcessingService();
+      
+      let extractedText = '';
+      try {
+        extractedText = await resumeService.extractTextFromFile(fileData, fileType);
+        console.log(`✅ Extracted ${extractedText.length} characters from CV`);
+      } catch (error) {
+        console.error(`❌ CV text extraction failed:`, error);
+        return res.status(400).json({ 
+          message: "Failed to extract text from CV", 
+          error: error instanceof Error ? error.message : "Unknown error" 
+        });
+      }
+
+      // Step 2: Parse resume content
+      let processedResume;
+      try {
+        processedResume = await resumeService.processResume(extractedText);
+        console.log(`✅ Processed resume for: ${processedResume.name}`);
+      } catch (error) {
+        console.error(`❌ Resume processing failed:`, error);
+        return res.status(400).json({ 
+          message: "Failed to process resume content", 
+          error: error instanceof Error ? error.message : "Unknown error" 
+        });
+      }
+
+      // Step 3: Get AI scoring using ApplicantScoringService
+      const { applicantScoringService } = await import('./applicantScoringService');
+      let aiScore;
+      try {
+        aiScore = await applicantScoringService.scoreApplicantDetailed(
+          extractedText,
+          jobTitle || 'Position',
+          jobDescription || '',
+          jobRequirements || '',
+          []
+        );
+        console.log(`✅ AI scoring complete - Overall: ${aiScore.overallMatch}%`);
+      } catch (error) {
+        console.error(`❌ AI scoring failed:`, error);
+        return res.status(500).json({ 
+          message: "Failed to generate AI score", 
+          error: error instanceof Error ? error.message : "Unknown error" 
+        });
+      }
+
+      // Step 4: Determine qualification decision
+      const isQualified = aiScore.overallMatch >= passThreshold;
+      const decision = isQualified ? 'Qualified' : 'Not Qualified';
+      
+      console.log(`📊 Qualification Result: ${decision} (${aiScore.overallMatch}% vs ${passThreshold}% threshold)`);
+
+      // Step 5: Prepare qualification result
+      const qualificationResult = {
+        candidateName: processedResume.name || fileName.replace(/\.[^/.]+$/, ""),
+        fileName: fileName,
+        score: aiScore.overallMatch,
+        decision: decision,
+        summary: aiScore.summary,
+        reasoning: aiScore.reasoning,
+        technicalSkillsScore: aiScore.technicalSkills,
+        experienceScore: aiScore.experience,
+        culturalFitScore: aiScore.culturalFit,
+        extractedText: extractedText.substring(0, 500) + '...', // First 500 chars for preview
+        processedResume: processedResume,
+        jobId: jobId,
+        jobTitle: jobTitle,
+        passThreshold: passThreshold,
+        autoAdvanced: isQualified && autoAdvanceEnabled
+      };
+
+      // Step 6: If qualified and auto-advance enabled, create applicant record
+      if (isQualified && autoAdvanceEnabled) {
+        try {
+          console.log(`🚀 Auto-advancing qualified candidate: ${processedResume.name}`);
+          
+          // Store in local database as accepted applicant
+          await storage.addAcceptedApplicant({
+            candidateId: `cv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            candidateName: processedResume.name,
+            candidateEmail: processedResume.email || '',
+            jobId: jobId.toString(),
+            jobTitle: jobTitle || 'Position',
+            organizationId: organization.id,
+            acceptedBy: userId
+          });
+          
+          console.log(`✅ Auto-advanced candidate to Interview 1 stage`);
+        } catch (error) {
+          console.error(`❌ Auto-advance failed:`, error);
+          // Continue with response even if auto-advance fails
+        }
+      }
+
+      res.json(qualificationResult);
+      
+    } catch (error) {
+      console.error("❌ Error in process-and-qualify:", error);
+      res.status(500).json({ 
+        message: "Failed to process and qualify applicant",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

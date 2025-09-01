@@ -90,42 +90,41 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
       setProcessingProgress(0);
       const results: QualificationResult[] = [];
 
-      // Step 1: Process all resumes (20% progress)
-      setProcessingProgress(20);
-      const processedResumes = [];
+      // Get the selected job details
+      const selectedJobDetails = jobs.find(job => job.id === selectedJobId);
+      if (!selectedJobDetails) {
+        throw new Error('Selected job not found');
+      }
+
+      // Step 1: Process all resumes and get AI scores (80% of progress)
+      const stepProgress = 80 / selectedFiles.length;
       
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        const formData = new FormData();
-        formData.append('resume', file);
+        setProcessingProgress(10 + (i * stepProgress));
         
-        const processResponse = await apiRequest('POST', '/api/resume-profiles/process', formData);
-        const processedResume = await processResponse.json();
-        processedResumes.push(processedResume);
+        // Convert file to base64 for processing
+        const fileBuffer = await file.arrayBuffer();
+        const base64Data = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
         
-        setProcessingProgress(20 + (i + 1) * (50 / selectedFiles.length));
-      }
-
-      // Step 2: Qualify each processed resume (50-90% progress)
-      for (let i = 0; i < processedResumes.length; i++) {
-        const resume = processedResumes[i];
-        
-        const qualifyResponse = await apiRequest('POST', '/api/qualification/qualify', {
-          candidateId: resume.id,
+        // Process resume and get AI scoring
+        const qualifyResponse = await apiRequest('POST', '/api/applicants/process-and-qualify', {
+          fileName: file.name,
+          fileType: file.type,
+          fileData: base64Data,
           jobId: selectedJobId,
+          jobTitle: selectedJobDetails.title,
+          jobDescription: selectedJobDetails.description,
+          jobRequirements: selectedJobDetails.requirements,
           passThreshold,
           autoAdvanceEnabled
         });
         
-        const qualificationResult = await qualifyResponse.json();
-        results.push({
-          ...qualificationResult,
-          candidateName: resume.name
-        });
-        
-        setProcessingProgress(70 + (i + 1) * (20 / processedResumes.length));
+        const qualifyResult = await qualifyResponse.json();
+        results.push(qualifyResult);
       }
 
+      // Step 2: Complete processing (90-100% progress)
       setProcessingProgress(100);
       return results;
     },
