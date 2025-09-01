@@ -62,6 +62,12 @@ type FlowStep = 'upload' | 'job-selection' | 'processing' | 'results';
 export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierModalProps) {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<FlowStep>('upload');
+  
+  // Debug logging for step changes
+  const setCurrentStepWithLogging = (newStep: FlowStep) => {
+    console.log(`🔄 Step change: ${currentStep} → ${newStep}`);
+    setCurrentStep(newStep);
+  };
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   // Removed threshold - now just shows scoring analysis
@@ -131,7 +137,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
     },
     onSuccess: (results) => {
       setQualificationResults(results);
-      setCurrentStep('results');
+      setCurrentStepWithLogging('results');
       setIsProcessing(false);
       
       toast({
@@ -178,20 +184,24 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
   };
 
   const handleNext = () => {
+    console.log('🔄 handleNext called, currentStep:', currentStep, 'selectedFiles:', selectedFiles.length);
     if (currentStep === 'upload' && selectedFiles.length > 0) {
-      setCurrentStep('job-selection');
+      console.log('✅ Advancing to job-selection step');
+      setCurrentStepWithLogging('job-selection');
     }
   };
 
   const handleAnalyzeClick = () => {
+    console.log('🎯 handleAnalyzeClick called, currentStep:', currentStep, 'selectedJobId:', selectedJobId);
     if (currentStep === 'job-selection' && selectedJobId) {
-      setCurrentStep('processing');
+      console.log('🚀 Starting processing...');
+      setCurrentStepWithLogging('processing');
       processAndQualifyMutation.mutate();
     }
   };
 
   const resetFlow = () => {
-    setCurrentStep('upload');
+    setCurrentStepWithLogging('upload');
     setSelectedFiles([]);
     setSelectedJobId(null);
     setQualificationResults([]);
@@ -340,7 +350,10 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                     )}
                     
                     {!jobsLoading && !jobsError && jobs.length > 0 && (
-                      <Select value={selectedJobId?.toString()} onValueChange={(value) => setSelectedJobId(Number(value))}>
+                      <Select value={selectedJobId?.toString()} onValueChange={(value) => {
+                        console.log('📋 Job selected:', value, 'currentStep:', currentStep);
+                        setSelectedJobId(Number(value));
+                      }}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a job posting..." />
                         </SelectTrigger>
