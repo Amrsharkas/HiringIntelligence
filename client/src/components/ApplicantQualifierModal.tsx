@@ -114,7 +114,11 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
           jobId: selectedJobId,
           jobTitle: selectedJobDetails.title,
           jobDescription: selectedJobDetails.description,
-          jobRequirements: selectedJobDetails.requirements
+          jobRequirements: selectedJobDetails.requirements,
+          jobSalary: selectedJobDetails.salaryRange,
+          jobLocation: selectedJobDetails.location,
+          jobType: selectedJobDetails.employmentType,
+          jobSkills: [...(selectedJobDetails.technicalSkills || []), ...(selectedJobDetails.softSkills || [])]
         });
         
         const qualifyResult = await qualifyResponse.json();

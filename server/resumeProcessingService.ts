@@ -25,7 +25,7 @@ export interface JobMatchScore {
 }
 
 export class ResumeProcessingService {
-  private async extractTextFromFile(fileData: string, fileType: string): Promise<string> {
+  public async extractTextFromFile(fileData: string, fileType: string): Promise<string> {
     console.log(`🔄 Extracting text from file type: ${fileType}, data length: ${fileData?.length}`);
     
     if (fileType === 'application/pdf') {

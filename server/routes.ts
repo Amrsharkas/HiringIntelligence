@@ -4566,7 +4566,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         jobId,
         jobTitle,
         jobDescription,
-        jobRequirements
+        jobRequirements,
+        jobSalary,
+        jobLocation,
+        jobType,
+        jobSkills
       } = req.body;
 
       if (!fileName || !fileType || !fileData || !jobId) {
@@ -4608,12 +4612,26 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const { applicantScoringService } = await import('./applicantScoringService');
       let aiScore;
       try {
+        // Prepare comprehensive job details for AI analysis
+        const fullJobDescription = `
+POSITION: ${jobTitle || 'Position'}
+LOCATION: ${jobLocation || 'Not specified'}
+SALARY: ${jobSalary || 'Not specified'}
+JOB TYPE: ${jobType || 'Not specified'}
+
+DESCRIPTION:
+${jobDescription || 'No description provided'}
+
+REQUIREMENTS:
+${jobRequirements || 'No requirements specified'}
+        `.trim();
+
         aiScore = await applicantScoringService.scoreApplicantDetailed(
           extractedText,
           jobTitle || 'Position',
-          jobDescription || '',
+          fullJobDescription,
           jobRequirements || '',
-          []
+          jobSkills || []
         );
         console.log(`✅ AI scoring complete - Overall: ${aiScore.overallMatch}%`);
       } catch (error) {
