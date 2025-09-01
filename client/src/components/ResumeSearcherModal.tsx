@@ -65,7 +65,6 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   // Fetch processed resume profiles
   const { data: profiles = [], isLoading: profilesLoading } = useQuery<ProfileWithScores[]>({
     queryKey: ['/api/resume-profiles'],
-    enabled: activeTab === 'results',
   });
 
   // Handle file selection
