@@ -1,0 +1,90 @@
+Feature: Applicant Qualifier (replace “Resume Searcher”)
+Objective
+
+Evaluate each candidate’s resume against a specific job posting, produce a 0–100 qualification score with reasons, and automatically advance qualified candidates to interviews.
+
+Rename
+
+Change the button label everywhere from “Resume Searcher” to “Applicant Qualifier.”
+
+Inputs
+
+Candidate object including stored resume text.
+
+Job object including title, full description, required skills (comma-separated), and optional nice-to-have skills.
+
+Configurable pass threshold (default 70).
+
+UI toggle: Auto-advance if score ≥ threshold (default ON).
+
+Processing Requirements
+
+Normalize resume and job text for matching.
+
+Determine matched skills and missing skills using required and nice-to-have lists, plus relevant keywords from the job description.
+
+Compute a 0–100 qualification score:
+
+Required skills contribute the majority of the score.
+
+Nice-to-have skills and job description keywords contribute the remainder.
+
+If more than half of required skills are missing and few nice-to-haves are present, cap the score to prevent false passes.
+
+Store each qualification result with candidate ID, job ID, score, matched list, missing list, timestamp, and whether the candidate advanced.
+
+Decision Rule
+
+If Auto-advance = ON and score ≥ threshold, set candidate stage to Interview 1.
+
+Otherwise, keep the current stage unchanged.
+
+UI Requirements
+
+Button text: Applicant Qualifier (replaces “Resume Searcher”).
+
+On click, show a results modal containing:
+
+Score (0–100)
+
+Matched skills (list)
+
+Missing skills (list)
+
+Decision: Advanced / Not Advanced
+
+Pass threshold value
+
+Auto-advance toggle (ON by default)
+
+On the candidate card, display the most recent score as the badge/number.
+
+Data & Logging
+
+Persist each qualification result (candidate, job, score, matched, missing, decision, timestamp).
+
+Update the candidate’s stage only when the decision is “Advanced.”
+
+Do not overwrite prior results; keep history.
+
+Constraints
+
+Assume resume text is already extracted and stored.
+
+Single candidate qualified against a single job at a time.
+
+No external AI services required; qualification is deterministic.
+
+No scheduling, batch runs, or multi-job comparisons.
+
+Success Criteria
+
+The button is renamed to Applicant Qualifier everywhere.
+
+Running the qualifier shows score, reasons, and decision in the modal.
+
+Toggling Auto-advance controls whether passing candidates move to Interview 1.
+
+Qualification results are persisted and visible; the latest score appears on the candidate card.
+
+Changing the pass threshold updates pass/fail behavior for subsequent qualifications.

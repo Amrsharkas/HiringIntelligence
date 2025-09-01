@@ -304,6 +304,23 @@ export const resumeJobScores = pgTable("resume_job_scores", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Qualification results for Applicant Qualifier
+export const qualificationResults = pgTable("qualification_results", {
+  id: serial("id").primaryKey(),
+  candidateId: varchar("candidate_id").notNull(), // Resume profile ID
+  jobId: integer("job_id").notNull().references(() => jobs.id),
+  qualificationScore: integer("qualification_score").notNull(), // 0-100
+  matchedSkills: jsonb("matched_skills").$type<string[]>(),
+  missingSkills: jsonb("missing_skills").$type<string[]>(),
+  decision: varchar("decision").notNull(), // "Advanced" or "Not Advanced"
+  passThreshold: integer("pass_threshold").notNull().default(70),
+  autoAdvanceEnabled: boolean("auto_advance_enabled").notNull().default(true),
+  candidateStage: varchar("candidate_stage").default("Application Review"), // Updated if advanced
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;

@@ -12,6 +12,7 @@ import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { jobMatchesService } from "./jobMatchesAirtableService";
 import { resumeProcessingService } from "./resumeProcessingService";
+import { qualificationService } from "./qualificationService";
 
 import { nanoid } from "nanoid";
 
@@ -4270,15 +4271,18 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Get all organization jobs for scoring
       const jobs = await storage.getJobsByOrganization(organization.id);
       
-      // Add job scores to each profile
+      // Add job scores and qualification results to each profile
       const profilesWithScores = await Promise.all(profiles.map(async (profile) => {
         const jobScores = await storage.getJobScoresByProfile(profile.id);
+        const qualificationResults = await qualificationService.getCandidateQualificationHistory(profile.id);
+        
         return {
           ...profile,
           jobScores: jobScores.map(score => ({
             ...score,
             jobTitle: jobs.find(job => job.id === score.jobId)?.title || 'Unknown Job'
-          }))
+          })),
+          qualificationResults: qualificationResults
         };
       }));
 
@@ -4430,6 +4434,73 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("Error processing bulk resumes:", error);
       res.status(500).json({ message: "Failed to process bulk resumes" });
+    }
+  });
+
+  // Qualification routes
+  app.post('/api/qualification/qualify', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { candidateId, jobId, passThreshold = 70, autoAdvanceEnabled = true } = req.body;
+
+      if (!candidateId || !jobId) {
+        return res.status(400).json({ message: "candidateId and jobId are required" });
+      }
+
+      const result = await qualificationService.qualifyCandidate(
+        { candidateId, jobId, passThreshold, autoAdvanceEnabled },
+        organization.id,
+        userId
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error qualifying candidate:", error);
+      res.status(500).json({ message: "Failed to qualify candidate", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.get('/api/qualification/candidate/:candidateId', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { candidateId } = req.params;
+      const results = await qualificationService.getCandidateQualificationHistory(candidateId);
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching candidate qualification history:", error);
+      res.status(500).json({ message: "Failed to fetch qualification history" });
+    }
+  });
+
+  app.get('/api/qualification/job/:jobId', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { jobId } = req.params;
+      const results = await qualificationService.getJobQualificationResults(Number(jobId), organization.id);
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching job qualification results:", error);
+      res.status(500).json({ message: "Failed to fetch qualification results" });
     }
   });
 
