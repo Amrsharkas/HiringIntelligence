@@ -226,11 +226,11 @@ export class QualificationService {
     );
 
     // Determine decision
-    const decision = score >= request.passThreshold ? 'Advanced' : 'Not Advanced';
+    const decision = score >= request.passThreshold ? 'Qualified' : 'Not Qualified';
     
     // Determine candidate stage
     let candidateStage = 'Application Review';
-    if (decision === 'Advanced' && request.autoAdvanceEnabled) {
+    if (decision === 'Qualified' && request.autoAdvanceEnabled) {
       candidateStage = 'Interview 1';
     }
 

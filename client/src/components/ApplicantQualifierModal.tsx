@@ -9,43 +9,38 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { 
   FileText, 
-  Search, 
-  User, 
-  Briefcase, 
-  Star, 
   Upload, 
   Users, 
-  File, 
-  X, 
-  Loader2, 
+  Briefcase, 
   CheckCircle,
   XCircle,
+  Loader2,
+  Target,
+  TrendingUp,
+  Star,
+  ArrowRight,
   Settings
 } from 'lucide-react';
 
-interface ResumeProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  summary: string;
-  experience: string[];
-  skills: string[];
-  education: string[];
-  certifications: string[];
-  languages: string[];
-  resumeText: string;
-  createdAt: string;
+interface Job {
+  id: number;
+  title: string;
+  description: string;
+  requirements: string;
+  location: string;
+  salaryRange: string;
 }
 
 interface QualificationResult {
   id: number;
   candidateId: string;
+  candidateName: string;
   jobId: number;
   qualificationScore: number;
   matchedSkills: string[];
@@ -57,182 +52,99 @@ interface QualificationResult {
   createdAt: string;
 }
 
-interface ProfileWithQualification extends ResumeProfile {
-  qualificationResults: QualificationResult[];
-}
-
 interface ApplicantQualifierModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+type FlowStep = 'upload' | 'job-selection' | 'processing' | 'results';
+
 export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierModalProps) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'upload' | 'qualify' | 'results'>('qualify');
+  const [currentStep, setCurrentStep] = useState<FlowStep>('upload');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProfile, setSelectedProfile] = useState<ProfileWithQualification | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [passThreshold, setPassThreshold] = useState(70);
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(true);
-  const [qualificationResult, setQualificationResult] = useState<QualificationResult | null>(null);
+  const [qualificationResults, setQualificationResults] = useState<QualificationResult[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch company job postings
-  const { data: jobs = [] } = useQuery<any[]>({
-    queryKey: ['/api/job-postings'],
+  // Fetch available jobs
+  const { data: jobs = [] } = useQuery<Job[]>({
+    queryKey: ['/api/jobs'],
+    enabled: isOpen
   });
 
-  // Fetch processed resume profiles
-  const { data: profiles = [], isLoading: profilesLoading } = useQuery<ProfileWithQualification[]>({
-    queryKey: ['/api/resume-profiles'],
-  });
+  // Combined process and qualify mutation
+  const processAndQualifyMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedJobId || selectedFiles.length === 0) {
+        throw new Error('Please select a job and upload resumes');
+      }
 
-  // Handle file selection
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const maxFileSize = 5 * 1024 * 1024; // 5MB limit
-    
-    const validFiles = files.filter(file => {
-      // Check file type
-      const isValidType = file.type === 'application/pdf' || 
-        file.type === 'text/plain' || 
-        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        file.type === 'application/msword';
+      setIsProcessing(true);
+      setProcessingProgress(0);
+      const results: QualificationResult[] = [];
+
+      // Step 1: Process all resumes (20% progress)
+      setProcessingProgress(20);
+      const processedResumes = [];
       
-      // Check file size
-      const isValidSize = file.size <= maxFileSize;
-      
-      if (!isValidType) {
-        toast({
-          title: "Invalid file type",
-          description: `${file.name} is not supported. Only PDF, DOC, DOCX, and TXT files are allowed.`,
-          variant: "destructive",
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const formData = new FormData();
+        formData.append('resume', file);
+        
+        const processResponse = await apiRequest('POST', '/api/resume-profiles/process', formData);
+        const processedResume = await processResponse.json();
+        processedResumes.push(processedResume);
+        
+        setProcessingProgress(20 + (i + 1) * (50 / selectedFiles.length));
+      }
+
+      // Step 2: Qualify each processed resume (50-90% progress)
+      for (let i = 0; i < processedResumes.length; i++) {
+        const resume = processedResumes[i];
+        
+        const qualifyResponse = await apiRequest('POST', '/api/qualification/qualify', {
+          candidateId: resume.id,
+          jobId: selectedJobId,
+          passThreshold,
+          autoAdvanceEnabled
         });
-        return false;
-      }
-      
-      if (!isValidSize) {
-        toast({
-          title: "File too large",
-          description: `${file.name} is too large. Maximum file size is 5MB.`,
-          variant: "destructive",
+        
+        const qualificationResult = await qualifyResponse.json();
+        results.push({
+          ...qualificationResult,
+          candidateName: resume.name
         });
-        return false;
+        
+        setProcessingProgress(70 + (i + 1) * (20 / processedResumes.length));
       }
-      
-      return true;
-    });
-    
-    if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
-    }
-  };
 
-  const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const clearAllFiles = () => {
-    setSelectedFiles([]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Extract text from file
-  const extractTextFromFile = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      if (file.type === 'application/pdf') {
-        // For PDF files, we'll send the base64 data to the server for processing
-        reader.onload = (e) => {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          // Use a more efficient method for large files
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = '';
-          const chunkSize = 0x8000; // 32KB chunks
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-          }
-          const base64 = btoa(binary);
-          resolve(base64);
-        };
-        reader.onerror = () => reject(new Error('Failed to read PDF file'));
-        reader.readAsArrayBuffer(file);
-      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/msword') {
-        // For DOCX files, we'll send the base64 data to the server for processing
-        reader.onload = (e) => {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          // Use a more efficient method for large files
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = '';
-          const chunkSize = 0x8000; // 32KB chunks
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-          }
-          const base64 = btoa(binary);
-          resolve(base64);
-        };
-        reader.onerror = () => reject(new Error('Failed to read DOCX file'));
-        reader.readAsArrayBuffer(file);
-      } else {
-        // For text files, read as text
-        reader.onload = (e) => {
-          const text = e.target?.result as string;
-          resolve(text);
-        };
-        reader.onerror = () => reject(new Error('Failed to read text file'));
-        reader.readAsText(file);
-      }
-    });
-  };
-
-  // Process multiple resume files
-  const processFilesMutation = useMutation({
-    mutationFn: async (files: File[]) => {
-      const processedResults = [];
-      
-      for (const file of files) {
-        try {
-          console.log(`🔄 Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
-          const fileData = await extractTextFromFile(file);
-          console.log(`📄 Extracted text length: ${fileData?.length}`);
-          
-          const response = await apiRequest('POST', '/api/resume-profiles/process', {
-            resumeText: fileData,
-            fileName: file.name,
-            fileType: file.type
-          });
-          
-          console.log(`✅ API response status: ${response.status}`);
-          const result = await response.json();
-          console.log(`✅ Processing complete for ${file.name}`);
-          processedResults.push({ file: file.name, result, success: true });
-        } catch (error) {
-          console.error(`❌ Processing failed for ${file.name}:`, error);
-          processedResults.push({ 
-            file: file.name, 
-            error: error instanceof Error ? error.message : 'Unknown error',
-            success: false 
-          });
-        }
-      }
-      
-      return processedResults;
+      setProcessingProgress(100);
+      return results;
     },
     onSuccess: (results) => {
+      setQualificationResults(results);
+      setCurrentStep('results');
+      setIsProcessing(false);
+      
+      const qualifiedCount = results.filter(r => r.decision === 'Qualified').length;
       toast({
-        title: "Resume Processing Complete",
-        description: "Resumes processed successfully",
+        title: "Qualification Complete!",
+        description: `Processed ${results.length} candidates. ${qualifiedCount} qualified for the next stage.`,
       });
       
+      // Invalidate cache to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
-      clearAllFiles();
-      setActiveTab('qualify');
+      queryClient.invalidateQueries({ queryKey: ['/api/applicants'] });
     },
     onError: (error: Error) => {
+      setIsProcessing(false);
+      setProcessingProgress(0);
       toast({
         title: "Processing Failed",
         description: error.message,
@@ -241,478 +153,426 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
     },
   });
 
-  // Qualify candidate mutation
-  const qualifyMutation = useMutation({
-    mutationFn: async ({ candidateId, jobId }: { candidateId: string; jobId: number }) => {
-      const response = await apiRequest('POST', '/api/qualification/qualify', {
-        candidateId,
-        jobId,
-        passThreshold,
-        autoAdvanceEnabled
-      });
-      return await response.json();
-    },
-    onSuccess: (result) => {
-      setQualificationResult(result);
-      queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const validFiles = files.filter(file => 
+      file.type === 'application/pdf' || 
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.type === 'text/plain'
+    );
+    
+    if (validFiles.length !== files.length) {
       toast({
-        title: "Qualification Complete",
-        description: `Candidate scored ${result.qualificationScore}% and was ${result.decision.toLowerCase()}`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Qualification Failed",
-        description: error.message,
+        title: "Invalid Files",
+        description: "Only PDF, DOCX, and TXT files are supported.",
         variant: "destructive",
       });
-    },
-  });
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getScoreBadgeVariant = (score: number) => {
-    if (score >= 80) return 'default';
-    if (score >= 60) return 'secondary';
-    return 'destructive';
-  };
-
-  const filteredProfiles = profiles.filter(profile =>
-    profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    profile.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    profile.experience.some(exp => exp.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const handleQualifyCandidate = () => {
-    if (!selectedProfile || !selectedJobId) {
-      toast({
-        title: "Selection Required",
-        description: "Please select both a candidate and a job position",
-        variant: "destructive",
-      });
-      return;
     }
     
-    qualifyMutation.mutate({
-      candidateId: selectedProfile.id,
-      jobId: selectedJobId
-    });
+    setSelectedFiles(validFiles);
   };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(files => files.filter((_, i) => i !== index));
+  };
+
+  const handleNext = () => {
+    if (currentStep === 'upload' && selectedFiles.length > 0) {
+      setCurrentStep('job-selection');
+    } else if (currentStep === 'job-selection' && selectedJobId) {
+      setCurrentStep('processing');
+      processAndQualifyMutation.mutate();
+    }
+  };
+
+  const resetFlow = () => {
+    setCurrentStep('upload');
+    setSelectedFiles([]);
+    setSelectedJobId(null);
+    setQualificationResults([]);
+    setIsProcessing(false);
+    setProcessingProgress(0);
+  };
+
+  const selectedJob = jobs.find(job => job.id === selectedJobId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Applicant Qualifier
+            <Target className="w-5 h-5 text-blue-600" />
+            Process & Qualify Applicants
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-4 mb-4">
-          <Button
-            variant={activeTab === 'upload' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('upload')}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Process Resumes
-          </Button>
-          <Button
-            variant={activeTab === 'qualify' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('qualify')}
-            className="flex items-center gap-2"
-          >
-            <Users className="h-4 w-4" />
-            Qualify Candidates ({profiles.length})
-          </Button>
-          <Button
-            variant={activeTab === 'results' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('results')}
-            className="flex items-center gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            Qualification Results
-          </Button>
+        {/* Progress Steps */}
+        <div className="flex items-center justify-center space-x-4 py-4">
+          {(['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).map((step, index) => (
+            <div key={step} className="flex items-center">
+              <div className={`
+                w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                ${currentStep === step ? 'bg-blue-600 text-white' : 
+                  index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) 
+                  ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}
+              `}>
+                {index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) ? '✓' : index + 1}
+              </div>
+              {index < 3 && (
+                <ArrowRight className={`w-4 h-4 mx-2 ${
+                  index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) 
+                  ? 'text-green-600' : 'text-gray-400'
+                }`} />
+              )}
+            </div>
+          ))}
         </div>
 
-        {activeTab === 'upload' && (
-          <div className="space-y-6">
-            {/* File Upload Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="h-5 w-5" />
-                  Upload Resume Files
-                </CardTitle>
-                <CardDescription>
-                  Upload single or multiple resume files (PDF, DOC, DOCX, TXT) for AI analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* File Input */}
-                <div className="space-y-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.txt"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Select Files
-                    </Button>
+        <ScrollArea className="flex-1 max-h-[600px]">
+          {/* Step 1: Upload Resumes */}
+          {currentStep === 'upload' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    Upload Resume Files
+                  </CardTitle>
+                  <CardDescription>
+                    Upload multiple resume files (PDF, DOCX, TXT) to process and qualify against a job posting.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".pdf,.docx,.txt"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
                     
-                    {selectedFiles.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={clearAllFiles}
-                        className="flex items-center gap-2"
-                      >
-                        <X className="h-4 w-4" />
-                        Clear All
-                      </Button>
-                    )}
-                  </div>
+                    <Button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full h-24 border-2 border-dashed border-gray-300 hover:border-blue-500"
+                      variant="outline"
+                    >
+                      <div className="text-center">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <div className="text-sm font-medium">Click to upload resume files</div>
+                        <div className="text-xs text-gray-500">PDF, DOCX, TXT files supported</div>
+                      </div>
+                    </Button>
 
-                  {/* Selected Files Display */}
-                  {selectedFiles.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium">Selected Files ({selectedFiles.length})</h4>
-                      <div className="grid gap-2 max-h-40 overflow-y-auto">
+                    {selectedFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Selected Files ({selectedFiles.length})</h4>
                         {selectedFiles.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-2 bg-muted rounded-md"
-                          >
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                             <div className="flex items-center gap-2">
-                              <File className="h-4 w-4" />
-                              <span className="text-sm truncate">{file.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                ({(file.size / 1024).toFixed(1)} KB)
+                              <FileText className="w-4 h-4" />
+                              <span className="text-sm">{file.name}</span>
+                              <span className="text-xs text-gray-500">
+                                ({(file.size / 1024 / 1024).toFixed(2)} MB)
                               </span>
                             </div>
                             <Button
-                              type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => removeFile(index)}
-                              className="h-6 w-6 p-0"
                             >
-                              <X className="h-3 w-3" />
+                              <XCircle className="w-4 h-4" />
                             </Button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Process Button */}
-                  <Button
-                    onClick={() => processFilesMutation.mutate(selectedFiles)}
-                    disabled={selectedFiles.length === 0 || processFilesMutation.isPending}
-                    className="w-full"
-                  >
-                    {processFilesMutation.isPending ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''}...
-                      </div>
-                    ) : (
-                      `Process ${selectedFiles.length} Resume${selectedFiles.length !== 1 ? 's' : ''}`
                     )}
-                  </Button>
-                </div>
-
-                {/* File Format Help */}
-                <div className="text-xs text-muted-foreground">
-                  <p>Supported formats: PDF, DOC, DOCX, TXT (max 5MB per file)</p>
-                  <p>Note: Text extraction works best with text-based files. Scanned PDFs may not process correctly.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'qualify' && (
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search candidates by name, skills, or experience..."
-                  className="pl-10"
-                />
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+          )}
 
-            {/* Configuration Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Qualification Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="threshold">Pass Threshold: {passThreshold}%</Label>
-                    <Input
-                      id="threshold"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={passThreshold}
-                      onChange={(e) => setPassThreshold(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="auto-advance">Auto-Advance Qualified Candidates</Label>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="auto-advance"
-                        checked={autoAdvanceEnabled}
-                        onCheckedChange={setAutoAdvanceEnabled}
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        {autoAdvanceEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="job-select">Select Job Position</Label>
-                    <select
-                      id="job-select"
-                      value={selectedJobId || ''}
-                      onChange={(e) => setSelectedJobId(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="">Select a job...</option>
-                      {jobs.map((job: any) => (
-                        <option key={job.id} value={job.id}>
-                          {job.title} - {job.location}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {profilesLoading ? (
-              <div className="text-center py-8">Loading candidates...</div>
-            ) : filteredProfiles.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {profiles.length === 0 ? 'No candidate profiles yet. Upload some resumes to get started.' : 'No candidates match your search.'}
-              </div>
-            ) : (
-              <ScrollArea className="h-[50vh]">
-                <div className="space-y-4">
-                  {filteredProfiles.map((profile) => {
-                    const latestQualification = profile.qualificationResults?.[0];
-                    return (
-                      <Card 
-                        key={profile.id} 
-                        className={`cursor-pointer transition-colors ${
-                          selectedProfile?.id === profile.id ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => setSelectedProfile(profile)}
-                      >
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <CardTitle className="flex items-center gap-2">
-                                <User className="h-5 w-5" />
-                                {profile.name}
-                                {latestQualification && (
-                                  <Badge variant={getScoreBadgeVariant(latestQualification.qualificationScore)}>
-                                    {latestQualification.qualificationScore}%
-                                  </Badge>
-                                )}
-                              </CardTitle>
-                              <CardDescription>
-                                {profile.email} • {profile.phone}
-                              </CardDescription>
-                            </div>
-                            {selectedProfile?.id === profile.id && (
-                              <CheckCircle className="h-5 w-5 text-blue-500" />
-                            )}
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {profile.summary}
-                            </p>
-                            
-                            <div className="space-y-2">
-                              <div>
-                                <h4 className="text-sm font-medium">Key Skills</h4>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {profile.skills.slice(0, 6).map((skill, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs">
-                                      {skill}
-                                    </Badge>
-                                  ))}
-                                  {profile.skills.length > 6 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{profile.skills.length - 6} more
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {latestQualification && (
-                                <div>
-                                  <h4 className="text-sm font-medium">Latest Qualification</h4>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-sm font-medium ${getScoreColor(latestQualification.qualificationScore)}`}>
-                                      {latestQualification.qualificationScore}% Score
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">•</span>
-                                    <span className={`text-xs ${latestQualification.decision === 'Advanced' ? 'text-green-600' : 'text-red-600'}`}>
-                                      {latestQualification.decision}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            )}
-
-            {/* Qualify Button */}
-            <div className="flex justify-center pt-4">
-              <Button
-                onClick={handleQualifyCandidate}
-                disabled={!selectedProfile || !selectedJobId || qualifyMutation.isPending}
-                size="lg"
-                className="min-w-[200px]"
-              >
-                {qualifyMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Qualifying...
-                  </div>
-                ) : (
-                  'Qualify Selected Candidate'
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'results' && (
-          <div className="space-y-4">
-            {qualificationResult ? (
+          {/* Step 2: Job Selection */}
+          {currentStep === 'job-selection' && (
+            <div className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    {qualificationResult.decision === 'Advanced' ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-600" />
-                    )}
-                    Qualification Results
+                    <Briefcase className="w-5 h-5" />
+                    Select Job Posting
                   </CardTitle>
+                  <CardDescription>
+                    Choose the job posting to evaluate candidates against.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Qualification Score</h4>
-                      <div className="flex items-center gap-3">
-                        <Progress value={qualificationResult.qualificationScore} className="flex-1" />
-                        <span className={`text-lg font-bold ${getScoreColor(qualificationResult.qualificationScore)}`}>
-                          {qualificationResult.qualificationScore}%
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Decision</h4>
-                      <Badge 
-                        variant={qualificationResult.decision === 'Advanced' ? 'default' : 'destructive'}
-                        className="text-sm"
-                      >
-                        {qualificationResult.decision}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2 text-green-600">Matched Skills</h4>
-                      <div className="space-y-1">
-                        {qualificationResult.matchedSkills.map((skill, index) => (
-                          <Badge key={index} variant="outline" className="mr-1 mb-1 text-green-600 border-green-200">
-                            {skill}
-                          </Badge>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Select value={selectedJobId?.toString()} onValueChange={(value) => setSelectedJobId(Number(value))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a job posting..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {jobs.map((job) => (
+                          <SelectItem key={job.id} value={job.id.toString()}>
+                            {job.title} - {job.location}
+                          </SelectItem>
                         ))}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-2 text-red-600">Missing Skills</h4>
-                      <div className="space-y-1">
-                        {qualificationResult.missingSkills.map((skill, index) => (
-                          <Badge key={index} variant="outline" className="mr-1 mb-1 text-red-600 border-red-200">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                      </SelectContent>
+                    </Select>
+
+                    {selectedJob && (
+                      <Card className="bg-blue-50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg">{selectedJob.title}</CardTitle>
+                          <div className="flex gap-2">
+                            <Badge variant="secondary">{selectedJob.location}</Badge>
+                            <Badge variant="outline">{selectedJob.salaryRange}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Description</h4>
+                            <p className="text-sm text-gray-600 line-clamp-3">{selectedJob.description}</p>
+                            
+                            <h4 className="font-medium">Requirements</h4>
+                            <p className="text-sm text-gray-600 line-clamp-3">{selectedJob.requirements}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Qualification Settings */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Settings className="w-5 h-5" />
+                          Qualification Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Pass Threshold: {passThreshold}%</Label>
+                          <Input
+                            type="range"
+                            min="50"
+                            max="90"
+                            value={passThreshold}
+                            onChange={(e) => setPassThreshold(Number(e.target.value))}
+                            className="w-full"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Candidates scoring above this threshold will be marked as "Qualified"
+                          </p>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="auto-advance"
+                            checked={autoAdvanceEnabled}
+                            onCheckedChange={setAutoAdvanceEnabled}
+                          />
+                          <Label htmlFor="auto-advance">
+                            Auto-advance qualified candidates to interview stage
+                          </Label>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-                  <Separator />
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Pass Threshold</h4>
-                      <p className="text-sm text-muted-foreground">{qualificationResult.passThreshold}%</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Auto-Advance</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {qualificationResult.autoAdvanceEnabled ? 'Enabled' : 'Disabled'}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Candidate Stage</h4>
-                      <p className="text-sm text-muted-foreground">{qualificationResult.candidateStage}</p>
+          {/* Step 3: Processing */}
+          {currentStep === 'processing' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing & Qualifying Candidates
+                  </CardTitle>
+                  <CardDescription>
+                    Analyzing {selectedFiles.length} resumes against "{selectedJob?.title}"...
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Progress value={processingProgress} className="w-full" />
+                    <div className="text-center text-sm text-gray-600">
+                      {processingProgress < 20 && "Preparing files..."}
+                      {processingProgress >= 20 && processingProgress < 70 && "Processing resumes..."}
+                      {processingProgress >= 70 && processingProgress < 100 && "Running qualification analysis..."}
+                      {processingProgress === 100 && "Complete!"}
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No qualification results yet. Qualify a candidate to see results here.
-              </div>
+            </div>
+          )}
+
+          {/* Step 4: Results */}
+          {currentStep === 'results' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    Qualification Results
+                  </CardTitle>
+                  <CardDescription>
+                    {qualificationResults.length} candidates evaluated against "{selectedJob?.title}"
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {qualificationResults.filter(r => r.decision === 'Qualified').length}
+                          </div>
+                          <div className="text-sm text-gray-600">Qualified</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-red-600">
+                            {qualificationResults.filter(r => r.decision === 'Not Qualified').length}
+                          </div>
+                          <div className="text-sm text-gray-600">Not Qualified</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-blue-600">
+                            {Math.round(qualificationResults.reduce((acc, r) => acc + r.qualificationScore, 0) / qualificationResults.length)}%
+                          </div>
+                          <div className="text-sm text-gray-600">Avg Score</div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Individual Results */}
+                    <div className="space-y-3">
+                      {qualificationResults
+                        .sort((a, b) => b.qualificationScore - a.qualificationScore)
+                        .map((result) => (
+                        <Card key={result.id} className={`${
+                          result.decision === 'Qualified' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                        }`}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                  result.decision === 'Qualified' ? 'bg-green-600' : 'bg-red-600'
+                                } text-white font-bold`}>
+                                  {result.qualificationScore}
+                                </div>
+                                <div>
+                                  <h4 className="font-medium">{result.candidateName}</h4>
+                                  <div className="flex items-center gap-2">
+                                    {result.decision === 'Qualified' ? (
+                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                    ) : (
+                                      <XCircle className="w-4 h-4 text-red-600" />
+                                    )}
+                                    <span className={`text-sm font-medium ${
+                                      result.decision === 'Qualified' ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {result.decision}
+                                    </span>
+                                    {result.autoAdvanceEnabled && result.decision === 'Qualified' && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        Advanced to Interviews
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Score</div>
+                                <div className="text-2xl font-bold">{result.qualificationScore}%</div>
+                              </div>
+                            </div>
+
+                            {/* Skills Analysis */}
+                            <div className="mt-4 space-y-2">
+                              {result.matchedSkills.length > 0 && (
+                                <div>
+                                  <span className="text-sm font-medium text-green-600">Matched Skills: </span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {result.matchedSkills.map((skill, index) => (
+                                      <Badge key={index} variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                        {skill}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {result.missingSkills.length > 0 && (
+                                <div>
+                                  <span className="text-sm font-medium text-red-600">Missing Skills: </span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {result.missingSkills.map((skill, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs border-red-200 text-red-600">
+                                        {skill}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </ScrollArea>
+
+        {/* Footer Actions */}
+        <div className="flex justify-between items-center pt-4 border-t">
+          <div className="flex gap-2">
+            {currentStep !== 'upload' && currentStep !== 'processing' && (
+              <Button variant="outline" onClick={resetFlow}>
+                Start New Process
+              </Button>
             )}
           </div>
-        )}
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              {currentStep === 'results' ? 'Close' : 'Cancel'}
+            </Button>
+            
+            {currentStep === 'upload' && (
+              <Button 
+                onClick={handleNext}
+                disabled={selectedFiles.length === 0}
+              >
+                Next: Select Job <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
+            
+            {currentStep === 'job-selection' && (
+              <Button 
+                onClick={handleNext}
+                disabled={!selectedJobId}
+              >
+                Process & Qualify <Target className="w-4 h-4 ml-1" />
+              </Button>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

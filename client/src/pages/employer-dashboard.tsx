@@ -597,8 +597,8 @@ export default function EmployerDashboard() {
                   className="w-full justify-start text-left hover:bg-green-50 dark:hover:bg-green-900/30"
                   onClick={() => setIsCandidatesModalOpen(true)}
                 >
-                  <Eye className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
-                  Applicant Qualifier
+                  <Target className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
+                  Process & Qualify Applicants
                 </Button>
                 <Button 
                   variant="ghost" 
