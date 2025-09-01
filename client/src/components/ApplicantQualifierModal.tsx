@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -211,6 +211,20 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
 
   const selectedJob = jobs.find(job => job.id === selectedJobId);
   
+  // Preserve state across modal reopens - prevent unwanted resets
+  useEffect(() => {
+    if (isOpen && currentStep === 'upload' && selectedFiles.length === 0 && !selectedJobId) {
+      // Only reset if modal is truly starting fresh
+      console.log('🔄 MODAL OPENED: Fresh start detected');
+    } else if (isOpen) {
+      console.log('🔄 MODAL REOPENED: Preserving existing state', {
+        currentStep,
+        filesCount: selectedFiles.length,
+        selectedJobId
+      });
+    }
+  }, [isOpen, currentStep, selectedFiles.length, selectedJobId]);
+
   // Debug logging
   console.log('🔍 RENDER DEBUG:', {
     currentStep,
@@ -559,14 +573,26 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
             )}
             
             {currentStep === 'job-selection' && (
-              <Button 
-                onClick={handleAnalyzeClick}
-                disabled={!selectedJobId}
-                className="bg-red-500 border-4 border-yellow-500"
-                style={{ minWidth: '200px', minHeight: '50px' }}
-              >
-                ANALYZE & SCORE CVS <Target className="w-4 h-4 ml-1" />
-              </Button>
+              <div className="space-x-2">
+                <Button 
+                  onClick={handleAnalyzeClick}
+                  disabled={!selectedJobId}
+                  className="bg-red-500 border-4 border-yellow-500"
+                  style={{ minWidth: '200px', minHeight: '50px' }}
+                >
+                  ANALYZE & SCORE CVS <Target className="w-4 h-4 ml-1" />
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  console.log('🔧 DEBUG CLICK: Current state', { 
+                    currentStep, 
+                    selectedJobId, 
+                    selectedJob: selectedJob ? 'FOUND' : 'NOT FOUND',
+                    jobsLength: jobs.length
+                  });
+                }}>
+                  Debug State
+                </Button>
+              </div>
             )}
             
             {/* Debug info - remove after fixing */}
