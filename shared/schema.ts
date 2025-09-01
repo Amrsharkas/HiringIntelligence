@@ -269,6 +269,41 @@ export const scoredApplicants = pgTable("scored_applicants", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Resume profiles table for AI-processed resumes
+export const resumeProfiles = pgTable("resume_profiles", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  summary: text("summary"),
+  experience: jsonb("experience").$type<string[]>(),
+  skills: jsonb("skills").$type<string[]>(),
+  education: jsonb("education").$type<string[]>(),
+  certifications: jsonb("certifications").$type<string[]>(),
+  languages: jsonb("languages").$type<string[]>(),
+  resumeText: text("resume_text").notNull(),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Resume job scores table for matching profiles against jobs
+export const resumeJobScores = pgTable("resume_job_scores", {
+  id: serial("id").primaryKey(),
+  profileId: varchar("profile_id").notNull().references(() => resumeProfiles.id),
+  jobId: varchar("job_id").notNull().references(() => jobs.id),
+  overallScore: integer("overall_score").notNull(),
+  technicalSkillsScore: integer("technical_skills_score").notNull(),
+  experienceScore: integer("experience_score").notNull(),
+  culturalFitScore: integer("cultural_fit_score").notNull(),
+  matchSummary: text("match_summary"),
+  strengthsHighlights: jsonb("strengths_highlights").$type<string[]>(),
+  improvementAreas: jsonb("improvement_areas").$type<string[]>(),
+  scoredAt: timestamp("scored_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Schemas for validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -323,6 +358,10 @@ export type RealInterview = typeof realInterviews.$inferSelect;
 export type InsertRealInterview = typeof realInterviews.$inferInsert;
 export type ScoredApplicant = typeof scoredApplicants.$inferSelect;
 export type InsertScoredApplicant = typeof scoredApplicants.$inferInsert;
+export type ResumeProfile = typeof resumeProfiles.$inferSelect;
+export type InsertResumeProfile = typeof resumeProfiles.$inferInsert;
+export type ResumeJobScore = typeof resumeJobScores.$inferSelect;
+export type InsertResumeJobScore = typeof resumeJobScores.$inferInsert;
 
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,

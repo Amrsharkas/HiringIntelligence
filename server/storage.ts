@@ -12,6 +12,8 @@ import {
   realInterviews,
   scoredApplicants,
   shortlistedApplicants,
+  resumeProfiles,
+  resumeJobScores,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -36,6 +38,10 @@ import {
   type InsertScoredApplicant,
   type ShortlistedApplicant,
   type InsertShortlistedApplicant,
+  type ResumeProfile,
+  type InsertResumeProfile,
+  type ResumeJobScore,
+  type InsertResumeJobScore,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -123,6 +129,20 @@ export interface IStorage {
   getShortlistedApplicants(employerId: string): Promise<ShortlistedApplicant[]>;
   removeFromShortlist(id: string): Promise<void>;
   isApplicantShortlisted(employerId: string, applicantId: string, jobId: string): Promise<boolean>;
+
+  // Resume profile operations
+  createResumeProfile(profile: InsertResumeProfile): Promise<ResumeProfile>;
+  getResumeProfilesByOrganization(organizationId: string): Promise<ResumeProfile[]>;
+  getResumeProfileById(id: string): Promise<ResumeProfile | undefined>;
+  updateResumeProfile(id: string, updates: Partial<InsertResumeProfile>): Promise<ResumeProfile>;
+  deleteResumeProfile(id: string): Promise<void>;
+
+  // Resume job score operations
+  createJobScore(score: InsertResumeJobScore): Promise<ResumeJobScore>;
+  getJobScoresByProfile(profileId: string): Promise<ResumeJobScore[]>;
+  getJobScoresByJob(jobId: string): Promise<ResumeJobScore[]>;
+  updateJobScore(id: number, updates: Partial<InsertResumeJobScore>): Promise<ResumeJobScore>;
+  deleteJobScore(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -655,6 +675,82 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return !!result;
+  }
+
+  // Resume profile operations
+  async createResumeProfile(profile: InsertResumeProfile): Promise<ResumeProfile> {
+    const [created] = await db
+      .insert(resumeProfiles)
+      .values(profile)
+      .returning();
+    return created;
+  }
+
+  async getResumeProfilesByOrganization(organizationId: string): Promise<ResumeProfile[]> {
+    return await db
+      .select()
+      .from(resumeProfiles)
+      .where(eq(resumeProfiles.organizationId, organizationId))
+      .orderBy(desc(resumeProfiles.createdAt));
+  }
+
+  async getResumeProfileById(id: string): Promise<ResumeProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(resumeProfiles)
+      .where(eq(resumeProfiles.id, id));
+    return profile;
+  }
+
+  async updateResumeProfile(id: string, updates: Partial<InsertResumeProfile>): Promise<ResumeProfile> {
+    const [updated] = await db
+      .update(resumeProfiles)
+      .set(updates)
+      .where(eq(resumeProfiles.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteResumeProfile(id: string): Promise<void> {
+    await db.delete(resumeProfiles).where(eq(resumeProfiles.id, id));
+  }
+
+  // Resume job score operations
+  async createJobScore(score: InsertResumeJobScore): Promise<ResumeJobScore> {
+    const [created] = await db
+      .insert(resumeJobScores)
+      .values(score)
+      .returning();
+    return created;
+  }
+
+  async getJobScoresByProfile(profileId: string): Promise<ResumeJobScore[]> {
+    return await db
+      .select()
+      .from(resumeJobScores)
+      .where(eq(resumeJobScores.profileId, profileId))
+      .orderBy(desc(resumeJobScores.overallScore));
+  }
+
+  async getJobScoresByJob(jobId: string): Promise<ResumeJobScore[]> {
+    return await db
+      .select()
+      .from(resumeJobScores)
+      .where(eq(resumeJobScores.jobId, jobId))
+      .orderBy(desc(resumeJobScores.overallScore));
+  }
+
+  async updateJobScore(id: number, updates: Partial<InsertResumeJobScore>): Promise<ResumeJobScore> {
+    const [updated] = await db
+      .update(resumeJobScores)
+      .set(updates)
+      .where(eq(resumeJobScores.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteJobScore(id: number): Promise<void> {
+    await db.delete(resumeJobScores).where(eq(resumeJobScores.id, id));
   }
 }
 

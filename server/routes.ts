@@ -11,6 +11,7 @@ import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { jobMatchesService } from "./jobMatchesAirtableService";
+import { resumeProcessingService } from "./resumeProcessingService";
 
 import { nanoid } from "nanoid";
 
@@ -4249,6 +4250,180 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("Error accepting magic link invitation:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // Resume Processing API Routes
+  
+  // Get all resume profiles for organization
+  app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const profiles = await storage.getResumeProfilesByOrganization(organization.id);
+      
+      // Get all organization jobs for scoring
+      const jobs = await storage.getJobsByOrganization(organization.id);
+      
+      // Add job scores to each profile
+      const profilesWithScores = await Promise.all(profiles.map(async (profile) => {
+        const jobScores = await storage.getJobScoresByProfile(profile.id);
+        return {
+          ...profile,
+          jobScores: jobScores.map(score => ({
+            ...score,
+            jobTitle: jobs.find(job => job.id === score.jobId)?.title || 'Unknown Job'
+          }))
+        };
+      }));
+
+      res.json(profilesWithScores);
+    } catch (error) {
+      console.error("Error fetching resume profiles:", error);
+      res.status(500).json({ message: "Failed to fetch resume profiles" });
+    }
+  });
+
+  // Process single resume
+  app.post('/api/resume-profiles/process', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { resumeText } = req.body;
+      
+      if (!resumeText || resumeText.trim().length < 50) {
+        return res.status(400).json({ message: "Resume text is required and must be substantial" });
+      }
+
+      // Process resume with AI
+      const processedResume = await resumeProcessingService.processResume(resumeText);
+      
+      // Save to database
+      const profileData = {
+        ...processedResume,
+        resumeText,
+        organizationId: organization.id,
+        createdBy: userId,
+      };
+      
+      const savedProfile = await storage.createResumeProfile(profileData);
+      
+      // Score against all organization jobs
+      const jobs = await storage.getJobsByOrganization(organization.id);
+      
+      for (const job of jobs) {
+        try {
+          const jobScore = await resumeProcessingService.scoreResumeAgainstJob(
+            processedResume,
+            job.title,
+            job.description,
+            job.requirements || job.description
+          );
+          
+          await storage.createJobScore({
+            profileId: savedProfile.id,
+            jobId: job.id,
+            ...jobScore,
+          });
+        } catch (error) {
+          console.error(`Error scoring resume against job ${job.id}:`, error);
+          // Continue with other jobs even if one fails
+        }
+      }
+      
+      res.json({ success: true, profile: savedProfile });
+    } catch (error) {
+      console.error("Error processing resume:", error);
+      res.status(500).json({ message: "Failed to process resume" });
+    }
+  });
+
+  // Process bulk resumes
+  app.post('/api/resume-profiles/process-bulk', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { resumesText } = req.body;
+      
+      if (!resumesText || resumesText.trim().length < 100) {
+        return res.status(400).json({ message: "Bulk resumes text is required" });
+      }
+
+      // Process bulk resumes with AI
+      const processedResumes = await resumeProcessingService.processBulkResumes(resumesText);
+      
+      if (processedResumes.length === 0) {
+        return res.status(400).json({ message: "No valid resumes found in the provided text" });
+      }
+
+      const savedProfiles = [];
+      const jobs = await storage.getJobsByOrganization(organization.id);
+      
+      // Process each resume
+      for (const resume of processedResumes) {
+        try {
+          // Generate unique resume text for each (in real app you'd have the actual text)
+          const resumeText = `Resume for ${resume.name}\n\nSummary: ${resume.summary}\n\nSkills: ${resume.skills.join(', ')}\n\nExperience: ${resume.experience.join('\n')}\n\nEducation: ${resume.education.join('\n')}`;
+          
+          const profileData = {
+            ...resume,
+            resumeText,
+            organizationId: organization.id,
+            createdBy: userId,
+          };
+          
+          const savedProfile = await storage.createResumeProfile(profileData);
+          savedProfiles.push(savedProfile);
+          
+          // Score against all organization jobs
+          for (const job of jobs) {
+            try {
+              const jobScore = await resumeProcessingService.scoreResumeAgainstJob(
+                resume,
+                job.title,
+                job.description,
+                job.requirements || job.description
+              );
+              
+              await storage.createJobScore({
+                profileId: savedProfile.id,
+                jobId: job.id,
+                ...jobScore,
+              });
+            } catch (error) {
+              console.error(`Error scoring resume ${savedProfile.id} against job ${job.id}:`, error);
+              // Continue with other jobs/resumes
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing individual resume for ${resume.name}:`, error);
+          // Continue with other resumes
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        processedCount: savedProfiles.length,
+        profiles: savedProfiles 
+      });
+    } catch (error) {
+      console.error("Error processing bulk resumes:", error);
+      res.status(500).json({ message: "Failed to process bulk resumes" });
     }
   });
 
