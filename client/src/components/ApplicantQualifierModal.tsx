@@ -72,9 +72,11 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available jobs
-  const { data: jobs = [] } = useQuery<Job[]>({
-    queryKey: ['/api/jobs'],
-    enabled: isOpen
+  const { data: jobs = [], error: jobsError, isLoading: jobsLoading } = useQuery<Job[]>({
+    queryKey: ['/api/job-postings'],
+    enabled: isOpen,
+    retry: 3,
+    retryDelay: 1000
   });
 
   // Combined process and qualify mutation
@@ -309,18 +311,45 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <Select value={selectedJobId?.toString()} onValueChange={(value) => setSelectedJobId(Number(value))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a job posting..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {jobs.map((job) => (
-                          <SelectItem key={job.id} value={job.id.toString()}>
-                            {job.title} - {job.location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {jobsLoading && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading jobs...
+                      </div>
+                    )}
+                    
+                    {jobsError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                        Error loading jobs: {jobsError.message}
+                        <button 
+                          className="ml-2 underline"
+                          onClick={() => window.location.reload()}
+                        >
+                          Refresh page
+                        </button>
+                      </div>
+                    )}
+                    
+                    {!jobsLoading && !jobsError && jobs.length === 0 && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
+                        No job postings found. Please create a job posting first.
+                      </div>
+                    )}
+                    
+                    {!jobsLoading && !jobsError && jobs.length > 0 && (
+                      <Select value={selectedJobId?.toString()} onValueChange={(value) => setSelectedJobId(Number(value))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a job posting..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {jobs.map((job) => (
+                            <SelectItem key={job.id} value={job.id.toString()}>
+                              {job.title} - {job.location}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
 
                     {selectedJob && (
                       <Card className="bg-blue-50">
