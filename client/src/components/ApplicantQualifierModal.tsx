@@ -64,8 +64,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
   const [currentStep, setCurrentStep] = useState<FlowStep>('upload');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
-  const [passThreshold, setPassThreshold] = useState(70);
-  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(true);
+  // Removed threshold - now just shows scoring analysis
   const [qualificationResults, setQualificationResults] = useState<QualificationResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -115,9 +114,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
           jobId: selectedJobId,
           jobTitle: selectedJobDetails.title,
           jobDescription: selectedJobDetails.description,
-          jobRequirements: selectedJobDetails.requirements,
-          passThreshold,
-          autoAdvanceEnabled
+          jobRequirements: selectedJobDetails.requirements
         });
         
         const qualifyResult = await qualifyResponse.json();
@@ -133,10 +130,9 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
       setCurrentStep('results');
       setIsProcessing(false);
       
-      const qualifiedCount = results.filter(r => r.decision === 'Qualified').length;
       toast({
-        title: "Qualification Complete!",
-        description: `Processed ${results.length} candidates. ${qualifiedCount} qualified for the next stage.`,
+        title: "CV Analysis Complete!",
+        description: `Processed ${results.length} CV(s) with detailed AI scoring analysis.`,
       });
       
       // Invalidate cache to refresh data
@@ -371,42 +367,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                       </Card>
                     )}
 
-                    {/* Qualification Settings */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Settings className="w-5 h-5" />
-                          Qualification Settings
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Pass Threshold: {passThreshold}%</Label>
-                          <Input
-                            type="range"
-                            min="50"
-                            max="90"
-                            value={passThreshold}
-                            onChange={(e) => setPassThreshold(Number(e.target.value))}
-                            className="w-full"
-                          />
-                          <p className="text-xs text-gray-500">
-                            Candidates scoring above this threshold will be marked as "Qualified"
-                          </p>
-                        </div>
 
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="auto-advance"
-                            checked={autoAdvanceEnabled}
-                            onCheckedChange={setAutoAdvanceEnabled}
-                          />
-                          <Label htmlFor="auto-advance">
-                            Auto-advance qualified candidates to interview stage
-                          </Label>
-                        </div>
-                      </CardContent>
-                    </Card>
                   </div>
                 </CardContent>
               </Card>
@@ -447,114 +408,89 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
-                    Qualification Results
+                    <Target className="w-5 h-5 text-blue-600" />
+                    CV Scoring Analysis
                   </CardTitle>
                   <CardDescription>
-                    {qualificationResults.length} candidates evaluated against "{selectedJob?.title}"
+                    {qualificationResults.length} CV(s) analyzed against "{selectedJob?.title}"
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* Summary Stats */}
+                    {/* Scoring Summary */}
                     <div className="grid grid-cols-3 gap-4">
                       <Card>
                         <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-green-600">
-                            {qualificationResults.filter(r => r.decision === 'Qualified').length}
-                          </div>
-                          <div className="text-sm text-gray-600">Qualified</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4 text-center">
-                          <div className="text-2xl font-bold text-red-600">
-                            {qualificationResults.filter(r => r.decision === 'Not Qualified').length}
-                          </div>
-                          <div className="text-sm text-gray-600">Not Qualified</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-blue-600">
-                            {Math.round(qualificationResults.reduce((acc, r) => acc + r.qualificationScore, 0) / qualificationResults.length)}%
+                            {qualificationResults.length}
                           </div>
-                          <div className="text-sm text-gray-600">Avg Score</div>
+                          <div className="text-sm text-gray-600">CVs Analyzed</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {Math.round(qualificationResults.reduce((acc, r) => acc + r.score, 0) / qualificationResults.length)}%
+                          </div>
+                          <div className="text-sm text-gray-600">Average Score</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {Math.max(...qualificationResults.map(r => r.score))}%
+                          </div>
+                          <div className="text-sm text-gray-600">Highest Score</div>
                         </CardContent>
                       </Card>
                     </div>
 
-                    {/* Individual Results */}
-                    <div className="space-y-3">
+                    {/* Individual CV Analysis */}
+                    <div className="space-y-4">
                       {qualificationResults
-                        .sort((a, b) => b.qualificationScore - a.qualificationScore)
-                        .map((result) => (
-                        <Card key={result.id} className={`${
-                          result.decision === 'Qualified' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                        }`}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
+                        .sort((a, b) => b.score - a.score)
+                        .map((result, index) => (
+                        <Card key={index} className="border-blue-200 bg-blue-50">
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between mb-4">
                               <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                  result.decision === 'Qualified' ? 'bg-green-600' : 'bg-red-600'
-                                } text-white font-bold`}>
-                                  {result.qualificationScore}
+                                <div className="w-12 h-12 rounded-full bg-blue-600 text-white font-bold text-lg flex items-center justify-center">
+                                  {result.score}%
                                 </div>
                                 <div>
-                                  <h4 className="font-medium">{result.candidateName}</h4>
-                                  <div className="flex items-center gap-2">
-                                    {result.decision === 'Qualified' ? (
-                                      <CheckCircle className="w-4 h-4 text-green-600" />
-                                    ) : (
-                                      <XCircle className="w-4 h-4 text-red-600" />
-                                    )}
-                                    <span className={`text-sm font-medium ${
-                                      result.decision === 'Qualified' ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                      {result.decision}
-                                    </span>
-                                    {result.autoAdvanceEnabled && result.decision === 'Qualified' && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Advanced to Interviews
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  <h4 className="font-semibold text-lg">{result.candidateName}</h4>
+                                  <p className="text-sm text-gray-600">{result.fileName}</p>
                                 </div>
-                              </div>
-                              
-                              <div className="text-right">
-                                <div className="text-sm text-gray-600">Score</div>
-                                <div className="text-2xl font-bold">{result.qualificationScore}%</div>
                               </div>
                             </div>
 
-                            {/* Skills Analysis */}
-                            <div className="mt-4 space-y-2">
-                              {result.matchedSkills.length > 0 && (
-                                <div>
-                                  <span className="text-sm font-medium text-green-600">Matched Skills: </span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {result.matchedSkills.map((skill, index) => (
-                                      <Badge key={index} variant="secondary" className="text-xs bg-green-100 text-green-800">
-                                        {skill}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+                            {/* Detailed Scoring Breakdown */}
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-purple-600">{result.technicalSkillsScore}%</div>
+                                <div className="text-xs text-gray-600">Technical Skills</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-green-600">{result.experienceScore}%</div>
+                                <div className="text-xs text-gray-600">Experience</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-orange-600">{result.culturalFitScore}%</div>
+                                <div className="text-xs text-gray-600">Cultural Fit</div>
+                              </div>
+                            </div>
+
+                            {/* AI Analysis Summary */}
+                            <div className="space-y-3">
+                              <div>
+                                <span className="text-sm font-medium text-gray-700">Summary:</span>
+                                <p className="text-sm mt-1 text-gray-600">{result.summary}</p>
+                              </div>
                               
-                              {result.missingSkills.length > 0 && (
-                                <div>
-                                  <span className="text-sm font-medium text-red-600">Missing Skills: </span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {result.missingSkills.map((skill, index) => (
-                                      <Badge key={index} variant="outline" className="text-xs border-red-200 text-red-600">
-                                        {skill}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+                              <div>
+                                <span className="text-sm font-medium text-gray-700">Detailed Analysis:</span>
+                                <p className="text-sm mt-1 text-gray-600">{result.reasoning}</p>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -596,7 +532,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
                 onClick={handleNext}
                 disabled={!selectedJobId}
               >
-                Process & Qualify <Target className="w-4 h-4 ml-1" />
+                Analyze & Score CVs <Target className="w-4 h-4 ml-1" />
               </Button>
             )}
           </div>

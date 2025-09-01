@@ -4566,9 +4566,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         jobId,
         jobTitle,
         jobDescription,
-        jobRequirements,
-        passThreshold = 70,
-        autoAdvanceEnabled = true
+        jobRequirements
       } = req.body;
 
       if (!fileName || !fileType || !fileData || !jobId) {
@@ -4626,18 +4624,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         });
       }
 
-      // Step 4: Determine qualification decision
-      const isQualified = aiScore.overallMatch >= passThreshold;
-      const decision = isQualified ? 'Qualified' : 'Not Qualified';
-      
-      console.log(`📊 Qualification Result: ${decision} (${aiScore.overallMatch}% vs ${passThreshold}% threshold)`);
+      // Step 4: Prepare CV scoring analysis result (no qualification thresholds)
+      console.log(`📊 CV Analysis Complete: ${aiScore.overallMatch}% overall match for ${processedResume.name}`);
 
-      // Step 5: Prepare qualification result
-      const qualificationResult = {
+      const scoringResult = {
         candidateName: processedResume.name || fileName.replace(/\.[^/.]+$/, ""),
         fileName: fileName,
         score: aiScore.overallMatch,
-        decision: decision,
         summary: aiScore.summary,
         reasoning: aiScore.reasoning,
         technicalSkillsScore: aiScore.technicalSkills,
@@ -4646,35 +4639,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         extractedText: extractedText.substring(0, 500) + '...', // First 500 chars for preview
         processedResume: processedResume,
         jobId: jobId,
-        jobTitle: jobTitle,
-        passThreshold: passThreshold,
-        autoAdvanced: isQualified && autoAdvanceEnabled
+        jobTitle: jobTitle
       };
 
-      // Step 6: If qualified and auto-advance enabled, create applicant record
-      if (isQualified && autoAdvanceEnabled) {
-        try {
-          console.log(`🚀 Auto-advancing qualified candidate: ${processedResume.name}`);
-          
-          // Store in local database as accepted applicant
-          await storage.addAcceptedApplicant({
-            candidateId: `cv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            candidateName: processedResume.name,
-            candidateEmail: processedResume.email || '',
-            jobId: jobId.toString(),
-            jobTitle: jobTitle || 'Position',
-            organizationId: organization.id,
-            acceptedBy: userId
-          });
-          
-          console.log(`✅ Auto-advanced candidate to Interview 1 stage`);
-        } catch (error) {
-          console.error(`❌ Auto-advance failed:`, error);
-          // Continue with response even if auto-advance fails
-        }
-      }
-
-      res.json(qualificationResult);
+      res.json(scoringResult);
       
     } catch (error) {
       console.error("❌ Error in process-and-qualify:", error);
