@@ -71,22 +71,42 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const validFiles = files.filter(file => 
-      file.type === 'application/pdf' || 
-      file.type === 'text/plain' || 
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.type === 'application/msword' // .doc files
-    );
+    const maxFileSize = 5 * 1024 * 1024; // 5MB limit
     
-    if (validFiles.length !== files.length) {
-      toast({
-        title: "Some files were skipped",
-        description: "Only PDF, DOC, DOCX, and TXT files are supported.",
-        variant: "destructive",
-      });
+    const validFiles = files.filter(file => {
+      // Check file type
+      const isValidType = file.type === 'application/pdf' || 
+        file.type === 'text/plain' || 
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.type === 'application/msword';
+      
+      // Check file size
+      const isValidSize = file.size <= maxFileSize;
+      
+      if (!isValidType) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not supported. Only PDF, DOC, DOCX, and TXT files are allowed.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      if (!isValidSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is too large. Maximum file size is 5MB.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      return true;
+    });
+    
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles]);
     }
-    
-    setSelectedFiles(prev => [...prev, ...validFiles]);
   };
 
   const removeFile = (index: number) => {
@@ -109,7 +129,14 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         // For PDF files, we'll send the base64 data to the server for processing
         reader.onload = (e) => {
           const arrayBuffer = e.target?.result as ArrayBuffer;
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          // Use a more efficient method for large files
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          const chunkSize = 0x8000; // 32KB chunks
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+          }
+          const base64 = btoa(binary);
           resolve(base64);
         };
         reader.onerror = () => reject(new Error('Failed to read PDF file'));
@@ -118,7 +145,14 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         // For DOCX files, we'll send the base64 data to the server for processing
         reader.onload = (e) => {
           const arrayBuffer = e.target?.result as ArrayBuffer;
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          // Use a more efficient method for large files
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          const chunkSize = 0x8000; // 32KB chunks
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+          }
+          const base64 = btoa(binary);
           resolve(base64);
         };
         reader.onerror = () => reject(new Error('Failed to read DOCX file'));
@@ -332,7 +366,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
                 {/* File Format Help */}
                 <div className="text-xs text-muted-foreground">
-                  <p>Supported formats: PDF, DOC, DOCX, TXT</p>
+                  <p>Supported formats: PDF, DOC, DOCX, TXT (max 5MB per file)</p>
                   <p>Note: Text extraction works best with text-based files. Scanned PDFs may not process correctly.</p>
                 </div>
               </CardContent>
