@@ -243,7 +243,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col">
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-600" />
@@ -273,7 +273,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
           ))}
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 overflow-y-auto max-h-0 px-1">
           {/* Step 1: Upload Resumes */}
           {currentStep === 'upload' && (
             <div className="space-y-6">
@@ -625,7 +625,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
               </Card>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         {/* Footer Actions */}
         <div className="flex justify-between items-center pt-4 border-t bg-white p-4 -m-4 mt-4">
