@@ -29,34 +29,32 @@ export class ResumeProcessingService {
     console.log(`🔄 Extracting text from file type: ${fileType}, data length: ${fileData?.length}`);
     
     if (fileType === 'application/pdf') {
-      // For PDF files, use OpenAI to extract text from base64 data
+      // For PDF files, use pdf-parse library
       try {
-        console.log('📄 Processing PDF with OpenAI...');
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system", 
-              content: "You are a resume text extractor. The user will provide you with base64 encoded PDF data. Extract all text content from it and return only the readable resume text content. Be thorough and include all relevant information like name, contact details, experience, education, skills, etc."
-            },
-            {
-              role: "user",
-              content: `Extract all readable text from this resume PDF (base64): ${fileData.substring(0, 4000)}...`
-            }
-          ],
-          max_tokens: 3000,
-        });
-        const extractedText = response.choices[0].message.content;
+        console.log('📄 Processing PDF with pdf-parse...');
         
-        if (!extractedText || extractedText.length < 50) {
+        // Convert base64 to buffer
+        const pdfBuffer = Buffer.from(fileData, 'base64');
+        console.log(`📄 PDF Buffer size: ${pdfBuffer.length} bytes`);
+        
+        // Dynamic import to avoid module initialization issues
+        const pdfParse = await import('pdf-parse');
+        const parseFunction = pdfParse.default;
+        
+        // Parse PDF
+        const data = await parseFunction(pdfBuffer);
+        const extractedText = data.text;
+        
+        if (!extractedText || extractedText.trim().length < 10) {
           console.error(`❌ Insufficient text extracted from PDF. Length: ${extractedText?.length}`);
-          throw new Error("Insufficient text extracted from PDF");
+          throw new Error("PDF contains no readable text or is corrupted");
         }
         
-        console.log(`✅ PDF text extraction successful. Length: ${extractedText.length}`);
+        console.log(`✅ PDF text extraction successful. Length: ${extractedText.length} characters`);
+        console.log(`📝 First 200 chars: ${extractedText.substring(0, 200)}...`);
         return extractedText;
       } catch (error) {
-        console.error("PDF extraction failed:", error);
+        console.error("❌ PDF extraction failed:", error);
         throw new Error(`Unable to extract text from PDF file: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType === 'application/msword') {
