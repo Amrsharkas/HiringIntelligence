@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import fetch from "node-fetch";
-import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
@@ -13,7 +12,6 @@ import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { jobMatchesService } from "./jobMatchesAirtableService";
 import { resumeProcessingService } from "./resumeProcessingService";
-import { qualificationService } from "./qualificationService";
 
 import { nanoid } from "nanoid";
 
@@ -27,27 +25,6 @@ function generateInviteCode(): string {
   return result;
 }
 import { insertOrganizationInvitationSchema } from "@shared/schema";
-
-// Configure multer for file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword',
-      'text/plain'
-    ];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only PDF, DOCX, DOC, and TXT files are allowed.'));
-    }
-  }
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -4293,18 +4270,15 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Get all organization jobs for scoring
       const jobs = await storage.getJobsByOrganization(organization.id);
       
-      // Add job scores and qualification results to each profile
+      // Add job scores to each profile
       const profilesWithScores = await Promise.all(profiles.map(async (profile) => {
         const jobScores = await storage.getJobScoresByProfile(profile.id);
-        const qualificationResults = await qualificationService.getCandidateQualificationHistory(profile.id);
-        
         return {
           ...profile,
           jobScores: jobScores.map(score => ({
             ...score,
             jobTitle: jobs.find(job => job.id === score.jobId)?.title || 'Unknown Job'
-          })),
-          qualificationResults: qualificationResults
+          }))
         };
       }));
 
@@ -4315,8 +4289,8 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Process single resume with file upload
-  app.post('/api/resume-profiles/process', requireAuth, upload.single('resume'), async (req: any, res) => {
+  // Process single resume
+  app.post('/api/resume-profiles/process', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
@@ -4325,30 +4299,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      let resumeText: string;
-      let fileType: string;
-
-      // Handle both file upload and text input
-      if (req.file) {
-        // File upload - extract text from file
-        fileType = req.file.mimetype;
-        
-        // For demo purposes, treat uploaded files as text
-        // In production, use PDF/DOCX parsers like pdf-parse or mammoth
-        resumeText = req.file.buffer.toString('utf8');
-        
-        if (!resumeText || resumeText.trim().length < 20) {
-          // If file parsing fails, create a sample resume based on filename
-          const fileName = req.file.originalname;
-          resumeText = `Resume File: ${fileName}\n\nThis is a sample resume for demonstration purposes. In a production environment, this would be parsed from the actual PDF/DOCX file.\n\nName: Sample Candidate\nEmail: candidate@example.com\nPhone: +20 100 123 4567\n\nExperience:\n- Software Engineer at Tech Company (2020-2023)\n- Junior Developer at Startup (2018-2020)\n\nSkills:\n- JavaScript, React, Node.js\n- Python, Django\n- SQL, MongoDB\n- Git, CI/CD\n\nEducation:\n- Bachelor's Degree in Computer Science\n- University of Cairo (2014-2018)`;
-        }
-      } else if (req.body.resumeText) {
-        // Direct text input
-        resumeText = req.body.resumeText;
-        fileType = req.body.fileType || 'text';
-      } else {
-        return res.status(400).json({ message: "Resume file or text is required" });
-      }
+      const { resumeText, fileType } = req.body;
       
       if (!resumeText || resumeText.trim().length < 50) {
         return res.status(400).json({ message: "Resume text is required and must be substantial" });
@@ -4479,196 +4430,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("Error processing bulk resumes:", error);
       res.status(500).json({ message: "Failed to process bulk resumes" });
-    }
-  });
-
-  // Qualification routes
-  app.post('/api/qualification/qualify', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      const { candidateId, jobId, passThreshold = 70, autoAdvanceEnabled = true } = req.body;
-
-      if (!candidateId || !jobId) {
-        return res.status(400).json({ message: "candidateId and jobId are required" });
-      }
-
-      const result = await qualificationService.qualifyCandidate(
-        { candidateId, jobId, passThreshold, autoAdvanceEnabled },
-        organization.id,
-        userId
-      );
-
-      res.json(result);
-    } catch (error) {
-      console.error("Error qualifying candidate:", error);
-      res.status(500).json({ message: "Failed to qualify candidate", error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  app.get('/api/qualification/candidate/:candidateId', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      const { candidateId } = req.params;
-      const results = await qualificationService.getCandidateQualificationHistory(candidateId);
-
-      res.json(results);
-    } catch (error) {
-      console.error("Error fetching candidate qualification history:", error);
-      res.status(500).json({ message: "Failed to fetch qualification history" });
-    }
-  });
-
-  app.get('/api/qualification/job/:jobId', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      const { jobId } = req.params;
-      const results = await qualificationService.getJobQualificationResults(Number(jobId), organization.id);
-
-      res.json(results);
-    } catch (error) {
-      console.error("Error fetching job qualification results:", error);
-      res.status(500).json({ message: "Failed to fetch qualification results" });
-    }
-  });
-
-  // Process and qualify applicants - Combined CV parsing and AI scoring
-  app.post('/api/applicants/process-and-qualify', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      const {
-        fileName,
-        fileType,
-        fileData,
-        jobId,
-        jobTitle,
-        jobDescription,
-        jobRequirements,
-        jobSalary,
-        jobLocation,
-        jobType,
-        jobSkills
-      } = req.body;
-
-      if (!fileName || !fileType || !fileData || !jobId) {
-        return res.status(400).json({ message: "Missing required fields: fileName, fileType, fileData, jobId" });
-      }
-
-      console.log(`🔄 Processing and qualifying CV: ${fileName} for job: ${jobTitle}`);
-      console.log(`📄 File details: Type=${fileType}, DataLength=${fileData?.length || 0}`);
-
-      // Step 1: Extract text from CV using ResumeProcessingService
-      const { ResumeProcessingService } = await import('./resumeProcessingService');
-      const resumeService = new ResumeProcessingService();
-      
-      let extractedText = '';
-      try {
-        extractedText = await resumeService.extractTextFromFile(fileData, fileType);
-        console.log(`✅ Extracted ${extractedText.length} characters from CV`);
-      } catch (error) {
-        console.error(`❌ CV text extraction failed:`, error);
-        return res.status(400).json({ 
-          message: "Failed to extract text from CV", 
-          error: error instanceof Error ? error.message : "Unknown error" 
-        });
-      }
-
-      // Step 2: Parse resume content
-      let processedResume;
-      try {
-        processedResume = await resumeService.processResume(extractedText);
-        console.log(`✅ Processed resume for: ${processedResume.name}`);
-      } catch (error) {
-        console.error(`❌ Resume processing failed:`, error);
-        return res.status(400).json({ 
-          message: "Failed to process resume content", 
-          error: error instanceof Error ? error.message : "Unknown error" 
-        });
-      }
-
-      // Step 3: Get AI scoring using ApplicantScoringService
-      const { applicantScoringService } = await import('./applicantScoringService');
-      let aiScore;
-      try {
-        // Prepare comprehensive job details for AI analysis
-        const fullJobDescription = `
-POSITION: ${jobTitle || 'Position'}
-LOCATION: ${jobLocation || 'Not specified'}
-SALARY: ${jobSalary || 'Not specified'}
-JOB TYPE: ${jobType || 'Not specified'}
-
-DESCRIPTION:
-${jobDescription || 'No description provided'}
-
-REQUIREMENTS:
-${jobRequirements || 'No requirements specified'}
-        `.trim();
-
-        aiScore = await applicantScoringService.scoreApplicantDetailed(
-          extractedText,
-          jobTitle || 'Position',
-          fullJobDescription,
-          jobRequirements || '',
-          jobSkills || []
-        );
-        console.log(`✅ AI scoring complete - Overall: ${aiScore.overallMatch}%`);
-      } catch (error) {
-        console.error(`❌ AI scoring failed:`, error);
-        return res.status(500).json({ 
-          message: "Failed to generate AI score", 
-          error: error instanceof Error ? error.message : "Unknown error" 
-        });
-      }
-
-      // Step 4: Prepare CV scoring analysis result (no qualification thresholds)
-      console.log(`📊 CV Analysis Complete: ${aiScore.overallMatch}% overall match for ${processedResume.name}`);
-
-      const scoringResult = {
-        candidateName: processedResume.name || fileName.replace(/\.[^/.]+$/, ""),
-        fileName: fileName,
-        score: aiScore.overallMatch,
-        summary: aiScore.summary,
-        reasoning: aiScore.reasoning,
-        technicalSkillsScore: aiScore.technicalSkills,
-        experienceScore: aiScore.experience,
-        culturalFitScore: aiScore.culturalFit,
-        extractedText: extractedText.substring(0, 500) + '...', // First 500 chars for preview
-        processedResume: processedResume,
-        jobId: jobId,
-        jobTitle: jobTitle
-      };
-
-      res.json(scoringResult);
-      
-    } catch (error) {
-      console.error("❌ Error in process-and-qualify:", error);
-      res.status(500).json({ 
-        message: "Failed to process and qualify applicant",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 

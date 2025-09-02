@@ -23,7 +23,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
 import { ActiveJobsModal } from "@/components/ActiveJobsModal";
-import { ApplicantQualifierModal } from "@/components/ApplicantQualifierModal";
+import { ResumeSearcherModal } from "@/components/ResumeSearcherModal";
 
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { ApplicantsModal } from "@/components/ApplicantsModal";
@@ -535,7 +535,7 @@ export default function EmployerDashboard() {
                 onClick: () => setIsApplicantsModalOpen(true)
               },
               { 
-                label: "Applicant Qualifier", 
+                label: "Resume Searcher", 
                 component: <LiveCandidatesCount />,
                 icon: Target, 
                 color: "purple",
@@ -597,8 +597,8 @@ export default function EmployerDashboard() {
                   className="w-full justify-start text-left hover:bg-green-50 dark:hover:bg-green-900/30"
                   onClick={() => setIsCandidatesModalOpen(true)}
                 >
-                  <Target className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
-                  Process & Qualify Applicants
+                  <Eye className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
+                  Resume Searcher
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -651,7 +651,7 @@ export default function EmployerDashboard() {
         isOpen={isActiveJobsModalOpen} 
         onClose={() => setIsActiveJobsModalOpen(false)} 
       />
-      <ApplicantQualifierModal 
+      <ResumeSearcherModal 
         isOpen={isCandidatesModalOpen} 
         onClose={() => setIsCandidatesModalOpen(false)} 
       />
