@@ -133,12 +133,23 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
           jobSkills: [...(selectedJobDetails.technicalSkills || []), ...(selectedJobDetails.softSkills || [])]
         });
         
+        if (!qualifyResponse.ok) {
+          throw new Error(`Server error: ${qualifyResponse.status} ${qualifyResponse.statusText}`);
+        }
+        
         const qualifyResult = await qualifyResponse.json();
+        
+        // Check for errors in the response
+        if (qualifyResult.error || qualifyResult.message) {
+          throw new Error(qualifyResult.message || qualifyResult.error || 'Unknown processing error');
+        }
+        
+        console.log('✅ Raw AI Response:', qualifyResult);
         
         // Map server response to expected frontend format
         const mappedResult = {
           ...qualifyResult,
-          qualificationScore: qualifyResult.score, // Map 'score' to 'qualificationScore'
+          qualificationScore: qualifyResult.score || 0, // Map 'score' to 'qualificationScore'
           candidateId: qualifyResult.candidateName || 'unknown',
           id: i + 1, // Generate simple ID
           jobId: selectedJobId,
@@ -151,6 +162,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
           createdAt: new Date().toISOString()
         };
         
+        console.log('✅ Mapped Result:', mappedResult);
         results.push(mappedResult);
       }
 

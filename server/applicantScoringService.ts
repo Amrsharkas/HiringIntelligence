@@ -138,7 +138,7 @@ RESPONSE FORMAT - Return ONLY valid JSON in this exact structure:
 }`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        model: "gpt-4o", // Using gpt-4o which is the latest stable model available
         messages: [
           {
             role: "system",
@@ -171,14 +171,17 @@ RESPONSE FORMAT - Return ONLY valid JSON in this exact structure:
       return scores;
 
     } catch (error) {
-      console.error('Error in detailed scoring:', error);
+      console.error('❌ Error in detailed scoring:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
+      
+      // Return error information in the response for debugging
       return {
         overallMatch: 0,
         technicalSkills: 0,
         experience: 0,
         culturalFit: 0,
-        summary: "Technical error during evaluation - manual review required.",
-        reasoning: "Unable to complete AI assessment due to system error."
+        summary: `AI processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        reasoning: `System error occurred during AI evaluation. Error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

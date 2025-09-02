@@ -4578,6 +4578,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
 
       console.log(`🔄 Processing and qualifying CV: ${fileName} for job: ${jobTitle}`);
+      console.log(`📄 File details: Type=${fileType}, DataLength=${fileData?.length || 0}`);
 
       // Step 1: Extract text from CV using ResumeProcessingService
       const { ResumeProcessingService } = await import('./resumeProcessingService');
