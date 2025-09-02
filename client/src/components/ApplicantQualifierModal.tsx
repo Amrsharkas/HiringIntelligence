@@ -243,37 +243,39 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-blue-600" />
-            Process & Qualify Applicants
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col">
+        <div className="p-6 border-b flex-shrink-0">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-blue-600" />
+              Process & Qualify Applicants
+            </DialogTitle>
+          </DialogHeader>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center space-x-4 py-4">
-          {(['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).map((step, index) => (
-            <div key={step} className="flex items-center">
-              <div className={`
-                w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                ${currentStep === step ? 'bg-blue-600 text-white' : 
-                  index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) 
-                  ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}
-              `}>
-                {index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) ? '✓' : index + 1}
+          {/* Progress Steps */}
+          <div className="flex items-center justify-center space-x-4 py-4">
+            {(['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).map((step, index) => (
+              <div key={step} className="flex items-center">
+                <div className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                  ${currentStep === step ? 'bg-blue-600 text-white' : 
+                    index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) 
+                    ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}
+                `}>
+                  {index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) ? '✓' : index + 1}
+                </div>
+                {index < 3 && (
+                  <ArrowRight className={`w-4 h-4 mx-2 ${
+                    index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) 
+                    ? 'text-green-600' : 'text-gray-400'
+                  }`} />
+                )}
               </div>
-              {index < 3 && (
-                <ArrowRight className={`w-4 h-4 mx-2 ${
-                  index < (['upload', 'job-selection', 'processing', 'results'] as FlowStep[]).indexOf(currentStep) 
-                  ? 'text-green-600' : 'text-gray-400'
-                }`} />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto max-h-0 px-1">
+        <div className="flex-1 overflow-y-auto p-6">
           {/* Step 1: Upload Resumes */}
           {currentStep === 'upload' && (
             <div className="space-y-6">
@@ -628,7 +630,7 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-4 border-t bg-white p-4 -m-4 mt-4">
+        <div className="flex justify-between items-center p-6 border-t bg-white flex-shrink-0">
           <div className="flex gap-2">
             {currentStep !== 'upload' && currentStep !== 'processing' && (
               <Button variant="outline" onClick={resetFlow}>
