@@ -134,7 +134,24 @@ export function ApplicantQualifierModal({ isOpen, onClose }: ApplicantQualifierM
         });
         
         const qualifyResult = await qualifyResponse.json();
-        results.push(qualifyResult);
+        
+        // Map server response to expected frontend format
+        const mappedResult = {
+          ...qualifyResult,
+          qualificationScore: qualifyResult.score, // Map 'score' to 'qualificationScore'
+          candidateId: qualifyResult.candidateName || 'unknown',
+          id: i + 1, // Generate simple ID
+          jobId: selectedJobId,
+          matchedSkills: [], // Will be populated if available
+          missingSkills: [], // Will be populated if available
+          decision: '', // Not used in current implementation
+          passThreshold: 70, // Default threshold
+          autoAdvanceEnabled: false,
+          candidateStage: 'screening',
+          createdAt: new Date().toISOString()
+        };
+        
+        results.push(mappedResult);
       }
 
       // Step 2: Complete processing (90-100% progress)
