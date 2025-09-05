@@ -52,7 +52,7 @@ class ApplicantScoringService {
         };
       }
 
-      const prompt = `You are a BRUTALLY HONEST, STRICT recruiter who gives EXTREMELY HARSH and REALISTIC assessments. MOST CANDIDATES SHOULD SCORE 5-25%. NO INFLATED SCORES ALLOWED.
+      const prompt = `You are a professional recruiter providing realistic candidate assessments. Evaluate candidates fairly based on their actual qualifications and how well they match the job requirements.
 
 JOB DETAILS:
 Title: ${jobTitle}
@@ -63,53 +63,32 @@ Required Skills: ${jobSkills?.join(', ') || 'Not specified'}
 CANDIDATE PROFILE:
 ${userProfile}
 
-CRITICAL SCORING INSTRUCTIONS - BE BRUTALLY HARSH AND COMPLETELY HONEST:
+SCORING INSTRUCTIONS - BE FAIR AND REALISTIC:
 
-1. OVERALL MATCH (0-100): MOST candidates should score 5-25%. Only perfect matches score above 50%.
-2. TECHNICAL SKILLS (0-100): If exact skills not explicitly mentioned = 0-15%. No assumptions allowed.
-3. EXPERIENCE (0-100): Wrong field/level = 0-20%. No relevant experience mentioned = 0-10%.
-4. CULTURAL FIT (0-100): No personality/values mentioned = 5-20%. Generic = 10-25%.
+Evaluate each area (Overall Match, Technical Skills, Experience, Cultural Fit) on a 0-100 scale based on actual qualifications:
 
-MANDATORY SCORING GUIDELINES - NO EXCEPTIONS:
-- 0-15: No relevant information, profile too vague, completely wrong field, or irrelevant experience
-- 16-30: Some basic info but major gaps, wrong experience level, unrelated skills, or entry-level for senior role
-- 31-45: Has some relevant background but missing key requirements, insufficient experience, or skills don't match
-- 46-60: Meets some requirements but has notable gaps, moderate experience, or some skill mismatches
-- 61-75: Good match with minor gaps, relevant experience, most skills present
-- 76-85: Strong match with all major requirements, solid experience, excellent skills
-- 86-95: Exceptional candidate, exceeds requirements, extensive relevant experience
-- 96-100: Perfect match, world-class expertise, ideal candidate (EXTREMELY RARE)
-- 26-40: Partially relevant but significant shortcomings in key areas
-- 41-60: Decent match with some relevant experience but missing important requirements
-- 61-75: Good candidate with most requirements but not exceptional
-- 76-90: Strong candidate with all/most requirements and good experience
-- 91-100: Perfect match with exceptional qualifications (RARE)
+SCORING GUIDELINES:
+- 0-20: No relevant qualifications, completely unsuitable for the role
+- 21-40: Minimal qualifications, significant gaps in key areas
+- 41-60: Some relevant qualifications but missing important requirements
+- 61-80: Good qualifications that meet most job requirements
+- 81-95: Strong qualifications that exceed job requirements
+- 96-100: Exceptional qualifications, perfect match for the role
 
-HARSH REALITY CHECKS:
-- If the profile mentions "student" or "looking for experience" and job requires 5+ years → Experience should be 5-15%
-- If they list irrelevant skills (e.g., social media for engineering role) → Technical Skills should be 10-25%  
-- If profile is vague without concrete examples → All scores should be 15-35%
-- If no cultural indicators are provided → Cultural Fit should be 20-40%
-- NEVER give high scores without clear evidence in the profile
+EVALUATION CRITERIA:
 
-EXAMPLES OF REALISTIC SCORING:
-- Junior candidate for senior role: Overall 15-25%, Experience 5-15%
-- Unrelated field experience: Technical 10-20%, Overall 15-30%
-- Vague generic profile: All scores 20-35%
-- Missing key requirements: Relevant scores 15-40%
-- 16-30: Minimal relevance, major gaps in all areas
-- 31-50: Some basic relevance but significant gaps
-- 51-70: Good qualifications with minor gaps
-- 71-85: Strong qualifications meeting most requirements
-- 86-95: Exceptional candidate exceeding requirements
-- 96-100: Perfect match (extremely rare)
+1. OVERALL MATCH (0-100): How well does the candidate's overall profile fit the job requirements?
+2. TECHNICAL SKILLS (0-100): Does the candidate have the technical skills needed for this role?
+3. EXPERIENCE (0-100): Does the candidate have relevant work experience at the appropriate level?
+4. CULTURAL FIT (0-100): Based on available information, how well might the candidate fit the work environment?
 
-CRITICAL RULES:
-- If profile mentions completely unrelated skills (like "rower" for a developer job), give 5-15 points max
-- If no relevant experience is mentioned, technical skills should be 0-20
-- If no education/background info, experience should be 0-25
-- Be honest about gaps - don't assume qualifications that aren't explicitly stated
-- A good candidate should score 60-75, exceptional 75-85, perfect 85+
+REALISTIC ASSESSMENT APPROACH:
+- Score based on what's actually stated in the profile
+- Consider transferable skills and related experience
+- Account for career progression and growth potential
+- Be honest about gaps while recognizing potential
+- Don't penalize candidates for information not provided unless it's critical
+- Consider if requirements are "must-have" vs "nice-to-have"
 
 Return JSON in this exact format:
 {
@@ -126,7 +105,7 @@ Return JSON in this exact format:
         messages: [
           {
             role: "system",
-            content: "You are an EXTREMELY STRICT recruiter who protects companies from bad hires. CRITICAL: 90% of candidates should score 5-25%. AVERAGE SCORE should be 15%. Only 1 in 100 candidates should score above 60%. Be brutally honest - no relevant skills mentioned = 0-10%, wrong field = 0-15%, generic profiles = 5-20%. MOST CANDIDATES ARE NOT SUITABLE."
+            content: "You are a professional recruiter who provides realistic and fair candidate assessments. Evaluate candidates honestly based on their qualifications relative to job requirements. Scores should reflect actual match quality - from 1% for completely unsuitable candidates to 100% for perfect matches. Most candidates will fall somewhere in the middle based on their actual qualifications."
           },
           {
             role: "user",
@@ -183,7 +162,7 @@ Return JSON in this exact format:
         };
       }
       
-      const prompt = `You are an EXTREMELY STRICT recruiter evaluating a job applicant. Be brutally honest and accurate. A candidate must have SUBSTANTIAL relevant experience and skills to score well.
+      const prompt = `You are a professional recruiter evaluating a job applicant. Provide a realistic assessment based on how well the candidate matches the job requirements.
 
 Job Description:
 ${jobDescription}
@@ -191,30 +170,27 @@ ${jobDescription}
 Applicant Profile:
 ${userProfile}
 
-CRITICAL EVALUATION CRITERIA:
-- If the profile is empty, vague, or has minimal information (like just "rower" or single words), score 0-15
-- If there's no relevant experience or skills mentioned, score 0-25
-- If there's some relevant experience but major gaps, score 25-45
-- If there's good relevant experience with minor gaps, score 45-65
-- If there's strong relevant experience with most requirements met, score 65-80
-- Only score 80+ if the candidate is exceptionally qualified with all key requirements
+EVALUATION APPROACH:
+- Score from 1-100 based on actual qualifications and job fit
+- Consider relevant experience, skills, education, and potential
+- Account for transferable skills and growth potential
+- Be fair but honest about strengths and gaps
 
-SCORING RULES:
-- Be HARSH and REALISTIC
-- Incomplete profiles = Very low scores (0-15)
-- Irrelevant experience = Low scores (0-30)
-- Questionable fit = Medium scores (30-50)
-- Good fit = Higher scores (50-70)
-- Exceptional fit = High scores (70-85)
-- Perfect fit = Very high scores (85-95)
+SCORING GUIDELINES:
+- 0-20: No relevant qualifications, completely unsuitable
+- 21-40: Minimal qualifications, significant gaps
+- 41-60: Some relevant qualifications, missing key requirements
+- 61-80: Good qualifications, meets most requirements
+- 81-95: Strong qualifications, exceeds requirements
+- 96-100: Exceptional qualifications, perfect match
 
 Please respond with JSON in the following format:
 {
   "score": <number between 0-100>,
-  "summary": "<one sentence explaining why this specific score was given>"
+  "summary": "<one sentence explaining the assessment and score rationale>"
 }
 
-Be honest and accurate. Don't inflate scores. A profile with minimal information should get a very low score.`;
+Provide an honest, fair assessment that reflects the candidate's actual suitability for the role.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
