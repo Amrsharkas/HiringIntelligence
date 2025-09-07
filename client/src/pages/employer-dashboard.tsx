@@ -41,7 +41,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 const LiveJobCount = memo(() => {
   const { data: jobCounts = { active: 0 } } = useQuery<any>({
     queryKey: ["/api/job-postings/count"],
-    refetchInterval: 200,
+    refetchInterval: 30000, // 30 seconds instead of 200ms
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -56,7 +56,7 @@ const LiveJobCount = memo(() => {
 const LiveOrganizationName = memo(() => {
   const { data: organization } = useQuery<any>({
     queryKey: ["/api/organizations/current"],
-    refetchInterval: 200,
+    refetchInterval: 30000, // 30 seconds instead of 200ms
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

@@ -61,7 +61,7 @@ const InteractiveCard = memo(({ children, onClick, className, index }: {
 const LiveJobCount = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/job-postings/count"],
-    refetchInterval: 200,
+    refetchInterval: 30000, // 30 seconds instead of 200ms
   });
   return <StatNumber value={data?.active || 0} />;
 });
@@ -69,7 +69,7 @@ const LiveJobCount = memo(() => {
 const LiveApplicantsCount = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/applicants/count"],
-    refetchInterval: 200,
+    refetchInterval: 30000, // 30 seconds instead of 200ms
   });
   return <StatNumber value={data?.count || 0} />;
 });
@@ -77,7 +77,7 @@ const LiveApplicantsCount = memo(() => {
 const LiveCandidatesCount = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/candidates/count"],
-    refetchInterval: 200,
+    refetchInterval: 30000, // 30 seconds instead of 200ms
   });
   return <StatNumber value={data?.count || 0} />;
 });

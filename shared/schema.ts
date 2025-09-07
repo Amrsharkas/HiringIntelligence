@@ -292,7 +292,7 @@ export const resumeProfiles = pgTable("resume_profiles", {
 export const resumeJobScores = pgTable("resume_job_scores", {
   id: serial("id").primaryKey(),
   profileId: varchar("profile_id").notNull().references(() => resumeProfiles.id),
-  jobId: varchar("job_id").notNull().references(() => jobs.id),
+  jobId: integer("job_id").notNull().references(() => jobs.id),
   overallScore: integer("overall_score").notNull(),
   technicalSkillsScore: integer("technical_skills_score").notNull(),
   experienceScore: integer("experience_score").notNull(),

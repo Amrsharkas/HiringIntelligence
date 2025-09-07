@@ -1,0 +1,20 @@
+{
+  "watch": [
+    "server",
+    "shared"
+  ],
+  "ext": "ts,js,json",
+  "ignore": [
+    "node_modules",
+    "dist",
+    "client/dist",
+    "*.test.ts",
+    "*.spec.ts"
+  ],
+  "exec": "tsx server/index.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 1000,
+  "verbose": true
+}
