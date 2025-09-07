@@ -47,7 +47,7 @@ const LiveActivityStats = () => {
   // Job postings count
   const { data: jobCounts = { active: 0 } } = useQuery<any>({
     queryKey: ["/api/job-postings/count"],
-    refetchInterval: 5000, // 5 seconds
+    refetchInterval: 30000, // 30 seconds instead of 5 seconds
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -66,7 +66,7 @@ const LiveActivityStats = () => {
   // Candidates count
   const { data: candidatesCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/candidates/count"],
-    refetchInterval: 5000,
+    refetchInterval: 30000, // 30 seconds instead of 5 seconds
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -85,7 +85,7 @@ const LiveActivityStats = () => {
   // Applicants count
   const { data: applicantsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/applicants/count"],
-    refetchInterval: 5000,
+    refetchInterval: 30000, // 30 seconds instead of 5 seconds
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -104,7 +104,7 @@ const LiveActivityStats = () => {
   // Interviews count
   const { data: interviewsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/interviews/count"],
-    refetchInterval: 5000,
+    refetchInterval: 30000, // 30 seconds instead of 5 seconds
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
