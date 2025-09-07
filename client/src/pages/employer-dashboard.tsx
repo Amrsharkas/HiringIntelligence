@@ -1,6 +1,7 @@
 import React, { useState, memo, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { getQueryOptions } from "@/lib/queryConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
@@ -41,7 +42,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 const LiveJobCount = memo(() => {
   const { data: jobCounts = { active: 0 } } = useQuery<any>({
     queryKey: ["/api/job-postings/count"],
-    refetchInterval: 30000, // 30 seconds instead of 200ms
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -56,7 +57,7 @@ const LiveJobCount = memo(() => {
 const LiveOrganizationName = memo(() => {
   const { data: organization } = useQuery<any>({
     queryKey: ["/api/organizations/current"],
-    refetchInterval: 30000, // 30 seconds instead of 200ms
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -100,7 +101,7 @@ const LiveApplicantsCount = memo(() => {
   const { toast } = useToast();
   const { data: applicantsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/applicants/count"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -129,7 +130,7 @@ const LiveCandidatesCount = memo(() => {
   const { toast } = useToast();
   const { data: candidatesCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/candidates/count"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -161,7 +162,7 @@ const LiveInterviewsCount = memo(() => {
   const { toast } = useToast();
   const { data: interviewsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/interviews/count"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -193,7 +194,7 @@ const LiveRecentActivity = memo(() => {
   // Get live stats for recent activity generation
   const { data: jobCounts = { active: 0 } } = useQuery<any>({
     queryKey: ["/api/job-postings/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -211,7 +212,7 @@ const LiveRecentActivity = memo(() => {
 
   const { data: candidatesCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/candidates/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -229,7 +230,7 @@ const LiveRecentActivity = memo(() => {
 
   const { data: applicantsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/applicants/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -247,7 +248,7 @@ const LiveRecentActivity = memo(() => {
 
   const { data: interviewsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/interviews/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {

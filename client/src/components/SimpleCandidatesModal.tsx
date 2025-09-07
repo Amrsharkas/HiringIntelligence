@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { getQueryOptions } from "@/lib/queryConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -45,8 +46,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
     queryKey: ["/api/enhanced-candidates"],
     enabled: isOpen,
     retry: false,
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchIntervalInBackground: true,
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
   });
 
   // Manual refresh function

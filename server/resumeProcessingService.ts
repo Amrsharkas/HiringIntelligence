@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { toFile } from "openai/uploads";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -25,72 +26,88 @@ export interface JobMatchScore {
 }
 
 export class ResumeProcessingService {
+  private extractJsonObject(raw: string): any {
+    const trimmed = (raw || '').trim();
+    try {
+      return JSON.parse(trimmed);
+    } catch {}
+    const first = trimmed.indexOf('{');
+    if (first === -1) throw new Error('No JSON object found in text');
+    let depth = 0;
+    for (let i = first; i < trimmed.length; i++) {
+      const ch = trimmed[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          const candidate = trimmed.slice(first, i + 1);
+          try { return JSON.parse(candidate); } catch {}
+          break;
+        }
+      }
+    }
+    throw new Error('Failed to extract valid JSON object from text');
+  }
   private async extractTextFromFile(fileData: string, fileType: string): Promise<string> {
     console.log(`🔄 Extracting text from file type: ${fileType}, data length: ${fileData?.length}`);
     
-    if (fileType === 'application/pdf') {
-      // For PDF files, use OpenAI to extract text from base64 data
+    // Use OpenAI Files + Responses API to extract text from PDFs and Word docs
+    if (
+      fileType === 'application/pdf' ||
+      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      fileType === 'application/msword'
+    ) {
       try {
-        console.log('📄 Processing PDF with OpenAI...');
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
+        const buffer = Buffer.from(fileData, 'base64');
+        const inferredName = fileType === 'application/pdf' ? 'resume.pdf'
+          : fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'resume.docx'
+          : 'resume.doc';
+
+        console.log('📤 Uploading file to OpenAI Files API for text extraction...');
+        const uploaded = await openai.files.create({
+          file: await toFile(buffer, inferredName),
+          purpose: 'assistants'
+        });
+
+        console.log(`🔎 Requesting text extraction via Responses API for file ${uploaded.id} (${inferredName})`);
+        const response: any = await (openai as any).responses.create({
+          model: 'gpt-5',
+          input: [
             {
-              role: "system", 
-              content: "You are a resume text extractor. The user will provide you with base64 encoded PDF data. Extract all text content from it and return only the readable resume text content. Be thorough and include all relevant information like name, contact details, experience, education, skills, etc."
-            },
-            {
-              role: "user",
-              content: `Extract all readable text from this resume PDF (base64): ${fileData.substring(0, 4000)}...`
+              role: 'user',
+              content: [
+                { type: 'input_text', text: 'Extract all readable text from the attached resume file and return plain text only. Preserve natural reading order; omit images and formatting artifacts.' },
+                { type: 'input_file', file_id: uploaded.id }
+              ]
             }
           ],
-          max_tokens: 3000,
+          max_output_tokens: 4000
         });
-        const extractedText = response.choices[0].message.content;
-        
-        if (!extractedText || extractedText.length < 50) {
-          console.error(`❌ Insufficient text extracted from PDF. Length: ${extractedText?.length}`);
-          throw new Error("Insufficient text extracted from PDF");
+
+        // Best-effort extraction of text from Responses API
+        const extractedText = response?.output_text
+          || response?.output?.flatMap((o: any) => o?.content || [])
+              .map((c: any) => c?.text?.value || '')
+              .join('\n')
+          || '';
+
+        if (!extractedText || extractedText.trim().length < 50) {
+          throw new Error('Insufficient text extracted from file');
         }
-        
-        console.log(`✅ PDF text extraction successful. Length: ${extractedText.length}`);
+
+        // Optional: cleanup uploaded file to save storage
+        try { await openai.files.delete(uploaded.id); } catch {}
+
+        console.log(`✅ File text extraction successful. Length: ${extractedText.length}`);
         return extractedText;
       } catch (error) {
-        console.error("PDF extraction failed:", error);
-        throw new Error(`Unable to extract text from PDF file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error('File-to-text extraction failed via Files API:', error);
+        throw new Error(`Unable to extract text from file using OpenAI Files API: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-    } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType === 'application/msword') {
-      // For DOC/DOCX files, use OpenAI to extract text
-      try {
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: "You are a resume text extractor. The user will provide you with base64 encoded DOC/DOCX data. Extract all text content from it and return only the readable resume text content. Be thorough and include all relevant information like name, contact details, experience, education, skills, etc."
-            },
-            {
-              role: "user", 
-              content: `Extract all readable text from this resume document (base64): ${fileData.substring(0, 4000)}...`
-            }
-          ],
-          max_tokens: 3000,
-        });
-        const extractedText = response.choices[0].message.content;
-        
-        if (!extractedText || extractedText.length < 50) {
-          throw new Error("Insufficient text extracted from document");
-        }
-        
-        return extractedText;
-      } catch (error) {
-        console.error("DOC/DOCX extraction failed:", error);
-        throw new Error("Unable to extract text from document file. Please try converting to TXT format.");
-      }
-    } else {
-      // For text files, return as-is
-      return fileData;
     }
+
+    // For plain text-like files, return as-is
+    return fileData;
   }
 
   async processResume(resumeText: string, fileType?: string): Promise<ProcessedResume> {
@@ -100,9 +117,7 @@ export class ResumeProcessingService {
       const extractedText = fileType ? await this.extractTextFromFile(resumeText, fileType) : resumeText;
       console.log(`📄 Text extraction complete. Extracted length: ${extractedText?.length}`);
       
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-        messages: [
+      const baseMessages = [
           {
             role: "system",
             content: `You are an expert resume analyzer. Extract structured information from the resume text and provide a comprehensive profile. 
@@ -126,12 +141,73 @@ Extract all relevant information. If any field is missing, use an empty string f
             role: "user",
             content: `Analyze this resume and extract structured information:\n\n${extractedText}`
           }
-        ],
+      ] as const;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: baseMessages as any,
         response_format: { type: "json_object" },
         max_tokens: 1500,
       });
 
-      const result = JSON.parse(response.choices[0].message.content!);
+      const rawContent = response.choices?.[0]?.message?.content || '';
+      if (!rawContent || rawContent.trim().length === 0) {
+        console.warn("Model returned empty content for resume processing. Retrying without response_format...");
+        const retry = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            ...baseMessages,
+            { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
+          ] as any,
+          temperature: 0,
+          max_tokens: 1500,
+        });
+        const retryContent = retry.choices?.[0]?.message?.content || '';
+        if (!retryContent || retryContent.trim().length === 0) {
+          console.error("Second attempt also returned empty content.", { responseId: retry.id });
+          throw new Error("Empty JSON response from model while processing resume (after retry)");
+        }
+        let resultRetry;
+        try {
+          resultRetry = this.extractJsonObject(retryContent);
+        } catch (parseErr) {
+          console.error("Retry content not valid JSON.", { sample: retryContent.slice(0, 400) });
+          throw new Error("Invalid JSON returned by model while processing resume (after retry)");
+        }
+        return {
+          name: resultRetry.name || "Unknown",
+          email: resultRetry.email || "",
+          phone: resultRetry.phone || "",
+          summary: resultRetry.summary || "",
+          experience: Array.isArray(resultRetry.experience) ? resultRetry.experience : [],
+          skills: Array.isArray(resultRetry.skills) ? resultRetry.skills : [],
+          education: Array.isArray(resultRetry.education) ? resultRetry.education : [],
+          certifications: Array.isArray(resultRetry.certifications) ? resultRetry.certifications : [],
+          languages: Array.isArray(resultRetry.languages) ? resultRetry.languages : [],
+        };
+      }
+      let result: any;
+      try {
+        result = this.extractJsonObject(rawContent);
+      } catch (parseError) {
+        console.warn("First parse failed. Retrying request without response_format...");
+        const retry = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            ...baseMessages,
+            { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
+          ] as any,
+          temperature: 0,
+          max_tokens: 1500,
+        });
+        const retryContent = retry.choices?.[0]?.message?.content || '';
+        try {
+          result = this.extractJsonObject(retryContent);
+        } catch (retryParseError) {
+          console.error("Failed to parse retry content.", { sample: retryContent.slice(0, 400) });
+          throw new Error("Invalid JSON returned by model while processing resume (after retry)");
+        }
+      }
       
       return {
         name: result.name || "Unknown",
@@ -181,7 +257,7 @@ Extract all relevant information. If any field is missing, use an empty string f
   ): Promise<JobMatchScore> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -236,7 +312,47 @@ Provide brutal honesty in scoring. Most candidates should score low (5-25%) unle
         max_tokens: 800,
       });
 
-      const result = JSON.parse(response.choices[0].message.content!);
+      const scoringContent = response.choices?.[0]?.message?.content || '';
+      if (!scoringContent || scoringContent.trim().length === 0) {
+        console.warn("Model returned empty content for job scoring. Retrying without response_format...");
+        const retry = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            ...response.usage ? [] : [],
+          ] as any,
+        });
+        // If still empty, throw (keep error minimal here since original issue is in processing)
+        const rc = retry.choices?.[0]?.message?.content || '';
+        if (!rc || rc.trim().length === 0) {
+          throw new Error("Empty JSON response from model while scoring resume against job (after retry)");
+        }
+        let result: any;
+        try {
+          result = this.extractJsonObject(rc);
+        } catch {
+          throw new Error("Invalid JSON returned by model while scoring resume against job (after retry)");
+        }
+        return {
+          overallScore: Math.max(0, Math.min(100, result.overallScore || 5)),
+          technicalSkillsScore: Math.max(0, Math.min(100, result.technicalSkillsScore || 5)),
+          experienceScore: Math.max(0, Math.min(100, result.experienceScore || 5)),
+          culturalFitScore: Math.max(0, Math.min(100, result.culturalFitScore || 5)),
+          matchSummary: result.matchSummary || "No match summary available",
+          strengthsHighlights: Array.isArray(result.strengthsHighlights) ? result.strengthsHighlights : [],
+          improvementAreas: Array.isArray(result.improvementAreas) ? result.improvementAreas : [],
+        };
+      }
+      let result: any;
+      try {
+        result = this.extractJsonObject(scoringContent);
+      } catch (parseError) {
+        console.warn("Failed to parse scoring JSON. Attempting JSON extraction...");
+        try {
+          result = this.extractJsonObject(scoringContent);
+        } catch {
+          throw new Error("Invalid JSON returned by model while scoring resume against job");
+        }
+      }
       
       return {
         overallScore: Math.max(0, Math.min(100, result.overallScore || 5)),

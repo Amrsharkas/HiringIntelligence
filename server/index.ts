@@ -49,23 +49,29 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Set up periodic job postings sync to Airtable (every 1 minute)
-  const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
-  
-  const syncJobPostingsPeriodically = async () => {
-    try {
-      console.log('Running periodic job postings sync to Airtable...');
-      await jobPostingsAirtableService.syncJobPostingsToAirtable();
-    } catch (error) {
-      console.error('Periodic job postings sync failed:', error);
-    }
-  };
+  // Set up periodic job postings sync to Airtable (only in production)
+  if (process.env.NODE_ENV === 'production') {
+    const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
+    
+    const syncJobPostingsPeriodically = async () => {
+      try {
+        console.log('Running periodic job postings sync to Airtable...');
+        await jobPostingsAirtableService.syncJobPostingsToAirtable();
+      } catch (error) {
+        console.error('Periodic job postings sync failed:', error);
+      }
+    };
 
-  // Initial sync on server start
-  setTimeout(syncJobPostingsPeriodically, 5000); // Wait 5 seconds after server start
-  
-  // Set up periodic sync every 30 seconds
-  setInterval(syncJobPostingsPeriodically, 30000);
+    // Initial sync on server start
+    setTimeout(syncJobPostingsPeriodically, 5000); // Wait 5 seconds after server start
+    
+    // Set up periodic sync every 30 seconds
+    setInterval(syncJobPostingsPeriodically, 30000);
+    
+    console.log('🔄 Background Airtable sync enabled (production mode)');
+  } else {
+    console.log('⏸️ Background Airtable sync disabled (development mode)');
+  }
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

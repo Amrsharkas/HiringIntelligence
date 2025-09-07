@@ -1,6 +1,7 @@
 import React, { useState, memo, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { getQueryOptions } from "@/lib/queryConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
@@ -61,7 +62,7 @@ const InteractiveCard = memo(({ children, onClick, className, index }: {
 const LiveJobCount = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/job-postings/count"],
-    refetchInterval: 30000, // 30 seconds instead of 200ms
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
   });
   return <StatNumber value={data?.active || 0} />;
 });
@@ -69,7 +70,7 @@ const LiveJobCount = memo(() => {
 const LiveApplicantsCount = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/applicants/count"],
-    refetchInterval: 30000, // 30 seconds instead of 200ms
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
   });
   return <StatNumber value={data?.count || 0} />;
 });
@@ -77,7 +78,7 @@ const LiveApplicantsCount = memo(() => {
 const LiveCandidatesCount = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/candidates/count"],
-    refetchInterval: 30000, // 30 seconds instead of 200ms
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
   });
   return <StatNumber value={data?.count || 0} />;
 });
@@ -85,7 +86,7 @@ const LiveCandidatesCount = memo(() => {
 const LiveInterviewsCount = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/interviews/count"],
-    refetchInterval: 30000,
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
   });
   return <StatNumber value={data?.count || 0} />;
 });
@@ -93,7 +94,7 @@ const LiveInterviewsCount = memo(() => {
 const LiveOrganizationName = memo(() => {
   const { data } = useQuery({
     queryKey: ["/api/organizations/current"],
-    refetchInterval: 30000,
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
   });
   return <span>{data?.companyName || "Your Organization"}</span>;
 });

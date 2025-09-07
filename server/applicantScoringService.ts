@@ -112,8 +112,7 @@ Return JSON in this exact format:
             content: prompt
           }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.1
+        response_format: { type: "json_object" }
       });
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
@@ -193,7 +192,7 @@ Please respond with JSON in the following format:
 Provide an honest, fair assessment that reflects the candidate's actual suitability for the role.`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -204,8 +203,7 @@ Provide an honest, fair assessment that reflects the candidate's actual suitabil
             content: prompt
           }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.1, // Lower temperature for more consistent scoring
+        response_format: { type: "json_object" }
       });
 
       const result = JSON.parse(response.choices[0].message.content || '{}');

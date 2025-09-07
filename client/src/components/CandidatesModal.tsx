@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { getQueryOptions } from "@/lib/queryConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -52,8 +53,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
     queryKey: ["/api/enhanced-candidates"],
     enabled: isOpen,
     retry: false,
-    refetchInterval: 120000, // Auto-refresh every 2 minutes as this is more resource intensive
-    refetchIntervalInBackground: true,
+    ...getQueryOptions(120000), // 2 minutes in production, disabled in development
   });
 
   // Handle unauthorized errors

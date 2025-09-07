@@ -2134,7 +2134,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -2146,7 +2146,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           },
         ],
         response_format: { type: "json_object" },
-        temperature: 0.1, // Lower temperature for more consistent results
         max_tokens: 2000, // Ensure full responses aren't truncated
       });
 

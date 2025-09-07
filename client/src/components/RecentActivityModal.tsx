@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { getQueryOptions } from "@/lib/queryConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -47,7 +48,7 @@ const LiveActivityStats = () => {
   // Job postings count
   const { data: jobCounts = { active: 0 } } = useQuery<any>({
     queryKey: ["/api/job-postings/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -66,7 +67,7 @@ const LiveActivityStats = () => {
   // Candidates count
   const { data: candidatesCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/candidates/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -85,7 +86,7 @@ const LiveActivityStats = () => {
   // Applicants count
   const { data: applicantsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/applicants/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {
@@ -104,7 +105,7 @@ const LiveActivityStats = () => {
   // Interviews count
   const { data: interviewsCount = { count: 0 } } = useQuery<any>({
     queryKey: ["/api/interviews/count"],
-    refetchInterval: 30000, // 30 seconds instead of 5 seconds
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     onError: (error: any) => {
       if (isUnauthorizedError(error)) {

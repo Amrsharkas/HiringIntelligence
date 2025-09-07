@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+// Using "gpt-5" per user request across all calls
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
 
 export async function generateJobDescription(
@@ -50,7 +50,7 @@ Important guidelines:
 Write in clear, accessible language that attracts top talent.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         { 
           role: "system", 
@@ -59,7 +59,6 @@ Write in clear, accessible language that attracts top talent.`;
         { role: "user", content: prompt }
       ],
       max_tokens: 1000,
-      temperature: 0.7,
     });
 
     return response.choices[0].message.content || "";
@@ -130,7 +129,7 @@ Important guidelines:
 Write in clear, professional language suitable for Egyptian job market.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         { 
           role: "system", 
@@ -139,7 +138,6 @@ Write in clear, professional language suitable for Egyptian job market.`;
         { role: "user", content: prompt }
       ],
       max_tokens: 800,
-      temperature: 0.6,
     });
 
     return response.choices[0].message.content || "";
@@ -154,7 +152,7 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
     const prompt = `Job: "${jobTitle}"\nDescription: "${jobDescription.slice(0, 500)}"\n\nExtract 6-8 most relevant technical skills. Return JSON array only.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Use faster, cheaper model for simple extraction
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -164,7 +162,6 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
       ],
       response_format: { type: "json_object" },
       max_tokens: 150, // Limit response size for speed
-      temperature: 0.3, // Lower temperature for consistent results
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{"skills": []}');
@@ -277,7 +274,7 @@ Examples of LOW scores:
 Respond with JSON in this exact format: { "score": number, "reasoning": "honest explanation of why this specific score was given" }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -289,7 +286,6 @@ Respond with JSON in this exact format: { "score": number, "reasoning": "honest 
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.2, // Lower temperature for more consistent scoring
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{"score": 50, "reasoning": "Analysis unavailable"}');
@@ -415,7 +411,7 @@ Examples of good questions:
 Respond with JSON in this format: { "questions": ["question1", "question2", "question3"] }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -425,7 +421,6 @@ Respond with JSON in this format: { "questions": ["question1", "question2", "que
       ],
       response_format: { type: "json_object" },
       max_tokens: 800,
-      temperature: 0.7,
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{"questions": []}');
