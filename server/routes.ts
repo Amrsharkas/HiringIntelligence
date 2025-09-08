@@ -4336,6 +4336,51 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             jobId: job.id,
             ...jobScore,
           });
+
+          // Auto-invite if score meets per-job threshold
+          try {
+            const threshold = typeof (job as any).scoreMatchingThreshold === 'number' ? (job as any).scoreMatchingThreshold : 30;
+            const overall = jobScore.overallScore ?? 0;
+            if (overall >= threshold && processedResume.email) {
+              const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+              const companyName = organization.companyName || 'Our Company';
+
+              // Create or log applicant invitation in Airtable
+              await realApplicantsAirtableService.createApplicantInvitation({
+                applicantName: processedResume.name || processedResume.email,
+                applicantEmail: processedResume.email,
+                userId: savedProfile.id,
+                jobId: job.id,
+                jobTitle: job.title,
+                jobDescription: job.description,
+                companyName,
+                matchScore: overall,
+                matchSummary: jobScore.matchSummary,
+                technicalSkillsScore: jobScore.technicalSkillsScore,
+                experienceScore: jobScore.experienceScore,
+                culturalFitScore: jobScore.culturalFitScore,
+                userProfileText: processedResume.summary,
+              });
+
+              // Build invitation link to external interview app
+              const baseUrl = process.env.INTERVIEW_APP_URL || 'https://interviews.platohiring.com';
+              const invitationLink = `${baseUrl.replace(/\/$/, '')}/invite?jobId=${encodeURIComponent(job.id.toString())}&email=${encodeURIComponent(processedResume.email)}`;
+
+              // Send invitation email via SendGrid
+              const { emailService } = await import('./emailService');
+              await emailService.sendInterviewInvitationEmail({
+                applicantName: processedResume.name || processedResume.email,
+                applicantEmail: processedResume.email,
+                jobTitle: job.title,
+                companyName,
+                invitationLink,
+                matchScore: overall,
+                matchSummary: jobScore.matchSummary,
+              });
+            }
+          } catch (inviteError) {
+            console.error(`Error inviting candidate for job ${job.id}:`, inviteError);
+          }
         } catch (error) {
           console.error(`Error scoring resume against job ${job.id}:`, error);
           // Continue with other jobs even if one fails

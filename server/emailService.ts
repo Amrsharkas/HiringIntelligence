@@ -18,7 +18,7 @@ class EmailService {
 
   constructor() {
     // Use the environment variable for SendGrid API key
-    const apiKey = process.env.SENDGRID_API_KEY;
+    const apiKey = (process.env.SENDGRID_API_KEY || '').trim();
     
     if (!apiKey) {
       throw new Error("SENDGRID_API_KEY environment variable must be provided");
@@ -34,9 +34,10 @@ class EmailService {
       const emailHTML = this.generateInterviewEmailHTML(data);
       const emailText = this.generateInterviewEmailText(data);
 
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
       await this.mailService.send({
         to: data.applicantEmail,
-        from: 'noreply@platohiring.com', // Verified sender email
+        from: fromEmail, // Verified sender email
         subject: `🎯 Interview Scheduled: ${data.applicantName} - ${data.jobTitle} at ${data.companyName}`,
         text: emailText,
         html: emailHTML,
@@ -223,6 +224,52 @@ ${data.companyName} Hiring Team
         return '🏢';
       default:
         return '💼';
+    }
+  }
+
+  async sendInterviewInvitationEmail(params: {
+    applicantName: string;
+    applicantEmail: string;
+    jobTitle: string;
+    companyName: string;
+    invitationLink: string;
+    matchScore?: number;
+    matchSummary?: string;
+  }): Promise<boolean> {
+    try {
+      const subject = `You're invited to interview for ${params.jobTitle} at ${params.companyName}`;
+      const preview = params.matchScore != null
+        ? `Your score: ${params.matchScore}% - ${params.matchSummary || 'Great fit!'}`
+        : `We'd like to invite you to interview`;
+
+      const html = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 640px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #111827;">Hello ${params.applicantName},</h2>
+          <p>Based on your resume, we believe you could be a strong fit for the <strong>${params.jobTitle}</strong> role at <strong>${params.companyName}</strong>.</p>
+          ${params.matchScore != null ? `<p><strong>Match Score:</strong> ${params.matchScore}%</p>` : ''}
+          ${params.matchSummary ? `<p style="color: #4b5563;">${params.matchSummary}</p>` : ''}
+          <div style="margin: 24px 0; text-align: center;">
+            <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">View and Confirm Interview</a>
+          </div>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #2563eb;">${params.invitationLink}</p>
+          <p>We look forward to speaking with you!</p>
+          <p>— ${params.companyName} Hiring Team</p>
+        </div>`;
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      await this.mailService.send({
+        to: params.applicantEmail,
+        from: fromEmail,
+        subject,
+        text: preview + `\n\n` + params.invitationLink,
+        html,
+      });
+      console.log(`✅ Invitation email sent to ${params.applicantEmail}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid invitation email error:', error);
+      return false;
     }
   }
 }
