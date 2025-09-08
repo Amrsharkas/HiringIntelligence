@@ -93,6 +93,8 @@ export const jobs = pgTable("jobs", {
   softSkills: text("soft_skills").array(),
   technicalSkills: text("technical_skills").array(),
   employerQuestions: text("employer_questions").array(),
+  // Score matching threshold: 0-100; used to filter matches
+  scoreMatchingThreshold: integer("score_matching_threshold").notNull().default(30),
   // New metadata fields
   employmentType: varchar("employment_type").notNull(), // Full-time, Part-time, Freelance, Contract, Internship
   workplaceType: varchar("workplace_type").notNull(), // On-site, Remote, Hybrid

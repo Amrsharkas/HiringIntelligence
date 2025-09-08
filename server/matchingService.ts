@@ -23,8 +23,9 @@ export class MatchingService {
         try {
           const matchResult = await generateCandidateMatchRating(candidate, job);
           
-          // Only store matches above a threshold score
-          if (matchResult.score >= 30) {
+          // Only store matches above the per-job threshold (default 30)
+          const threshold = typeof job.scoreMatchingThreshold === 'number' ? job.scoreMatchingThreshold : 30;
+          if (matchResult.score >= threshold) {
             const match = await storage.createMatch({
               jobId: job.id,
               candidateId: candidate.id, // External candidate ID

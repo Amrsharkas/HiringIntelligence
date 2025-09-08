@@ -39,6 +39,8 @@ const jobFormSchema = z.object({
     fluency: z.string()
   })).default([]),
   certifications: z.string().optional(),
+  // Score matching threshold: 0-100
+  scoreMatchingThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(30),
 });
 
 type JobFormData = z.infer<typeof jobFormSchema>;
@@ -186,6 +188,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       industry: "",
       languagesRequired: [],
       certifications: "",
+      scoreMatchingThreshold: 30,
     },
   });
 
@@ -265,6 +268,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         softSkills: editJob.softSkills || [],
         technicalSkills: editJob.technicalSkills || [],
         employerQuestions: editJob.employerQuestions || [],
+        scoreMatchingThreshold: editJob.scoreMatchingThreshold ?? 30,
       });
       setSelectedSoftSkills(editJob.softSkills || []);
       setSelectedTechnicalSkills(editJob.technicalSkills || []);
@@ -279,6 +283,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         softSkills: [],
         technicalSkills: [],
         employerQuestions: [],
+        scoreMatchingThreshold: 30,
       });
       setSelectedSoftSkills([]);
       setSelectedTechnicalSkills([]);
@@ -568,6 +573,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       // Convert salary values to numbers if they exist  
       salaryMin: data.salaryMin ? parseInt(data.salaryMin) : undefined,
       salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
+      scoreMatchingThreshold: data.scoreMatchingThreshold,
     };
 
     if (editJob) {
@@ -749,6 +755,26 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   <p className="text-red-500 text-sm mt-1">{form.formState.errors.location.message}</p>
                 )}
               </div>
+              <div>
+                <Label className="flex items-center gap-2">
+                  Score Matching Threshold
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...form.register("scoreMatchingThreshold", { valueAsNumber: true })}
+                  placeholder="30"
+                  className="mt-2"
+                />
+                {form.formState.errors.scoreMatchingThreshold && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.scoreMatchingThreshold.message as any}</p>
+                )}
+                <p className="text-xs text-slate-500 mt-1">Only candidates with a score ≥ this value will be saved.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <Label className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-green-600" />
