@@ -261,28 +261,7 @@ Extract all relevant information. If any field is missing, use an empty string f
         messages: [
           {
             role: "system",
-            content: `You are an expert hiring manager. Analyze how well a candidate's resume matches a specific job posting. Be brutally honest in your scoring - most candidates should score between 5-25% unless they are genuinely exceptional matches.
-
-Respond with JSON in this exact format:
-{
-  "overallScore": 15,
-  "technicalSkillsScore": 12,
-  "experienceScore": 18,
-  "culturalFitScore": 15,
-  "matchSummary": "Brief 2-3 sentence summary of the match quality",
-  "strengthsHighlights": ["Strength 1", "Strength 2", "Strength 3"],
-  "improvementAreas": ["Gap 1", "Missing skill 2", "Need more experience in 3"]
-}
-
-Scoring Guidelines:
-- 80-100%: Perfect match, exceptional candidate
-- 60-79%: Strong match with minor gaps
-- 40-59%: Decent match with some important gaps
-- 20-39%: Weak match with significant gaps
-- 5-19%: Poor match, major misalignment
-- 0-4%: Completely unqualified
-
-Be harsh but fair. Most candidates should fall in the 5-25% range.`
+            content: `You are an expert hiring manager. Analyze how well a candidate's resume matches a specific job posting. Be brutally honest in your scoring - . Respond with JSON in this exact format: { "overallScore": 15, "technicalSkillsScore": 12, "experienceScore": 18, "culturalFitScore": 15, "matchSummary": "Brief 2-3 sentence summary of the match quality", "strengthsHighlights": ["Strength 1", "Strength 2", "Strength 3"], "improvementAreas": ["Gap 1", "Missing skill 2", "Need more experience in 3"] } Scoring Guidelines: - 80-100%: Perfect match, exceptional candidate - 60-79%: Strong match with minor gaps - 40-59%: Decent match with some important gaps - 20-39%: Weak match with significant gaps - 5-19%: Poor match, major misalignment - 0-4%: Completely unqualified Be harsh but fair.`
           },
           {
             role: "user",
@@ -305,7 +284,7 @@ Education: ${resume.education.join(" | ")}
 Certifications: ${resume.certifications.join(" | ")}
 Languages: ${resume.languages.join(" | ")}
 
-Provide brutal honesty in scoring. Most candidates should score low (5-25%) unless genuinely exceptional.`
+Provide brutal honesty in scoring.`
           }
         ],
         response_format: { type: "json_object" },
