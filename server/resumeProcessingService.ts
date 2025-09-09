@@ -13,6 +13,7 @@ export interface ProcessedResume {
   education: string[];
   certifications: string[];
   languages: string[];
+  fileId?: string;
 }
 
 export interface JobMatchScore {
@@ -48,7 +49,7 @@ export class ResumeProcessingService {
     }
     throw new Error('Failed to extract valid JSON object from text');
   }
-  private async extractTextFromFile(fileData: string, fileType: string): Promise<string> {
+  private async extractTextFromFile(fileData: string, fileType: string): Promise<{ text: string; fileId?: string }> {
     console.log(`🔄 Extracting text from file type: ${fileType}, data length: ${fileData?.length}`);
     
     // Use OpenAI Files + Responses API to extract text from PDFs and Word docs
@@ -95,11 +96,8 @@ export class ResumeProcessingService {
           throw new Error('Insufficient text extracted from file');
         }
 
-        // Optional: cleanup uploaded file to save storage
-        try { await openai.files.delete(uploaded.id); } catch {}
-
         console.log(`✅ File text extraction successful. Length: ${extractedText.length}`);
-        return extractedText;
+        return { text: extractedText, fileId: uploaded.id };
       } catch (error) {
         console.error('File-to-text extraction failed via Files API:', error);
         throw new Error(`Unable to extract text from file using OpenAI Files API: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -107,14 +105,15 @@ export class ResumeProcessingService {
     }
 
     // For plain text-like files, return as-is
-    return fileData;
+    return { text: fileData };
   }
 
   async processResume(resumeText: string, fileType?: string): Promise<ProcessedResume> {
     try {
       // Extract text from file if needed
       console.log(`🔄 Starting resume processing. File type: ${fileType}, text length: ${resumeText?.length}`);
-      const extractedText = fileType ? await this.extractTextFromFile(resumeText, fileType) : resumeText;
+      const extraction = fileType ? await this.extractTextFromFile(resumeText, fileType) : { text: resumeText };
+      const extractedText = extraction.text;
       console.log(`📄 Text extraction complete. Extracted length: ${extractedText?.length}`);
       
       const baseMessages = [
@@ -219,6 +218,7 @@ Extract all relevant information. If any field is missing, use an empty string f
         education: Array.isArray(result.education) ? result.education : [],
         certifications: Array.isArray(result.certifications) ? result.certifications : [],
         languages: Array.isArray(result.languages) ? result.languages : [],
+        fileId: extraction.fileId,
       };
     } catch (error) {
       console.error("Error processing resume:", error);

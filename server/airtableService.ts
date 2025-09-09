@@ -442,4 +442,67 @@ export class AirtableService {
   }
 }
 
+export class UsersAirtableService {
+  private apiKey: string;
+  private baseUrl = 'https://api.airtable.com/v0';
+  private baseId: string;
+  private tableName: string;
+
+  constructor(apiKey: string, baseId: string, tableName: string) {
+    this.apiKey = apiKey;
+    this.baseId = baseId;
+    this.tableName = tableName;
+  }
+
+  setConfig(baseId: string, tableName: string, apiKey?: string) {
+    if (apiKey) this.apiKey = apiKey;
+    this.baseId = baseId;
+    this.tableName = tableName;
+    console.log(`👤 Users Airtable config set -> base: ${baseId}, table: ${tableName}`);
+  }
+
+  async createApplicantUser(user: {
+    id: string;
+    email: string;
+    password?: string;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    display_name?: string;
+    profile_image_url?: string;
+    role?: string;
+    created_at?: string;
+    updated_at?: string;
+    token?: string;
+    file_id?: string;
+  }): Promise<string> {
+    const url = `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}`;
+    const response = await fetch(url as any, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fields: user }),
+    } as any);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('👤 Users Airtable create failed', {
+        baseId: this.baseId,
+        tableName: this.tableName,
+        status: response.status,
+        statusText: response.statusText,
+      });
+      throw new Error(`Airtable users create error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+    const data = await response.json();
+    return data.id;
+  }
+}
+
 export const airtableService = new AirtableService("pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0");
+export const usersAirtableService = new UsersAirtableService(
+  (process.env.AIRTABLE_API_KEY || ''),
+  (process.env.AIRTABLE_APPLICANTS_USERS_BASE_ID || 'appUsersBaseId'),
+  (process.env.AIRTABLE_APPLICANTS_USERS_TABLE || 'users'),
+);

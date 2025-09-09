@@ -4343,32 +4343,71 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             const overall = jobScore.overallScore ?? 0;
             if (overall >= threshold && processedResume.email) {
               const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+              const { usersAirtableService } = await import('./airtableService');
               const companyName = organization.companyName || 'Our Company';
 
-              // Create or log applicant invitation in Airtable
-              await realApplicantsAirtableService.createApplicantInvitation({
-                applicantName: processedResume.name || processedResume.email,
-                applicantEmail: processedResume.email,
-                userId: savedProfile.id,
-                jobId: job.id,
-                jobTitle: job.title,
-                jobDescription: job.description,
-                companyName,
-                matchScore: overall,
-                matchSummary: jobScore.matchSummary,
-                technicalSkillsScore: jobScore.technicalSkillsScore,
-                experienceScore: jobScore.experienceScore,
-                culturalFitScore: jobScore.culturalFitScore,
-                userProfileText: processedResume.summary,
-              });
+              // Generate unique token and username
+              const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+              const names = (processedResume.name || '').trim().split(/\s+/);
+              const firstName = names[0] || '';
+              const lastName = names.slice(1).join(' ') || '';
+              const username = (firstName + (lastName ? lastName[0].toUpperCase() + lastName.slice(1) : ''))
+                .replace(/\s+/g, '')
+                .replace(/[^a-zA-Z0-9]/g, '');
 
-              // Build invitation link to external interview app
-              const baseUrl = process.env.INTERVIEW_APP_URL || 'https://interviews.platohiring.com';
-              const invitationLink = `${baseUrl.replace(/\/$/, '')}/invite?jobId=${encodeURIComponent(job.id.toString())}&email=${encodeURIComponent(processedResume.email)}`;
+              // Upsert candidate into users base for Applicants app
+              try {
+                await usersAirtableService.createApplicantUser({
+                  id: Math.floor(100000000 + Math.random() * 900000000).toString(),
+                  email: processedResume.email,
+                  password: '',
+                  first_name: firstName,
+                  last_name: lastName,
+                  username: username || (processedResume.email?.split('@')[0] || ''),
+                  display_name: '',
+                  profile_image_url: '',
+                  role: 'applicant',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  token,
+                  file_id: processedResume.fileId || '',
+                });
+              } catch (userErr) {
+                console.error('Error creating applicant user in Airtable users base:', userErr);
+              }
 
-              // Send invitation email via SendGrid
+              // Switch to AI interview base and create invitation with token
+              try {
+                const aiBase = process.env.AIRTABLE_AI_INTERVIEW_BASE_ID || 'appAIInterviewBaseId';
+                const aiTable = process.env.AIRTABLE_AI_INTERVIEW_TABLE || 'Table 1';
+                realApplicantsAirtableService.setAirtableConfig(aiBase, aiTable);
+                await realApplicantsAirtableService.createApplicantInvitation({
+                  applicantName: processedResume.name || processedResume.email,
+                  applicantEmail: processedResume.email,
+                  userId: savedProfile.id,
+                  jobId: job.id,
+                  jobTitle: job.title,
+                  jobDescription: job.description,
+                  companyName,
+                  matchScore: overall,
+                  matchSummary: jobScore.matchSummary,
+                  technicalSkillsScore: jobScore.technicalSkillsScore,
+                  experienceScore: jobScore.experienceScore,
+                  culturalFitScore: jobScore.culturalFitScore,
+                  userProfileText: processedResume.summary,
+                  token,
+                });
+              } catch (aiErr) {
+                console.error('Error creating AI interview invitation:', aiErr);
+              }
+
+              // Build invitation link to Applicants app with token
+              const baseUrl = process.env.APPLICANTS_APP_URL || 'https://applicants.platohiring.com';
+              const invitationLink = `${baseUrl.replace(/\/$/, '')}/ai-interview-initation?token=${encodeURIComponent(token)}`;
+
+              // Send invitation email via SendGrid (non-blocking)
               const { emailService } = await import('./emailService');
-              await emailService.sendInterviewInvitationEmail({
+              emailService.sendInterviewInvitationEmail({
                 applicantName: processedResume.name || processedResume.email,
                 applicantEmail: processedResume.email,
                 jobTitle: job.title,
@@ -4376,7 +4415,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
                 invitationLink,
                 matchScore: overall,
                 matchSummary: jobScore.matchSummary,
-              });
+              }).catch(err => console.warn('📧 Invitation email failed (non-blocking):', err));
             }
           } catch (inviteError) {
             console.error(`Error inviting candidate for job ${job.id}:`, inviteError);

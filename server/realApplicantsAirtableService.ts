@@ -61,7 +61,7 @@ interface ApplicantWithProfile {
 
 class RealApplicantsAirtableService {
   private baseUrl = 'https://api.airtable.com/v0';
-  private baseId = 'appEYs1fTytFXoJ7x'; // platojobapplications base
+  private baseId = 'appEYs1fTytFXoJ7x'; // default base (can be changed)
   private tableName = 'Table 1';
   private apiKey: string;
   private cachedFieldNames: Set<string> | null = null;
@@ -89,12 +89,12 @@ class RealApplicantsAirtableService {
         Object.keys(data.records[0].fields).forEach(k => fieldNames.add(k));
       }
       // Also include known columns that might not have values yet
-      ['Job ID','Job title','Job description','Company','Applicant Name','Applicant User ID','User profile','Notes','Status','Applicant Email','Job interview'].forEach(n => fieldNames.add(n));
+      ['Job ID','Job title','Job description','Company','Applicant Name','Applicant User ID','User profile','Notes','Status','Applicant Email','Job interview','token'].forEach(n => fieldNames.add(n));
       this.cachedFieldNames = fieldNames;
       return fieldNames;
     } catch (err) {
       // Fallback to known set if discovery fails
-      const known = new Set<string>(['Job ID','Job title','Job description','Company','Applicant Name','Applicant User ID','User profile','Notes','Status','Applicant Email','Job interview']);
+      const known = new Set<string>(['Job ID','Job title','Job description','Company','Applicant Name','Applicant User ID','User profile','Notes','Status','Applicant Email','Job interview','token']);
       this.cachedFieldNames = known;
       return known;
     }
@@ -114,6 +114,7 @@ class RealApplicantsAirtableService {
     experienceScore?: number;
     culturalFitScore?: number;
     userProfileText?: string;
+    token?: string;
   }): Promise<{ id: string }> {
     try {
       const url = `${this.baseUrl}/${this.baseId}/${encodeURIComponent(this.tableName)}`;
@@ -134,6 +135,7 @@ class RealApplicantsAirtableService {
       add('Job ID', params.jobId.toString());
       add('Status', 'pending');
       add('User profile', params.userProfileText);
+      add('token', params.token);
 
       // Only include scoring fields if they already exist
       add('Match Score', typeof params.matchScore === 'number' ? params.matchScore : undefined);
@@ -162,6 +164,14 @@ class RealApplicantsAirtableService {
       console.error('Error creating applicant invitation in Airtable:', error);
       throw error;
     }
+  }
+
+  // Allow switching to AI Interview base/table at runtime
+  setAirtableConfig(baseId: string, tableName: string = 'Table 1') {
+    this.baseId = baseId;
+    this.tableName = tableName;
+    this.cachedFieldNames = null;
+    console.log(`Airtable applicants config updated: Base ID = ${baseId}, Table = ${tableName}`);
   }
 
   async getApplicantsByJobId(jobId: number): Promise<ApplicantWithProfile[]> {

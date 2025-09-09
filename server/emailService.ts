@@ -14,14 +14,15 @@ interface InterviewEmailData {
 }
 
 class EmailService {
-  private mailService: MailService;
+  private mailService: MailService | null;
 
   constructor() {
     // Use the environment variable for SendGrid API key
     const apiKey = (process.env.SENDGRID_API_KEY || '').trim();
-    
     if (!apiKey) {
-      throw new Error("SENDGRID_API_KEY environment variable must be provided");
+      this.mailService = null;
+      console.warn('📧 SendGrid disabled: missing SENDGRID_API_KEY. Emails will be skipped.');
+      return;
     }
 
     this.mailService = new MailService();
@@ -31,13 +32,18 @@ class EmailService {
 
   async sendInterviewScheduledEmail(data: InterviewEmailData): Promise<boolean> {
     try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping interview email: SendGrid not configured');
+        return false;
+      }
       const emailHTML = this.generateInterviewEmailHTML(data);
       const emailText = this.generateInterviewEmailText(data);
 
       const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
       await this.mailService.send({
         to: data.applicantEmail,
-        from: fromEmail, // Verified sender email
+        from: { email: fromEmail, name: fromName }, // Verified sender email with display name
         subject: `🎯 Interview Scheduled: ${data.applicantName} - ${data.jobTitle} at ${data.companyName}`,
         text: emailText,
         html: emailHTML,
@@ -237,6 +243,10 @@ ${data.companyName} Hiring Team
     matchSummary?: string;
   }): Promise<boolean> {
     try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping invitation email: SendGrid not configured');
+        return false;
+      }
       const subject = `You're invited to interview for ${params.jobTitle} at ${params.companyName}`;
       const preview = params.matchScore != null
         ? `Your score: ${params.matchScore}% - ${params.matchSummary || 'Great fit!'}`
@@ -258,9 +268,10 @@ ${data.companyName} Hiring Team
         </div>`;
 
       const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
       await this.mailService.send({
         to: params.applicantEmail,
-        from: fromEmail,
+        from: { email: fromEmail, name: fromName },
         subject,
         text: preview + `\n\n` + params.invitationLink,
         html,
