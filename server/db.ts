@@ -1,11 +1,9 @@
-import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { neon } from '@neondatabase/serverless';
-import { drizzle as drizzleNeon } from 'drizzle-orm/neon-serverless';
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import ws from "ws";
 import * as schema from "@shared/schema";
 
-// Determine if we're in development or production
-const isDevelopment = process.env.NODE_ENV === 'development';
+neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -13,19 +11,5 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-let pool: Pool | null = null;
-let db: any;
-
-if (isDevelopment) {
-  // Use local PostgreSQL in development
-  console.log('🔧 Using local PostgreSQL database for development');
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  db = drizzle(pool, { schema });
-} else {
-  // Use Neon in production
-  console.log('☁️ Using Neon database for production');
-  const sql = neon(process.env.DATABASE_URL);
-  db = drizzleNeon(sql, { schema });
-}
-
-export { pool, db };
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema });
