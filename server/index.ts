@@ -82,10 +82,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 3001
+  // Serve the app on the configured port (default 5000 for deployment)
   // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 3001;
+  const port = parseInt(process.env.PORT || "5000", 10);
   server.listen({
     port,
     host: "0.0.0.0",
