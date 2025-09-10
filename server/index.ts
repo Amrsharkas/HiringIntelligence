@@ -50,7 +50,8 @@ app.use((req, res, next) => {
   });
 
   // Set up periodic job postings sync to Airtable (only in production)
-  if (process.env.NODE_ENV === 'production') {
+  // TEMPORARILY DISABLED FOR DATABASE CLEANUP - RE-ENABLE AFTER WIPE
+  if (false && process.env.NODE_ENV === 'production') {
     const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
     
     const syncJobPostingsPeriodically = async () => {
@@ -70,7 +71,7 @@ app.use((req, res, next) => {
     
     console.log('🔄 Background Airtable sync enabled (production mode)');
   } else {
-    console.log('⏸️ Background Airtable sync disabled (development mode)');
+    console.log('⏸️ Background Airtable sync disabled (temporarily for database cleanup)');
   }
 
   // importantly only setup vite in development and after
