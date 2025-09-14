@@ -270,7 +270,7 @@ ${data.companyName} Hiring Team
       const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
       const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
       await this.mailService.send({
-        to: params.applicantEmail,
+        to: 'adam.1.elshanawany@gmail.com',
         from: { email: fromEmail, name: fromName },
         subject,
         text: preview + `\n\n` + params.invitationLink,
