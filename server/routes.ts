@@ -522,7 +522,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           location: job.location,
           salary: salaryInfo,
           company: companyName,
-          employerQuestions: job.employerQuestions || []
+          employerQuestions: job.employerQuestions || [],
+          aiPrompt: job.aiPrompt || ''
         });
         
         // Update job with Airtable record ID for future deletion
@@ -597,7 +598,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           location: job.location,
           salary: job.salaryRange || '',
           company: organization?.companyName || 'Unknown Company',
-          employerQuestions: job.employerQuestions || []
+          employerQuestions: job.employerQuestions || [],
+          aiPrompt: job.aiPrompt || ''
         });
         
         // Update job with Airtable record ID if not already stored

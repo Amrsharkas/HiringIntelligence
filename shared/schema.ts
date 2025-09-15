@@ -93,6 +93,7 @@ export const jobs = pgTable("jobs", {
   softSkills: text("soft_skills").array(),
   technicalSkills: text("technical_skills").array(),
   employerQuestions: text("employer_questions").array(),
+  aiPrompt: text("ai_prompt"), // New field for AI prompts to get more information from applicants
   // Score matching threshold: 0-100; used to filter matches
   scoreMatchingThreshold: integer("score_matching_threshold").notNull().default(30),
   // New metadata fields

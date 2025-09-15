@@ -29,6 +29,7 @@ const jobFormSchema = z.object({
   softSkills: z.array(z.string()).default([]),
   technicalSkills: z.array(z.string()).default([]),
   employerQuestions: z.array(z.string()).default([]),
+  aiPrompt: z.string().optional(),
   // New metadata fields
   employmentType: z.string().min(1, "Employment type is required"),
   workplaceType: z.string().min(1, "Workplace type is required"),
@@ -182,6 +183,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       softSkills: [],
       technicalSkills: [],
       employerQuestions: [],
+      aiPrompt: "",
       employmentType: "",
       workplaceType: "",
       seniorityLevel: "",
@@ -268,6 +270,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         softSkills: editJob.softSkills || [],
         technicalSkills: editJob.technicalSkills || [],
         employerQuestions: editJob.employerQuestions || [],
+        aiPrompt: editJob.aiPrompt || "",
         scoreMatchingThreshold: editJob.scoreMatchingThreshold ?? 30,
       });
       setSelectedSoftSkills(editJob.softSkills || []);
@@ -283,6 +286,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         softSkills: [],
         technicalSkills: [],
         employerQuestions: [],
+        aiPrompt: "",
         scoreMatchingThreshold: 30,
       });
       setSelectedSoftSkills([]);
@@ -569,8 +573,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       softSkills: selectedSoftSkills,
       technicalSkills: selectedTechnicalSkills,
       employerQuestions: employerQuestionsArray,
+      aiPrompt: data.aiPrompt || "",
       languagesRequired: validLanguages,
-      // Convert salary values to numbers if they exist  
+      // Convert salary values to numbers if they exist
       salaryMin: data.salaryMin ? parseInt(data.salaryMin) : undefined,
       salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
       scoreMatchingThreshold: data.scoreMatchingThreshold,
@@ -618,8 +623,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   Job Details
                 </TabsTrigger>
                 <TabsTrigger value="questions" className="flex items-center gap-2">
-                  <HelpCircle className="w-4 h-4" />
-                  Optional Questions
+                  <Sparkles className="w-4 h-4" />
+                  AI Prompt
                 </TabsTrigger>
               </TabsList>
 
@@ -1129,84 +1134,47 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
               <TabsContent value="questions" className="space-y-6">
                 <div className="space-y-4">
                   <div className="text-center py-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg">
-                    <HelpCircle className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                    <Sparkles className="w-12 h-12 text-slate-400 mx-auto mb-3" />
                     <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                      Employer Questions
+                      AI Prompt for Applicant Information
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                      Add up to 5 optional questions to ask candidates during the application process.
-                      These help you learn more about candidates beyond their resume.
+                      Add notes and tips for the AI to get more information from applicants.
+                      This helps the AI ask more relevant questions during the application process.
                     </p>
-                    <Button
-                      type="button"
-                      onClick={generateEmployerQuestions}
-                      disabled={isGeneratingQuestions}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg"
-                    >
-                      {isGeneratingQuestions ? (
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4 mr-1" />
-                      )}
-                      AI Generate Questions
-                    </Button>
                   </div>
 
                   <div className="space-y-4">
-                    {employerQuestions.map((question, index) => (
-                      <div key={index} className="flex gap-3 items-start">
-                        <div className="flex-1">
-                          <Label htmlFor={`question-${index}`} className="text-sm font-medium">
-                            Question {index + 1} {index === 0 && employerQuestions.length === 1 ? '(Optional)' : ''}
-                          </Label>
-                          <Textarea
-                            id={`question-${index}`}
-                            value={question}
-                            onChange={(e) => updateEmployerQuestion(index, e.target.value)}
-                            placeholder={`e.g., "What interests you most about this role?" or "Describe a challenging project you've worked on."`}
-                            rows={2}
-                            className="mt-2"
-                          />
-                        </div>
-                        {employerQuestions.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => removeEmployerQuestion(index)}
-                            className="mt-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-
-                    {employerQuestions.length < 5 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addEmployerQuestion}
-                        className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 dark:border-blue-600"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Question ({employerQuestions.length}/5)
-                      </Button>
-                    )}
+                    <div>
+                      <Label htmlFor="ai-prompt" className="text-sm font-medium">
+                        AI Prompt
+                      </Label>
+                      <Textarea
+                        id="ai-prompt"
+                        {...form.register("aiPrompt")}
+                        placeholder="e.g., 'Focus on the candidate's experience with React and Node.js. Ask about specific projects they've worked on and their role in those projects. Also inquire about their problem-solving approach and teamwork skills.'"
+                        rows={6}
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-slate-500 mt-2">
+                        Be specific about what information you want the AI to gather from applicants.
+                        The more detailed your prompt, the better the AI can tailor its questions.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-start gap-3">
-                      <HelpCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <Sparkles className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                          Tips for Great Questions
+                          Tips for Effective AI Prompts
                         </h4>
                         <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                          <li>• Ask about motivation and passion for the role</li>
-                          <li>• Inquire about specific experiences or challenges</li>
-                          <li>• Keep questions open-ended to encourage detailed responses</li>
-                          <li>• Avoid questions that can be answered with yes/no</li>
+                          <li>• Be specific about skills and experiences you're looking for</li>
+                          <li>• Mention particular projects or technologies you want to know about</li>
+                          <li>• Include soft skills that are important for the role</li>
+                          <li>• Specify any unique aspects of your company culture or work environment</li>
                         </ul>
                       </div>
                     </div>

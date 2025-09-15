@@ -13,6 +13,7 @@ interface AirtableJobRecord {
     'Salary'?: string;
     'Location'?: string;
     'Employer Questions'?: string;
+    'AI Prompt'?: string;
   };
   createdTime: string;
 }
@@ -33,6 +34,7 @@ interface JobPostingData {
   salary: string;
   location: string;
   employerQuestions?: string[];
+  aiPrompt?: string;
 }
 
 export class JobPostingsAirtableService {
@@ -161,6 +163,7 @@ export class JobPostingsAirtableService {
     salary?: string;
     company: string;
     employerQuestions?: string[];
+    aiPrompt?: string;
   }): Promise<string> {
     try {
       console.log(`📤 Adding job ${jobData.jobId} to Airtable...`);
@@ -181,6 +184,7 @@ export class JobPostingsAirtableService {
           'Date Posted': new Date().toISOString().split('T')[0],
           'Job type': 'Full-time', // Default value
           'Employer Questions': employerQuestionsText,
+          'AI Prompt': jobData.aiPrompt || '',
         }
       };
 
@@ -264,7 +268,8 @@ export class JobPostingsAirtableService {
             location: job.location,
             salary: job.salaryRange || '',
             company: organization?.companyName || 'Unknown Company',
-            employerQuestions: job.employerQuestions || []
+            employerQuestions: job.employerQuestions || [],
+            aiPrompt: job.aiPrompt || ''
           });
           continue;
         }
@@ -277,7 +282,8 @@ export class JobPostingsAirtableService {
           location: job.location,
           salary: job.salaryRange || '',
           company: organization?.companyName || 'Unknown Company',
-          employerQuestions: job.employerQuestions || []
+          employerQuestions: job.employerQuestions || [],
+          aiPrompt: job.aiPrompt || ''
         });
         
         syncedCount++;
@@ -300,6 +306,7 @@ export class JobPostingsAirtableService {
     salary?: string;
     company: string;
     employerQuestions?: string[];
+    aiPrompt?: string;
   }): Promise<string> {
     try {
       // Find the record ID for this job
@@ -342,6 +349,7 @@ export class JobPostingsAirtableService {
           'Salary': jobData.salary || '',
           'Company': jobData.company,
           'Employer Questions': employerQuestionsText,
+          'AI Prompt': jobData.aiPrompt || '',
         }
       };
 
