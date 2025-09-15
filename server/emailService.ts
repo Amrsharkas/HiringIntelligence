@@ -256,7 +256,6 @@ ${data.companyName} Hiring Team
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 640px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #111827;">Hello ${params.applicantName},</h2>
           <p>Based on your resume, we believe you could be a strong fit for the <strong>${params.jobTitle}</strong> role at <strong>${params.companyName}</strong>.</p>
-          ${params.matchScore != null ? `<p><strong>Match Score:</strong> ${params.matchScore}%</p>` : ''}
           ${params.matchSummary ? `<p style="color: #4b5563;">${params.matchSummary}</p>` : ''}
           <div style="margin: 24px 0; text-align: center;">
             <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">View and Confirm Interview</a>
