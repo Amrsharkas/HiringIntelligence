@@ -1,5 +1,6 @@
 // Service for scoring applicants using OpenAI
 import OpenAI from "openai";
+import { wrapOpenAIRequest } from "./openaiTracker";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -100,20 +101,28 @@ Return JSON in this exact format:
   "reasoning": "Detailed explanation of scoring rationale, highlighting specific gaps and strengths"
 }`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional recruiter who provides realistic and fair candidate assessments. Evaluate candidates honestly based on their qualifications relative to job requirements. Scores should reflect actual match quality - from 1% for completely unsuitable candidates to 100% for perfect matches. Most candidates will fall somewhere in the middle based on their actual qualifications."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" }
-      });
+      const response = await wrapOpenAIRequest(
+        () => openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional recruiter who provides realistic and fair candidate assessments. Evaluate candidates honestly based on their qualifications relative to job requirements. Scores should reflect actual match quality - from 1% for completely unsuitable candidates to 100% for perfect matches. Most candidates will fall somewhere in the middle based on their actual qualifications."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" }
+        }),
+        {
+          requestType: "detailed_applicant_scoring",
+          model: "gpt-4o",
+          requestData: { userProfile, jobTitle, jobDescription, jobRequirements, jobSkills, prompt },
+          metadata: { jobTitle, profileLength: userProfile.length }
+        }
+      );
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
       
@@ -191,20 +200,28 @@ Please respond with JSON in the following format:
 
 Provide an honest, fair assessment that reflects the candidate's actual suitability for the role.`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert recruiter evaluating job candidates. Provide accurate, fair assessments based on job requirements and candidate qualifications."
-          },
-          {
-            role: "user", 
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" }
-      });
+      const response = await wrapOpenAIRequest(
+        () => openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert recruiter evaluating job candidates. Provide accurate, fair assessments based on job requirements and candidate qualifications."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" }
+        }),
+        {
+          requestType: "applicant_scoring",
+          model: "gpt-4o",
+          requestData: { userProfile, jobDescription, prompt },
+          metadata: { profileLength: userProfile.length }
+        }
+      );
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
       

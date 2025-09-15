@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
+import { wrapOpenAIRequest } from "./openaiTracker";
 import { airtableMatchingService } from "./airtableMatchingService";
 import { airtableService, AirtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
@@ -2133,21 +2134,29 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const { default: OpenAI } = await import('openai');
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert HR analyst specializing in comprehensive candidate-job matching analysis. Provide detailed, specific assessments based on the exact job requirements and candidate profile provided. For component analysis, provide 1-2 complete sentences explaining your reasoning with specific references to the candidate's background and job requirements."
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 2000, // Ensure full responses aren't truncated
-      });
+      const response = await wrapOpenAIRequest(
+        () => openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert HR analyst specializing in comprehensive candidate-job matching analysis. Provide detailed, specific assessments based on the exact job requirements and candidate profile provided. For component analysis, provide 1-2 complete sentences explaining your reasoning with specific references to the candidate's background and job requirements."
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 2000, // Ensure full responses aren't truncated
+        }),
+        {
+          requestType: "comprehensive_match_analysis",
+          model: "gpt-4o",
+          requestData: { prompt: prompt.substring(0, 500) },
+          metadata: { route: "comprehensive_match_analysis" }
+        }
+      );
 
       const analysis = JSON.parse(response.choices[0].message.content);
       console.log(`✅ Generated comprehensive match analysis with overall score: ${analysis.overallMatchScore}`);

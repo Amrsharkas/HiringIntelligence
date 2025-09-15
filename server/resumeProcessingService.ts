@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { toFile } from "openai/uploads";
+import { wrapOpenAIRequest } from "./openaiTracker";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -142,25 +143,41 @@ Extract all relevant information. If any field is missing, use an empty string f
           }
       ] as const;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: baseMessages as any,
-        response_format: { type: "json_object" },
-        max_tokens: 1500,
-      });
+      const response = await wrapOpenAIRequest(
+        () => openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: baseMessages as any,
+          response_format: { type: "json_object" },
+          max_tokens: 1500,
+        }),
+        {
+          requestType: "resume_processing",
+          model: "gpt-4o",
+          requestData: { extractedText: extractedText.substring(0, 500), baseMessages: baseMessages.slice(0, 2) },
+          metadata: { textLength: extractedText.length }
+        }
+      );
 
       const rawContent = response.choices?.[0]?.message?.content || '';
       if (!rawContent || rawContent.trim().length === 0) {
         console.warn("Model returned empty content for resume processing. Retrying without response_format...");
-        const retry = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            ...baseMessages,
-            { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
-          ] as any,
-          temperature: 0,
-          max_tokens: 1500,
-        });
+        const retry = await wrapOpenAIRequest(
+          () => openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              ...baseMessages,
+              { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
+            ] as any,
+            temperature: 0,
+            max_tokens: 1500,
+          }),
+          {
+            requestType: "resume_processing_retry",
+            model: "gpt-4o",
+            requestData: { extractedText: extractedText.substring(0, 500), retry: true },
+            metadata: { textLength: extractedText.length, isRetry: true }
+          }
+        );
         const retryContent = retry.choices?.[0]?.message?.content || '';
         if (!retryContent || retryContent.trim().length === 0) {
           console.error("Second attempt also returned empty content.", { responseId: retry.id });
@@ -190,15 +207,23 @@ Extract all relevant information. If any field is missing, use an empty string f
         result = this.extractJsonObject(rawContent);
       } catch (parseError) {
         console.warn("First parse failed. Retrying request without response_format...");
-        const retry = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            ...baseMessages,
-            { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
-          ] as any,
-          temperature: 0,
-          max_tokens: 1500,
-        });
+        const retry = await wrapOpenAIRequest(
+          () => openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              ...baseMessages,
+              { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
+            ] as any,
+            temperature: 0,
+            max_tokens: 1500,
+          }),
+          {
+            requestType: "resume_processing_parse_retry",
+            model: "gpt-4o",
+            requestData: { extractedText: extractedText.substring(0, 500), retry: true, parseError: true },
+            metadata: { textLength: extractedText.length, isRetry: true, parseError: true }
+          }
+        );
         const retryContent = retry.choices?.[0]?.message?.content || '';
         try {
           result = this.extractJsonObject(retryContent);
@@ -256,16 +281,17 @@ Extract all relevant information. If any field is missing, use an empty string f
     jobRequirements: string
   ): Promise<JobMatchScore> {
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert hiring manager. Analyze how well a candidate's resume matches a specific job posting. Be brutally honest in your scoring - . Respond with JSON in this exact format: { "overallScore": 15, "technicalSkillsScore": 12, "experienceScore": 18, "culturalFitScore": 15, "matchSummary": "Brief 2-3 sentence summary of the match quality", "strengthsHighlights": ["Strength 1", "Strength 2", "Strength 3"], "improvementAreas": ["Gap 1", "Missing skill 2", "Need more experience in 3"] } Scoring Guidelines: - 80-100%: Perfect match, exceptional candidate - 60-79%: Strong match with minor gaps - 40-59%: Decent match with some important gaps - 20-39%: Weak match with significant gaps - 5-19%: Poor match, major misalignment - 0-4%: Completely unqualified Be harsh but fair.`
-          },
-          {
-            role: "user",
-            content: `Score this candidate against the job:
+      const response = await wrapOpenAIRequest(
+        () => openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert hiring manager. Analyze how well a candidate's resume matches a specific job posting. Be brutally honest in your scoring - . Respond with JSON in this exact format: { "overallScore": 15, "technicalSkillsScore": 12, "experienceScore": 18, "culturalFitScore": 15, "matchSummary": "Brief 2-3 sentence summary of the match quality", "strengthsHighlights": ["Strength 1", "Strength 2", "Strength 3"], "improvementAreas": ["Gap 1", "Missing skill 2", "Need more experience in 3"] } Scoring Guidelines: - 80-100%: Perfect match, exceptional candidate - 60-79%: Strong match with minor gaps - 40-59%: Decent match with some important gaps - 20-39%: Weak match with significant gaps - 5-19%: Poor match, major misalignment - 0-4%: Completely unqualified Be harsh but fair.`
+            },
+            {
+              role: "user",
+              content: `Score this candidate against the job:
 
 JOB TITLE: ${jobTitle}
 
@@ -285,21 +311,36 @@ Certifications: ${resume.certifications.join(" | ")}
 Languages: ${resume.languages.join(" | ")}
 
 Provide brutal honesty in scoring.`
-          }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 800,
-      });
+            }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 800,
+        }),
+        {
+          requestType: "resume_job_scoring",
+          model: "gpt-4o",
+          requestData: { resumeName: resume.name, jobTitle, skills: resume.skills },
+          metadata: { candidateName: resume.name, jobTitle }
+        }
+      );
 
       const scoringContent = response.choices?.[0]?.message?.content || '';
       if (!scoringContent || scoringContent.trim().length === 0) {
         console.warn("Model returned empty content for job scoring. Retrying without response_format...");
-        const retry = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            ...response.usage ? [] : [],
-          ] as any,
-        });
+        const retry = await wrapOpenAIRequest(
+          () => openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              ...response.usage ? [] : [],
+            ] as any,
+          }),
+          {
+            requestType: "resume_job_scoring_retry",
+            model: "gpt-4o",
+            requestData: { resumeName: resume.name, jobTitle, retry: true },
+            metadata: { candidateName: resume.name, jobTitle, isRetry: true }
+          }
+        );
         // If still empty, throw (keep error minimal here since original issue is in processing)
         const rc = retry.choices?.[0]?.message?.content || '';
         if (!rc || rc.trim().length === 0) {

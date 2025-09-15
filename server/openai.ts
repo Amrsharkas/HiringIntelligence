@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { wrapOpenAIRequest } from "./openaiTracker";
 
 // Using "gpt-5" per user request across all calls
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
@@ -17,6 +18,13 @@ export async function generateJobDescription(
   }
 ): Promise<string> {
   try {
+
+      
+  console.log({
+    openaiApiKeySet: process.env.OPENAI_API_KEY,
+  });
+
+
     // Build context from metadata
     const contextParts = [];
     if (metadata?.employmentType) contextParts.push(`Employment: ${metadata.employmentType}`);
@@ -49,17 +57,25 @@ Important guidelines:
 
 Write in clear, accessible language that attracts top talent.`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { 
-          role: "system", 
-          content: "You are an expert HR professional specializing in Egyptian job market recruitment. Create compelling job descriptions that attract qualified candidates while being culturally appropriate and professionally engaging." 
-        },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 1000,
-    });
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert HR professional specializing in Egyptian job market recruitment. Create compelling job descriptions that attract qualified candidates while being culturally appropriate and professionally engaging."
+          },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 1000,
+      }),
+      {
+        requestType: "job_description_generation",
+        model: "gpt-4o",
+        requestData: { jobTitle, companyName, location, metadata, prompt },
+        metadata: { jobTitle, companyName }
+      }
+    );
 
     return response.choices[0].message.content || "";
   } catch (error) {
@@ -128,17 +144,25 @@ Important guidelines:
 
 Write in clear, professional language suitable for Egyptian job market.`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { 
-          role: "system", 
-          content: "You are an expert HR professional specializing in creating detailed job requirements for the Egyptian market. Focus on realistic qualifications that attract qualified candidates while maintaining professional standards." 
-        },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 800,
-    });
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert HR professional specializing in creating detailed job requirements for the Egyptian market. Focus on realistic qualifications that attract qualified candidates while maintaining professional standards."
+          },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 800,
+      }),
+      {
+        requestType: "job_requirements_generation",
+        model: "gpt-4o",
+        requestData: { jobTitle, jobDescription, metadata, prompt },
+        metadata: { jobTitle }
+      }
+    );
 
     return response.choices[0].message.content || "";
   } catch (error) {
@@ -151,18 +175,26 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
     // Optimize prompt for faster response
     const prompt = `Job: "${jobTitle}"\nDescription: "${jobDescription.slice(0, 500)}"\n\nExtract 6-8 most relevant technical skills. Return JSON array only.`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Extract technical skills from job postings. Respond with JSON format: {\"skills\": [\"skill1\", \"skill2\"]}",
-        },
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 150, // Limit response size for speed
-    });
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "Extract technical skills from job postings. Respond with JSON format: {\"skills\": [\"skill1\", \"skill2\"]}",
+          },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 150, // Limit response size for speed
+      }),
+      {
+        requestType: "technical_skills_extraction",
+        model: "gpt-4o-mini",
+        requestData: { jobTitle, jobDescription, prompt },
+        metadata: { jobTitle }
+      }
+    );
 
     const result = JSON.parse(response.choices[0].message.content || '{"skills": []}');
     return result.skills || [];
@@ -212,11 +244,19 @@ Requirements:
 
 Return only the formatted profile text with markdown styling.`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 400,
-    });
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 400,
+      }),
+      {
+        requestType: "user_profile_formatting",
+        model: "gpt-4o",
+        requestData: { rawProfile, prompt },
+        metadata: { profileLength: rawProfile.length }
+      }
+    );
 
     return response.choices[0].message.content || rawProfile;
   } catch (error) {
@@ -273,20 +313,28 @@ Examples of LOW scores:
 
 Respond with JSON in this exact format: { "score": number, "reasoning": "honest explanation of why this specific score was given" }`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an EXTREMELY STRICT recruiter who gives brutally honest assessments. Do NOT inflate scores. Be harsh and realistic. Candidates with minimal or irrelevant information should get very low scores (5-25). Only exceptional candidates deserve high scores (75+)."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      response_format: { type: "json_object" },
-    });
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are an EXTREMELY STRICT recruiter who gives brutally honest assessments. Do NOT inflate scores. Be harsh and realistic. Candidates with minimal or irrelevant information should get very low scores (5-25). Only exceptional candidates deserve high scores (75+)."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+      }),
+      {
+        requestType: "candidate_match_rating",
+        model: "gpt-4o",
+        requestData: { candidate, job, prompt },
+        metadata: { candidateName: candidate.name, jobTitle: job.title }
+      }
+    );
 
     const result = JSON.parse(response.choices[0].message.content || '{"score": 50, "reasoning": "Analysis unavailable"}');
     
@@ -363,11 +411,19 @@ export async function analyzeApplicantProfile(
     }
     `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    });
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+      }),
+      {
+        requestType: "applicant_profile_analysis",
+        model: "gpt-4o",
+        requestData: { applicantData, jobTitle, jobDescription, requiredSkills, prompt },
+        metadata: { jobTitle, applicantName: applicantData.name }
+      }
+    );
 
     const result = JSON.parse(response.choices[0].message.content || '{}');
     
@@ -410,18 +466,26 @@ Examples of good questions:
 
 Respond with JSON in this format: { "questions": ["question1", "question2", "question3"] }`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert HR professional specializing in interview question design. Generate thoughtful, role-specific employer questions that help identify the best candidates."
-        },
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 800,
-    });
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert HR professional specializing in interview question design. Generate thoughtful, role-specific employer questions that help identify the best candidates."
+          },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 800,
+      }),
+      {
+        requestType: "employer_questions_generation",
+        model: "gpt-4o",
+        requestData: { jobTitle, jobDescription, requirements, prompt },
+        metadata: { jobTitle }
+      }
+    );
 
     const result = JSON.parse(response.choices[0].message.content || '{"questions": []}');
     return result.questions || [];
