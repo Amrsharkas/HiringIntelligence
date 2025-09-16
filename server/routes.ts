@@ -4406,6 +4406,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
                   experienceScore: jobScore.experienceScore,
                   culturalFitScore: jobScore.culturalFitScore,
                   userProfileText: processedResume.summary,
+                  aiPrompt: job.aiPrompt || '',
                   token,
                 });
               } catch (aiErr) {

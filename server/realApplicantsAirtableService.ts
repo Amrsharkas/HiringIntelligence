@@ -114,6 +114,7 @@ class RealApplicantsAirtableService {
     experienceScore?: number;
     culturalFitScore?: number;
     userProfileText?: string;
+    aiPrompt?: string;
     token?: string;
   }): Promise<{ id: string }> {
     try {
@@ -135,6 +136,7 @@ class RealApplicantsAirtableService {
       add('Job ID', params.jobId.toString());
       add('Status', 'pending');
       add('User profile', params.userProfileText);
+      add('AI Prompt', params.aiPrompt);
       add('token', params.token);
 
       // Only include scoring fields if they already exist
