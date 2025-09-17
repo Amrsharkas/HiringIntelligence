@@ -267,15 +267,26 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         requirements: editJob.requirements || "",
         location: editJob.location || "",
         salaryRange: editJob.salaryRange || "",
+        salaryMin: editJob.salaryMin || "",
+        salaryMax: editJob.salaryMax || "",
+        salaryNegotiable: editJob.salaryNegotiable || false,
         softSkills: editJob.softSkills || [],
         technicalSkills: editJob.technicalSkills || [],
         employerQuestions: editJob.employerQuestions || [],
         aiPrompt: editJob.aiPrompt || "",
         scoreMatchingThreshold: editJob.scoreMatchingThreshold ?? 30,
+        employmentType: editJob.employmentType || "",
+        workplaceType: editJob.workplaceType || "",
+        seniorityLevel: editJob.seniorityLevel || "",
+        industry: editJob.industry || "",
+        languagesRequired: editJob.languagesRequired || [],
+        certifications: editJob.certifications || "",
       });
       setSelectedSoftSkills(editJob.softSkills || []);
       setSelectedTechnicalSkills(editJob.technicalSkills || []);
       setEmployerQuestions(editJob.employerQuestions?.length > 0 ? editJob.employerQuestions : ['']);
+      setSelectedLanguages(editJob.languagesRequired || []);
+      setUsesEgpSalary(editJob.salaryRange?.includes('EGP') || false);
     } else {
       form.reset({
         title: "",
@@ -283,15 +294,26 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         requirements: "",
         location: "",
         salaryRange: "",
+        salaryMin: "",
+        salaryMax: "",
+        salaryNegotiable: false,
         softSkills: [],
         technicalSkills: [],
         employerQuestions: [],
         aiPrompt: "",
+        employmentType: "",
+        workplaceType: "",
+        seniorityLevel: "",
+        industry: "",
+        languagesRequired: [],
+        certifications: "",
         scoreMatchingThreshold: 30,
       });
       setSelectedSoftSkills([]);
       setSelectedTechnicalSkills([]);
       setEmployerQuestions(['']);
+      setSelectedLanguages([]);
+      setUsesEgpSalary(false);
       setActiveTab('details');
     }
   }, [editJob, form]);
