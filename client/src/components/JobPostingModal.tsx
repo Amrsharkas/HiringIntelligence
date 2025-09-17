@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Combobox } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle } from "lucide-react";
@@ -747,18 +748,14 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   name="industry"
                   control={form.control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select industry" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INDUSTRIES.map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={INDUSTRIES}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select or create industry..."
+                      allowCustomValue={true}
+                      className="mt-2"
+                    />
                   )}
                 />
                 {form.formState.errors.industry && (
