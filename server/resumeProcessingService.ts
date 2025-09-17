@@ -25,6 +25,36 @@ export interface JobMatchScore {
   matchSummary: string;
   strengthsHighlights: string[];
   improvementAreas: string[];
+  detailedBreakdown?: {
+    technicalSkills: Array<{
+      requirement: string;
+      present: boolean | 'partial';
+      evidence: string;
+      gapPercentage: number;
+      missingDetail: string;
+    }>;
+    experience: Array<{
+      requirement: string;
+      present: boolean | 'partial';
+      evidence: string;
+      gapPercentage: number;
+      missingDetail: string;
+    }>;
+    educationAndCertifications: Array<{
+      requirement: string;
+      present: boolean | 'partial';
+      evidence: string;
+      gapPercentage: number;
+      missingDetail: string;
+    }>;
+    culturalFitAndSoftSkills: Array<{
+      requirement: string;
+      present: boolean | 'partial';
+      evidence: string;
+      gapPercentage: number;
+      missingDetail: string;
+    }>;
+  };
 }
 
 export class ResumeProcessingService {
@@ -287,7 +317,82 @@ Extract all relevant information. If any field is missing, use an empty string f
           messages: [
             {
               role: "system",
-              content: `You are an expert hiring manager. Analyze how well a candidate's resume matches a specific job posting. Be brutally honest in your scoring - . Respond with JSON in this exact format: { "overallScore": 15, "technicalSkillsScore": 12, "experienceScore": 18, "culturalFitScore": 15, "matchSummary": "Brief 2-3 sentence summary of the match quality", "strengthsHighlights": ["Strength 1", "Strength 2", "Strength 3"], "improvementAreas": ["Gap 1", "Missing skill 2", "Need more experience in 3"] } Scoring Guidelines: - 80-100%: Perfect match, exceptional candidate - 60-79%: Strong match with minor gaps - 40-59%: Decent match with some important gaps - 20-39%: Weak match with significant gaps - 5-19%: Poor match, major misalignment - 0-4%: Completely unqualified Be harsh but fair.`
+              content: `You are an expert hiring manager and resume evaluator. Your task is to analyze how well a candidate's resume matches a specific job posting and create a scoring profile that reflects the complete truth. Do not inflate scores, do not soften gaps, and do not add compliments. Your evaluation must be a factual mirror of the job description versus the CV, backed only by what is explicitly present in the CV.
+
+If something is missing or only partially satisfied, highlight it clearly with exact detail from the job requirements and what the CV fails to provide. All percentages and scores must be fully justified with proof from the CV.
+
+Your response MUST be in this exact JSON format:
+{
+  \"overallScore\": 0-100,
+  \"technicalSkillsScore\": 0-100,
+  \"experienceScore\": 0-100,
+  \"culturalFitScore\": 0-100,
+  \"matchSummary\": \"Brief 2-3 sentence summary of match quality, describing exact alignment and gaps without exaggeration\",
+  \"strengthsHighlights\": [\"Strength 1 with CV evidence\", \"Strength 2 with CV evidence\", \"Strength 3 with CV evidence\"],
+  \"improvementAreas\": [\"Gap 1 with exact missing detail from job posting\", \"Gap 2 with exact missing detail from job posting\", \"Gap 3 with exact missing detail from job posting\"],
+  \"detailedBreakdown\": {
+    \"technicalSkills\": [
+      {
+        \"requirement\": \"Exact requirement from job description\",
+        \"present\": true|false|partial,
+        \"evidence\": \"What the CV shows (quote or paraphrase)\",
+        \"gapPercentage\": 0-100,
+        \"missingDetail\": \"If incomplete, state exactly what is missing in plain terms (e.g., 'Job requires Django, CV only shows Flask')\"
+      }
+    ],
+    \"experience\": [
+      {
+        \"requirement\": \"e.g., '5 years of backend development'\",
+        \"present\": true|false|partial,
+        \"evidence\": \"What the CV shows (e.g., '3 years backend at Company X')\",
+        \"gapPercentage\": 0-100,
+        \"missingDetail\": \"Explain exactly how much or what kind of experience is missing (e.g., '2 years less experience than required, no leadership role')\"
+      }
+    ],
+    \"educationAndCertifications\": [
+      {
+        \"requirement\": \"e.g., 'Bachelor's in Computer Science'\",
+        \"present\": true|false|partial,
+        \"evidence\": \"What the CV shows\",
+        \"gapPercentage\": 0-100,
+        \"missingDetail\": \"If not satisfied, state exact gap (e.g., 'Bachelor's in IT, but Computer Science required')\"
+      }
+    ],
+    \"culturalFitAndSoftSkills\": [
+      {
+        \"requirement\": \"e.g., 'Strong teamwork and leadership skills'\",
+        \"present\": true|false|partial,
+        \"evidence\": \"Examples from CV, or lack thereof\",
+        \"gapPercentage\": 0-100,
+        \"missingDetail\": \"If missing, explain clearly (e.g., 'No teamwork or collaboration evidence provided')\"
+      }
+    ]
+  }
+}
+
+### Scoring Guidelines & Weighting:
+- OverallScore = (TechnicalSkills 40%) + (Experience 40%) + (CulturalFit 20%).
+- Scores must reflect only what is actually supported by CV evidence compared against the job description.
+- TechnicalSkillsScore: Based only on technical skills explicitly listed in the job description. Partial credit allowed only when the CV shows transferable skills that realistically apply.
+- ExperienceScore: Based on years, industry/domain, level of responsibility, and relevance. Partial credit if similar but not exact.
+- CulturalFitScore: Based only on CV evidence of teamwork, leadership, communication, adaptability, or values mentioned in the job posting. No assumptions if not shown.
+- Gap Percentages: Must clearly state what portion is missing and why (e.g., required 5 years, candidate has 3 = 40% gap). Each missingDetail must reference the job posting requirement.
+
+### Match Legend:
+- 90–100: Meets or exceeds nearly all requirements with full supporting evidence.
+- 75–89: Meets most requirements, only minor missing details.
+- 60–74: Several gaps but has solid evidence of transferable strengths.
+- 40–59: Many important gaps; limited direct alignment.
+- 20–39: Very poor match; only a few requirements covered.
+- 0–19: Not qualified; no realistic alignment with requirements.
+
+### Key Instructions:
+- This is not about being harsh or generous — it is about being accurate, realistic, and reliable.
+- Every requirement in the job posting must be represented in detailedBreakdown with present/partial/missing status, CV evidence, and missingDetail explanation.
+- MatchSummary must give an honest, factual overview.
+- StrengthsHighlights must come directly from the CV and align with job requirements.
+- ImprovementAreas must list specific missing requirements from the job posting, not vague advice.
+- Return only the JSON object — no extra commentary.`
             },
             {
               role: "user",
@@ -314,7 +419,6 @@ Provide brutal honesty in scoring.`
             }
           ],
           response_format: { type: "json_object" },
-          max_tokens: 800,
         }),
         {
           requestType: "resume_job_scoring",
@@ -325,14 +429,43 @@ Provide brutal honesty in scoring.`
       );
 
       const scoringContent = response.choices?.[0]?.message?.content || '';
+      
       if (!scoringContent || scoringContent.trim().length === 0) {
         console.warn("Model returned empty content for job scoring. Retrying without response_format...");
         const retry = await wrapOpenAIRequest(
           () => openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
-              ...response.usage ? [] : [],
-            ] as any,
+              {
+                role: "system",
+                content: `You are an expert hiring manager and resume evaluator. Your task is to analyze how well a candidate's resume matches a specific job posting and create a scoring profile that reflects the complete truth. Do not inflate scores, do not soften gaps, and do not add compliments. Your evaluation must be a factual mirror of the job description versus the CV, backed only by what is explicitly present in the CV.
+
+Return JSON with this format: { "overallScore": 0-100, "technicalSkillsScore": 0-100, "experienceScore": 0-100, "culturalFitScore": 0-100, "matchSummary": "Brief summary", "strengthsHighlights": ["Strength 1 with evidence"], "improvementAreas": ["Gap 1 with detail"], "detailedBreakdown": { "technicalSkills": [], "experience": [], "educationAndCertifications": [], "culturalFitAndSoftSkills": [] } }`
+              },
+              {
+                role: "user",
+                content: `Score this candidate against the job:
+
+JOB TITLE: ${jobTitle}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+JOB REQUIREMENTS:
+${jobRequirements}
+
+CANDIDATE PROFILE:
+Name: ${resume.name}
+Summary: ${resume.summary}
+Skills: ${resume.skills.join(", ")}
+Experience: ${resume.experience.join(" | ")}
+Education: ${resume.education.join(" | ")}
+Certifications: ${resume.certifications.join(" | ")}
+Languages: ${resume.languages.join(" | ")}`
+              }
+            ],
+            temperature: 0,
+            max_tokens: 1500,
           }),
           {
             requestType: "resume_job_scoring_retry",
@@ -360,6 +493,7 @@ Provide brutal honesty in scoring.`
           matchSummary: result.matchSummary || "No match summary available",
           strengthsHighlights: Array.isArray(result.strengthsHighlights) ? result.strengthsHighlights : [],
           improvementAreas: Array.isArray(result.improvementAreas) ? result.improvementAreas : [],
+          detailedBreakdown: result.detailedBreakdown
         };
       }
       let result: any;
@@ -382,6 +516,7 @@ Provide brutal honesty in scoring.`
         matchSummary: result.matchSummary || "No match summary available",
         strengthsHighlights: Array.isArray(result.strengthsHighlights) ? result.strengthsHighlights : [],
         improvementAreas: Array.isArray(result.improvementAreas) ? result.improvementAreas : [],
+        detailedBreakdown: result.detailedBreakdown
       };
     } catch (error) {
       console.error("Error scoring resume against job:", error);
