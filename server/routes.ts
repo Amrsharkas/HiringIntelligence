@@ -876,6 +876,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         console.log('Fetching all pending applicants for organization');
         applicants = await realApplicantsAirtableService.getAllApplicants();
+
         // Filter to only show applicants for this organization's jobs
         const organizationJobs = await storage.getJobsByOrganization(organization.id);
         const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
@@ -1888,10 +1889,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`✅ PUBLIC: Profile found! Available fields: ${Object.keys(fields).join(', ')}`);
       
+      const profileData = JSON.parse(fields['Profile Data'] || '{}');
+
       // Format the response
       const profile = {
         name: fields.Name || identifier,
         email: fields.email || '',
+        matchScorePercentage: profileData.matchScorePercentage || 0,
+        experiencePercentage: profileData.matchScorePercentage || 0,
+        techSkillsPercentage: profileData.matchScorePercentage || 0,
+        culturalFitPercentage: profileData.matchScorePercentage || 0,
         userProfile: fields['User profile'] || 'No profile information available',
         userId: fields['User ID'] || fields.UserID || '',
         // Include all raw fields for debugging

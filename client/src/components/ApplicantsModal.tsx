@@ -373,7 +373,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                     <div className="text-center">
                       <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                        {selectedApplicant.matchScore ?? 0}%
+                        {selectedUserProfile?.matchScorePercentage ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Overall Match</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -382,7 +382,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        {selectedApplicant.technicalScore ?? 0}%
+                        {selectedUserProfile?.techSkillsPercentage ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Technical Skills</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -391,7 +391,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                        {selectedApplicant.experienceScore ?? 0}%
+                        {selectedUserProfile?.experiencePercentage ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Experience</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -400,7 +400,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
-                        {selectedApplicant.culturalFitScore ?? 0}%
+                       {selectedUserProfile?.culturalFitPercentage ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Cultural Fit</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
