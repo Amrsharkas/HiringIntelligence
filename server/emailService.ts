@@ -233,6 +233,17 @@ ${data.companyName} Hiring Team
     }
   }
 
+  private getExpirationDateTime(): string {
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 2);
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    };
+    return expirationDate.toLocaleDateString('en-US', options);
+  }
+
   async sendInterviewInvitationEmail(params: {
     applicantName: string;
     applicantEmail: string;
@@ -247,23 +258,25 @@ ${data.companyName} Hiring Team
         console.warn('📧 Skipping invitation email: SendGrid not configured');
         return false;
       }
-      const subject = `You're invited to interview for ${params.jobTitle} at ${params.companyName}`;
-      const preview = params.matchScore != null
-        ? `Your score: ${params.matchScore}% - ${params.matchSummary || 'Great fit!'}`
-        : `We'd like to invite you to interview`;
+      const subject = `Your Application with ${params.companyName} – Next Steps`;
 
       const html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 640px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #111827;">Hello ${params.applicantName},</h2>
-          <p>Based on your resume, we believe you could be a strong fit for the <strong>${params.jobTitle}</strong> role at <strong>${params.companyName}</strong>.</p>
-          ${params.matchSummary ? `<p style="color: #4b5563;">${params.matchSummary}</p>` : ''}
+          <h2 style="color: #111827;">Dear ${params.applicantName},</h2>
+          <p>Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the position.</p>
+          <p>As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.</p>
+          <p>Please use the link below to complete your interview:</p>
           <div style="margin: 24px 0; text-align: center;">
-            <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">View and Confirm Interview</a>
+            <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Start Your Interview</a>
           </div>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
           <p style="word-break: break-all; color: #2563eb;">${params.invitationLink}</p>
-          <p>We look forward to speaking with you!</p>
-          <p>— ${params.companyName} Hiring Team</p>
+          <div style="margin-top: 24px; padding: 16px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <p style="color: #92400e; margin: 0; font-weight: 600;">Important:</p>
+            <p style="color: #92400e; margin: 8px 0 0 0;">The link will expire ${this.getExpirationDateTime()} by 11:59 pm.</p>
+          </div>
+          <p>We look forward to learning more about you.</p>
+          <p>Best regards,<br>The Plato Team<br><em>(On behalf of ${params.companyName})</em></p>
         </div>`;
 
       const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
@@ -272,7 +285,23 @@ ${data.companyName} Hiring Team
         to: process.env.TO_EMAIL || params.applicantEmail || 'adam.1.elshanawany@gmail.com',
         from: { email: fromEmail, name: fromName },
         subject,
-        text: preview + `\n\n` + params.invitationLink,
+        text: `Dear ${params.applicantName},
+
+Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the position.
+
+As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.
+
+Please use the link below to complete your interview:
+
+${params.invitationLink}
+
+IMPORTANT: The link will expire ${this.getExpirationDateTime()} by 11:59 pm.
+
+We look forward to learning more about you.
+
+Best regards,
+The Plato Team
+(On behalf of ${params.companyName})`,
         html,
       });
       console.log(`✅ Invitation email sent to ${params.applicantEmail}`);
