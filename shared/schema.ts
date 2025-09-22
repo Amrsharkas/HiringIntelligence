@@ -9,12 +9,12 @@ import {
   integer,
   boolean,
   real,
+  date,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
 
-// Session storage table for Replit Auth
+// Session storage table
 export const sessions = pgTable(
   "sessions",
   {
@@ -25,67 +25,68 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table - Updated for custom authentication
+// Unified users table - combining both project schemas
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   email: varchar("email").unique().notNull(),
-  password: varchar("password").notNull(), // Hashed password
+  password: varchar("password").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
-  username: varchar("username").unique(), // For username-based login
+  username: varchar("username").unique(),
+  displayName: varchar("display_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").notNull().default("employer"),
-  isVerified: boolean("is_verified").notNull().default(false), // Email verification status
-  verificationToken: varchar("verification_token"), // For email verification
-  resetPasswordToken: varchar("reset_password_token"), // For password reset
-  resetPasswordExpires: timestamp("reset_password_expires"), // Reset token expiry
+  role: varchar("role").notNull().default("user"),
+  isVerified: boolean("is_verified").notNull().default(false),
+  verificationToken: varchar("verification_token"),
+  resetPasswordToken: varchar("reset_password_token"),
+  resetPasswordExpires: timestamp("reset_password_expires"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Organizations/Companies
+// Organizations table (from HiringIntelligence)
 export const organizations = pgTable("organizations", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   companyName: varchar("company_name").notNull(),
   industry: varchar("industry"),
   companySize: varchar("company_size"),
   description: text("description"),
-  ownerId: varchar("owner_id").notNull().references(() => users.id),
+  ownerId: varchar("owner_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Organization members
+// Organization members table
 export const organizationMembers = pgTable("organization_members", {
   id: serial("id").primaryKey(),
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  organizationId: varchar("organization_id"),
+  userId: varchar("user_id"),
   role: varchar("role").notNull().default("member"),
   joinedAt: timestamp("joined_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Organization invitations
+// Organization invitations table
 export const organizationInvitations = pgTable("organization_invitations", {
   id: serial("id").primaryKey(),
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  organizationId: varchar("organization_id"),
   email: varchar("email").notNull(),
   role: varchar("role").notNull().default("member"),
   token: varchar("token").notNull().unique(),
-  inviteCode: varchar("invite_code").notNull().unique(), // 6-8 digit human-readable code
-  invitedBy: varchar("invited_by").notNull().references(() => users.id),
-  status: varchar("status").notNull().default("pending"), // pending, accepted, expired
+  inviteCode: varchar("invite_code").notNull().unique(),
+  invitedBy: varchar("invited_by"),
+  status: varchar("status").notNull().default("pending"),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Job postings
+// Unified jobs table - combining both project schemas
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   title: varchar("title").notNull(),
   description: text("description").notNull(),
   requirements: text("requirements").notNull(),
-  location: varchar("location").notNull(),
+  location: varchar("location"),
   salaryRange: varchar("salary_range"),
   salaryMin: integer("salary_min"),
   salaryMax: integer("salary_max"),
@@ -93,26 +94,30 @@ export const jobs = pgTable("jobs", {
   softSkills: text("soft_skills").array(),
   technicalSkills: text("technical_skills").array(),
   employerQuestions: text("employer_questions").array(),
-  aiPrompt: text("ai_prompt"), // New field for AI prompts to get more information from applicants
-  // Score matching threshold: 0-100; used to filter matches
+  aiPrompt: text("ai_prompt"),
   scoreMatchingThreshold: integer("score_matching_threshold").notNull().default(30),
-  // New metadata fields
-  employmentType: varchar("employment_type").notNull(), // Full-time, Part-time, Freelance, Contract, Internship
-  workplaceType: varchar("workplace_type").notNull(), // On-site, Remote, Hybrid
-  seniorityLevel: varchar("seniority_level").notNull(), // Entry-level, Junior, Mid-level, Senior, Lead
-  industry: varchar("industry").notNull(), // Tech, Marketing, Education, Finance, Legal, etc.
-  languagesRequired: jsonb("languages_required"), // Array of {language, fluency} objects
-  certifications: text("certifications"), // Optional required certifications
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
-  createdById: varchar("created_by_id").notNull().references(() => users.id),
+  employmentType: varchar("employment_type").notNull(),
+  workplaceType: varchar("workplace_type").notNull(),
+  seniorityLevel: varchar("seniority_level").notNull(),
+  industry: varchar("industry").notNull(),
+  languagesRequired: jsonb("languages_required"),
+  certifications: text("certifications"),
+  organizationId: varchar("organization_id"),
+  createdById: varchar("created_by_id"),
   is_active: boolean("is_active").notNull().default(true),
   views: integer("views").notNull().default(0),
-  airtableRecordId: varchar("airtable_record_id"), // Store Airtable record ID for deletion
+  company: varchar("company"),
+  experienceLevel: varchar("experience_level"),
+  skills: text("skills").array(),
+  jobType: varchar("job_type"),
+  benefits: text("benefits"),
+  airtableRecordId: varchar("airtable_record_id"),
+  postedAt: timestamp("posted_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Candidates (read-only from this platform perspective)
+// Candidates table (from HiringIntelligence)
 export const candidates = pgTable("candidates", {
   id: serial("id").primaryKey(),
   firstName: varchar("first_name").notNull(),
@@ -127,152 +132,259 @@ export const candidates = pgTable("candidates", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Candidate-Job matches with AI ratings
+// Matches table (from HiringIntelligence)
 export const matches = pgTable("matches", {
   id: serial("id").primaryKey(),
-  jobId: integer("job_id").notNull().references(() => jobs.id),
-  candidateId: integer("candidate_id").notNull().references(() => candidates.id),
-  matchScore: integer("match_score").notNull(), // 1-100 rating
+  jobId: integer("job_id"),
+  candidateId: integer("candidate_id"),
+  matchScore: integer("match_score").notNull(),
   matchReasoning: text("match_reasoning"),
   skillGaps: text("skill_gaps").array(),
-  culturalFit: integer("cultural_fit"), // 1-10 rating
+  culturalFit: integer("cultural_fit"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Candidate application status for specific jobs
+// Candidate applications table (from HiringIntelligence)
 export const candidateApplications = pgTable("candidate_applications", {
   id: serial("id").primaryKey(),
-  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
-  candidateId: varchar("candidate_id").notNull(), // Airtable candidate ID
+  jobId: integer("job_id"),
+  candidateId: varchar("candidate_id"),
   candidateName: varchar("candidate_name").notNull(),
-  status: varchar("status").notNull().default("pending"), // pending, accepted, declined
+  status: varchar("status").notNull().default("pending"),
   matchScore: integer("match_score"),
   matchReasoning: text("match_reasoning"),
-  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedBy: varchar("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Interview scheduling
+// Interviews table (from HiringIntelligence)
 export const interviews = pgTable("interviews", {
   id: serial("id").primaryKey(),
-  applicationId: integer("application_id").notNull().references(() => candidateApplications.id, { onDelete: "cascade" }),
-  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
-  candidateId: varchar("candidate_id").notNull(), // Airtable candidate ID
+  applicationId: integer("application_id"),
+  jobId: integer("job_id"),
+  candidateId: varchar("candidate_id"),
   candidateName: varchar("candidate_name").notNull(),
   scheduledDate: timestamp("scheduled_date"),
   scheduledTime: varchar("scheduled_time"),
-  interviewType: varchar("interview_type").default("video"), // video, phone, in-person
+  interviewType: varchar("interview_type").default("video"),
   meetingLink: text("meeting_link"),
   notes: text("notes"),
-  status: varchar("status").default("scheduled"), // scheduled, completed, cancelled, rescheduled
-  createdBy: varchar("created_by").notNull().references(() => users.id),
+  status: varchar("status").default("scheduled"),
+  createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Relations
-export const usersRelations = relations(users, ({ one, many }) => ({
-  ownedOrganizations: many(organizations),
-  organizationMemberships: many(organizationMembers),
-  sentInvitations: many(organizationInvitations),
-  createdJobs: many(jobs),
-}));
-
-export const organizationsRelations = relations(organizations, ({ one, many }) => ({
-  owner: one(users, { fields: [organizations.ownerId], references: [users.id] }),
-  members: many(organizationMembers),
-  invitations: many(organizationInvitations),
-  jobs: many(jobs),
-}));
-
-export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
-  organization: one(organizations, { fields: [organizationMembers.organizationId], references: [organizations.id] }),
-  user: one(users, { fields: [organizationMembers.userId], references: [users.id] }),
-}));
-
-export const organizationInvitationsRelations = relations(organizationInvitations, ({ one }) => ({
-  organization: one(organizations, { fields: [organizationInvitations.organizationId], references: [organizations.id] }),
-  invitedByUser: one(users, { fields: [organizationInvitations.invitedBy], references: [users.id] }),
-}));
-
-export const jobsRelations = relations(jobs, ({ one, many }) => ({
-  organization: one(organizations, { fields: [jobs.organizationId], references: [organizations.id] }),
-  createdBy: one(users, { fields: [jobs.createdById], references: [users.id] }),
-  matches: many(matches),
-}));
-
-export const candidatesRelations = relations(candidates, ({ many }) => ({
-  matches: many(matches),
-}));
-
-export const matchesRelations = relations(matches, ({ one }) => ({
-  job: one(jobs, { fields: [matches.jobId], references: [jobs.id] }),
-  candidate: one(candidates, { fields: [matches.candidateId], references: [candidates.id] }),
-}));
-
-export const candidateApplicationsRelations = relations(candidateApplications, ({ one, many }) => ({
-  job: one(jobs, { fields: [candidateApplications.jobId], references: [jobs.id] }),
-  reviewer: one(users, { fields: [candidateApplications.reviewedBy], references: [users.id] }),
-  interviews: many(interviews),
-}));
-
-export const interviewsRelations = relations(interviews, ({ one }) => ({
-  application: one(candidateApplications, { fields: [interviews.applicationId], references: [candidateApplications.id] }),
-  job: one(jobs, { fields: [interviews.jobId], references: [jobs.id] }),
-  createdBy: one(users, { fields: [interviews.createdBy], references: [users.id] }),
-}));
-
-// Accepted applicants - Local storage for accepted candidates
-export const acceptedApplicants = pgTable("accepted_applicants", {
+// Applicant profiles table (from ApplicantTracker)
+export const applicantProfiles = pgTable("applicant_profiles", {
   id: serial("id").primaryKey(),
-  candidateId: varchar("candidate_id").notNull(), // User ID from Airtable
-  candidateName: varchar("candidate_name").notNull(),
-  candidateEmail: varchar("candidate_email"),
-  jobId: varchar("job_id").notNull(),
-  jobTitle: varchar("job_title").notNull(),
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
-  acceptedBy: varchar("accepted_by").notNull().references(() => users.id),
+  userId: varchar("user_id"),
+
+  // General Information
+  name: varchar("name"),
+  birthdate: date("birthdate"),
+  gender: varchar("gender"),
+  nationality: varchar("nationality"),
+  maritalStatus: varchar("marital_status"),
+  dependents: integer("dependents"),
+  militaryStatus: varchar("military_status"),
+
+  // Location & Address
+  country: varchar("country"),
+  city: varchar("city"),
+  address: varchar("address"),
+  zipCode: varchar("zip_code"),
+  willingToRelocate: boolean("willing_to_relocate"),
+
+  // Contact Information
+  phone: varchar("phone"),
+  email: varchar("email"),
+
+  // Emergency Contact
+  emergencyContactName: varchar("emergency_contact_name"),
+  emergencyContactRelationship: varchar("emergency_contact_relationship"),
+  emergencyContactPhone: varchar("emergency_contact_phone"),
+
+  // Government ID
+  idType: varchar("id_type"),
+  idNumber: varchar("id_number"),
+  idExpiryDate: varchar("id_expiry_date"),
+  idIssuingAuthority: varchar("id_issuing_authority"),
+  idVerified: boolean("id_verified").default(false),
+
+  // Career Interests
+  careerLevel: varchar("career_level"),
+  jobTypes: text("job_types").array(),
+  workplaceSettings: varchar("workplace_settings"),
+  jobTitles: text("job_titles").array(),
+  jobCategories: text("job_categories").array(),
+  minimumSalary: integer("minimum_salary"),
+  hideSalaryFromCompanies: boolean("hide_salary_from_companies").default(false),
+  preferredWorkCountries: text("preferred_work_countries").array(),
+  jobSearchStatus: varchar("job_search_status"),
+
+  // Work Eligibility
+  workAuthorization: varchar("work_authorization"),
+  visaStatus: varchar("visa_status"),
+  visaExpiryDate: varchar("visa_expiry_date"),
+  sponsorshipRequired: boolean("sponsorship_required"),
+  availabilityDate: varchar("availability_date"),
+  noticePeriod: varchar("notice_period"),
+  travelWillingness: varchar("travel_willingness"),
+
+  // Experience
+  totalYearsOfExperience: integer("total_years_of_experience"),
+  workExperiences: jsonb("work_experiences"),
+  languages: jsonb("languages"),
+
+  // Skills
+  skillsData: jsonb("skills_data"),
+
+  // Education
+  currentEducationLevel: varchar("current_education_level"),
+  degrees: jsonb("degrees"),
+  highSchools: jsonb("high_schools"),
+  certifications: jsonb("certifications"),
+  trainingCourses: jsonb("training_courses"),
+
+  // Online Presence
+  linkedinUrl: varchar("linkedin_url"),
+  facebookUrl: varchar("facebook_url"),
+  twitterUrl: varchar("twitter_url"),
+  instagramUrl: varchar("instagram_url"),
+  githubUrl: varchar("github_url"),
+  youtubeUrl: varchar("youtube_url"),
+  websiteUrl: varchar("website_url"),
+  otherUrls: text("other_urls").array(),
+
+  // Achievements
+  achievements: text("achievements"),
+
+  // Legacy fields
+  age: integer("age"),
+  education: text("education"),
+  university: varchar("university"),
+  degree: varchar("degree"),
+  location: varchar("location"),
+  currentRole: varchar("current_role"),
+  company: varchar("company"),
+  yearsOfExperience: integer("years_of_experience"),
+  resumeUrl: varchar("resume_url"),
+  resumeContent: text("resume_content"),
+  summary: text("summary"),
+  skillsList: text("skills_list").array(),
+
+  // AI profiles
+  aiProfile: jsonb("ai_profile"),
+  aiProfileGenerated: boolean("ai_profile_generated").default(false),
+  honestProfile: jsonb("honest_profile"),
+  honestProfileGenerated: boolean("honest_profile_generated").default(false),
+  profileGeneratedAt: timestamp("profile_generated_at"),
+  personalInterviewCompleted: boolean("personal_interview_completed").default(false),
+  professionalInterviewCompleted: boolean("professional_interview_completed").default(false),
+  technicalInterviewCompleted: boolean("technical_interview_completed").default(false),
+  completionPercentage: integer("completion_percentage").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Job matches table (from ApplicantTracker)
+export const jobMatches = pgTable("job_matches", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
+  jobId: integer("job_id"),
+  matchScore: real("match_score").notNull(),
+  matchReasons: text("match_reasons").array(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Real interviews table for scheduling
+// Applications table (from ApplicantTracker)
+export const applications = pgTable("applications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
+  jobId: integer("job_id"),
+  status: varchar("status").default("applied"),
+  appliedAt: timestamp("applied_at").defaultNow(),
+  coverLetter: text("cover_letter"),
+  notes: text("notes"),
+});
+
+// Resume uploads table (from ApplicantTracker)
+export const resumeUploads = pgTable("resume_uploads", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
+  filename: varchar("filename").notNull(),
+  originalName: varchar("original_name").notNull(),
+  filePath: varchar("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: varchar("mime_type").notNull(),
+  extractedText: text("extracted_text"),
+  aiAnalysis: jsonb("ai_analysis"),
+  isActive: boolean("is_active").default(true),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+// Interview sessions table (from ApplicantTracker)
+export const interviewSessions = pgTable("interview_sessions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
+  interviewType: varchar("interview_type").notNull(),
+  sessionData: jsonb("session_data").notNull(),
+  isCompleted: boolean("is_completed").default(false),
+  generatedProfile: jsonb("generated_profile"),
+  resumeContext: jsonb("resume_context"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Additional tables from HiringIntelligence
+export const acceptedApplicants = pgTable("accepted_applicants", {
+  id: serial("id").primaryKey(),
+  candidateId: varchar("candidate_id"),
+  candidateName: varchar("candidate_name"),
+  candidateEmail: varchar("candidate_email"),
+  jobId: varchar("job_id"),
+  jobTitle: varchar("job_title"),
+  organizationId: varchar("organization_id"),
+  acceptedBy: varchar("accepted_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const realInterviews = pgTable("real_interviews", {
   id: varchar("id").primaryKey().notNull(),
   candidateName: varchar("candidate_name").notNull(),
   candidateEmail: varchar("candidate_email"),
-  candidateId: varchar("candidate_id").notNull(),
-  jobId: varchar("job_id").notNull(),
-  jobTitle: varchar("job_title").notNull(),
-  scheduledDate: varchar("scheduled_date").notNull(),
-  scheduledTime: varchar("scheduled_time").notNull(),
-  timeZone: varchar("time_zone").notNull().default('UTC'),
-  interviewType: varchar("interview_type").notNull().default('video'),
+  candidateId: varchar("candidate_id"),
+  jobId: varchar("job_id"),
+  jobTitle: varchar("job_title"),
+  scheduledDate: varchar("scheduled_date"),
+  scheduledTime: varchar("scheduled_time"),
+  timeZone: varchar("time_zone").default('UTC'),
+  interviewType: varchar("interview_type").default('video'),
   meetingLink: varchar("meeting_link"),
-  interviewer: varchar("interviewer").notNull(),
-  status: varchar("status").notNull().default('scheduled'),
+  interviewer: varchar("interviewer"),
+  status: varchar("status").default('scheduled'),
   notes: text("notes"),
-  organizationId: varchar("organization_id").notNull(),
+  organizationId: varchar("organization_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Scored applicants tracking table - prevents score recalculation
 export const scoredApplicants = pgTable("scored_applicants", {
   id: serial("id").primaryKey(),
-  applicantId: varchar("applicant_id").notNull().unique(), // Airtable record ID
-  matchScore: integer("match_score").notNull(),
+  applicantId: varchar("applicant_id").unique(),
+  matchScore: integer("match_score"),
   matchSummary: text("match_summary"),
   technicalSkillsScore: integer("technical_skills_score"),
   experienceScore: integer("experience_score"),
   culturalFitScore: integer("cultural_fit_score"),
-  jobId: varchar("job_id").notNull(),
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  jobId: varchar("job_id"),
+  organizationId: varchar("organization_id"),
   scoredAt: timestamp("scored_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Resume profiles table for AI-processed resumes
 export const resumeProfiles = pgTable("resume_profiles", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar("name").notNull(),
@@ -285,21 +397,20 @@ export const resumeProfiles = pgTable("resume_profiles", {
   certifications: jsonb("certifications").$type<string[]>(),
   languages: jsonb("languages").$type<string[]>(),
   resumeText: text("resume_text").notNull(),
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
-  createdBy: varchar("created_by").notNull().references(() => users.id),
+  organizationId: varchar("organization_id"),
+  createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Resume job scores table for matching profiles against jobs
 export const resumeJobScores = pgTable("resume_job_scores", {
   id: serial("id").primaryKey(),
-  profileId: varchar("profile_id").notNull().references(() => resumeProfiles.id),
-  jobId: integer("job_id").notNull().references(() => jobs.id),
-  overallScore: integer("overall_score").notNull(),
-  technicalSkillsScore: integer("technical_skills_score").notNull(),
-  experienceScore: integer("experience_score").notNull(),
-  culturalFitScore: integer("cultural_fit_score").notNull(),
+  profileId: varchar("profile_id"),
+  jobId: integer("job_id"),
+  overallScore: integer("overall_score"),
+  technicalSkillsScore: integer("technical_skills_score"),
+  experienceScore: integer("experience_score"),
+  culturalFitScore: integer("cultural_fit_score"),
   matchSummary: text("match_summary"),
   strengthsHighlights: jsonb("strengths_highlights").$type<string[]>(),
   improvementAreas: jsonb("improvement_areas").$type<string[]>(),
@@ -307,12 +418,40 @@ export const resumeJobScores = pgTable("resume_job_scores", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Schemas for validation
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
+export const shortlistedApplicants = pgTable("shortlisted_applicants", {
+  id: text("id").primaryKey().notNull(),
+  employerId: text("employer_id"),
+  applicantId: text("applicant_id"),
+  applicantName: text("applicant_name"),
+  jobTitle: text("job_title"),
+  jobId: text("job_id"),
+  note: text("note"),
+  dateShortlisted: timestamp("date_shortlisted").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
-// Auth schemas
+// OpenAI requests table (common to both)
+export const openaiRequests = pgTable("openai_requests", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  requestType: varchar("request_type").notNull(),
+  model: varchar("model").notNull(),
+  promptTokens: integer("prompt_tokens").notNull().default(0),
+  completionTokens: integer("completion_tokens").notNull().default(0),
+  totalTokens: integer("total_tokens").notNull().default(0),
+  cost: real("cost").notNull().default(0),
+  requestData: jsonb("request_data"),
+  responseData: jsonb("response_data"),
+  status: varchar("status").notNull().default("success"),
+  errorMessage: text("error_message"),
+  userId: varchar("user_id"),
+  organizationId: varchar("organization_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -336,23 +475,32 @@ export const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
 });
 
+// Type definitions
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 
-// Shortlisted applicants table
-export const shortlistedApplicants = pgTable("shortlisted_applicants", {
-  id: text("id").primaryKey().notNull(),
-  employerId: text("employer_id").notNull(),
-  applicantId: text("applicant_id").notNull(),
-  applicantName: text("applicant_name").notNull(),
-  jobTitle: text("job_title").notNull(),
-  jobId: text("job_id").notNull(),
-  note: text("note"),
-  dateShortlisted: timestamp("date_shortlisted").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export type Organization = typeof organizations.$inferSelect;
+export type Job = typeof jobs.$inferSelect;
+export type Candidate = typeof candidates.$inferSelect;
+export type Match = typeof matches.$inferSelect;
+export type ApplicantProfile = typeof applicantProfiles.$inferSelect;
+export type JobMatch = typeof jobMatches.$inferSelect;
+export type Application = typeof applications.$inferSelect;
+export type ResumeUpload = typeof resumeUploads.$inferSelect;
+export type InterviewSession = typeof interviewSessions.$inferSelect;
+export type OpenAIRequest = typeof openaiRequests.$inferSelect;
 
+// Additional type definitions for HiringIntelligence compatibility
+export type UpsertUser = InsertUser;
+export type InsertOrganization = typeof organizations.$inferInsert;
+export type InsertJob = typeof jobs.$inferInsert;
+export type OrganizationMember = typeof organizationMembers.$inferSelect;
+export type CandidateApplication = typeof candidateApplications.$inferSelect;
+export type InsertCandidateApplication = typeof candidateApplications.$inferInsert;
+export type Interview = typeof interviews.$inferSelect;
+export type InsertInterview = typeof interviews.$inferInsert;
 export type ShortlistedApplicant = typeof shortlistedApplicants.$inferSelect;
 export type InsertShortlistedApplicant = typeof shortlistedApplicants.$inferInsert;
 export type AcceptedApplicant = typeof acceptedApplicants.$inferSelect;
@@ -365,13 +513,15 @@ export type ResumeProfile = typeof resumeProfiles.$inferSelect;
 export type InsertResumeProfile = typeof resumeProfiles.$inferInsert;
 export type ResumeJobScore = typeof resumeJobScores.$inferSelect;
 export type InsertResumeJobScore = typeof resumeJobScores.$inferInsert;
+export type InsertOpenAIRequest = typeof openaiRequests.$inferInsert;
+export type OrganizationInvitation = typeof organizationInvitations.$inferSelect;
+export type InsertOrganizationInvitation = typeof organizationInvitations.$inferInsert;
 
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
-export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 
 export const insertOrganizationInvitationSchema = createInsertSchema(organizationInvitations).omit({
   id: true,
@@ -379,9 +529,6 @@ export const insertOrganizationInvitationSchema = createInsertSchema(organizatio
   status: true,
   createdAt: true,
 });
-export type InsertOrganizationInvitation = z.infer<typeof insertOrganizationInvitationSchema>;
-export type OrganizationInvitation = typeof organizationInvitations.$inferSelect;
-export type Organization = typeof organizations.$inferSelect;
 
 export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
@@ -389,36 +536,3 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   updatedAt: true,
   views: true,
 });
-export type InsertJob = z.infer<typeof insertJobSchema>;
-export type Job = typeof jobs.$inferSelect;
-
-export type Candidate = typeof candidates.$inferSelect;
-export type Match = typeof matches.$inferSelect;
-export type OrganizationMember = typeof organizationMembers.$inferSelect;
-export type CandidateApplication = typeof candidateApplications.$inferSelect;
-export type InsertCandidateApplication = typeof candidateApplications.$inferInsert;
-export type Interview = typeof interviews.$inferSelect;
-export type InsertInterview = typeof interviews.$inferInsert;
-
-// OpenAI API requests tracking table for cost and token usage
-export const openaiRequests = pgTable("openai_requests", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  requestType: varchar("request_type").notNull(), // Type of request (e.g., 'scoring', 'analysis', 'chat')
-  model: varchar("model").notNull(), // OpenAI model used (e.g., 'gpt-4', 'gpt-3.5-turbo')
-  promptTokens: integer("prompt_tokens").notNull().default(0),
-  completionTokens: integer("completion_tokens").notNull().default(0),
-  totalTokens: integer("total_tokens").notNull().default(0),
-  cost: real("cost").notNull().default(0), // Estimated cost in USD
-  requestData: jsonb("request_data"), // Full request data as JSON
-  responseData: jsonb("response_data"), // Full response data as JSON
-  status: varchar("status").notNull().default("success"), // success, error, pending
-  errorMessage: text("error_message"), // Error message if request failed
-  userId: varchar("user_id").references(() => users.id), // User who made the request
-  organizationId: varchar("organization_id").references(() => organizations.id), // Organization context
-  metadata: jsonb("metadata"), // Additional metadata as JSON
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export type OpenAIRequest = typeof openaiRequests.$inferSelect;
-export type InsertOpenAIRequest = typeof openaiRequests.$inferInsert;
