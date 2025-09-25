@@ -7,25 +7,11 @@ import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
 import { airtableMatchingService } from "./airtableMatchingService";
-import { airtableService, AirtableService } from "./airtableService";
+import { airtableService } from "./airtableService";
 import { jobPostingsAirtableService } from "./jobPostingsAirtableService";
 import { fullCleanup } from "./cleanupCandidates";
 import { interviewQuestionsService } from "./interviewQuestionsService";
-import { jobMatchesService } from "./jobMatchesAirtableService";
 import { resumeProcessingService } from "./resumeProcessingService";
-
-import { nanoid } from "nanoid";
-
-// Utility function to generate human-readable invite codes
-function generateInviteCode(): string {
-  const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'; // Exclude confusing characters like O, 0, I, L
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-import { insertOrganizationInvitationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -123,100 +109,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching team:", error);
       res.status(500).json({ message: "Failed to fetch team" });
-    }
-  });
-
-  // Invitation routes
-  app.post('/api/organizations/invite', requireAuth, async (req: any, res) => {
-    try {
-      console.log(`🚀 Invitation request received:`, req.body);
-      const userId = req.user.id;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      // Check if user is owner/admin
-      const members = await storage.getOrganizationMembers(organization.id);
-      const currentUserMember = members.find(m => m.userId === userId);
-      
-      if (!currentUserMember || (currentUserMember.role !== 'owner' && currentUserMember.role !== 'admin')) {
-        return res.status(403).json({ message: "Only organization owners and admins can send invitations" });
-      }
-
-      const { email, role = 'member' } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      // Generate unique invitation token and invite code
-      const token = nanoid(32);
-      const inviteCode = generateInviteCode();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // Expires in 7 days
-
-      // Create invitation record with invite code
-      const invitation = await storage.createInvitation({
-        organizationId: organization.id,
-        email,
-        role,
-        invitedBy: userId,
-        expiresAt,
-        token,
-        inviteCode
-      });
-
-      // Get inviter info for email
-      const inviter = await storage.getUser(userId);
-      const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() : 'Team Admin';
-
-      // Send magic link invitation email
-      const magicLink = `https://platohiring.com/invite/accept?token=${token}`;
-      console.log(`🔗 Sending magic link invitation email to ${email}...`);
-      console.log(`📧 Magic link: ${magicLink}`);
-      
-      // TODO: Re-implement magic link invitation email
-      // const emailSent = await sendMagicLinkInvitationEmail({
-      //   to: email,
-      //   organizationName: organization.companyName,
-      //   inviterName,
-      //   invitationToken: token,
-      //   organizationId: organization.id,
-      //   role
-      // });
-      const emailSent = true; // Temporarily disable invitation emails
-
-      if (!emailSent) {
-        console.error(`❌ Failed to send invitation email to ${email}`);
-        // Still create the invitation record even if email fails, user can resend later
-        console.log(`⚠️ Invitation record created but email failed for ${email}`);
-      } else {
-        console.log(`✅ Invitation email sent successfully to ${email}`);
-        console.log(`🔗 Testing Magic Link: ${magicLink}`);
-      }
-
-      res.json({
-        success: true,
-        message: "Magic link invitation sent successfully",
-        invitation: {
-          id: invitation.id,
-          email: invitation.email,
-          role: invitation.role,
-          status: invitation.status,
-          expiresAt: invitation.expiresAt,
-        },
-        // Include for testing/debugging
-        debugInfo: {
-          token: token,
-          magicLink: `https://platohiring.com/invite/accept?token=${token}`
-        }
-      });
-
-    } catch (error) {
-      console.error("Error sending invitation:", error);
-      res.status(500).json({ message: "Failed to send invitation" });
     }
   });
 
@@ -505,39 +397,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const org = await storage.getOrganizationByUser(userId);
       const companyName = org?.companyName || 'Unknown Company';
       
-      // Instantly sync new job to Airtable and store record ID
-      try {
-        // Build comprehensive salary information
-        let salaryInfo = job.salaryRange || '';
-        if (job.salaryMin && job.salaryMax) {
-          const currency = job.salaryRange?.includes('EGP') ? 'EGP' : 'USD';
-          salaryInfo = `${job.salaryMin}-${job.salaryMax} ${currency}`;
-          if (job.salaryNegotiable) salaryInfo += ' (Negotiable)';
-        }
-        
-        const airtableRecordId = await jobPostingsAirtableService.addJobToAirtable({
-          jobId: job.id.toString(),
-          title: job.title,
-          description: `${job.description}\n\nRequirements:\n${job.requirements}`,
-          location: job.location,
-          salary: salaryInfo,
-          company: companyName,
-          employerQuestions: job.employerQuestions || [],
-          aiPrompt: job.aiPrompt || ''
-        });
-        
-        // Update job with Airtable record ID for future deletion
-        await storage.updateJob(job.id, { airtableRecordId });
-        console.log(`✅ Instantly synced new job ${job.id} to Airtable with record ID: ${airtableRecordId}`);
-      } catch (syncError) {
-        console.error('Error syncing new job to Airtable:', syncError);
-        // Don't fail the creation if sync fails
-      }
-      
       // Auto-fill job applications table with AI-enhanced information
-      const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
-      jobApplicationsAutoFill.autoFillJobApplication(job, companyName)
-        .catch(error => console.error("Error auto-filling job application:", error));
+      // const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
+      // jobApplicationsAutoFill.autoFillJobApplication(job, companyName)
+      //   .catch(error => console.error("Error auto-filling job application:", error));
       
       res.json(job);
     } catch (error) {
@@ -587,32 +450,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const job = await storage.updateJob(jobId, jobData);
       
-      // Instant Airtable sync after job update and store record ID
-      try {
-        const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
-        const organization = await storage.getOrganizationByUserId(req.user.id);
-        
-        const airtableRecordId = await jobPostingsAirtableService.updateJobInAirtable(jobId.toString(), {
-          title: job.title,
-          description: `${job.description}\n\nRequirements:\n${job.requirements}`,
-          location: job.location,
-          salary: job.salaryRange || '',
-          company: organization?.companyName || 'Unknown Company',
-          employerQuestions: job.employerQuestions || [],
-          aiPrompt: job.aiPrompt || ''
-        });
-        
-        // Update job with Airtable record ID if not already stored
-        if (!job.airtableRecordId && airtableRecordId) {
-          await storage.updateJob(jobId, { airtableRecordId });
-        }
-        
-        console.log(`✅ Instantly synced job update ${jobId} to Airtable with record ID: ${airtableRecordId}`);
-      } catch (syncError) {
-        console.error('Error syncing job update to Airtable:', syncError);
-        // Don't fail the update if sync fails
-      }
-      
       res.json(job);
     } catch (error) {
       console.error("Error updating job:", error);
@@ -653,60 +490,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteJob(jobId);
       console.log(`✅ Job ${jobId} marked as inactive in database`);
       
-      // Delete from Airtable using proper record ID
-      try {
-        console.log(`🚀 Starting Airtable cleanup for job ${jobId}...`);
-        
-        // Delete from platojobpostings table using record ID if available
-        if (job.airtableRecordId) {
-          console.log(`🎯 Using stored Airtable record ID: ${job.airtableRecordId}`);
-          const { jobPostingsAirtableService } = await import('./jobPostingsAirtableService');
-          await jobPostingsAirtableService.deleteJobByRecordId(job.airtableRecordId);
-          console.log(`✅ Deleted job posting from Airtable using record ID ${job.airtableRecordId}`);
-        } else {
-          console.log(`⚠️  No Airtable record ID stored for job ${jobId}, skipping Airtable deletion`);
-        }
-        
-        // Delete related records from other tables using Job ID (these use different deletion methods)
-        const { applicantsAirtableService } = await import('./applicantsAirtableService');
-        const { airtableService } = await import('./airtableService');
-        
-        // Delete applicants for this job
-        await applicantsAirtableService.deleteApplicantsByJobId(jobId);
-        console.log(`✅ Deleted applicants for job ${jobId} from Airtable`);
-        
-        // Delete job matches (platojobmatches table)  
-        await airtableService.deleteJobMatchesByJobId(jobId);
-        console.log(`✅ Deleted job matches for job ${jobId} from Airtable`);
-        
-        console.log(`🎉 Successfully deleted job ${jobId} from all Airtable tables`);
-      } catch (airtableError) {
-        console.error(`❌ Error deleting job ${jobId} from Airtable tables:`, airtableError);
-        // Show toast warning to user but don't fail the deletion
-        console.warn(`⚠️  Job ${jobId} deleted from database but Airtable cleanup failed. This may leave orphaned records.`);
-      }
-      
       res.json({ message: "Job deleted successfully" });
     } catch (error) {
       console.error("❌ Error deleting job:", error);
       res.status(500).json({ message: "Failed to delete job posting" });
-    }
-  });
-
-
-
-  // Job postings sync to Airtable
-  app.post('/api/job-postings/sync-to-airtable', requireAuth, async (req: any, res) => {
-    try {
-      const result = await jobPostingsAirtableService.syncJobPostingsToAirtable();
-      res.json({ 
-        message: "Job postings sync completed", 
-        synced: result.synced,
-        total: result.total 
-      });
-    } catch (error) {
-      console.error("Error syncing job postings to Airtable:", error);
-      res.status(500).json({ message: "Failed to sync job postings to Airtable" });
     }
   });
 
@@ -1747,61 +1534,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Test email error:', error);
       res.status(500).json({ message: 'Test email failed', error: error.message });
-    }
-  });
-
-
-
-  // New invite code team invitation route
-  app.post("/api/invitations/invite-code", requireAuth, async (req: any, res) => {
-    try {
-      const { email, role } = req.body;
-      const userId = req.user.id;
-      
-      // Get user's organization
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(400).json({ message: "You must be part of an organization to invite members" });
-      }
-      
-      // Check if user is owner or admin
-      const userMember = await storage.getOrganizationMember(userId, organization.id);
-      if (!userMember || (userMember.role !== 'owner' && userMember.role !== 'admin')) {
-        return res.status(403).json({ message: "Only organization owners and admins can invite members" });
-      }
-      
-      // Generate invite code
-      const inviteCode = generateInviteCode();
-      
-      // Create invitation record
-      const invitation = await storage.createInvitation({
-        organizationId: organization.id,
-        email,
-        role: role || 'member',
-        inviteCode,
-        status: 'pending',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      });
-      
-      // TODO: Re-implement invite code email
-      // await sendInviteCodeEmail(email, organization.companyName, inviteCode, role, organization.id);
-      
-      res.json({ 
-        message: "Invitation sent successfully", 
-        inviteCode,
-        invitation: {
-          id: invitation.id,
-          email: invitation.email,
-          role: invitation.role,
-          status: invitation.status,
-          expiresAt: invitation.expiresAt
-        }
-      });
-    } catch (error) {
-      console.error("Error sending invite code invitation:", error);
-      res.status(500).json({ message: "Failed to send invitation" });
     }
   });
 
@@ -3031,41 +2763,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Test Airtable connection and field structure
-  app.get('/api/test-airtable', async (req, res) => {
-    try {
-      const candidates = await airtableService.getAllCandidateProfiles('app3tA4UpKQCT2s17', 'Table 1');
-      
-      if (candidates.length > 0) {
-        const firstCandidate = candidates[0];
-        console.log('📋 Sample candidate structure:', firstCandidate);
-        console.log('📋 Raw Airtable fields:', firstCandidate.rawData);
-        
-        res.json({
-          message: 'Airtable connection successful',
-          candidateCount: candidates.length,
-          sampleCandidate: {
-            id: firstCandidate.id,
-            name: firstCandidate.name,
-            userId: firstCandidate.userId,
-            availableFields: Object.keys(firstCandidate.rawData)
-          }
-        });
-      } else {
-        res.json({
-          message: 'Airtable connected but no candidates found',
-          candidateCount: 0
-        });
-      }
-    } catch (error) {
-      console.error('❌ Airtable test failed:', error);
-      res.status(500).json({
-        message: 'Airtable connection failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-
   // Cleanup route for testing - removes all candidates but keeps job postings
   app.post('/api/cleanup-candidates', requireAuth, async (req: any, res) => {
     try {
@@ -4270,8 +3967,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Resume Processing API Routes
-  
   // Get all resume profiles for organization
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {
@@ -4453,85 +4148,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         message: "Failed to process resume", 
         error: error instanceof Error ? error.message : "Unknown error" 
       });
-    }
-  });
-
-  // Process bulk resumes
-  app.post('/api/resume-profiles/process-bulk', requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      const { resumesText } = req.body;
-      
-      if (!resumesText || resumesText.trim().length < 100) {
-        return res.status(400).json({ message: "Bulk resumes text is required" });
-      }
-
-      // Process bulk resumes with AI
-      const processedResumes = await resumeProcessingService.processBulkResumes(resumesText);
-      
-      if (processedResumes.length === 0) {
-        return res.status(400).json({ message: "No valid resumes found in the provided text" });
-      }
-
-      const savedProfiles = [];
-      const jobs = await storage.getJobsByOrganization(organization.id);
-      
-      // Process each resume
-      for (const resume of processedResumes) {
-        try {
-          // Generate unique resume text for each (in real app you'd have the actual text)
-          const resumeText = `Resume for ${resume.name}\n\nSummary: ${resume.summary}\n\nSkills: ${resume.skills.join(', ')}\n\nExperience: ${resume.experience.join('\n')}\n\nEducation: ${resume.education.join('\n')}`;
-          
-          const profileData = {
-            ...resume,
-            resumeText,
-            organizationId: organization.id,
-            createdBy: userId,
-          };
-          
-          const savedProfile = await storage.createResumeProfile(profileData);
-          savedProfiles.push(savedProfile);
-          
-          // Score against all organization jobs
-          for (const job of jobs) {
-            try {
-              const jobScore = await resumeProcessingService.scoreResumeAgainstJob(
-                resume,
-                job.title,
-                job.description,
-                job.requirements || job.description
-              );
-              
-              await storage.createJobScore({
-                profileId: savedProfile.id,
-                jobId: job.id,
-                ...jobScore,
-              });
-            } catch (error) {
-              console.error(`Error scoring resume ${savedProfile.id} against job ${job.id}:`, error);
-              // Continue with other jobs/resumes
-            }
-          }
-        } catch (error) {
-          console.error(`Error processing individual resume for ${resume.name}:`, error);
-          // Continue with other resumes
-        }
-      }
-      
-      res.json({ 
-        success: true, 
-        processedCount: savedProfiles.length,
-        profiles: savedProfiles 
-      });
-    } catch (error) {
-      console.error("Error processing bulk resumes:", error);
-      res.status(500).json({ message: "Failed to process bulk resumes" });
     }
   });
 
