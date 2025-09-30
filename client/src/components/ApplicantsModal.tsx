@@ -160,6 +160,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   // Function to fetch and display user profile - OPTIMIZED FOR SPEED
   const handleViewProfile = async (applicant: Applicant) => {
     try {
+      console.log({
+        applicant
+      });
+      
       // Show modal immediately with applicant data
       setSelectedApplicant(applicant);
       
@@ -167,7 +171,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
       
       // Fetch profile in background without blocking modal display
       try {
-        const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.name)}`);
+        
+        const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.applicantUserId)}`);
         if (response.ok) {
           const userProfile = await response.json();
           console.log('✅ User profile fetched successfully:', userProfile);

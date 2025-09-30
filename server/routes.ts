@@ -3,12 +3,14 @@ import { createServer, type Server } from "http";
 import fetch from "node-fetch";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
-import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
+import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
 import { localDatabaseService } from "./localDatabaseService";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -602,6 +604,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort by match score (highest first)
       applicants.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
 
+      applicants = applicants.map(app => ({
+        ...app,
+        name: app.applicantName,
+        email: app.applicantEmail,
+      }))
+
       res.json(applicants);
     } catch (error) {
       console.error("Error fetching real applicants:", error);
@@ -1190,67 +1198,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  const formatProfileForDisplay = (profileData: any): string => {
+    if (!profileData) {
+      return 'No profile data available';
+    }
+
+    const profile = typeof profileData === 'string' ? JSON.parse(profileData) : profileData;
+    
+    // Check if this is a brutally honest profile with the new structure
+    return formatBrutallyHonestProfile(profile.brutallyHonestProfile);
+  }
+
+  const formatBrutallyHonestProfile = (profile: any): string =>  {
+    let formatted = '';
+
+    // Header
+    formatted += '# 🔍 **BRUTALLY HONEST CANDIDATE ASSESSMENT**\n\n';
+
+    // 1. Candidate Summary (Max 3-5 lines)
+    if (profile.candidateSummary) {
+      formatted += `## 📋 **CANDIDATE SUMMARY**\n${profile.candidateSummary}\n\n`;
+    }
+
+    // 2. Key Strengths (Every strength with a "but")
+    if (profile.keyStrengths && Array.isArray(profile.keyStrengths) && profile.keyStrengths.length > 0) {
+      formatted += `## 💪 **KEY STRENGTHS**\n`;
+      profile.keyStrengths.forEach((strength: any) => {
+        if (typeof strength === 'object' && strength.strength && strength.butCritique) {
+          formatted += `• **${strength.strength}** - but ${strength.butCritique}\n`;
+        } else if (typeof strength === 'string') {
+          formatted += `• ${strength}\n`;
+        }
+      });
+      formatted += '\n';
+    }
+
+    // 3. Weaknesses and Gaps
+    if (profile.weaknessesAndGaps && Array.isArray(profile.weaknessesAndGaps) && profile.weaknessesAndGaps.length > 0) {
+      formatted += `## ⚠️ **WEAKNESSES AND GAPS**\n`;
+      profile.weaknessesAndGaps.forEach((weakness: string) => {
+        formatted += `• ${weakness}\n`;
+      });
+      formatted += '\n';
+    }
+
+    // 4. Soft Skills Review
+    if (profile.softSkillsReview) {
+      const soft = profile.softSkillsReview;
+      formatted += `## 🗣️ **SOFT SKILLS REVIEW**\n`;
+      if (soft.communicationClarity) {
+        formatted += `• **Communication Clarity:** ${soft.communicationClarity}\n`;
+      }
+      if (soft.evidenceQuality) {
+        formatted += `• **Evidence Quality:** ${soft.evidenceQuality}\n`;
+      }
+      if (soft.emotionalIntelligence) {
+        formatted += `• **Emotional Intelligence:** ${soft.emotionalIntelligence}\n`;
+      }
+      if (soft.overallTone) {
+        formatted += `• **Overall Tone:** ${soft.overallTone}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // 5. Technical Knowledge
+    if (profile.technicalKnowledge) {
+      const tech = profile.technicalKnowledge;
+      formatted += `## 🔧 **TECHNICAL KNOWLEDGE**\n`;
+      if (tech.claimedVsActual) {
+        formatted += `• **Claimed vs Actual:** ${tech.claimedVsActual}\n`;
+      }
+      if (tech.gapsIdentified) {
+        formatted += `• **Gaps Identified:** ${tech.gapsIdentified}\n`;
+      }
+      if (tech.problemSolvingApproach) {
+        formatted += `• **Problem Solving:** ${tech.problemSolvingApproach}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // 6. Problem Solving / Critical Thinking
+    if (profile.problemSolvingCriticalThinking) {
+      const problem = profile.problemSolvingCriticalThinking;
+      formatted += `## 🧠 **PROBLEM SOLVING & CRITICAL THINKING**\n`;
+      if (problem.approachClarity) {
+        formatted += `• **Approach Clarity:** ${problem.approachClarity}\n`;
+      }
+      if (problem.realismFactoring) {
+        formatted += `• **Realism Factoring:** ${problem.realismFactoring}\n`;
+      }
+      if (problem.logicalConsistency) {
+        formatted += `• **Logical Consistency:** ${problem.logicalConsistency}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // 7. Unverified Claims
+    if (profile.unverifiedClaims && Array.isArray(profile.unverifiedClaims) && profile.unverifiedClaims.length > 0) {
+      formatted += `## ❓ **UNVERIFIED CLAIMS**\n`;
+      profile.unverifiedClaims.forEach((claim: string) => {
+        formatted += `• ${claim}\n`;
+      });
+      formatted += '\n';
+    }
+
+    // 8-10. Scores
+    formatted += `## 📊 **ASSESSMENT SCORES**\n`;
+    formatted += `• **Communication Score:** ${profile.communicationScore || 5}/10\n`;
+    formatted += `• **Credibility Score:** ${profile.credibilityScore || 5}/10\n`;
+    formatted += `• **Consistency Score:** ${profile.consistencyScore || 5}/10\n\n`;
+
+    // 11. Readiness for Face-to-Face
+    if (profile.readinessAssessment) {
+      const readiness = profile.readinessAssessment;
+      formatted += `## 🎯 **READINESS FOR FACE-TO-FACE INTERVIEW**\n`;
+      formatted += `• **Ready to Proceed:** ${readiness.faceToFaceReady ? 'Yes' : 'No'}\n`;
+      if (readiness.areasToClarity && Array.isArray(readiness.areasToClarity)) {
+        formatted += `• **Areas to Clarify:** ${readiness.areasToClarity.join(', ')}\n`;
+      }
+      if (readiness.recommendation) {
+        formatted += `• **Recommendation:** ${readiness.recommendation}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Footer
+    formatted += '---\n';
+    formatted += '*Brutally honest assessment based on AI-powered interview analysis*';
+
+    return formatted.trim();
+  }
+
   // Public profile viewing endpoint (no authentication required for employer viewing profiles)
   app.get("/api/public-profile/:identifier", async (req, res) => {
     try {
       const identifier = decodeURIComponent(req.params.identifier);
-      console.log(`🔍 PUBLIC: Public profile request for: "${identifier}"`);
 
-      // Use direct Airtable API call for now to avoid any service issues
-      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const profilesBaseId = 'app3tA4UpKQCT2s17';
-      const profilesTableName = 'Table%201';
-      
-      // Try by Name field
-      let profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${identifier}"`)}`;
-      
-      console.log(`🔍 PUBLIC: Fetching from Airtable: ${profilesUrl.substring(0, 100)}...`);
-      
-      const profilesResponse = await fetch(profilesUrl, {
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!profilesResponse.ok) {
-        console.log(`❌ PUBLIC: Failed to fetch profiles: ${profilesResponse.status} ${profilesResponse.statusText}`);
-        return res.status(500).json({ error: 'Failed to fetch profile data' });
-      }
-      
-      const profilesData = await profilesResponse.json() as any;
-      console.log(`🔍 PUBLIC: Found ${profilesData.records?.length || 0} profiles matching Name: "${identifier}"`);
-      
-      if (!profilesData.records || profilesData.records.length === 0) {
-        console.log(`❌ PUBLIC: No profile found for identifier: "${identifier}"`);
-        return res.status(404).json({ error: "Profile not found" });
-      }
+      const [userProfile] = await db.select()
+        .from(applicantProfiles)
+        .where(eq(applicantProfiles.userId, identifier));
 
-      // Get the first matching profile
-      const profileRecord = profilesData.records[0];
-      const fields = profileRecord.fields;
-      
-      console.log(`✅ PUBLIC: Profile found! Available fields: ${Object.keys(fields).join(', ')}`);
-      
-      const profileData = JSON.parse(fields['Profile Data'] || '{}');
+      const profileData = userProfile.aiProfile?.brutallyHonestProfile || {};
 
       // Format the response
       const profile = {
-        name: fields.Name || identifier,
-        email: fields.email || '',
+        name: userProfile.Name || identifier,
+        email: userProfile.email || '',
         matchScorePercentage: profileData.matchScorePercentage || 0,
-        experiencePercentage: profileData.matchScorePercentage || 0,
-        techSkillsPercentage: profileData.matchScorePercentage || 0,
-        culturalFitPercentage: profileData.matchScorePercentage || 0,
-        userProfile: fields['User profile'] || 'No profile information available',
-        userId: fields['User ID'] || fields.UserID || '',
+        experiencePercentage: profileData.experiencePercentage || 0,
+        techSkillsPercentage: profileData.techSkillsPercentage || 0,
+        culturalFitPercentage: profileData.culturalFitPercentage || 0,
+        userProfile: formatProfileForDisplay(userProfile.aiProfile),
+        userId: userProfile.userId,
         // Include all raw fields for debugging
-        rawFields: fields
+        rawFields: userProfile
       };
 
-      console.log(`✅ PUBLIC: Profile data prepared for: ${profile.name}, User Profile length: ${profile.userProfile.length} characters`);
-      console.log(`🔍 PUBLIC: Profile data being sent to frontend:`, profile);
-      
       res.json(profile);
       
     } catch (error) {
