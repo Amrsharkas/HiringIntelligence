@@ -397,6 +397,7 @@ export const resumeProfiles = pgTable("resume_profiles", {
   certifications: jsonb("certifications").$type<string[]>(),
   languages: jsonb("languages").$type<string[]>(),
   resumeText: text("resume_text").notNull(),
+  fileId: varchar("file_id"),
   organizationId: varchar("organization_id"),
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
