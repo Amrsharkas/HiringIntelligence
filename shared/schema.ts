@@ -555,6 +555,7 @@ export const airtableUserProfiles = pgTable("airtable_user_profiles", {
   profilePicture: varchar("profile_picture"),
   location: varchar("location"),
   age: integer("age"),
+  fileId: varchar("file_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -3502,6 +3502,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
                   professionalSummary: processedResume.summary || '',
                   experienceLevel: '', // Could be determined from resume
                   location: '', // Could be extracted from resume
+                  fileId: processedResume.fileId,
                 } as any);
 
                 console.log(`✅ Successfully created user profile in local database`);
