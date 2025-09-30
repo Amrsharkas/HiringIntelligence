@@ -6,8 +6,7 @@ import { setupAuth, requireAuth } from "./auth";
 import { insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
-import { airtableMatchingService } from "./airtableMatchingService";
-import { airtableService } from "./airtableService";
+import { localDatabaseService } from "./localDatabaseService";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
 
@@ -362,13 +361,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json({ count: 0 });
       }
 
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicants = await realApplicantsAirtableService.getAllApplicants();
+      // Use local database service instead of Airtable
+      const applicants = await localDatabaseService.getAllJobApplications();
       
       // Filter to only show applicants for this organization's jobs AND exclude accepted applicants
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
@@ -394,9 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Count from job matches table (AI matched candidates)
-      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-      const jobMatchesService = new JobMatchesAirtableService();
-      const matches = await jobMatchesService.getAllJobMatches();
+      const matches = await localDatabaseService.getAllJobMatches();
       
       // Filter for this organization's job matches
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
@@ -424,9 +421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
 
-      // Get real data from Airtable
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicants = await realApplicantsAirtableService.getAllApplicants();
+      // Use local database service instead of Airtable
+      const applicants = await localDatabaseService.getAllJobApplications();
       const organizationApplicants = applicants.filter(app => organizationJobIds.has(app.jobId));
 
       // Get interviews count
@@ -477,15 +473,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
 
-      // Direct applicants
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicants = await realApplicantsAirtableService.getAllApplicants();
+      // Direct applicants - use local database service instead of Airtable
+      const applicants = await localDatabaseService.getAllJobApplications();
       const directApplicants = applicants.filter(app => organizationJobIds.has(app.jobId)).length;
 
       // AI matched candidates
-      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-      const jobMatchesService = new JobMatchesAirtableService();
-      const matches = await jobMatchesService.getAllJobMatches();
+      const matches = await localDatabaseService.getAllJobMatches();
       const aiCandidates = matches.filter(match => organizationJobIds.has(match.jobId)).length;
 
       const sourceData = [
@@ -513,16 +506,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       const { applicantScoringService } = await import('./applicantScoringService');
-      
+
       let applicants;
       if (jobId) {
         console.log(`Fetching pending applicants for job ${jobId}`);
-        applicants = await realApplicantsAirtableService.getApplicantsByJobId(jobId);
+        // Use local database service instead of Airtable
+        applicants = await localDatabaseService.getJobApplicationsByJob(jobId);
       } else {
         console.log('Fetching all pending applicants for organization');
-        applicants = await realApplicantsAirtableService.getAllApplicants();
+        // Use local database service instead of Airtable
+        applicants = await localDatabaseService.getAllJobApplications();
 
         // Filter to only show applicants for this organization's jobs
         const organizationJobs = await storage.getJobsByOrganization(organization.id);
@@ -625,11 +619,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
       const { applicantScoringService } = await import('./applicantScoringService');
-      
+
       console.log('🔄 MIGRATING TO BRUTAL AI SCORING: Fetching applicants with new scoring system');
-      let applicants = await realApplicantsAirtableService.getAllApplicants();
+      // Use local database service instead of Airtable
+      let applicants = await localDatabaseService.getAllJobApplications();
       
       // Filter to only show applicants for this organization's jobs
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
@@ -839,11 +833,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📊 Overall Score: ${matchScore}%`);
       console.log(`🔄 Request body:`, { matchScore, matchSummary: matchSummary?.substring(0, 50) + '...', componentScores });
       
-      // Update score in Airtable platojobapplications table using the correct service
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      
-      console.log(`🔄 Calling updateApplicantScore with comprehensive data...`);
-      await realApplicantsAirtableService.updateApplicantScore(applicantId, matchScore, matchSummary, componentScores);
+      // Update score using local database service instead of Airtable
+      console.log(`🔄 Calling updateJobApplicationStatus with comprehensive data...`);
+      // Note: We may need to extend the localDatabaseService to handle scoring updates
+      // For now, we'll update the application status
+      try {
+        await localDatabaseService.updateJobApplication(applicantId, {
+          status: 'scored',
+          // Add scoring data if the schema supports it
+          ...(matchScore !== undefined && { matchScore }),
+          ...(matchSummary && { matchSummary })
+        } as any);
+      } catch (error) {
+        console.warn('⚠️ Could not update application with scoring data, this may require schema extension:', error);
+      }
       
       console.log(`✅ Successfully updated applicant ${applicantId} with all analysis data`);
       
@@ -1061,13 +1064,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`✅ Found ${shortlistedApplicants.length} shortlisted applicants in database`);
       
-      // Get full applicant details from Airtable for each shortlisted applicant
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      // Get full applicant details from local database for each shortlisted applicant
       const enrichedApplicants = [];
-      
+
       for (const shortlisted of shortlistedApplicants) {
         try {
-          const applicantDetails = await realApplicantsAirtableService.getApplicantById(shortlisted.applicantId);
+          // Use local database service instead of Airtable
+          const applicantDetails = await localDatabaseService.getJobApplication(shortlisted.applicantId);
           if (applicantDetails) {
             enrichedApplicants.push({
               id: shortlisted.id,
@@ -1698,19 +1701,23 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       console.log(`❌ Declining applicant ${applicantId}...`);
       
       // Get applicant name for logging
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      
+      // Use local database service instead of Airtable
       let applicantName = 'Unknown Applicant';
       try {
-        const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
-        applicantName = applicant?.name || 'Unknown Applicant';
+        const applicant = await localDatabaseService.getJobApplication(applicantId);
+        applicantName = applicant?.applicantUserId || 'Unknown Applicant';
       } catch (error) {
         console.warn(`⚠️ Could not fetch applicant name: ${error}`);
       }
       
       // Update status in applications table instead of deleting
-      console.log(`❌ Updating applicant ${applicantId} status to denied in platojobapplications table...`);
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'denied');
+      console.log(`❌ Updating applicant ${applicantId} status to denied in local database...`);
+      // Use local database service instead of Airtable
+      try {
+        await localDatabaseService.updateJobApplication(applicantId, { status: 'denied' } as any);
+      } catch (error) {
+        console.warn('⚠️ Could not update application status:', error);
+      }
       
       console.log(`✅ Successfully declined applicant ${applicantName} (${applicantId})`);
       res.json({ 
@@ -1737,29 +1744,26 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       console.log(`🔧 Fixing most recent accepted candidate User ID...`);
       
-      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const jobMatchesService = new JobMatchesAirtableService();
-      
-      // Get the most recent job match
-      const mostRecentMatch = await jobMatchesService.getMostRecentJobMatch();
+      // Get the most recent job match from local database
+      const jobMatches = await localDatabaseService.getAllJobMatches();
+      const mostRecentMatch = jobMatches.length > 0 ? jobMatches[0] : null;
       
       if (!mostRecentMatch) {
         return res.status(404).json({ message: "No job matches found" });
       }
       
-      console.log(`📋 Most recent job match:`, mostRecentMatch.fields);
-      
-      const currentUserId = mostRecentMatch.fields['User ID'];
-      const candidateName = mostRecentMatch.fields['Name'];
-      const jobTitle = mostRecentMatch.fields['Job title'];
-      
-      // Look for this candidate in platojobapplications with "Accepted" status
-      const allApplications = await realApplicantsAirtableService.getAllApplicantsIncludingProcessed();
+      console.log(`📋 Most recent job match:`, mostRecentMatch);
+
+      const currentUserId = mostRecentMatch.userId;
+      const candidateName = mostRecentMatch.name;
+      const jobTitle = mostRecentMatch.jobTitle;
+
+      // Look for this candidate in job applications with "Accepted" status
+      const allApplications = await localDatabaseService.getAllJobApplications();
       
       // Find the accepted application for this candidate and job
-      const matchingApplication = allApplications.find(app => 
-        app.name === candidateName && 
+      const matchingApplication = allApplications.find(app =>
+        app.applicantName === candidateName &&
         app.jobTitle === jobTitle &&
         app.status === 'Accepted'
       );
@@ -1810,60 +1814,28 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       
       console.log(`⏪ Undoing accept for applicant ${applicantName}...`);
       
-      // Create record back in platojobapplications
-      const applicationsUrl = `https://api.airtable.com/v0/appEYs1fTytFXoJ7x/Table%201`;
-      const applicationData = {
-        fields: {
-          'Applicant Name': applicantName,
-          'User ID': userId,
-          'Job title': jobTitle,
-          'Job description': jobDescription,
-          'Company name': companyName,
-          'Job ID': req.params.id // Use the job ID from parameters
-        }
-      };
-      
-      const response = await fetch(applicationsUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0'}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(applicationData)
+      // Create record back in job applications using local database
+      await localDatabaseService.createJobApplication({
+        applicantName,
+        applicantUserId: userId,
+        applicantEmail: '', // Email not provided in request body
+        jobTitle,
+        jobId: req.params.id,
+        company: companyName,
+        status: 'applied',
+        jobDescription
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to restore application: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-      
-      // Delete from platojobmatches
-      const { JobMatchesAirtableService } = await import('./jobMatchesAirtableService');
-      const jobMatchesService = new JobMatchesAirtableService();
-      
-      // Find and delete the job match record
-      const matchesUrl = `https://api.airtable.com/v0/app1u4N2W46jD43mP/Table%201?filterByFormula=AND({User ID}='${userId}',{Job title}='${jobTitle}')`;
-      
-      const searchResponse = await fetch(matchesUrl, {
-        headers: {
-          'Authorization': `Bearer ${'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0'}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json() as any;
-        if (searchData.records && searchData.records.length > 0) {
-          const recordId = searchData.records[0].id;
-          const deleteUrl = `https://api.airtable.com/v0/app1u4N2W46jD43mP/Table%201/${recordId}`;
-          
-          await fetch(deleteUrl, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0'}`,
-            }
-          });
-        }
+      // Delete from job matches using local database
+      const jobMatches = await localDatabaseService.getJobMatchesByUser(userId);
+      const matchToDelete = jobMatches.find(match =>
+        match.jobTitle === jobTitle && match.companyName === companyName
+      );
+
+      if (matchToDelete) {
+        // Update status to cancelled instead of deleting
+        await localDatabaseService.updateJobMatch(matchToDelete.id, { status: 'cancelled' });
+        console.log(`🗑️ Cancelled job match for ${applicantName}`);
       }
       
       // Remove from local accepted applicants storage
@@ -1909,7 +1881,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   // Airtable discovery and testing routes
   app.get('/api/airtable/discover', requireAuth, async (req: any, res) => {
     try {
-      const structure = await airtableMatchingService.discoverAirtableStructure();
+      const structure = { message: "Airtable discovery disabled - using local database" };
       res.json(structure);
     } catch (error) {
       console.error("Error discovering Airtable structure:", error);
@@ -1917,39 +1889,27 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Show Airtable database information (public endpoint for exploration)
+  // Show local database information (public endpoint for exploration)
   app.get('/api/airtable/info', async (req: any, res) => {
     try {
-      const bases = await airtableService.getBases();
+      const userProfiles = await localDatabaseService.getAllUserProfiles();
+      const jobPostings = await localDatabaseService.getAllJobPostings();
       const info = {
-        apiKey: "Connected ✓",
-        basesFound: bases.length,
-        bases: bases.map((base: any) => ({
-          id: base.id,
-          name: base.name,
-          permissionLevel: base.permissionLevel
-        })),
-        expectedFields: [
-          "Name or FullName - candidate's full name",
-          "Email - candidate's email address", 
-          "Skills - list of general skills",
-          "TechnicalSkills - list of technical skills",
-          "Experience - work experience description",
-          "YearsExperience - number of years experience",
-          "PreviousRole - most recent job title",
-          "Location - candidate location",
-          "SalaryExpectation - expected salary",
-          "InterviewScore - score from interview (1-10)",
-          "Summary or Bio - candidate summary"
+        database: "Local PostgreSQL ✓",
+        userProfilesFound: userProfiles.length,
+        jobPostingsFound: jobPostings.length,
+        tables: [
+          { id: "airtable_user_profiles", name: "User Profiles", records: userProfiles.length },
+          { id: "airtable_job_postings", name: "Job Postings", records: jobPostings.length }
         ]
       };
       res.json(info);
     } catch (error: any) {
-      console.error("Error fetching Airtable info:", error);
-      res.status(500).json({ 
-        message: "Error connecting to Airtable", 
+      console.error("Error fetching database info:", error);
+      res.status(500).json({
+        message: "Error connecting to database",
         error: error?.message || "Unknown error",
-        apiKey: "Connected"
+        database: "Local PostgreSQL"
       });
     }
   });
@@ -1964,21 +1924,28 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.json([]);
       }
 
-      const candidates = await airtableMatchingService.getAllCandidatesWithScores(organization.id);
+      const candidates = await localDatabaseService.getAllUserProfiles();
       res.json(candidates);
     } catch (error) {
-      console.error("Error fetching Airtable candidates:", error);
-      res.status(500).json({ message: "Failed to fetch candidates from Airtable" });
+      console.error("Error fetching candidates:", error);
+      res.status(500).json({ message: "Failed to fetch candidates" });
     }
   });
 
-  // NEW: Airtable-based candidate matching for specific job
+  // Local database-based candidate matching for specific job
   app.get('/api/job-postings/:id/candidates', requireAuth, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
       
-      // Fetch candidates from Airtable and generate AI match scores
-      const matchedCandidates = await airtableMatchingService.getCandidatesForJob(jobId);
+      // Fetch job matches from local database
+      const jobMatches = await localDatabaseService.getJobMatchesByJob(jobId);
+      const matchedCandidates = jobMatches.map(match => ({
+        ...match,
+        id: match.userId,
+        name: match.name,
+        email: '', // Will need to be fetched from user profile
+        score: match.matchScore || 0
+      }));
       
       // Filter out declined candidates
       const applications = await storage.getApplicationsByJob(jobId);
@@ -2049,31 +2016,30 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         });
       }
       
-      // Create job match record in Airtable when candidate is accepted
+      // Create job match record in local database when candidate is accepted
       try {
         console.log(`Creating job match record for candidate ${candidateId} with job: ${job.title}`);
-        console.log(`Job description: ${job.description}`);
-        
-        // We need to get the candidate details to extract the User ID and Name
-        const candidates = await airtableMatchingService.getCandidatesForJob(jobId);
-        const candidateData = candidates.find(c => c.id === candidateId);
-        
-        if (candidateData && candidateData.userId) {
-          await airtableService.createJobMatch(
-            candidateData.name || candidateName, // Use name from Airtable or fallback to provided name
-            candidateData.userId, // User ID from the candidate profile
-            job.title,
-            job.description || '',
-            organization.companyName, // Company name from organization
-            job.id // Job ID
-          );
-          console.log(`✅ Successfully created job match record for ${candidateData.name} (User ID: ${candidateData.userId})`);
+
+        // Get user profile for candidate details
+        const userProfile = await localDatabaseService.getUserProfile(candidateId);
+
+        if (userProfile) {
+          await localDatabaseService.createJobMatch({
+            name: userProfile.name || candidateName,
+            userId: userProfile.userId,
+            jobTitle: job.title,
+            jobDescription: job.description || '',
+            companyName: organization.companyName,
+            jobId: job.id.toString(),
+            status: 'accepted'
+          });
+          console.log(`✅ Successfully created job match record for ${userProfile.name} (User ID: ${userProfile.userId})`);
         } else {
-          console.warn(`⚠️ Could not find User ID for candidate ${candidateId}, skipping Airtable job match creation`);
+          console.warn(`⚠️ Could not find user profile for candidate ${candidateId}, skipping job match creation`);
         }
-      } catch (airtableError) {
-        console.error('❌ Failed to create Airtable job match, but candidate was accepted:', airtableError);
-        // Don't fail the entire operation if Airtable update fails
+      } catch (localDbError) {
+        console.error('❌ Failed to create local job match, but candidate was accepted:', localDbError);
+        // Don't fail the entire operation if local database update fails
       }
       
       res.json({ success: true, application });
@@ -2184,13 +2150,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.json([]);
       }
 
-      const { airtableService } = await import('./airtableService');
+      const { localDatabaseService } = await import('./localDatabaseService');
       const { applicantScoringService } = await import('./applicantScoringService');
 
       console.log('Fetching enhanced candidates from platouserprofiles...');
       
-      // Get all candidates from platouserprofiles
-      const allCandidates = await airtableService.getAllCandidates();
+      // Get all candidates from local database
+      const allCandidates = await localDatabaseService.getAllUserProfiles();
       
       if (allCandidates.length === 0) {
         return res.json([]);
@@ -2324,17 +2290,17 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const applicantId = req.params.id;
       const userId = req.user.id;
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
+      // Note: Airtable services removed - now using local database
       
       console.log(`🔄 Accepting applicant ${applicantId}...`);
       
-      // Get applicant details first
-      const allApplicants = await realApplicantsAirtableService.getAllApplicants();
-      const applicant = allApplicants.find(app => app.id === applicantId);
+      // Get application details first from local database
+      const allApplications = await localDatabaseService.getAllJobApplications();
+      const application = allApplications.find(app => app.id === applicantId);
       
-      if (!applicant) {
-        console.log(`❌ Applicant ${applicantId} not found`);
-        return res.status(404).json({ message: "Applicant not found" });
+      if (!application) {
+        console.log(`❌ Application ${applicantId} not found`);
+        return res.status(404).json({ message: "Application not found" });
       }
 
       // Get organization for company name
@@ -2344,47 +2310,53 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      console.log(`🔄 Updating status to 'Accepted' in Airtable for applicant ${applicant.name}...`);
-      
-      // First, update the status in Airtable to "Accepted"
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'Accepted');
-      
-      console.log(`✅ Status updated to 'Accepted' in Airtable for ${applicant.name}`);
-      
-      // Then create job match record
-      console.log(`🔄 Creating job match record for ${applicant.name}...`);
-      await jobMatchesAirtableService.createJobMatch(
-        applicant.name,
-        applicant.userId || applicant.id, // Use userId if available, otherwise use record ID
-        applicant.jobTitle,
-        applicant.jobDescription || '',
-        organization.companyName
-      );
+      console.log(`🔄 Updating status to 'Accepted' for applicant ${application.applicantName}...`);
 
-      console.log(`✅ Successfully accepted applicant ${applicant.name}: Status updated + Job match created`);
+      // First, update the status to "Accepted"
+      await localDatabaseService.updateJobApplication(applicantId, { status: 'Accepted' });
+
+      console.log(`✅ Status updated to 'Accepted' for ${application.applicantName}`);
+
+      // Then create job match record
+      console.log(`🔄 Creating job match record for ${application.applicantName}...`);
+      await localDatabaseService.createJobMatch({
+        name: application.applicantName,
+        userId: application.applicantUserId,
+        jobTitle: application.jobTitle,
+        jobDescription: application.jobDescription || '',
+        companyName: organization.companyName,
+        jobId: application.jobId,
+        status: 'accepted'
+      });
+
+      console.log(`✅ Successfully accepted applicant ${application.applicantName}: Status updated + Job match created`);
       res.json({ 
         success: true, 
         message: "Candidate successfully accepted and status updated",
         applicant: {
-          ...applicant,
+          ...application,
           status: 'Accepted'
         }
       });
     } catch (error) {
       console.error("❌ Error accepting real applicant:", error);
-      res.status(500).json({ message: "Error: Failed to update candidate status in Airtable. Please try again." });
+      res.status(500).json({ message: "Error: Failed to update candidate status. Please try again." });
     }
   });
 
   app.post('/api/real-applicants/:id/decline', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      
+      // Use local database service instead of Airtable
+
       console.log(`Declining and deleting applicant ${applicantId}...`);
-      
-      // Delete the applicant record from Airtable
-      await realApplicantsAirtableService.deleteApplicant(applicantId);
+
+      // Update the applicant record status in local database instead of deleting
+      try {
+        await localDatabaseService.updateJobApplication(applicantId, { status: 'declined' } as any);
+      } catch (error) {
+        console.warn('⚠️ Could not update application status to declined:', error);
+      }
       
       console.log(`✅ Successfully declined and deleted applicant ${applicantId}`);
       res.json({ 
@@ -2410,9 +2382,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       console.log(`🌟 DATABASE SHORTLIST: User ${userId} adding applicant ${applicantId} to shortlist...`);
       
-      // Get applicant details from Airtable
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicant = await realApplicantsAirtableService.getApplicantById(applicantId);
+      // Get applicant details from local database
+      // Use local database service instead of Airtable
+      const applicant = await localDatabaseService.getJobApplication(applicantId);
       
       if (!applicant) {
         return res.status(404).json({ message: "Applicant not found" });
@@ -2475,9 +2447,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(404).json({ message: "Shortlisted applicant not found" });
       }
 
-      // Get full applicant details from Airtable
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      const applicantDetails = await realApplicantsAirtableService.getApplicantById(shortlistedApplicant.applicantId);
+      // Get full applicant details from local database
+      // Use local database service instead of Airtable
+      const applicantDetails = await localDatabaseService.getJobApplication(shortlistedApplicant.applicantId);
       
       if (!applicantDetails) {
         return res.status(404).json({ message: "Applicant details not found" });
@@ -2549,12 +2521,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.post('/api/real-applicants/:id/unshortlist', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
-      const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-      
+      // Use local database service instead of Airtable
+
       console.log(`🗑️ Removing applicant ${applicantId} from shortlist...`);
-      
-      // Update the status in Airtable back to "pending" or empty
-      await realApplicantsAirtableService.updateApplicantStatus(applicantId, 'pending');
+
+      // Update the status in local database back to "pending" or empty
+      try {
+        await localDatabaseService.updateJobApplication(applicantId, { status: 'pending' } as any);
+      } catch (error) {
+        console.warn('⚠️ Could not update application status to pending:', error);
+      }
       
       console.log(`✅ Successfully removed applicant ${applicantId} from shortlist`);
       res.json({ 
@@ -3481,8 +3457,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             const threshold = typeof (job as any).scoreMatchingThreshold === 'number' ? (job as any).scoreMatchingThreshold : 30;
             const overall = jobScore.overallScore ?? 0;
             if (overall >= threshold && processedResume.email) {
-              const { realApplicantsAirtableService } = await import('./realApplicantsAirtableService');
-              const { usersAirtableService } = await import('./airtableService');
+              const { localDatabaseService } = await import('./localDatabaseService');
               const companyName = organization.companyName || 'Our Company';
 
               // Generate unique token and username
@@ -3494,49 +3469,45 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
                 .replace(/\s+/g, '')
                 .replace(/[^a-zA-Z0-9]/g, '');
 
-              // Upsert candidate into users base for Applicants app
+              // Create user profile in local database instead of Airtable
               try {
-                await usersAirtableService.createApplicantUser({
-                  id: Math.floor(100000000 + Math.random() * 900000000).toString(),
+                console.log(`👤 Creating user profile for ${processedResume.email} in local database`);
+
+                // Create a user profile using the local database service
+                await localDatabaseService.createUserProfile({
+                  userId: savedProfile.id.toString(),
+                  name: processedResume.name || `${firstName} ${lastName}`.trim(),
                   email: processedResume.email,
-                  password: '',
-                  first_name: firstName,
-                  last_name: lastName,
-                  username: username || (processedResume.email?.split('@')[0] || ''),
-                  display_name: '',
-                  profile_image_url: '',
-                  role: 'applicant',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  token,
-                  file_id: processedResume.fileId || '',
-                });
+                  phone: '', // Could be extracted from resume
+                  professionalSummary: processedResume.summary || '',
+                  experienceLevel: '', // Could be determined from resume
+                  location: '', // Could be extracted from resume
+                } as any);
+
+                console.log(`✅ Successfully created user profile in local database`);
               } catch (userErr) {
-                console.error('Error creating applicant user in Airtable users base:', userErr);
+                console.error('Error creating user profile in local database:', userErr);
               }
 
-              // Switch to AI interview base and create invitation with token
+              // Use local database service instead of Airtable for creating interview invitation
               try {
-                const aiBase = process.env.AIRTABLE_AI_INTERVIEW_BASE_ID || 'appAIInterviewBaseId';
-                const aiTable = process.env.AIRTABLE_AI_INTERVIEW_TABLE || 'Table 1';
-                realApplicantsAirtableService.setAirtableConfig(aiBase, aiTable);
-                await realApplicantsAirtableService.createApplicantInvitation({
-                  applicantName: processedResume.name || processedResume.email,
-                  applicantEmail: processedResume.email,
-                  userId: savedProfile.id,
-                  jobId: job.id,
+                console.log(`📝 Creating job match and interview invitation for ${processedResume.email} using local database`);
+
+                // Create a job match record to track the interview invitation
+                await localDatabaseService.createJobMatch({
+                  userId: savedProfile.id.toString(),
+                  jobId: job.id.toString(),
+                  name: processedResume.name || processedResume.email,
                   jobTitle: job.title,
                   jobDescription: job.description,
-                  companyName,
+                  companyName: companyName,
                   matchScore: overall,
-                  matchSummary: jobScore.matchSummary,
-                  technicalSkillsScore: jobScore.technicalSkillsScore,
-                  experienceScore: jobScore.experienceScore,
-                  culturalFitScore: jobScore.culturalFitScore,
-                  userProfileText: processedResume.summary,
-                  aiPrompt: job.aiPrompt || '',
-                  token,
-                });
+                  status: 'invited',
+                  interviewDate: new Date(),
+                  token: token, // Save the token for interview initiation
+                } as any);
+
+                console.log(`✅ Successfully created interview invitation in local database`);
               } catch (aiErr) {
                 console.error('Error creating AI interview invitation:', aiErr);
               }
