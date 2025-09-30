@@ -3373,23 +3373,30 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const { jobId } = req.query;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
       const profiles = await storage.getResumeProfilesByOrganization(organization.id);
-      
+
       // Get all organization jobs for scoring
       const jobs = await storage.getJobsByOrganization(organization.id);
-      
+
       // Add job scores to each profile
       const profilesWithScores = await Promise.all(profiles.map(async (profile) => {
         const jobScores = await storage.getJobScoresByProfile(profile.id);
+
+        // Filter job scores by specific jobId if provided
+        const filteredJobScores = jobId
+          ? jobScores.filter(score => score.jobId === jobId)
+          : jobScores;
+
         return {
           ...profile,
-          jobScores: jobScores.map(score => ({
+          jobScores: filteredJobScores.map(score => ({
             ...score,
             jobTitle: jobs.find(job => job.id === score.jobId)?.title || 'Unknown Job'
           }))
@@ -3413,7 +3420,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const { resumeText, fileType } = req.body;
+      const { resumeText, fileType, jobId } = req.body;
       
       if (!resumeText || resumeText.trim().length < 50) {
         return res.status(400).json({ message: "Resume text is required and must be substantial" });
@@ -3434,9 +3441,22 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       
       const savedProfile = await storage.createResumeProfile(profileData);
       
-      // Score against all organization jobs
-      const jobs = await storage.getJobsByOrganization(organization.id);
-      
+      // Score against jobs - either specific job or all organization jobs
+      let jobs;
+      if (jobId) {
+        // Score against specific job only
+        const job = await storage.getJob(jobId);
+        if (!job || job.organizationId !== organization.id) {
+          return res.status(404).json({ message: "Job not found or doesn't belong to your organization" });
+        }
+        jobs = [job];
+        console.log(`🎯 Scoring resume against specific job: ${job.title}`);
+      } else {
+        // Score against all organization jobs
+        jobs = await storage.getJobsByOrganization(organization.id);
+        console.log(`🎯 Scoring resume against all ${jobs.length} jobs`);
+      }
+
       for (const job of jobs) {
         try {
           const jobScore = await resumeProcessingService.scoreResumeAgainstJob(

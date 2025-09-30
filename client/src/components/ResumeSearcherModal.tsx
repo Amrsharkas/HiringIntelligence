@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -54,6 +55,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const [activeTab, setActiveTab] = useState<'upload' | 'search' | 'results'>('upload');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,33 +174,40 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const processFilesMutation = useMutation({
     mutationFn: async (files: File[]) => {
       const processedResults = [];
-      
+
       for (const file of files) {
         try {
           console.log(`🔄 Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
           const fileData = await extractTextFromFile(file);
           console.log(`📄 Extracted text length: ${fileData?.length}`);
-          
-          const response = await apiRequest('POST', '/api/resume-profiles/process', {
+
+          const requestBody: any = {
             resumeText: fileData,
             fileName: file.name,
             fileType: file.type
-          });
-          
+          };
+
+          // Add jobId to request if a specific job is selected
+          if (processingJobId !== 'all') {
+            requestBody.jobId = processingJobId;
+          }
+
+          const response = await apiRequest('POST', '/api/resume-profiles/process', requestBody);
+
           console.log(`✅ API response status: ${response.status}`);
           const result = await response.json();
           console.log(`✅ Processing complete for ${file.name}`);
           processedResults.push({ file: file.name, result, success: true });
         } catch (error) {
           console.error(`❌ Processing failed for ${file.name}:`, error);
-          processedResults.push({ 
-            file: file.name, 
+          processedResults.push({
+            file: file.name,
             error: error instanceof Error ? error.message : 'Unknown error',
-            success: false 
+            success: false
           });
         }
       }
-      
+
       return processedResults;
     },
     onSuccess: (results) => {
@@ -207,7 +216,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         title: "Resume Processing Complete",
         description: "Resumes processed successfully",
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
       clearAllFiles();
       setActiveTab('results');
@@ -272,6 +281,34 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
         {activeTab === 'upload' && (
           <div className="space-y-6">
+            {/* Job Selection Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  Select Job for Scoring
+                </CardTitle>
+                <CardDescription>
+                  Choose a specific job to score resumes against, or leave blank to score against all jobs
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Select value={processingJobId} onValueChange={setProcessingJobId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a job (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Score against all jobs</SelectItem>
+                    {jobs.map((job: any) => (
+                      <SelectItem key={job.id} value={job.id}>
+                        {job.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
             {/* File Upload Section */}
             <Card>
               <CardHeader>
@@ -438,9 +475,9 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                           {profile.jobScore?.overallScore}% Match
                                         </Badge>
                                       </div>
-                                      
+
                                       <p className="text-sm text-muted-foreground mb-3">{profile.summary}</p>
-                                      
+
                                       <div className="grid grid-cols-3 gap-4 mb-3">
                                         <div>
                                           <div className="text-xs text-muted-foreground">Technical Skills</div>
@@ -495,8 +532,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                 </CardContent>
                               </Card>
                             ))}
-                          
-                          {filteredProfiles.filter(profile => 
+
+                          {filteredProfiles.filter(profile =>
                             profile.jobScores.some(score => score.jobId === job.id)
                           ).length === 0 && (
                             <div className="text-center py-4 text-muted-foreground border border-dashed rounded-lg">
