@@ -1211,6 +1211,341 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   const formatBrutallyHonestProfile = (profile: any): string =>  {
+    if (!profile) return 'No profile data available';
+
+    // Check if this is the new structured format
+    const isNewFormat = profile.meta && profile.scores;
+
+    if (isNewFormat) {
+      return formatNewStructuredProfile(profile);
+    } else {
+      return formatLegacyProfile(profile);
+    }
+  };
+
+  const formatNewStructuredProfile = (profile: any): string => {
+    let formatted = '';
+
+    // Header with confidence score
+    formatted += '# 🔍 **BRUTALLY HONEST CANDIDATE ASSESSMENT**\n\n';
+
+    if (profile.meta) {
+      formatted += `## 📈 **ASSESSMENT METADATA**\n`;
+      formatted += `• **Confidence Score:** ${profile.meta.confidenceScore?.value || 'N/A'}/10\n`;
+      if (profile.meta.confidenceScore?.justification) {
+        formatted += `  - *${profile.meta.confidenceScore.justification}*\n`;
+      }
+
+      if (profile.meta.dataCoverage) {
+        formatted += `• **Data Coverage:**\n`;
+        formatted += `  - Profile: ${profile.meta.dataCoverage.profileCoveragePercentage || 0}%\n`;
+        formatted += `  - Interview: ${profile.meta.dataCoverage.interviewCoveragePercentage || 0}%\n`;
+        formatted += `  - Resume: ${profile.meta.dataCoverage.resumeCoveragePercentage || 0}%\n`;
+      }
+
+      if (profile.meta.missingInputs && profile.meta.missingInputs.length > 0) {
+        formatted += `• **Missing Inputs:** ${profile.meta.missingInputs.join(', ')}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Candidate Summary
+    if (profile.candidateSummary) {
+      formatted += `## 📋 **CANDIDATE SUMMARY**\n`;
+      if (profile.candidateSummary.executiveNote) {
+        formatted += `${profile.candidateSummary.executiveNote}\n`;
+      }
+      if (profile.candidateSummary.overallVerdict) {
+        formatted += `**Overall Verdict:** ${profile.candidateSummary.overallVerdict}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Key Strengths with evidence
+    if (profile.keyStrengths && Array.isArray(profile.keyStrengths) && profile.keyStrengths.length > 0) {
+      formatted += `## 💪 **KEY STRENGTHS**\n`;
+      profile.keyStrengths.forEach((strength: any) => {
+        formatted += `• **${strength.strength}**\n`;
+        if (strength.supportingEvidence) {
+          formatted += `  - *Evidence:* "${strength.supportingEvidence}"\n`;
+        }
+        if (strength.butCritique) {
+          formatted += `  - *But:* ${strength.butCritique}\n`;
+        }
+        formatted += '\n';
+      });
+    }
+
+    // Weaknesses and Gaps with detailed analysis
+    if (profile.weaknessesAndGaps && Array.isArray(profile.weaknessesAndGaps) && profile.weaknessesAndGaps.length > 0) {
+      formatted += `## ⚠️ **WEAKNESSES AND GAPS**\n`;
+      profile.weaknessesAndGaps.forEach((weakness: any) => {
+        formatted += `• **${weakness.gap}**\n`;
+        if (weakness.evidence) {
+          formatted += `  - *Evidence:* ${weakness.evidence}\n`;
+        }
+        if (weakness.impact) {
+          formatted += `  - *Impact:* ${weakness.impact}\n`;
+        }
+        if (weakness.possibleCompensation && weakness.possibleCompensation !== 'none') {
+          formatted += `  - *Compensation:* ${weakness.possibleCompensation}\n`;
+        }
+        formatted += '\n';
+      });
+    }
+
+    // Contradiction Matrix
+    if (profile.contradictionMatrix && Array.isArray(profile.contradictionMatrix) && profile.contradictionMatrix.length > 0) {
+      formatted += `## ⚡ **CONTRADICTIONS**\n`;
+      profile.contradictionMatrix.forEach((contradiction: any) => {
+        formatted += `• **${contradiction.topic}**\n`;
+        if (contradiction.resumeQuote) {
+          formatted += `  - *Resume:* "${contradiction.resumeQuote}"\n`;
+        }
+        if (contradiction.interviewQuote) {
+          formatted += `  - *Interview:* "${contradiction.interviewQuote}"\n`;
+        }
+        if (contradiction.profileReference) {
+          formatted += `  - *Profile:* ${contradiction.profileReference}\n`;
+        }
+        if (contradiction.impact) {
+          formatted += `  - *Impact:* ${contradiction.impact}\n`;
+        }
+        formatted += '\n';
+      });
+    }
+
+    // Evidence Map
+    if (profile.evidenceMap) {
+      formatted += `## 🗂️ **EVIDENCE MAP**\n`;
+
+      if (profile.evidenceMap.claimsSupported && Array.isArray(profile.evidenceMap.claimsSupported)) {
+        formatted += `• **Supported Claims:**\n`;
+        profile.evidenceMap.claimsSupported.forEach((claim: any) => {
+          formatted += `  - ${claim.claim} (${claim.source}): "${claim.quoteOrLine}"\n`;
+        });
+      }
+
+      if (profile.evidenceMap.claimsUnsupported && Array.isArray(profile.evidenceMap.claimsUnsupported)) {
+        formatted += `• **Unsupported Claims:**\n`;
+        profile.evidenceMap.claimsUnsupported.forEach((claim: any) => {
+          formatted += `  - ${claim.claim}\n`;
+          if (claim.expectedEvidence) {
+            formatted += `    - *Expected:* ${claim.expectedEvidence}\n`;
+          }
+        });
+      }
+      formatted += '\n';
+    }
+
+    // Soft Skills Review with detailed scoring
+    if (profile.softSkillsReview) {
+      const soft = profile.softSkillsReview;
+      formatted += `## 🗣️ **SOFT SKILLS REVIEW**\n`;
+
+      if (soft.communicationClarity) {
+        formatted += `• **Communication Clarity:** ${soft.communicationClarity.score || 'N/A'}/10\n`;
+        if (soft.communicationClarity.earnedReasons) {
+          formatted += `  - *Strengths:* ${soft.communicationClarity.earnedReasons.join(', ')}\n`;
+        }
+        if (soft.communicationClarity.lostPercentageReasons) {
+          soft.communicationClarity.lostPercentageReasons.forEach((reason: any) => {
+            formatted += `  - *Issue:* ${reason.reason} (-${reason.percent}%)\n`;
+            if (reason.evidence) {
+              formatted += `    - *Evidence:* ${reason.evidence}\n`;
+            }
+          });
+        }
+      }
+
+      if (soft.emotionalIntelligence) {
+        formatted += `• **Emotional Intelligence:** ${soft.emotionalIntelligence.score || 'N/A'}/10\n`;
+        if (soft.emotionalIntelligence.analysis) {
+          formatted += `  - *Analysis:* ${soft.emotionalIntelligence.analysis}\n`;
+        }
+      }
+
+      if (soft.adaptability) {
+        formatted += `• **Adaptability:** ${soft.adaptability.score || 'N/A'}/10\n`;
+        if (soft.adaptability.analysis) {
+          formatted += `  - *Analysis:* ${soft.adaptability.analysis}\n`;
+        }
+      }
+
+      formatted += '\n';
+    }
+
+    // Technical Knowledge with scoring
+    if (profile.technicalKnowledge) {
+      const tech = profile.technicalKnowledge;
+      formatted += `## 🔧 **TECHNICAL KNOWLEDGE**\n`;
+
+      if (tech.claimedVsActual) {
+        formatted += `• **Claimed vs Actual:** ${tech.claimedVsActual.score || 'N/A'}/10\n`;
+        if (tech.claimedVsActual.analysis) {
+          formatted += `  - *Analysis:* ${tech.claimedVsActual.analysis}\n`;
+        }
+        if (tech.claimedVsActual.earnedReasons) {
+          formatted += `  - *Demonstrated:* ${tech.claimedVsActual.earnedReasons.join(', ')}\n`;
+        }
+      }
+
+      if (tech.gapsIdentified && Array.isArray(tech.gapsIdentified)) {
+        formatted += `• **Technical Gaps:**\n`;
+        tech.gapsIdentified.forEach((gap: any) => {
+          formatted += `  - ${gap.gap}\n`;
+          if (gap.evidence) {
+            formatted += `    - *Evidence:* ${gap.evidence}\n`;
+          }
+          if (gap.impact) {
+            formatted += `    - *Impact:* ${gap.impact}\n`;
+          }
+        });
+      }
+
+      formatted += '\n';
+    }
+
+    // Problem Solving & Critical Thinking
+    if (profile.problemSolvingCriticalThinking) {
+      const problem = profile.problemSolvingCriticalThinking;
+      formatted += `## 🧠 **PROBLEM SOLVING & CRITICAL THINKING**\n`;
+
+      Object.keys(problem).forEach((key: string) => {
+        const section = problem[key];
+        if (section.score) {
+          formatted += `• **${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:** ${section.score}/10\n`;
+          if (section.earnedReasons) {
+            formatted += `  - *Strengths:* ${section.earnedReasons.join(', ')}\n`;
+          }
+          if (section.lostPercentageReasons) {
+            section.lostPercentageReasons.forEach((reason: any) => {
+              formatted += `  - *Issue:* ${reason.reason} (-${reason.percent}%)\n`;
+              if (reason.evidence) {
+                formatted += `    - *Evidence:* ${reason.evidence}\n`;
+              }
+            });
+          }
+        }
+      });
+      formatted += '\n';
+    }
+
+    // Growth Potential
+    if (profile.growthPotential) {
+      const growth = profile.growthPotential;
+      formatted += `## 📈 **GROWTH POTENTIAL**\n`;
+
+      if (growth.coachability) {
+        formatted += `• **Coachability:** ${growth.coachability.score || 'N/A'}/10\n`;
+        if (growth.coachability.evidence) {
+          formatted += `  - *Evidence:* ${growth.coachability.evidence}\n`;
+        }
+      }
+
+      if (growth.trajectory) {
+        formatted += `• **Career Trajectory:** ${growth.trajectory.assessment}\n`;
+        if (growth.trajectory.evidence) {
+          formatted += `  - *Evidence:* ${growth.trajectory.evidence}\n`;
+        }
+      }
+
+      formatted += '\n';
+    }
+
+    // Cultural Fit
+    if (profile.culturalFit) {
+      const culture = profile.culturalFit;
+      formatted += `## 🏢 **CULTURAL FIT**\n`;
+
+      if (culture.teamDynamics) {
+        formatted += `• **Team Role:** ${culture.teamDynamics.assessment}\n`;
+        if (culture.teamDynamics.evidence) {
+          formatted += `  - *Evidence:* ${culture.teamDynamics.evidence}\n`;
+        }
+      }
+
+      if (culture.organizationalFit) {
+        formatted += `• **Organization Type:** ${culture.organizationalFit.fit}\n`;
+        if (culture.organizationalFit.reasoning) {
+          formatted += `  - *Reasoning:* ${culture.organizationalFit.reasoning}\n`;
+        }
+      }
+
+      if (culture.riskFactors && Array.isArray(culture.riskFactors)) {
+        formatted += `• **Risk Factors:**\n`;
+        culture.riskFactors.forEach((risk: any) => {
+          formatted += `  - ${risk.risk} (${risk.severity})\n`;
+          if (risk.evidence) {
+            formatted += `    - *Evidence:* ${risk.evidence}\n`;
+          }
+        });
+      }
+
+      formatted += '\n';
+    }
+
+    // Unverified Claims
+    if (profile.unverifiedClaims && Array.isArray(profile.unverifiedClaims) && profile.unverifiedClaims.length > 0) {
+      formatted += `## ❓ **UNVERIFIED CLAIMS**\n`;
+      profile.unverifiedClaims.forEach((claim: any) => {
+        formatted += `• **${claim.claim}**\n`;
+        if (claim.reasonForFlag) {
+          formatted += `  - *Reason:* ${claim.reasonForFlag}\n`;
+        }
+        if (claim.followUp) {
+          formatted += `  - *Follow-up needed:* ${claim.followUp}\n`;
+        }
+      });
+      formatted += '\n';
+    }
+
+    // Detailed Scores
+    if (profile.scores) {
+      formatted += `## 📊 **DETAILED ASSESSMENT SCORES**\n`;
+
+      Object.keys(profile.scores).forEach((key: string) => {
+        const score = profile.scores[key];
+        if (score.value) {
+          formatted += `• **${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:** ${score.value}\n`;
+          if (score.breakdown) {
+            formatted += `  - *Breakdown:* ${score.breakdown}\n`;
+          }
+        }
+      });
+      formatted += '\n';
+    }
+
+    // Readiness Assessment
+    if (profile.readinessAssessment) {
+      const readiness = profile.readinessAssessment;
+      formatted += `## 🎯 **READINESS ASSESSMENT**\n`;
+      formatted += `• **Face-to-Face Ready:** ${readiness.faceToFaceReady ? 'Yes' : 'No'}\n`;
+
+      if (readiness.areasToClarify && Array.isArray(readiness.areasToClarify)) {
+        formatted += `• **Areas to Clarify:**\n`;
+        readiness.areasToClarify.forEach((area: string) => {
+          formatted += `  - ${area}\n`;
+        });
+      }
+
+      if (readiness.recommendation) {
+        formatted += `• **Recommendation:** ${readiness.recommendation.level}\n`;
+        if (readiness.recommendation.justification) {
+          formatted += `  - *Justification:* ${readiness.recommendation.justification}\n`;
+        }
+      }
+      formatted += '\n';
+    }
+
+    // Footer
+    formatted += '---\n';
+    formatted += '*Brutally honest assessment based on AI-powered interview analysis*';
+
+    return formatted.trim();
+  };
+
+  const formatLegacyProfile = (profile: any): string => {
     let formatted = '';
 
     // Header
@@ -1237,9 +1572,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // 3. Weaknesses and Gaps
     if (profile.weaknessesAndGaps && Array.isArray(profile.weaknessesAndGaps) && profile.weaknessesAndGaps.length > 0) {
       formatted += `## ⚠️ **WEAKNESSES AND GAPS**\n`;
-      profile.weaknessesAndGaps.forEach((weakness: string) => {
-        formatted += `• ${weakness}\n`;
-      });
+      if (typeof profile.weaknessesAndGaps[0] === 'object') {
+        profile.weaknessesAndGaps.forEach((weakness: any) => {
+          formatted += `• **${weakness.gap}**\n`;
+          if (weakness.evidence) formatted += `  - *Evidence:* ${weakness.evidence}\n`;
+          if (weakness.impact) formatted += `  - *Impact:* ${weakness.impact}\n`;
+        });
+      } else {
+        profile.weaknessesAndGaps.forEach((weakness: string) => {
+          formatted += `• ${weakness}\n`;
+        });
+      }
       formatted += '\n';
     }
 
@@ -1297,8 +1640,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // 7. Unverified Claims
     if (profile.unverifiedClaims && Array.isArray(profile.unverifiedClaims) && profile.unverifiedClaims.length > 0) {
       formatted += `## ❓ **UNVERIFIED CLAIMS**\n`;
-      profile.unverifiedClaims.forEach((claim: string) => {
-        formatted += `• ${claim}\n`;
+      profile.unverifiedClaims.forEach((claim: any) => {
+        if (typeof claim === 'object') {
+          formatted += `• **${claim.claim}**\n`;
+          if (claim.reasonForFlag) formatted += `  - *Reason:* ${claim.reasonForFlag}\n`;
+        } else {
+          formatted += `• ${claim}\n`;
+        }
       });
       formatted += '\n';
     }
@@ -1328,7 +1676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     formatted += '*Brutally honest assessment based on AI-powered interview analysis*';
 
     return formatted.trim();
-  }
+  };
 
   // Public profile viewing endpoint (no authentication required for employer viewing profiles)
   app.get("/api/public-profile/:identifier", async (req, res) => {
