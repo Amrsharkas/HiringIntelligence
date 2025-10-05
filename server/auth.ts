@@ -213,6 +213,45 @@ export function setupAuth(app: Express) {
       isVerified: user.isVerified,
     });
   });
+
+  // Test login endpoint - allows login by ID without password
+  // Only enabled when ENABLE_TEST_LOGIN environment variable is true
+  app.get("/api/auth/test-login", async (req, res) => {
+    // Check if test login is enabled
+    if (process.env.ENABLE_TEST_LOGIN !== 'true') {
+      return res.status(404).json({ error: "Test login endpoint is disabled" });
+    }
+
+    try {
+      const { userId } = req.query;
+
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+
+      // Get user by ID
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Log the user in
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return res.status(500).json({ error: "Login failed" });
+        }
+
+        console.log(`🔓 Test login successful for user: ${user.email} (ID: ${user.id})`);
+
+        req.session.userId = user.id;
+
+        res.redirect('/');
+      });
+    } catch (error) {
+      console.error("Test login error:", error);
+      res.status(500).json({ error: "Test login failed" });
+    }
+  });
 }
 
 // Middleware to check if user is authenticated
