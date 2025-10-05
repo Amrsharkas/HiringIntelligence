@@ -12,10 +12,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  User, 
-  Mail, 
-  MapPin, 
+import {
+  User,
+  Mail,
+  MapPin,
   Calendar,
   CheckCircle,
   XCircle,
@@ -24,6 +24,8 @@ import {
   Star,
   Phone
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Applicant {
   id: string;
@@ -175,6 +177,11 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.applicantUserId)}`);
         if (response.ok) {
           const userProfile = await response.json();
+
+          console.log({
+            userProfile
+          });
+          
           console.log('✅ User profile fetched successfully:', userProfile);
           setSelectedUserProfile(userProfile);
         } else {
@@ -377,39 +384,91 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                        {selectedUserProfile?.matchScorePercentage ?? 0}%
+                      <div className={`text-3xl font-bold mb-2 ${
+                        (selectedUserProfile?.matchScorePercentage || selectedApplicant?.matchScore || 0) >= 80
+                          ? 'text-green-600 dark:text-green-400'
+                          : (selectedUserProfile?.matchScorePercentage || selectedApplicant?.matchScore || 0) >= 60
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : (selectedUserProfile?.matchScorePercentage || selectedApplicant?.matchScore || 0) >= 40
+                          ? 'text-yellow-600 dark:text-yellow-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {selectedUserProfile?.matchScorePercentage ?? selectedApplicant?.matchScore ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Overall Match</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        AI assessment complete
+                        {selectedUserProfile?.matchScorePercentage ? '📊 Profile-based' : '📄 Application-based'}
                       </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        {selectedUserProfile?.techSkillsPercentage ?? 0}%
+                      <div className={`text-3xl font-bold mb-2 ${
+                        (selectedUserProfile?.techSkillsPercentage || selectedApplicant?.technicalScore || 0) >= 80
+                          ? 'text-green-600 dark:text-green-400'
+                          : (selectedUserProfile?.techSkillsPercentage || selectedApplicant?.technicalScore || 0) >= 60
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : (selectedUserProfile?.techSkillsPercentage || selectedApplicant?.technicalScore || 0) >= 40
+                          ? 'text-yellow-600 dark:text-yellow-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {selectedUserProfile?.techSkillsPercentage ?? selectedApplicant?.technicalScore ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Technical Skills</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        AI assessment complete
+                        {selectedUserProfile?.techSkillsPercentage ? '📊 Profile-based' : '📄 Application-based'}
                       </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                        {selectedUserProfile?.experiencePercentage ?? 0}%
+                      <div className={`text-3xl font-bold mb-2 ${
+                        (selectedUserProfile?.experiencePercentage || selectedApplicant?.experienceScore || 0) >= 80
+                          ? 'text-green-600 dark:text-green-400'
+                          : (selectedUserProfile?.experiencePercentage || selectedApplicant?.experienceScore || 0) >= 60
+                          ? 'text-purple-600 dark:text-purple-400'
+                          : (selectedUserProfile?.experiencePercentage || selectedApplicant?.experienceScore || 0) >= 40
+                          ? 'text-yellow-600 dark:text-yellow-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {selectedUserProfile?.experiencePercentage ?? selectedApplicant?.experienceScore ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Experience</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        AI assessment complete
+                        {selectedUserProfile?.experiencePercentage ? '📊 Profile-based' : '📄 Application-based'}
                       </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
-                       {selectedUserProfile?.culturalFitPercentage ?? 0}%
+                      <div className={`text-3xl font-bold mb-2 ${
+                        (selectedUserProfile?.culturalFitPercentage || selectedApplicant?.culturalFitScore || 0) >= 80
+                          ? 'text-green-600 dark:text-green-400'
+                          : (selectedUserProfile?.culturalFitPercentage || selectedApplicant?.culturalFitScore || 0) >= 60
+                          ? 'text-orange-600 dark:text-orange-400'
+                          : (selectedUserProfile?.culturalFitPercentage || selectedApplicant?.culturalFitScore || 0) >= 40
+                          ? 'text-yellow-600 dark:text-yellow-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                       {selectedUserProfile?.culturalFitPercentage ?? selectedApplicant?.culturalFitScore ?? 0}%
                       </div>
                       <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Cultural Fit</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        AI assessment complete
+                        {selectedUserProfile?.culturalFitPercentage ? '📊 Profile-based' : '📄 Application-based'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Score Quality Indicator */}
+                  <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-3 mb-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          selectedUserProfile?.matchScorePercentage ? 'bg-green-500' : 'bg-yellow-500'
+                        }`}></div>
+                        <span className="font-medium">
+                          {selectedUserProfile?.matchScorePercentage ? 'High-Confidence Scores' : 'Preliminary Assessment'}
+                        </span>
+                      </div>
+                      <div className="text-slate-500">
+                        {selectedUserProfile?.matchScorePercentage
+                          ? 'Based on comprehensive profile analysis'
+                          : 'Application data only - request full profile for detailed analysis'
+                        }
                       </div>
                     </div>
                   </div>
@@ -417,9 +476,46 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   {/* Detailed AI Analysis */}
                   <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-4">
                     <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">AI Assessment Summary</h4>
-                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                      {selectedApplicant.matchSummary || `This candidate demonstrates strong potential for the ${selectedApplicant.jobTitle} position. Their technical skills are well-aligned with the job requirements, showing particular strength in relevant areas. The candidate's experience provides a solid foundation for success in this role, with demonstrated expertise that matches our needs. From a cultural perspective, their profile suggests good alignment with our company values and work environment. Overall, this applicant presents a compelling profile that merits serious consideration for the position.`}
-                    </p>
+                    <div className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed space-y-3">
+                      {/* Data Source Indicator */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <div className={`w-2 h-2 rounded-full ${selectedUserProfile?.matchScorePercentage ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                        <span>
+                          {selectedUserProfile?.matchScorePercentage
+                            ? '✨ Analysis based on complete candidate profile data'
+                            : '📋 Analysis based on application information'}
+                        </span>
+                      </div>
+
+                      {/* Summary Text */}
+                      <div>
+                        {selectedApplicant.matchSummary ? (
+                          <p>{selectedApplicant.matchSummary}</p>
+                        ) : selectedUserProfile?.userProfile ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {selectedUserProfile.userProfile.length > 300
+                                ? selectedUserProfile.userProfile.substring(0, 300) + '...'
+                                : selectedUserProfile.userProfile
+                              }
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p>This candidate demonstrates potential for the {selectedApplicant.jobTitle} position.
+                          {selectedUserProfile?.matchScorePercentage
+                            ? ' Their comprehensive profile analysis reveals specific strengths and areas of alignment with the role requirements.'
+                            : ' Analysis is based on application data and would benefit from additional profile information for a complete assessment.'
+                          }</p>
+                        )}
+                      </div>
+
+                      {/* Confidence Indicator */}
+                      {selectedUserProfile?.matchScorePercentage && (
+                        <div className="text-xs bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded p-2">
+                          <span className="font-medium">🎯 High-Confidence Analysis:</span> Complete profile data available with detailed scoring breakdown
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -434,8 +530,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {selectedUserProfile.userProfile && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Complete Profile</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line max-h-96 overflow-y-auto">
-                          {selectedUserProfile.userProfile}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none max-h-96 overflow-y-auto">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.userProfile}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
@@ -444,8 +542,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {selectedUserProfile.professionalSummary && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Professional Summary</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
-                          {selectedUserProfile.professionalSummary}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.professionalSummary}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
@@ -454,8 +554,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {(selectedUserProfile.workExperience || selectedUserProfile.experience) && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Work Experience</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
-                          {selectedUserProfile.workExperience || selectedUserProfile.experience}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.workExperience || selectedUserProfile.experience}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
@@ -474,8 +576,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {selectedUserProfile.education && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Education</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
-                          {selectedUserProfile.education}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.education}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
@@ -484,8 +588,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {selectedUserProfile.skills && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Skills & Competencies</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
-                          {selectedUserProfile.skills}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.skills}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
@@ -540,8 +646,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {selectedUserProfile.skills && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Skills & Competencies</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
-                          {selectedUserProfile.skills}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.skills}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
@@ -580,8 +688,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {selectedUserProfile.coverLetter && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Cover Letter</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line max-h-48 overflow-y-auto">
-                          {selectedUserProfile.coverLetter}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none max-h-48 overflow-y-auto">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.coverLetter}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
@@ -668,8 +778,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                     {selectedUserProfile.additionalInfo && (
                       <div>
                         <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-2">Additional Information</label>
-                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md whitespace-pre-line">
-                          {selectedUserProfile.additionalInfo}
+                        <div className="text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-800 p-4 rounded-md prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {selectedUserProfile.additionalInfo}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}

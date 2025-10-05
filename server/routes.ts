@@ -1344,7 +1344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       formatted += `## 🗣️ **SOFT SKILLS REVIEW**\n`;
 
       if (soft.communicationClarity) {
-        formatted += `• **Communication Clarity:** ${soft.communicationClarity.score || 'N/A'}/10\n`;
+        formatted += `• **Communication Clarity:** ${soft.communicationClarity.score || 'N/A'}\n`;
         if (soft.communicationClarity.earnedReasons) {
           formatted += `  - *Strengths:* ${soft.communicationClarity.earnedReasons.join(', ')}\n`;
         }
@@ -1359,14 +1359,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (soft.emotionalIntelligence) {
-        formatted += `• **Emotional Intelligence:** ${soft.emotionalIntelligence.score || 'N/A'}/10\n`;
+        formatted += `• **Emotional Intelligence:** ${soft.emotionalIntelligence.score || 'N/A'}\n`;
         if (soft.emotionalIntelligence.analysis) {
           formatted += `  - *Analysis:* ${soft.emotionalIntelligence.analysis}\n`;
         }
       }
 
       if (soft.adaptability) {
-        formatted += `• **Adaptability:** ${soft.adaptability.score || 'N/A'}/10\n`;
+        formatted += `• **Adaptability:** ${soft.adaptability.score || 'N/A'}\n`;
         if (soft.adaptability.analysis) {
           formatted += `  - *Analysis:* ${soft.adaptability.analysis}\n`;
         }
@@ -1381,7 +1381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       formatted += `## 🔧 **TECHNICAL KNOWLEDGE**\n`;
 
       if (tech.claimedVsActual) {
-        formatted += `• **Claimed vs Actual:** ${tech.claimedVsActual.score || 'N/A'}/10\n`;
+        formatted += `• **Claimed vs Actual:** ${tech.claimedVsActual.score || 'N/A'}\n`;
         if (tech.claimedVsActual.analysis) {
           formatted += `  - *Analysis:* ${tech.claimedVsActual.analysis}\n`;
         }
@@ -1414,7 +1414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       Object.keys(problem).forEach((key: string) => {
         const section = problem[key];
         if (section.score) {
-          formatted += `• **${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:** ${section.score}/10\n`;
+          formatted += `• **${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:** ${section.score}\n`;
           if (section.earnedReasons) {
             formatted += `  - *Strengths:* ${section.earnedReasons.join(', ')}\n`;
           }
@@ -1437,7 +1437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       formatted += `## 📈 **GROWTH POTENTIAL**\n`;
 
       if (growth.coachability) {
-        formatted += `• **Coachability:** ${growth.coachability.score || 'N/A'}/10\n`;
+        formatted += `• **Coachability:** ${growth.coachability.score || 'N/A'}\n`;
         if (growth.coachability.evidence) {
           formatted += `  - *Evidence:* ${growth.coachability.evidence}\n`;
         }
@@ -1693,10 +1693,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = {
         name: userProfile.Name || identifier,
         email: userProfile.email || '',
-        matchScorePercentage: profileData.matchScorePercentage || 0,
-        experiencePercentage: profileData.experiencePercentage || 0,
-        techSkillsPercentage: profileData.techSkillsPercentage || 0,
-        culturalFitPercentage: profileData.culturalFitPercentage || 0,
+        matchScorePercentage: userProfile.aiProfile?.matchScorePercentage || 0,
+        experiencePercentage: userProfile.aiProfile?.experiencePercentage || 0,
+        techSkillsPercentage: userProfile.aiProfile?.techSkillsPercentage || 0,
+        culturalFitPercentage: userProfile.aiProfile?.culturalFitPercentage || 0,
         userProfile: formatProfileForDisplay(userProfile.aiProfile),
         userId: userProfile.userId,
         // Include all raw fields for debugging
