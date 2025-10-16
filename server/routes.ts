@@ -3846,12 +3846,27 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           ? jobScores.filter(score => score.jobId === jobId)
           : jobScores;
 
+        // Get invitation status for each job score
+        const jobScoresWithInvitationStatus = await Promise.all(
+          filteredJobScores.map(async (score) => {
+            const { localDatabaseService } = await import('./localDatabaseService');
+            const jobMatches = await localDatabaseService.getJobMatchesByJob(score.jobId.toString());
+            const existingMatch = jobMatches.find(match => match.userId === profile.id);
+
+            return {
+              ...score,
+              jobTitle: jobs.find(job => job.id === score.jobId)?.title || 'Unknown Job',
+              invitationStatus: existingMatch ? existingMatch.status : null,
+              interviewDate: existingMatch?.interviewDate || null,
+              interviewTime: existingMatch?.interviewTime || null,
+              interviewLink: existingMatch?.interviewLink || null,
+            };
+          })
+        );
+
         return {
           ...profile,
-          jobScores: filteredJobScores.map(score => ({
-            ...score,
-            jobTitle: jobs.find(job => job.id === score.jobId)?.title || 'Unknown Job'
-          }))
+          jobScores: jobScoresWithInvitationStatus
         };
       }));
 
@@ -4017,6 +4032,137 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       res.status(500).json({ 
         message: "Failed to process resume", 
         error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Invite applicant endpoint
+  app.post('/api/invite-applicant', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { profileId, jobId } = req.body;
+
+      if (!profileId || !jobId) {
+        return res.status(400).json({ message: "Profile ID and Job ID are required" });
+      }
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get the profile and job details
+      const profile = await storage.getResumeProfileById(profileId);
+      const job = await storage.getJobById(parseInt(jobId));
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Check if already invited
+      const { localDatabaseService } = await import('./localDatabaseService');
+      const existingMatches = await localDatabaseService.getJobMatchesByJob(jobId.toString());
+      const existingMatch = existingMatches.find(match => match.userId === profileId);
+
+      if (existingMatch && existingMatch.status === 'invited') {
+        return res.status(400).json({ message: "Applicant already invited" });
+      }
+
+      // Extract resume data for invitation
+      const processedResume = {
+        name: profile.name,
+        email: profile.email,
+        summary: profile.summary,
+        fileId: profile.fileId
+      };
+
+      // Generate unique token and username for invitation
+      const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const names = (processedResume.name || '').trim().split(/\s+/);
+      const firstName = names[0] || '';
+      const lastName = names.slice(1).join(' ') || '';
+      const username = (firstName + (lastName ? lastName[0].toUpperCase() + lastName.slice(1) : ''))
+        .replace(/\s+/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '');
+
+      const companyName = organization.companyName || 'Our Company';
+
+      // Create user profile in local database if not exists
+      try {
+        console.log(`👤 Creating user profile for ${processedResume.email} in local database`);
+        await localDatabaseService.createUserProfile({
+          userId: profileId,
+          name: processedResume.name || `${firstName} ${lastName}`.trim(),
+          email: processedResume.email,
+          phone: '', // Could be extracted from resume
+          professionalSummary: processedResume.summary || '',
+          experienceLevel: '', // Could be determined from resume
+          location: '', // Could be extracted from resume
+          fileId: processedResume.fileId,
+        } as any);
+        console.log(`✅ Successfully created user profile in local database`);
+      } catch (userErr) {
+        console.error('Error creating user profile in local database:', userErr);
+      }
+
+      // Create job match record to track the interview invitation
+      try {
+        console.log(`📝 Creating job match and interview invitation for ${processedResume.email} using local database`);
+        await localDatabaseService.createJobMatch({
+          userId: profileId,
+          jobId: jobId,
+          name: processedResume.name || processedResume.email,
+          jobTitle: job.title,
+          jobDescription: job.description,
+          companyName: companyName,
+          matchScore: 0, // Manual invitation, not based on score
+          status: 'invited',
+          interviewDate: new Date(),
+          token: token,
+        } as any);
+        console.log(`✅ Successfully created interview invitation in local database`);
+      } catch (aiErr) {
+        console.error('Error creating AI interview invitation:', aiErr);
+        return res.status(500).json({ message: "Failed to create invitation", error: aiErr.message });
+      }
+
+      // Build invitation link to Applicants app with token
+      const baseUrl = process.env.APPLICANTS_APP_URL || 'https://applicants.platohiring.com';
+      const invitationLink = `${baseUrl.replace(/\/$/, '')}/ai-interview-initation?token=${encodeURIComponent(token)}`;
+
+      // Send invitation email via SendGrid (non-blocking)
+      try {
+        const { emailService } = await import('./emailService');
+        await emailService.sendInterviewInvitationEmail({
+          applicantName: processedResume.name || processedResume.email,
+          applicantEmail: processedResume.email,
+          jobTitle: job.title,
+          companyName,
+          invitationLink,
+          matchScore: 0, // Manual invitation
+          matchSummary: "Manual invitation by employer",
+        });
+        console.log(`📧 Invitation email sent to ${processedResume.email}`);
+      } catch (emailErr) {
+        console.warn('📧 Invitation email failed (non-blocking):', emailErr);
+      }
+
+      res.json({
+        success: true,
+        message: "Applicant invited successfully",
+        invitationLink,
+        token
+      });
+
+    } catch (error) {
+      console.error("Error inviting applicant:", error);
+      res.status(500).json({
+        message: "Failed to invite applicant",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2 } from 'lucide-react';
+import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2, MailCheck, Mail } from 'lucide-react';
 
 interface ResumeProfile {
   id: string;
@@ -39,6 +39,10 @@ interface JobScoring {
   matchSummary: string;
   strengthsHighlights: string[];
   improvementAreas: string[];
+  invitationStatus?: string | null;
+  interviewDate?: Date | null;
+  interviewTime?: string | null;
+  interviewLink?: string | null;
 }
 
 interface ProfileWithScores extends ResumeProfile {
@@ -230,7 +234,30 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     },
   });
 
-
+  // Invite applicant mutation
+  const inviteApplicantMutation = useMutation({
+    mutationFn: async ({ profileId, jobId }: { profileId: string; jobId: string }) => {
+      const response = await apiRequest('POST', '/api/invite-applicant', {
+        profileId,
+        jobId
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invitation Sent",
+        description: "Applicant has been invited successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Invitation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
@@ -474,6 +501,12 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                         <Badge variant={getScoreBadgeVariant(profile.jobScore?.overallScore || 0)}>
                                           {profile.jobScore?.overallScore}% Match
                                         </Badge>
+                                        {profile.jobScore?.invitationStatus === 'invited' && (
+                                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                            <MailCheck className="h-3 w-3 mr-1" />
+                                            Invited
+                                          </Badge>
+                                        )}
                                       </div>
 
                                       <p className="text-sm text-muted-foreground mb-3">{profile.summary}</p>
@@ -521,13 +554,34 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                         </p>
                                       )}
                                     </div>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setSelectedProfile(profile)}
-                                    >
-                                      View Full Profile
-                                    </Button>
+                                    <div className="flex gap-2">
+                                      {profile.jobScore?.invitationStatus !== 'invited' && (
+                                        <Button
+                                          variant="default"
+                                          size="sm"
+                                          onClick={() => inviteApplicantMutation.mutate({
+                                            profileId: profile.id,
+                                            jobId: job.id.toString()
+                                          })}
+                                          disabled={inviteApplicantMutation.isPending}
+                                          className="flex items-center gap-2"
+                                        >
+                                          {inviteApplicantMutation.isPending ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <Mail className="h-3 w-3" />
+                                          )}
+                                          Invite
+                                        </Button>
+                                      )}
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedProfile(profile)}
+                                      >
+                                        View Full Profile
+                                      </Button>
+                                    </div>
                                   </div>
                                 </CardContent>
                               </Card>
@@ -587,10 +641,37 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                               <div className="flex items-start justify-between mb-3">
                                 <div>
                                   <h5 className="font-medium">{jobScore.jobTitle}</h5>
-                                  <Badge variant={getScoreBadgeVariant(jobScore.overallScore)}>
-                                    {jobScore.overallScore}% Overall Match
-                                  </Badge>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant={getScoreBadgeVariant(jobScore.overallScore)}>
+                                      {jobScore.overallScore}% Overall Match
+                                    </Badge>
+                                    {jobScore.invitationStatus === 'invited' && (
+                                      <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                        <MailCheck className="h-3 w-3 mr-1" />
+                                        Invited
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
+                                {jobScore.invitationStatus !== 'invited' && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => inviteApplicantMutation.mutate({
+                                      profileId: selectedProfile.id,
+                                      jobId: jobScore.jobId.toString()
+                                    })}
+                                    disabled={inviteApplicantMutation.isPending}
+                                    className="flex items-center gap-2"
+                                  >
+                                    {inviteApplicantMutation.isPending ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Mail className="h-3 w-3" />
+                                    )}
+                                    Invite
+                                  </Button>
+                                )}
                               </div>
                               <div className="grid grid-cols-3 gap-4 mb-3">
                                 <div>
