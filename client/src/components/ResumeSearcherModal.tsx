@@ -12,7 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2, MailCheck, Mail } from 'lucide-react';
+import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2, MailCheck, Mail, Download } from 'lucide-react';
+import { BlobProvider } from '@react-pdf/renderer';
+import ProfilePDF from './ProfilePDF';
+import ProfilesPDF from './ProfilesPDF';
 
 interface ResumeProfile {
   id: string;
@@ -259,6 +262,112 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     },
   });
 
+  // Export single profile as PDF
+  const exportSingleProfile = (profile: ProfileWithScores) => {
+    const fileName = `resume_${profile.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    return (
+      <BlobProvider document={<ProfilePDF profile={profile} jobs={jobs} />}>
+        {({ blob, url, loading, error }) => {
+          if (loading) {
+            return (
+              <Button variant="outline" size="sm" disabled>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Generating PDF...
+              </Button>
+            );
+          }
+
+          if (error) {
+            return (
+              <Button variant="outline" size="sm" disabled>
+                PDF Error
+              </Button>
+            );
+          }
+
+          const handleDownload = () => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = fileName;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+
+              toast({
+                title: "PDF Exported",
+                description: `${profile.name}'s resume has been exported successfully`,
+              });
+            }
+          };
+
+          return (
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="h-3 w-3 mr-1" />
+              Export PDF
+            </Button>
+          );
+        }}
+      </BlobProvider>
+    );
+  };
+
+  // Export all profiles as PDF
+  const exportAllProfiles = () => {
+    const fileName = `all_resumes_export_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    return (
+      <BlobProvider document={<ProfilesPDF profiles={filteredProfiles} jobs={jobs} />}>
+        {({ blob, url, loading, error }) => {
+          if (loading) {
+            return (
+              <Button variant="outline" disabled>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating PDF...
+              </Button>
+            );
+          }
+
+          if (error) {
+            return (
+              <Button variant="outline" disabled>
+                PDF Generation Error
+              </Button>
+            );
+          }
+
+          const handleDownload = () => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = fileName;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+
+              toast({
+                title: "PDF Exported",
+                description: `All ${filteredProfiles.length} profiles have been exported successfully`,
+              });
+            }
+          };
+
+          return (
+            <Button variant="outline" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Export All Profiles ({filteredProfiles.length})
+            </Button>
+          );
+        }}
+      </BlobProvider>
+    );
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
@@ -444,7 +553,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
         {activeTab === 'results' && (
           <div className="space-y-4">
-            {/* Search Bar */}
+            {/* Search Bar and Export Controls */}
             <div className="flex items-center gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -455,6 +564,11 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                   className="pl-10"
                 />
               </div>
+              {filteredProfiles.length > 0 && (
+                <div className="flex gap-2">
+                  {exportAllProfiles()}
+                </div>
+              )}
             </div>
 
             {profilesLoading ? (
@@ -574,6 +688,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                           Invite
                                         </Button>
                                       )}
+                                      {exportSingleProfile(profile)}
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -609,10 +724,15 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           <Dialog open={!!selectedProfile} onOpenChange={() => setSelectedProfile(null)}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  {selectedProfile.name} - Full Profile
-                </DialogTitle>
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    {selectedProfile.name} - Full Profile
+                  </DialogTitle>
+                  <div className="flex gap-2">
+                    {exportSingleProfile(selectedProfile)}
+                  </div>
+                </div>
               </DialogHeader>
               <ScrollArea className="h-[70vh]">
                 <div className="space-y-6">
@@ -653,25 +773,28 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                     )}
                                   </div>
                                 </div>
-                                {jobScore.invitationStatus !== 'invited' && (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => inviteApplicantMutation.mutate({
-                                      profileId: selectedProfile.id,
-                                      jobId: jobScore.jobId.toString()
-                                    })}
-                                    disabled={inviteApplicantMutation.isPending}
-                                    className="flex items-center gap-2"
-                                  >
-                                    {inviteApplicantMutation.isPending ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <Mail className="h-3 w-3" />
-                                    )}
-                                    Invite
-                                  </Button>
-                                )}
+                                <div className="flex gap-2">
+                                  {jobScore.invitationStatus !== 'invited' && (
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => inviteApplicantMutation.mutate({
+                                        profileId: selectedProfile.id,
+                                        jobId: jobScore.jobId.toString()
+                                      })}
+                                      disabled={inviteApplicantMutation.isPending}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {inviteApplicantMutation.isPending ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Mail className="h-3 w-3" />
+                                      )}
+                                      Invite
+                                    </Button>
+                                  )}
+                                  {exportSingleProfile(selectedProfile)}
+                                </div>
                               </div>
                               <div className="grid grid-cols-3 gap-4 mb-3">
                                 <div>
