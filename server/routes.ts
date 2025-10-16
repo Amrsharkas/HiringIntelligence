@@ -4036,6 +4036,52 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Delete resume profile
+  app.delete('/api/resume-profiles/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      if (!id) {
+        return res.status(400).json({ message: "Profile ID is required" });
+      }
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // First check if the profile exists and belongs to the user's organization
+      const profile = await storage.getResumeProfileById(id);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      if (profile.organizationId !== organization.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this profile" });
+      }
+
+      // Delete related job scores first
+      const jobScores = await storage.getJobScoresByProfile(id);
+      for (const score of jobScores) {
+        await storage.deleteJobScore(score.id);
+      }
+
+      // Delete the profile
+      await storage.deleteResumeProfile(id);
+
+      console.log(`✅ Resume profile deleted: ${id} with ${jobScores.length} job scores by user ${userId}`);
+
+      res.status(200).json({ message: "Profile deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting resume profile:", error);
+      res.status(500).json({
+        message: "Failed to delete profile",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Invite applicant endpoint
   app.post('/api/invite-applicant', requireAuth, async (req: any, res) => {
     try {

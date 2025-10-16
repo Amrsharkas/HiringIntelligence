@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2, MailCheck, Mail, Download } from 'lucide-react';
+import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2, MailCheck, Mail, Download, Trash2 } from 'lucide-react';
 import { BlobProvider } from '@react-pdf/renderer';
 import ProfilePDF from './ProfilePDF';
 import ProfilesPDF from './ProfilesPDF';
@@ -256,6 +257,29 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     onError: (error: Error) => {
       toast({
         title: "Invitation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete profile mutation
+  const deleteProfileMutation = useMutation({
+    mutationFn: async (profileId: string) => {
+      const response = await apiRequest('DELETE', `/api/resume-profiles/${profileId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile Deleted",
+        description: "Resume profile has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+      setSelectedProfile(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Deletion Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -696,6 +720,34 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                       >
                                         View Full Profile
                                       </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Are you sure you want to delete {profile.name}'s profile? This action cannot be undone.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => deleteProfileMutation.mutate(profile.id)}
+                                              className="bg-red-600 hover:bg-red-700"
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
                                   </div>
                                 </CardContent>
@@ -731,6 +783,34 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                   </DialogTitle>
                   <div className="flex gap-2">
                     {exportSingleProfile(selectedProfile)}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete {selectedProfile.name}'s profile? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteProfileMutation.mutate(selectedProfile.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </DialogHeader>
