@@ -263,7 +263,7 @@ ${data.companyName} Hiring Team
       const html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 640px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #111827;">Dear ${params.applicantName},</h2>
-          <p>Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the position.</p>
+          <p>Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the <strong>${params.jobTitle}</strong> position.</p>
           <p>As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.</p>
           <p>Please use the link below to complete your interview:</p>
           <div style="margin: 24px 0; text-align: center;">
@@ -287,7 +287,7 @@ ${data.companyName} Hiring Team
         subject,
         text: `Dear ${params.applicantName},
 
-Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the position.
+Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the ${params.jobTitle} position.
 
 As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.
 
