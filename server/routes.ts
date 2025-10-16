@@ -3887,15 +3887,15 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const { resumeText, fileType, jobId } = req.body;
+      const { resumeText, fileType, jobId, customRules } = req.body;
       
       if (!resumeText || resumeText.trim().length < 50) {
         return res.status(400).json({ message: "Resume text is required and must be substantial" });
       }
 
       // Process resume with AI
-      console.log(`🔄 Processing resume for organization ${organization.id}, file type: ${fileType}, text length: ${resumeText?.length}`);
-      const processedResume = await resumeProcessingService.processResume(resumeText, fileType);
+      console.log(`🔄 Processing resume for organization ${organization.id}, file type: ${fileType}, text length: ${resumeText?.length}, custom rules: ${customRules ? 'provided' : 'none'}`);
+      const processedResume = await resumeProcessingService.processResume(resumeText, fileType, customRules);
       console.log(`✅ Resume processed successfully:`, { name: processedResume.name, email: processedResume.email });
       
       // Save to database
@@ -3930,7 +3930,8 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             processedResume,
             job.title,
             job.description,
-            job.requirements || job.description
+            job.requirements || job.description,
+            customRules
           );
           
           await storage.createJobScore({
@@ -3941,7 +3942,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
           // Auto-invite if score meets per-job threshold
           try {
-            const threshold = typeof (job as any).scoreMatchingThreshold === 'number' ? (job as any).scoreMatchingThreshold : 30;
+            const threshold = typeof (job as any).emailInviteThreshold === 'number' ? (job as any).emailInviteThreshold : (typeof (job as any).scoreMatchingThreshold === 'number' ? (job as any).scoreMatchingThreshold : 30);
             const overall = jobScore.overallScore ?? 0;
             if (overall >= threshold && processedResume.email) {
               const { localDatabaseService } = await import('./localDatabaseService');

@@ -65,6 +65,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const [searchTerm, setSearchTerm] = useState('');
   const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
+  const [customRules, setCustomRules] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch company job postings
@@ -198,6 +199,11 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           // Add jobId to request if a specific job is selected
           if (processingJobId !== 'all') {
             requestBody.jobId = processingJobId;
+          }
+
+          // Add custom rules if provided
+          if (customRules.trim()) {
+            requestBody.customRules = customRules.trim();
           }
 
           const response = await apiRequest('POST', '/api/resume-profiles/process', requestBody);
@@ -412,7 +418,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
@@ -420,7 +426,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-4 mb-4">
+        <div className="flex gap-4 mb-4 sticky top-0 bg-background z-10 pb-2">
           <Button
             variant={activeTab === 'upload' ? 'default' : 'outline'}
             onClick={() => setActiveTab('upload')}
@@ -466,6 +472,34 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                     ))}
                   </SelectContent>
                 </Select>
+              </CardContent>
+            </Card>
+
+            {/* Custom Rules Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Custom Parsing Rules
+                </CardTitle>
+                <CardDescription>
+                  Write specific instructions for how the AI should parse and analyze the resumes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={customRules}
+                  onChange={(e) => setCustomRules(e.target.value)}
+                  placeholder="Example rules:
+- Focus on extracting leadership experience and team management skills
+- Pay special attention to cloud computing certifications (AWS, Azure, GCP)
+- Look for remote work experience and cross-functional collaboration
+- Highlight any experience with agile methodologies and DevOps
+- Emphasize experience with scalable system design and microservices
+- Look for data analysis and machine learning experience
+- Focus on startup or fast-paced environment experience"
+                  className="min-h-[120px] resize-y"
+                />
               </CardContent>
             </Card>
 

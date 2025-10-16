@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle } from "lucide-react";
+import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -43,6 +43,8 @@ const jobFormSchema = z.object({
   certifications: z.string().optional(),
   // Score matching threshold: 0-100
   scoreMatchingThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(30),
+  // Email invite threshold: 0-100
+  emailInviteThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(30),
 });
 
 type JobFormData = z.infer<typeof jobFormSchema>;
@@ -192,6 +194,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       languagesRequired: [],
       certifications: "",
       scoreMatchingThreshold: 30,
+      emailInviteThreshold: 30,
     },
   });
 
@@ -276,6 +279,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         employerQuestions: editJob.employerQuestions || [],
         aiPrompt: editJob.aiPrompt || "",
         scoreMatchingThreshold: editJob.scoreMatchingThreshold ?? 30,
+        emailInviteThreshold: editJob.emailInviteThreshold ?? 30,
         employmentType: editJob.employmentType || "",
         workplaceType: editJob.workplaceType || "",
         seniorityLevel: editJob.seniorityLevel || "",
@@ -309,6 +313,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         languagesRequired: [],
         certifications: "",
         scoreMatchingThreshold: 30,
+        emailInviteThreshold: 30,
       });
       setSelectedSoftSkills([]);
       setSelectedTechnicalSkills([]);
@@ -602,6 +607,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       salaryMin: data.salaryMin ? parseInt(data.salaryMin) : undefined,
       salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
       scoreMatchingThreshold: data.scoreMatchingThreshold,
+      emailInviteThreshold: data.emailInviteThreshold,
     };
 
     if (editJob) {
@@ -795,6 +801,24 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   <p className="text-red-500 text-sm mt-1">{form.formState.errors.scoreMatchingThreshold.message as any}</p>
                 )}
                 <p className="text-xs text-slate-500 mt-1">Only candidates with a score ≥ this value will be saved.</p>
+              </div>
+              <div>
+                <Label className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-purple-600" />
+                  Email Invite Threshold
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...form.register("emailInviteThreshold", { valueAsNumber: true })}
+                  placeholder="30"
+                  className="mt-2"
+                />
+                {form.formState.errors.emailInviteThreshold && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.emailInviteThreshold.message as any}</p>
+                )}
+                <p className="text-xs text-slate-500 mt-1">Only candidates with a score ≥ this value will receive automatic email invitations.</p>
               </div>
             </div>
 

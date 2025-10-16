@@ -96,6 +96,7 @@ export const jobs = pgTable("jobs", {
   employerQuestions: text("employer_questions").array(),
   aiPrompt: text("ai_prompt"),
   scoreMatchingThreshold: integer("score_matching_threshold").notNull().default(30),
+  emailInviteThreshold: integer("email_invite_threshold").notNull().default(30),
   employmentType: varchar("employment_type").notNull(),
   workplaceType: varchar("workplace_type").notNull(),
   seniorityLevel: varchar("seniority_level").notNull(),

@@ -139,7 +139,7 @@ export class ResumeProcessingService {
     return { text: fileData };
   }
 
-  async processResume(resumeText: string, fileType?: string): Promise<ProcessedResume> {
+  async processResume(resumeText: string, fileType?: string, customRules?: string): Promise<ProcessedResume> {
     try {
       // Extract text from file if needed
       console.log(`🔄 Starting resume processing. File type: ${fileType}, text length: ${resumeText?.length}`);
@@ -150,9 +150,9 @@ export class ResumeProcessingService {
       const baseMessages = [
           {
             role: "system",
-            content: `You are an expert resume analyzer. Extract structured information from the resume text and provide a comprehensive profile. 
+            content: `You are an expert resume analyzer. Extract structured information from the resume text and provide a comprehensive profile.
 
-Respond with JSON in this exact format:
+${customRules ? `\n\nCUSTOM PARSING INSTRUCTIONS:\n${customRules}\n\n` : ''}Respond with JSON in this exact format:
 {
   "name": "Full Name",
   "email": "email@example.com",
@@ -165,7 +165,7 @@ Respond with JSON in this exact format:
   "languages": ["English (Native)", "Arabic (Fluent)", "French (Intermediate)"]
 }
 
-Extract all relevant information. If any field is missing, use an empty string for strings or empty array for arrays.`
+${customRules ? `\nImportant: Pay special attention to the custom parsing instructions above when extracting information. Highlight and give precedence to any skills, experience, or qualifications mentioned in the custom rules.\n\n` : ''}Extract all relevant information. If any field is missing, use an empty string for strings or empty array for arrays.`
           },
           {
             role: "user",
@@ -196,7 +196,7 @@ Extract all relevant information. If any field is missing, use an empty string f
             model: "gpt-4o",
             messages: [
               ...baseMessages,
-              { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
+              { role: "system", content: `Return ONLY a valid JSON object. No markdown, no commentary.${customRules ? ` Apply the custom parsing rules: ${customRules}` : ''}` }
             ] as any,
             temperature: 0,
             max_tokens: 1500,
@@ -242,7 +242,7 @@ Extract all relevant information. If any field is missing, use an empty string f
             model: "gpt-4o",
             messages: [
               ...baseMessages,
-              { role: "system", content: "Return ONLY a valid JSON object. No markdown, no commentary." }
+              { role: "system", content: `Return ONLY a valid JSON object. No markdown, no commentary.${customRules ? ` Apply the custom parsing rules: ${customRules}` : ''}` }
             ] as any,
             temperature: 0,
             max_tokens: 1500,
@@ -305,10 +305,11 @@ Extract all relevant information. If any field is missing, use an empty string f
   }
 
   async scoreResumeAgainstJob(
-    resume: ProcessedResume, 
-    jobTitle: string, 
-    jobDescription: string, 
-    jobRequirements: string
+    resume: ProcessedResume,
+    jobTitle: string,
+    jobDescription: string,
+    jobRequirements: string,
+    customRules?: string
   ): Promise<JobMatchScore> {
     try {
       const response = await wrapOpenAIRequest(
@@ -319,7 +320,7 @@ Extract all relevant information. If any field is missing, use an empty string f
               role: "system",
               content: `You are an expert hiring manager and resume evaluator. Your task is to analyze how well a candidate's resume matches a specific job posting and create a scoring profile that reflects the complete truth. Do not inflate scores, do not soften gaps, and do not add compliments. Your evaluation must be a factual mirror of the job description versus the CV, backed only by what is explicitly present in the CV.
 
-If something is missing or only partially satisfied, highlight it clearly with exact detail from the job requirements and what the CV fails to provide. All percentages and scores must be fully justified with proof from the CV.
+${customRules ? `\n\nCUSTOM SCORING INSTRUCTIONS:\n${customRules}\n\n` : ''}If something is missing or only partially satisfied, highlight it clearly with exact detail from the job requirements and what the CV fails to provide. All percentages and scores must be fully justified with proof from the CV.
 
 Your response MUST be in this exact JSON format:
 {
