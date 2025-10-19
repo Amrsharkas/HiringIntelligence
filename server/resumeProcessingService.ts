@@ -62,6 +62,7 @@ export interface JobMatchScore {
     evidence: string;
     reason: string;
   }>;
+  fullResponse?: any;
 }
 
 export class ResumeProcessingService {
@@ -587,7 +588,8 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
           detailedBreakdown: result.detailedBreakdown,
           disqualified: result.disqualified,
           disqualificationReason: result.disqualificationReason,
-          redFlags: Array.isArray(result.redFlags) ? result.redFlags : undefined
+          redFlags: Array.isArray(result.redFlags) ? result.redFlags : undefined,
+          fullResponse: result
         };
       }
       let result: any;
@@ -613,7 +615,8 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
         detailedBreakdown: result.detailedBreakdown,
         disqualified: result.disqualified,
         disqualificationReason: result.disqualificationReason,
-        redFlags: Array.isArray(result.redFlags) ? result.redFlags : undefined
+        redFlags: Array.isArray(result.redFlags) ? result.redFlags : undefined,
+        fullResponse: result
       };
     } catch (error) {
       console.error("Error scoring resume against job:", error);

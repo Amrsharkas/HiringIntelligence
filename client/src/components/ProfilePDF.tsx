@@ -41,10 +41,18 @@ interface JobScoring {
   matchSummary: string;
   strengthsHighlights: string[];
   improvementAreas: string[];
+  disqualified?: boolean;
+  disqualificationReason?: string;
+  redFlags?: Array<{
+    issue: string;
+    evidence: string;
+    reason: string;
+  }>;
   invitationStatus?: string | null;
   interviewDate?: Date | null;
   interviewTime?: string | null;
   interviewLink?: string | null;
+  fullResponse?: any;
 }
 
 interface ProfilePDFProps {
@@ -198,6 +206,93 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
   },
+  disqualifiedSection: {
+    backgroundColor: '#fef2f2',
+    border: '2px solid #ef4444',
+    borderRadius: 5,
+    padding: 12,
+    marginBottom: 10,
+  },
+  disqualifiedTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#dc2626',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  disqualifiedReason: {
+    fontSize: 10,
+    color: '#991b1b',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  improvementAreasSection: {
+    backgroundColor: '#fff7ed',
+    border: '1px solid #fb923c',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+  },
+  improvementAreasTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#ea580c',
+    marginBottom: 6,
+  },
+  improvementArea: {
+    fontSize: 9,
+    color: '#9a3412',
+    marginBottom: 4,
+    paddingLeft: 10,
+    position: 'relative',
+  },
+  redFlagsSection: {
+    backgroundColor: '#fefce8',
+    border: '1px solid #facc15',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+  },
+  redFlagsTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#ca8a04',
+    marginBottom: 6,
+  },
+  redFlag: {
+    fontSize: 9,
+    color: '#713f12',
+    marginBottom: 3,
+    paddingLeft: 10,
+    position: 'relative',
+  },
+  strengthsSection: {
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #86efac',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+  },
+  strengthsTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#166534',
+    marginBottom: 6,
+  },
+  strength: {
+    fontSize: 9,
+    color: '#14532d',
+    marginBottom: 3,
+    paddingLeft: 10,
+    position: 'relative',
+  },
+  detailedBreakdown: {
+    fontSize: 8,
+    color: '#475569',
+    marginTop: 6,
+    paddingLeft: 8,
+    borderLeft: '1px solid #cbd5e1',
+  },
   footer: {
     position: 'absolute',
     bottom: 30,
@@ -317,41 +412,190 @@ export const ProfilePDF: React.FC<ProfilePDFProps> = ({
         {/* Job Scores Section */}
         {includeJobScores && filteredJobScores.length > 0 && (
           <View style={styles.jobScoresSection}>
-            <Text style={styles.sectionTitle}>Job Match Scores</Text>
+            <Text style={styles.sectionTitle}>Job Match Analysis</Text>
             {filteredJobScores.map((jobScore) => (
-              <View key={jobScore.jobId} style={styles.jobScoreItem}>
-                <Text style={styles.jobScoreTitle}>{jobScore.jobTitle}</Text>
+              <View key={jobScore.jobId}>
+                {/* Disqualified Status Section */}
+                {jobScore.disqualified && (
+                  <View style={styles.disqualifiedSection}>
+                    <Text style={styles.disqualifiedTitle}>❌ CANDIDATE DISQUALIFIED</Text>
+                    {jobScore.disqualificationReason && (
+                      <Text style={styles.disqualifiedReason}>{jobScore.disqualificationReason}</Text>
+                    )}
 
-                <View style={styles.scoreContainer}>
-                  <View style={styles.scoreItem}>
-                    <Text style={styles.scoreLabel}>Technical Skills</Text>
-                    <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.technicalSkillsScore) }]}>
-                      {jobScore.technicalSkillsScore}%
-                    </Text>
+                    {/* Score Grid for Disqualified */}
+                    <View style={[styles.scoreContainer, { marginTop: 10 }]}>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Overall</Text>
+                        <Text style={[styles.scoreValue, { color: '#dc2626' }]}>
+                          {jobScore.overallScore}%
+                        </Text>
+                      </View>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Technical</Text>
+                        <Text style={[styles.scoreValue, { color: '#dc2626' }]}>
+                          {jobScore.technicalSkillsScore}%
+                        </Text>
+                      </View>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Experience</Text>
+                        <Text style={[styles.scoreValue, { color: '#dc2626' }]}>
+                          {jobScore.experienceScore}%
+                        </Text>
+                      </View>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Cultural Fit</Text>
+                        <Text style={[styles.scoreValue, { color: '#dc2626' }]}>
+                          {jobScore.culturalFitScore}%
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.scoreItem}>
-                    <Text style={styles.scoreLabel}>Experience</Text>
-                    <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.experienceScore) }]}>
-                      {jobScore.experienceScore}%
+                )}
+
+                <View style={styles.jobScoreItem}>
+                  <Text style={styles.jobScoreTitle}>{jobScore.jobTitle}</Text>
+
+                  {!jobScore.disqualified && (
+                    <View style={styles.scoreContainer}>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Technical Skills</Text>
+                        <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.technicalSkillsScore) }]}>
+                          {jobScore.technicalSkillsScore}%
+                        </Text>
+                      </View>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Experience</Text>
+                        <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.experienceScore) }]}>
+                          {jobScore.experienceScore}%
+                        </Text>
+                      </View>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Cultural Fit</Text>
+                        <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.culturalFitScore) }]}>
+                          {jobScore.culturalFitScore}%
+                        </Text>
+                      </View>
+                      <View style={styles.scoreItem}>
+                        <Text style={styles.scoreLabel}>Overall Match</Text>
+                        <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.overallScore) }]}>
+                          {jobScore.overallScore}%
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Improvement Areas */}
+                  {jobScore.improvementAreas && jobScore.improvementAreas.length > 0 && (
+                    <View style={styles.improvementAreasSection}>
+                      <Text style={styles.improvementAreasTitle}>
+                        🎯 Key Skill Gaps ({jobScore.improvementAreas.length})
+                      </Text>
+                      {jobScore.improvementAreas.map((area, index) => (
+                        <Text key={index} style={styles.improvementArea}>
+                          {index + 1}. {area}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Red Flags */}
+                  {jobScore.redFlags && jobScore.redFlags.length > 0 && (
+                    <View style={styles.redFlagsSection}>
+                      <Text style={styles.redFlagsTitle}>
+                        ⚠️ Red Flags ({jobScore.redFlags.length})
+                      </Text>
+                      {jobScore.redFlags.map((flag, index) => (
+                        <Text key={index} style={styles.redFlag}>
+                          • {flag.issue}: {flag.reason}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Strengths Highlights */}
+                  {jobScore.strengthsHighlights && jobScore.strengthsHighlights.length > 0 && (
+                    <View style={styles.strengthsSection}>
+                      <Text style={styles.strengthsTitle}>
+                        ✅ Strengths Highlights ({jobScore.strengthsHighlights.length})
+                      </Text>
+                      {jobScore.strengthsHighlights.map((strength, index) => (
+                        <Text key={index} style={styles.strength}>
+                          • {strength}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {jobScore.matchSummary && (
+                    <Text style={styles.matchSummary}>
+                      📋 Match Summary: {jobScore.matchSummary}
                     </Text>
-                  </View>
-                  <View style={styles.scoreItem}>
-                    <Text style={styles.scoreLabel}>Cultural Fit</Text>
-                    <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.culturalFitScore) }]}>
-                      {jobScore.culturalFitScore}%
-                    </Text>
-                  </View>
-                  <View style={styles.scoreItem}>
-                    <Text style={styles.scoreLabel}>Overall Match</Text>
-                    <Text style={[styles.scoreValue, { color: styles.getScoreColor(jobScore.overallScore) }]}>
-                      {jobScore.overallScore}%
-                    </Text>
+                  )}
+
+                  {/* Detailed Breakdown from fullResponse */}
+                  {jobScore.fullResponse?.detailedBreakdown && (
+                    <View style={styles.detailedBreakdown}>
+                      <Text style={{ fontSize: 9, fontWeight: 'bold', marginBottom: 4 }}>
+                        🔍 Detailed Analysis:
+                      </Text>
+
+                      {jobScore.fullResponse.detailedBreakdown.technicalSkills?.map((skill: any, index: number) => (
+                        <Text key={`tech-${index}`} style={{ fontSize: 8, marginBottom: 2 }}>
+                          • {skill.requirement}: {skill.present === true ? '✅ Present' : skill.present === 'partial' ? '⚠️ Partial' : '❌ Missing'}
+                          {skill.missingDetail && ` - ${skill.missingDetail}`}
+                        </Text>
+                      ))}
+
+                      {jobScore.fullResponse.detailedBreakdown.experience?.map((exp: any, index: number) => (
+                        <Text key={`exp-${index}`} style={{ fontSize: 8, marginBottom: 2 }}>
+                          • {exp.requirement}: {exp.present === true ? '✅ Present' : exp.present === 'partial' ? '⚠️ Partial' : '❌ Missing'}
+                          {exp.missingDetail && ` - ${exp.missingDetail}`}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Status Badge */}
+                  <View style={{ marginTop: 8, alignItems: 'center' }}>
+                    {jobScore.disqualified && (
+                      <Text style={{
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        color: '#dc2626',
+                        backgroundColor: '#fef2f2',
+                        padding: '4 8',
+                        borderRadius: 3
+                      }}>
+                        STATUS: NOT QUALIFIED
+                      </Text>
+                    )}
+                    {jobScore.invitationStatus === 'invited' && (
+                      <Text style={{
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        color: '#059669',
+                        backgroundColor: '#f0fdf4',
+                        padding: '4 8',
+                        borderRadius: 3
+                      }}>
+                        STATUS: INVITED TO INTERVIEW
+                      </Text>
+                    )}
+                    {!jobScore.disqualified && jobScore.invitationStatus !== 'invited' && (
+                      <Text style={{
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        color: '#0891b2',
+                        backgroundColor: '#f0fdfa',
+                        padding: '4 8',
+                        borderRadius: 3
+                      }}>
+                        STATUS: QUALIFIED - PENDING REVIEW
+                      </Text>
+                    )}
                   </View>
                 </View>
-
-                {jobScore.matchSummary && (
-                  <Text style={styles.matchSummary}>{jobScore.matchSummary}</Text>
-                )}
               </View>
             ))}
           </View>

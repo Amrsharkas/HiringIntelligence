@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2, MailCheck, Mail, Download, Trash2 } from 'lucide-react';
+import { FileText, Search, User, Briefcase, Star, Upload, Users, File, X, Loader2, MailCheck, Mail, Download, Trash2, ChevronDown, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
 import { BlobProvider } from '@react-pdf/renderer';
 import ProfilePDF from './ProfilePDF';
 import ProfilesPDF from './ProfilesPDF';
@@ -43,10 +43,18 @@ interface JobScoring {
   matchSummary: string;
   strengthsHighlights: string[];
   improvementAreas: string[];
+  disqualified?: boolean;
+  disqualificationReason?: string;
+  redFlags?: Array<{
+    issue: string;
+    evidence: string;
+    reason: string;
+  }>;
   invitationStatus?: string | null;
   interviewDate?: Date | null;
   interviewTime?: string | null;
   interviewLink?: string | null;
+  fullResponse?: any;
 }
 
 interface ProfileWithScores extends ResumeProfile {
@@ -144,7 +152,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           let binary = '';
           const chunkSize = 0x8000; // 32KB chunks
           for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, Array.from(chunk));
           }
           const base64 = btoa(binary);
           resolve(base64);
@@ -160,7 +169,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           let binary = '';
           const chunkSize = 0x8000; // 32KB chunks
           for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, Array.from(chunk));
           }
           const base64 = btoa(binary);
           resolve(base64);
@@ -329,15 +339,81 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
               toast({
                 title: "PDF Exported",
-                description: `${profile.name}'s resume has been exported successfully`,
+                description: `${profile.name}'s full profile has been exported successfully`,
               });
             }
           };
 
           return (
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-3 w-3 mr-1" />
-              Export PDF
+            <Button variant="outline" size="sm" onClick={handleDownload} className="flex items-center gap-2">
+              <Download className="h-3 w-3" />
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
+          );
+        }}
+      </BlobProvider>
+    );
+  };
+
+  // Export disqualified candidates summary
+  const exportDisqualifiedSummary = () => {
+    const disqualifiedProfiles = filteredProfiles.filter(profile =>
+      profile.jobScores.some(score => score.disqualified)
+    );
+
+    if (disqualifiedProfiles.length === 0) {
+      return (
+        <Button variant="outline" disabled>
+          No Disqualified Candidates
+        </Button>
+      );
+    }
+
+    const fileName = `disqualified_candidates_summary_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    return (
+      <BlobProvider document={<ProfilesPDF profiles={disqualifiedProfiles} jobs={jobs} />}>
+        {({ blob, url, loading, error }) => {
+          if (loading) {
+            return (
+              <Button variant="outline" disabled>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating Summary...
+              </Button>
+            );
+          }
+
+          if (error) {
+            return (
+              <Button variant="outline" disabled>
+                PDF Error
+              </Button>
+            );
+          }
+
+          const handleDownload = () => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = fileName;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+
+              toast({
+                title: "Summary Exported",
+                description: `${disqualifiedProfiles.length} disqualified candidates have been exported successfully`,
+              });
+            }
+          };
+
+          return (
+            <Button variant="outline" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Disqualified Summary ({disqualifiedProfiles.length})
             </Button>
           );
         }}
@@ -416,9 +492,191 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     profile.experience.some(exp => exp.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Detailed Analysis Component
+  const DetailedAnalysis = ({ jobScore }: { jobScore: JobScoring }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const fullResponse = jobScore.fullResponse;
+
+    if (!fullResponse || !fullResponse.detailedBreakdown) {
+      return null;
+    }
+
+    const { detailedBreakdown } = fullResponse;
+
+    const getEvidenceIcon = (present: boolean | 'partial') => {
+      if (present === true) return <CheckCircle className="h-4 w-4 text-green-500" />;
+      if (present === 'partial') return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      return <X className="h-4 w-4 text-red-500" />;
+    };
+
+    return (
+      <div className="mt-4 border border-gray-200 rounded-lg">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center justify-between w-full p-3 bg-gray-50 hover:bg-gray-100 rounded-t-lg transition-colors"
+        >
+          <span className="font-medium text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Detailed Analysis
+          </span>
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </button>
+
+        {isExpanded && (
+          <div className="p-4 space-y-4 bg-white">
+            {/* Technical Skills Breakdown */}
+            {detailedBreakdown.technicalSkills && detailedBreakdown.technicalSkills.length > 0 && (
+              <div>
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Technical Skills
+                </h5>
+                <div className="space-y-2">
+                  {detailedBreakdown.technicalSkills.map((skill: any, index: number) => (
+                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="text-sm font-medium flex-1">{skill.requirement}</span>
+                        <div className="flex items-center gap-2">
+                          {skill.gapPercentage !== undefined && (
+                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                              {skill.gapPercentage}% Gap
+                            </span>
+                          )}
+                          {getEvidenceIcon(skill.present)}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">
+                        {skill.evidence}
+                      </div>
+                      {skill.missingDetail && (
+                        <div className="text-xs text-blue-600">
+                          {skill.missingDetail}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Experience Breakdown */}
+            {detailedBreakdown.experience && detailedBreakdown.experience.length > 0 && (
+              <div>
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Experience
+                </h5>
+                <div className="space-y-2">
+                  {detailedBreakdown.experience.map((exp: any, index: number) => (
+                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="text-sm font-medium flex-1">{exp.requirement}</span>
+                        <div className="flex items-center gap-2">
+                          {exp.gapPercentage !== undefined && (
+                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                              {exp.gapPercentage}% Gap
+                            </span>
+                          )}
+                          {getEvidenceIcon(exp.present)}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">
+                        {exp.evidence}
+                      </div>
+                      {exp.missingDetail && (
+                        <div className="text-xs text-blue-600">
+                          {exp.missingDetail}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Education & Certifications Breakdown */}
+            {detailedBreakdown.educationAndCertifications && detailedBreakdown.educationAndCertifications.length > 0 && (
+              <div>
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Education & Certifications
+                </h5>
+                <div className="space-y-2">
+                  {detailedBreakdown.educationAndCertifications.map((edu: any, index: number) => (
+                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="text-sm font-medium flex-1">{edu.requirement}</span>
+                        <div className="flex items-center gap-2">
+                          {edu.gapPercentage !== undefined && (
+                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                              {edu.gapPercentage}% Gap
+                            </span>
+                          )}
+                          {getEvidenceIcon(edu.present)}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">
+                        {edu.evidence}
+                      </div>
+                      {edu.missingDetail && (
+                        <div className="text-xs text-blue-600">
+                          {edu.missingDetail}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cultural Fit & Soft Skills Breakdown */}
+            {detailedBreakdown.culturalFitAndSoftSkills && detailedBreakdown.culturalFitAndSoftSkills.length > 0 && (
+              <div>
+                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Cultural Fit & Soft Skills
+                </h5>
+                <div className="space-y-2">
+                  {detailedBreakdown.culturalFitAndSoftSkills.map((skill: any, index: number) => (
+                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="text-sm font-medium flex-1">{skill.requirement}</span>
+                        <div className="flex items-center gap-2">
+                          {skill.gapPercentage !== undefined && (
+                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                              {skill.gapPercentage}% Gap
+                            </span>
+                          )}
+                          {getEvidenceIcon(skill.present)}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-600 mb-1">
+                        {skill.evidence}
+                      </div>
+                      {skill.missingDetail && (
+                        <div className="text-xs text-blue-600">
+                          {skill.missingDetail}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto p-6">
+          <div className="max-w-full overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
@@ -612,21 +870,41 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         {activeTab === 'results' && (
           <div className="space-y-4">
             {/* Search Bar and Export Controls */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search profiles by name, skills, or experience..."
-                  className="pl-10"
-                />
-              </div>
-              {filteredProfiles.length > 0 && (
-                <div className="flex gap-2">
-                  {exportAllProfiles()}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search profiles by name, skills, or experience..."
+                    className="pl-10"
+                  />
                 </div>
-              )}
+                {filteredProfiles.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {exportDisqualifiedSummary()}
+                    {exportAllProfiles()}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Stats */}
+              <div className="flex gap-4 text-sm text-muted-foreground">
+                <span>Total: {filteredProfiles.length} profiles</span>
+                <span>•</span>
+                <span className="text-red-600">
+                  Disqualified: {filteredProfiles.filter(profile =>
+                    profile.jobScores.some(score => score.disqualified)
+                  ).length}
+                </span>
+                <span>•</span>
+                <span className="text-green-600">
+                  Qualified: {filteredProfiles.filter(profile =>
+                    profile.jobScores.some(score => !score.disqualified)
+                  ).length}
+                </span>
+              </div>
             </div>
 
             {profilesLoading ? (
@@ -665,124 +943,270 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                             .map((profile) => (
                               <Card key={`${job.id}-${profile.id}`} className="border border-gray-200">
                                 <CardContent className="p-4">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-3 mb-2">
-                                        <User className="h-4 w-4" />
-                                        <h4 className="font-semibold">{profile.name}</h4>
-                                        <Badge variant={getScoreBadgeVariant(profile.jobScore?.overallScore || 0)}>
-                                          {profile.jobScore?.overallScore}% Match
-                                        </Badge>
+                                  <div className="space-y-4">
+                                    {/* Header Section */}
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <User className="h-5 w-5 text-muted-foreground" />
+                                        <div>
+                                          <h4 className="font-semibold text-lg">{profile.name}</h4>
+                                          <p className="text-sm text-muted-foreground">{profile.email}</p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {profile.jobScore?.disqualified ? (
+                                          <Badge variant="destructive" className="text-xs font-semibold">
+                                            DISQUALIFIED
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant={getScoreBadgeVariant(profile.jobScore?.overallScore || 0)}>
+                                            {profile.jobScore?.overallScore}% Match
+                                          </Badge>
+                                        )}
                                         {profile.jobScore?.invitationStatus === 'invited' && (
-                                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 text-xs">
                                             <MailCheck className="h-3 w-3 mr-1" />
                                             Invited
                                           </Badge>
                                         )}
                                       </div>
+                                    </div>
 
-                                      <p className="text-sm text-muted-foreground mb-3">{profile.summary}</p>
+                                    {/* Unified Two-Column Layout for All Profiles */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                      {/* Left Column - Status and Scores */}
+                                      <div className="space-y-3">
+                                        {profile.jobScore?.disqualified ? (
+                                          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-3">
+                                              <AlertTriangle className="h-5 w-5 text-red-600" />
+                                              <h5 className="font-semibold text-red-800">Not a Match</h5>
+                                            </div>
 
-                                      <div className="grid grid-cols-3 gap-4 mb-3">
-                                        <div>
-                                          <div className="text-xs text-muted-foreground">Technical Skills</div>
-                                          <div className={`text-sm font-medium ${getScoreColor(profile.jobScore?.technicalSkillsScore || 0)}`}>
-                                            {profile.jobScore?.technicalSkillsScore}%
-                                          </div>
-                                          <Progress value={profile.jobScore?.technicalSkillsScore} className="h-1" />
-                                        </div>
-                                        <div>
-                                          <div className="text-xs text-muted-foreground">Experience</div>
-                                          <div className={`text-sm font-medium ${getScoreColor(profile.jobScore?.experienceScore || 0)}`}>
-                                            {profile.jobScore?.experienceScore}%
-                                          </div>
-                                          <Progress value={profile.jobScore?.experienceScore} className="h-1" />
-                                        </div>
-                                        <div>
-                                          <div className="text-xs text-muted-foreground">Cultural Fit</div>
-                                          <div className={`text-sm font-medium ${getScoreColor(profile.jobScore?.culturalFitScore || 0)}`}>
-                                            {profile.jobScore?.culturalFitScore}%
-                                          </div>
-                                          <Progress value={profile.jobScore?.culturalFitScore} className="h-1" />
-                                        </div>
-                                      </div>
+                                            {profile.jobScore.disqualificationReason && (
+                                              <p className="text-sm text-red-700 mb-3">{profile.jobScore.disqualificationReason}</p>
+                                            )}
 
-                                      <div className="flex flex-wrap gap-1 mb-2">
-                                        {profile.skills.slice(0, 5).map((skill, index) => (
-                                          <Badge key={index} variant="outline" className="text-xs">
-                                            {skill}
-                                          </Badge>
-                                        ))}
-                                        {profile.skills.length > 5 && (
-                                          <Badge variant="outline" className="text-xs">
-                                            +{profile.skills.length - 5} more
-                                          </Badge>
+                                            {/* Score Grid */}
+                                            <div className="grid grid-cols-3 gap-2">
+                                              <div className="text-center p-2 bg-white rounded border">
+                                                <div className="text-lg font-bold text-red-600">{profile.jobScore.overallScore}%</div>
+                                                <div className="text-xs text-red-600">Overall</div>
+                                              </div>
+                                              <div className="text-center p-2 bg-white rounded border">
+                                                <div className="text-lg font-bold text-red-600">{profile.jobScore.technicalSkillsScore}%</div>
+                                                <div className="text-xs text-red-600">Technical</div>
+                                              </div>
+                                              <div className="text-center p-2 bg-white rounded border">
+                                                <div className="text-lg font-bold text-red-600">{profile.jobScore.experienceScore}%</div>
+                                                <div className="text-xs text-red-600">Experience</div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-3">
+                                              <CheckCircle className="h-5 w-5 text-green-600" />
+                                              <h5 className="font-semibold text-green-800">
+                                                Strong Match {profile.jobScore?.overallScore >= 80 ? '⭐' : ''}
+                                              </h5>
+                                            </div>
+
+                                            {profile.jobScore?.matchSummary && (
+                                              <p className="text-sm text-green-700 mb-3">{profile.jobScore.matchSummary}</p>
+                                            )}
+
+                                            {/* Score Grid */}
+                                            <div className="grid grid-cols-3 gap-2">
+                                              <div className="text-center p-2 bg-white rounded border">
+                                                <div className={`text-lg font-bold ${getScoreColor(profile.jobScore?.overallScore || 0)}`}>
+                                                  {profile.jobScore?.overallScore}%
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">Overall</div>
+                                              </div>
+                                              <div className="text-center p-2 bg-white rounded border">
+                                                <div className={`text-lg font-bold ${getScoreColor(profile.jobScore?.technicalSkillsScore || 0)}`}>
+                                                  {profile.jobScore?.technicalSkillsScore}%
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">Technical</div>
+                                              </div>
+                                              <div className="text-center p-2 bg-white rounded border">
+                                                <div className={`text-lg font-bold ${getScoreColor(profile.jobScore?.experienceScore || 0)}`}>
+                                                  {profile.jobScore?.experienceScore}%
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">Experience</div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Key Skill Gaps or Strengths */}
+                                        {profile.jobScore?.disqualified && profile.jobScore?.improvementAreas && profile.jobScore.improvementAreas.length > 0 && (
+                                          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <AlertTriangle className="h-4 w-4 text-orange-600" />
+                                              <h5 className="font-semibold text-orange-800 text-sm">
+                                                Key Gaps ({profile.jobScore.improvementAreas.length})
+                                              </h5>
+                                            </div>
+                                            <ul className="space-y-1">
+                                              {profile.jobScore.improvementAreas.slice(0, 3).map((gap, index) => (
+                                                <li key={index} className="text-xs text-orange-700 flex items-start gap-1">
+                                                  <span className="text-orange-500 mt-0.5">•</span>
+                                                  <span>{gap}</span>
+                                                </li>
+                                              ))}
+                                              {profile.jobScore.improvementAreas.length > 3 && (
+                                                <li className="text-xs text-orange-600 font-medium">
+                                                  +{profile.jobScore.improvementAreas.length - 3} more gaps
+                                                </li>
+                                              )}
+                                            </ul>
+                                          </div>
+                                        )}
+
+                                        {!profile.jobScore?.disqualified && profile.jobScore?.strengthsHighlights && profile.jobScore.strengthsHighlights.length > 0 && (
+                                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <Star className="h-4 w-4 text-blue-600" />
+                                              <h5 className="font-semibold text-blue-800 text-sm">
+                                                Key Strengths ({profile.jobScore.strengthsHighlights.length})
+                                              </h5>
+                                            </div>
+                                            <ul className="space-y-1">
+                                              {profile.jobScore.strengthsHighlights.slice(0, 3).map((strength, index) => (
+                                                <li key={index} className="text-xs text-blue-700 flex items-start gap-1">
+                                                  <span className="text-blue-500 mt-0.5">•</span>
+                                                  <span>{strength}</span>
+                                                </li>
+                                              ))}
+                                              {profile.jobScore.strengthsHighlights.length > 3 && (
+                                                <li className="text-xs text-blue-600 font-medium">
+                                                  +{profile.jobScore.strengthsHighlights.length - 3} more strengths
+                                                </li>
+                                              )}
+                                            </ul>
+                                          </div>
                                         )}
                                       </div>
 
-                                      {profile.jobScore?.matchSummary && (
-                                        <p className="text-xs text-muted-foreground">
-                                          {profile.jobScore.matchSummary}
-                                        </p>
-                                      )}
+                                      {/* Right Column - Profile Details */}
+                                      <div className="space-y-3">
+                                        {/* Summary */}
+                                        <div>
+                                          <h5 className="font-medium text-sm mb-1">Professional Summary</h5>
+                                          <p className="text-sm text-muted-foreground line-clamp-4">{profile.summary}</p>
+                                        </div>
+
+                                        {/* Skills */}
+                                        <div>
+                                          <h5 className="font-medium text-sm mb-2">Key Skills</h5>
+                                          <div className="flex flex-wrap gap-1">
+                                            {profile.skills.slice(0, 8).map((skill, index) => (
+                                              <Badge key={index} variant="outline" className="text-xs">
+                                                {skill}
+                                              </Badge>
+                                            ))}
+                                            {profile.skills.length > 8 && (
+                                              <Badge variant="secondary" className="text-xs">
+                                                +{profile.skills.length - 8}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Red Flags or Cultural Fit Score */}
+                                        {profile.jobScore?.redFlags && profile.jobScore.redFlags.length > 0 && (
+                                          <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                            <h5 className="font-medium text-sm text-yellow-800 mb-1">Red Flags</h5>
+                                            <ul className="text-xs text-yellow-700 space-y-0.5">
+                                              {profile.jobScore.redFlags.slice(0, 2).map((flag, index) => (
+                                                <li key={index}>• {flag.issue}</li>
+                                              ))}
+                                              {profile.jobScore.redFlags.length > 2 && (
+                                                <li className="text-yellow-600 font-medium">
+                                                  +{profile.jobScore.redFlags.length - 2} more
+                                                </li>
+                                              )}
+                                            </ul>
+                                          </div>
+                                        )}
+
+                                        {!profile.jobScore?.disqualified && profile.jobScore?.culturalFitScore && (
+                                          <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <Users className="h-4 w-4 text-purple-600" />
+                                              <h5 className="font-semibold text-purple-800 text-sm">Cultural Fit</h5>
+                                            </div>
+                                            <div className="text-center p-2 bg-white rounded border">
+                                              <div className={`text-2xl font-bold ${getScoreColor(profile.jobScore.culturalFitScore)}`}>
+                                                {profile.jobScore.culturalFitScore}%
+                                              </div>
+                                              <div className="text-xs text-purple-600">Team Alignment</div>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                      {profile.jobScore?.invitationStatus !== 'invited' && (
-                                        <Button
-                                          variant="default"
-                                          size="sm"
-                                          onClick={() => inviteApplicantMutation.mutate({
-                                            profileId: profile.id,
-                                            jobId: job.id.toString()
-                                          })}
-                                          disabled={inviteApplicantMutation.isPending}
-                                          className="flex items-center gap-2"
-                                        >
-                                          {inviteApplicantMutation.isPending ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <Mail className="h-3 w-3" />
-                                          )}
-                                          Invite
-                                        </Button>
-                                      )}
-                                      {exportSingleProfile(profile)}
+
+                                    {profile.jobScore && <DetailedAnalysis jobScore={profile.jobScore} />}
+                                  </div>
+                                  <div className="flex gap-2 mt-4 pt-4 border-t">
+                                    {profile.jobScore?.invitationStatus !== 'invited' && !profile.jobScore?.disqualified && (
                                       <Button
-                                        variant="outline"
+                                        variant="default"
                                         size="sm"
-                                        onClick={() => setSelectedProfile(profile)}
+                                        onClick={() => inviteApplicantMutation.mutate({
+                                          profileId: profile.id,
+                                          jobId: job.id.toString()
+                                        })}
+                                        disabled={inviteApplicantMutation.isPending}
+                                        className="flex items-center gap-2"
                                       >
-                                        View Full Profile
+                                        {inviteApplicantMutation.isPending ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <Mail className="h-3 w-3" />
+                                        )}
+                                        Invite
                                       </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    )}
+                                    {exportSingleProfile(profile)}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setSelectedProfile(profile)}
+                                    >
+                                      View Full Profile
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete {profile.name}'s profile? This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => deleteProfileMutation.mutate(profile.id)}
+                                            className="bg-red-600 hover:bg-red-700"
                                           >
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Profile</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Are you sure you want to delete {profile.name}'s profile? This action cannot be undone.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => deleteProfileMutation.mutate(profile.id)}
-                                              className="bg-red-600 hover:bg-red-700"
-                                            >
-                                              Delete
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
                                   </div>
                                 </CardContent>
                               </Card>
@@ -808,7 +1232,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         {/* Profile Detail Modal */}
         {selectedProfile && (
           <Dialog open={!!selectedProfile} onOpenChange={() => setSelectedProfile(null)}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-6">
               <DialogHeader>
                 <div className="flex items-center justify-between">
                   <DialogTitle className="flex items-center gap-2">
@@ -850,37 +1274,67 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
               </DialogHeader>
               <ScrollArea className="h-[70vh]">
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <h4 className="font-semibold mb-2">Contact Information</h4>
-                      <p className="text-sm">{selectedProfile.email}</p>
-                      <p className="text-sm">{selectedProfile.phone}</p>
+                  {/* Header Section */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
+                        <User className="h-8 w-8 text-gray-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold">{selectedProfile.name}</h3>
+                        <p className="text-sm text-muted-foreground">{selectedProfile.email}</p>
+                        <p className="text-sm text-muted-foreground">{selectedProfile.phone}</p>
+                      </div>
                     </div>
-                    <div className="md:col-span-2">
-                      <h4 className="font-semibold mb-2">Professional Summary</h4>
-                      <p className="text-sm text-muted-foreground">{selectedProfile.summary}</p>
+                    <div className="flex gap-2">
+                      {exportSingleProfile(selectedProfile)}
                     </div>
                   </div>
 
                   <Separator />
 
+                  {/* Professional Summary */}
                   <div>
-                    <h4 className="font-semibold mb-3">Job Match Scores</h4>
-                    <div className="space-y-3">
+                    <h4 className="font-semibold mb-3 text-lg">Professional Summary</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{selectedProfile.summary}</p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="font-semibold mb-4 text-lg">Job Match Analysis</h4>
+                    <div className="space-y-4">
                       {selectedProfile.jobScores.map((jobScore) => {
-                        const job = jobs.find((j) => j.id === jobScore.jobId);
+                        const job = jobs.find((j: any) => j.id === jobScore.jobId);
                         return (
-                          <Card key={jobScore.jobId}>
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between mb-3">
-                                <div>
-                                  <h5 className="font-medium">{jobScore.jobTitle}</h5>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Badge variant={getScoreBadgeVariant(jobScore.overallScore)}>
-                                      {jobScore.overallScore}% Overall Match
-                                    </Badge>
+                          <Card key={jobScore.jobId} className={jobScore.disqualified ? 'border-red-200 bg-red-50/30' : ''}>
+                            <CardContent className="p-6">
+                              {/* Job Header */}
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <Briefcase className="h-5 w-5 text-muted-foreground" />
+                                    <h5 className="font-semibold text-lg">
+                                      {job?.title || `Job #${jobScore.jobId}`}
+                                    </h5>
+                                  </div>
+                                  {job && (
+                                    <p className="text-sm text-muted-foreground mb-2">
+                                      {job.location} • {job.jobType} • {job.salaryRange}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {jobScore.disqualified ? (
+                                      <Badge variant="destructive" className="text-xs font-semibold">
+                                        NOT A MATCH
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant={getScoreBadgeVariant(jobScore.overallScore)}>
+                                        {jobScore.overallScore}% Overall Match
+                                      </Badge>
+                                    )}
                                     {jobScore.invitationStatus === 'invited' && (
-                                      <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                      <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 text-xs">
                                         <MailCheck className="h-3 w-3 mr-1" />
                                         Invited
                                       </Badge>
@@ -888,7 +1342,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
-                                  {jobScore.invitationStatus !== 'invited' && (
+                                  {jobScore.invitationStatus !== 'invited' && !jobScore.disqualified && (
                                     <Button
                                       variant="default"
                                       size="sm"
@@ -907,33 +1361,119 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                       Invite
                                     </Button>
                                   )}
-                                  {exportSingleProfile(selectedProfile)}
                                 </div>
                               </div>
-                              <div className="grid grid-cols-3 gap-4 mb-3">
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Technical Skills</div>
-                                  <div className={`text-sm font-medium ${getScoreColor(jobScore.technicalSkillsScore)}`}>
-                                    {jobScore.technicalSkillsScore}%
+
+                              {/* Disqualified Candidate Special Layout */}
+                              {jobScore.disqualified && (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                  {/* Left Column - Status and Scores */}
+                                  <div className="space-y-4">
+                                    <div className="p-4 bg-red-100 border border-red-200 rounded-lg">
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                                        <h6 className="font-semibold text-red-800">Not Suitable for This Role</h6>
+                                      </div>
+                                      {jobScore.disqualificationReason && (
+                                        <p className="text-sm text-red-700 mb-3">{jobScore.disqualificationReason}</p>
+                                      )}
+
+                                      {/* Score Display */}
+                                      <div className="grid grid-cols-3 gap-3">
+                                        <div className="text-center p-3 bg-white rounded border">
+                                          <div className="text-2xl font-bold text-red-600">{jobScore.overallScore}%</div>
+                                          <div className="text-xs text-red-600">Overall</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white rounded border">
+                                          <div className="text-2xl font-bold text-red-600">{jobScore.technicalSkillsScore}%</div>
+                                          <div className="text-xs text-red-600">Technical</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white rounded border">
+                                          <div className="text-2xl font-bold text-red-600">{jobScore.experienceScore}%</div>
+                                          <div className="text-xs text-red-600">Experience</div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Key Skill Gaps */}
+                                    {jobScore.improvementAreas && jobScore.improvementAreas.length > 0 && (
+                                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-3">
+                                          <AlertTriangle className="h-4 w-4 text-orange-600" />
+                                          <h6 className="font-semibold text-orange-800">
+                                            Critical Skill Gaps ({jobScore.improvementAreas.length})
+                                          </h6>
+                                        </div>
+                                        <ul className="space-y-2">
+                                          {jobScore.improvementAreas.map((gap, index) => (
+                                            <li key={index} className="text-sm text-orange-700 flex items-start gap-2">
+                                              <span className="text-orange-500 mt-1">•</span>
+                                              <span>{gap}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
                                   </div>
-                                  <Progress value={jobScore.technicalSkillsScore} className="h-2" />
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Experience</div>
-                                  <div className={`text-sm font-medium ${getScoreColor(jobScore.experienceScore)}`}>
-                                    {jobScore.experienceScore}%
+
+                                  {/* Right Column - Additional Info */}
+                                  <div className="space-y-4">
+                                    {jobScore.redFlags && jobScore.redFlags.length > 0 && (
+                                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                        <h6 className="font-semibold text-yellow-800 mb-2">Red Flags</h6>
+                                        <ul className="space-y-1">
+                                          {jobScore.redFlags.map((flag, index) => (
+                                            <li key={index} className="text-sm text-yellow-700">
+                                              • {flag.issue} - {flag.reason}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+
+                                    {jobScore.matchSummary && (
+                                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                        <h6 className="font-semibold text-gray-700 mb-2">Assessment Summary</h6>
+                                        <p className="text-sm text-gray-600">{jobScore.matchSummary}</p>
+                                      </div>
+                                    )}
                                   </div>
-                                  <Progress value={jobScore.experienceScore} className="h-2" />
                                 </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Cultural Fit</div>
-                                  <div className={`text-sm font-medium ${getScoreColor(jobScore.culturalFitScore)}`}>
-                                    {jobScore.culturalFitScore}%
+                              )}
+
+                              {/* Regular Score Breakdown (for non-disqualified) */}
+                              {!jobScore.disqualified && (
+                                <>
+                                  <div className="grid grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                      <div className="text-xs text-muted-foreground mb-1">Technical Skills</div>
+                                      <div className={`text-lg font-semibold ${getScoreColor(jobScore.technicalSkillsScore)}`}>
+                                        {jobScore.technicalSkillsScore}%
+                                      </div>
+                                      <Progress value={jobScore.technicalSkillsScore} className="h-2 mt-1" />
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-muted-foreground mb-1">Experience</div>
+                                      <div className={`text-lg font-semibold ${getScoreColor(jobScore.experienceScore)}`}>
+                                        {jobScore.experienceScore}%
+                                      </div>
+                                      <Progress value={jobScore.experienceScore} className="h-2 mt-1" />
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-muted-foreground mb-1">Cultural Fit</div>
+                                      <div className={`text-lg font-semibold ${getScoreColor(jobScore.culturalFitScore)}`}>
+                                        {jobScore.culturalFitScore}%
+                                      </div>
+                                      <Progress value={jobScore.culturalFitScore} className="h-2 mt-1" />
+                                    </div>
                                   </div>
-                                  <Progress value={jobScore.culturalFitScore} className="h-2" />
-                                </div>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{jobScore.matchSummary}</p>
+                                  {jobScore.matchSummary && (
+                                    <p className="text-sm text-muted-foreground mb-4">{jobScore.matchSummary}</p>
+                                  )}
+                                </>
+                              )}
+
+                              <DetailedAnalysis jobScore={jobScore} />
                             </CardContent>
                           </Card>
                         );
@@ -1005,6 +1545,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
             </DialogContent>
           </Dialog>
         )}
+          </div>
       </DialogContent>
     </Dialog>
   );

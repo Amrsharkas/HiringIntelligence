@@ -719,7 +719,10 @@ export class DatabaseStorage implements IStorage {
   async createJobScore(score: InsertResumeJobScore): Promise<ResumeJobScore> {
     const [created] = await db
       .insert(resumeJobScores)
-      .values(score)
+      .values({
+        ...score,
+        fullResponse: score.fullResponse || null
+      })
       .returning();
     return created;
   }
@@ -736,7 +739,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(resumeJobScores)
-      .where(eq(resumeJobScores.jobId, jobId))
+      .where(eq(resumeJobScores.jobId, parseInt(jobId)))
       .orderBy(desc(resumeJobScores.overallScore));
   }
 

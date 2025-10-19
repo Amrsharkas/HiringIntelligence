@@ -416,6 +416,10 @@ export const resumeJobScores = pgTable("resume_job_scores", {
   matchSummary: text("match_summary"),
   strengthsHighlights: jsonb("strengths_highlights").$type<string[]>(),
   improvementAreas: jsonb("improvement_areas").$type<string[]>(),
+  disqualified: boolean("disqualified"),
+  disqualificationReason: text("disqualification_reason"),
+  redFlags: jsonb("red_flags").$type<Array<{ issue: string; evidence: string; reason: string }>>(),
+  fullResponse: jsonb("full_response"),
   scoredAt: timestamp("scored_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
