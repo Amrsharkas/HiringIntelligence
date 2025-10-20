@@ -132,7 +132,7 @@ export interface IStorage {
 
   // Resume profile operations
   createResumeProfile(profile: InsertResumeProfile): Promise<ResumeProfile>;
-  getResumeProfilesByOrganization(organizationId: string, page?: number, limit?: number): Promise<ResumeProfile[]>;
+  getResumeProfilesByOrganization(organizationId: string, page?: number, limit?: number, sortBy?: string): Promise<ResumeProfile[]>;
   getResumeProfilesCountByOrganization(organizationId: string): Promise<number>;
   getResumeProfileById(id: string): Promise<ResumeProfile | undefined>;
   updateResumeProfile(id: string, updates: Partial<InsertResumeProfile>): Promise<ResumeProfile>;
@@ -687,15 +687,45 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getResumeProfilesByOrganization(organizationId: string, page: number = 1, limit: number = 10): Promise<ResumeProfile[]> {
+  async getResumeProfilesByOrganization(organizationId: string, page: number = 1, limit: number = 10, sortBy: string = 'score'): Promise<ResumeProfile[]> {
     const offset = (page - 1) * limit;
-    return await db
-      .select()
-      .from(resumeProfiles)
-      .where(eq(resumeProfiles.organizationId, organizationId))
-      .orderBy(desc(resumeProfiles.createdAt))
-      .limit(limit)
-      .offset(offset);
+
+    if (sortBy === 'score') {
+      // Order by highest score across all jobs, with unscored profiles at the end
+      // Using raw SQL to avoid Drizzle ORM limitations
+      const query = sql`
+        SELECT
+          rp.*
+        FROM resume_profiles rp
+        LEFT JOIN (
+          SELECT
+            profile_id,
+            MAX(overall_score) as max_score
+          FROM resume_job_scores
+          GROUP BY profile_id
+        ) max_scores ON rp.id = max_scores.profile_id
+        WHERE rp.organization_id = ${organizationId}
+        ORDER BY COALESCE(max_scores.max_score, 0) DESC, rp.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+
+      const result = await db.execute(query);
+
+      // Convert the result back to ResumeProfile format
+      // db.execute returns { rows: [...] } format
+      return result.rows.map((row: any) => {
+        return row as ResumeProfile;
+      });
+    } else {
+      // Default ordering by creation date
+      return await db
+        .select()
+        .from(resumeProfiles)
+        .where(eq(resumeProfiles.organizationId, organizationId))
+        .orderBy(desc(resumeProfiles.createdAt))
+        .limit(limit)
+        .offset(offset);
+    }
   }
 
   async getResumeProfilesCountByOrganization(organizationId: string): Promise<number> {

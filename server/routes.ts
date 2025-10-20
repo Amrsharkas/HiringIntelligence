@@ -3825,7 +3825,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { jobId, page = 1, limit = 10 } = req.query;
+      const { jobId, page = 1, limit = 10, sortBy = 'score' } = req.query;
       const organization = await storage.getOrganizationByUser(userId);
 
       if (!organization) {
@@ -3838,7 +3838,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const validPage = pageNum > 0 ? pageNum : 1;
       const validLimit = limitNum > 0 && limitNum <= 100 ? limitNum : 10; // Cap at 100 for performance
 
-      const profiles = await storage.getResumeProfilesByOrganization(organization.id, validPage, validLimit);
+      const profiles = await storage.getResumeProfilesByOrganization(organization.id, validPage, validLimit, sortBy);
       const totalCount = await storage.getResumeProfilesCountByOrganization(organization.id);
       const totalPages = Math.ceil(totalCount / validLimit);
 
