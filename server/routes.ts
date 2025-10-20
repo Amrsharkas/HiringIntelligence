@@ -3825,14 +3825,22 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { jobId } = req.query;
+      const { jobId, page = 1, limit = 10 } = req.query;
       const organization = await storage.getOrganizationByUser(userId);
 
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const profiles = await storage.getResumeProfilesByOrganization(organization.id);
+      // Parse pagination parameters
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+      const validPage = pageNum > 0 ? pageNum : 1;
+      const validLimit = limitNum > 0 && limitNum <= 100 ? limitNum : 10; // Cap at 100 for performance
+
+      const profiles = await storage.getResumeProfilesByOrganization(organization.id, validPage, validLimit);
+      const totalCount = await storage.getResumeProfilesCountByOrganization(organization.id);
+      const totalPages = Math.ceil(totalCount / validLimit);
 
       // Get all organization jobs for scoring
       const jobs = await storage.getJobsByOrganization(organization.id);
@@ -3870,7 +3878,17 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         };
       }));
 
-      res.json(profilesWithScores);
+      res.json({
+        data: profilesWithScores,
+        pagination: {
+          currentPage: validPage,
+          totalPages,
+          totalItems: totalCount,
+          itemsPerPage: validLimit,
+          hasNextPage: validPage < totalPages,
+          hasPrevPage: validPage > 1
+        }
+      });
     } catch (error) {
       console.error("Error fetching resume profiles:", error);
       res.status(500).json({ message: "Failed to fetch resume profiles" });

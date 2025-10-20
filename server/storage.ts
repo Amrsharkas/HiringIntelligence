@@ -44,7 +44,7 @@ import {
   type InsertResumeJobScore,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, count } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (updated for custom auth)
@@ -132,7 +132,8 @@ export interface IStorage {
 
   // Resume profile operations
   createResumeProfile(profile: InsertResumeProfile): Promise<ResumeProfile>;
-  getResumeProfilesByOrganization(organizationId: string): Promise<ResumeProfile[]>;
+  getResumeProfilesByOrganization(organizationId: string, page?: number, limit?: number): Promise<ResumeProfile[]>;
+  getResumeProfilesCountByOrganization(organizationId: string): Promise<number>;
   getResumeProfileById(id: string): Promise<ResumeProfile | undefined>;
   updateResumeProfile(id: string, updates: Partial<InsertResumeProfile>): Promise<ResumeProfile>;
   deleteResumeProfile(id: string): Promise<void>;
@@ -686,12 +687,23 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getResumeProfilesByOrganization(organizationId: string): Promise<ResumeProfile[]> {
+  async getResumeProfilesByOrganization(organizationId: string, page: number = 1, limit: number = 10): Promise<ResumeProfile[]> {
+    const offset = (page - 1) * limit;
     return await db
       .select()
       .from(resumeProfiles)
       .where(eq(resumeProfiles.organizationId, organizationId))
-      .orderBy(desc(resumeProfiles.createdAt));
+      .orderBy(desc(resumeProfiles.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getResumeProfilesCountByOrganization(organizationId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(resumeProfiles)
+      .where(eq(resumeProfiles.organizationId, organizationId));
+    return result?.count || 0;
   }
 
   async getResumeProfileById(id: string): Promise<ResumeProfile | undefined> {

@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -81,10 +82,36 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     queryKey: ['/api/job-postings'],
   });
 
-  // Fetch processed resume profiles
-  const { data: profiles = [], isLoading: profilesLoading } = useQuery<ProfileWithScores[]>({
-    queryKey: ['/api/resume-profiles'],
+  // Fetch processed resume profiles with pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const { data: profilesResponse, isLoading: profilesLoading } = useQuery<{
+    data: ProfileWithScores[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+    };
+  }>({
+    queryKey: ['/api/resume-profiles', currentPage, itemsPerPage],
+    queryFn: async () => {
+      const response = await fetch(`/api/resume-profiles?page=${currentPage}&limit=${itemsPerPage}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch resume profiles');
+      }
+      return response.json();
+    }
   });
+
+  const profiles = profilesResponse?.data || [];
+  const pagination = profilesResponse?.pagination;
+  const totalProfiles = pagination?.totalItems || 0;
 
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -699,7 +726,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
             className="flex items-center gap-2"
           >
             <Users className="h-4 w-4" />
-            View Profiles ({profiles.length})
+            View Profiles ({totalProfiles})
           </Button>
         </div>
 
@@ -890,20 +917,46 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
               </div>
 
               {/* Quick Stats */}
-              <div className="flex gap-4 text-sm text-muted-foreground">
-                <span>Total: {filteredProfiles.length} profiles</span>
-                <span>•</span>
-                <span className="text-red-600">
-                  Disqualified: {filteredProfiles.filter(profile =>
-                    profile.jobScores.some(score => score.disqualified)
-                  ).length}
-                </span>
-                <span>•</span>
-                <span className="text-green-600">
-                  Qualified: {filteredProfiles.filter(profile =>
-                    profile.jobScores.some(score => !score.disqualified)
-                  ).length}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <span>Total: {totalProfiles} profiles</span>
+                  <span>•</span>
+                  <span className="text-red-600">
+                    Disqualified: {filteredProfiles.filter(profile =>
+                      profile.jobScores.some(score => score.disqualified)
+                    ).length}
+                  </span>
+                  <span>•</span>
+                  <span className="text-green-600">
+                    Qualified: {filteredProfiles.filter(profile =>
+                      profile.jobScores.some(score => !score.disqualified)
+                    ).length}
+                  </span>
+                  {pagination && (
+                    <>
+                      <span>•</span>
+                      <span>Showing {profiles.length} of {pagination.totalItems} (Page {pagination.currentPage} of {pagination.totalPages})</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Page size selector */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Show:</label>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1); // Reset to first page when changing page size
+                    }}
+                    className="text-sm border border-gray-300 rounded px-2 py-1"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1225,6 +1278,55 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                   ))}
                 </div>
               </ScrollArea>
+            )}
+
+            {/* Pagination Controls */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex justify-center mt-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        className={!pagination.hasPrevPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+
+                    {/* Show page numbers */}
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(pageNum)}
+                            isActive={pageNum === currentPage}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        className={!pagination.hasNextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             )}
           </div>
         )}
