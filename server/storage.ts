@@ -42,6 +42,12 @@ import {
   type InsertResumeProfile,
   type ResumeJobScore,
   type InsertResumeJobScore,
+  smsLogs,
+  whatsappLogs,
+  type SMSLog,
+  type InsertSMSLog,
+  type WhatsAppLog,
+  type InsertWhatsAppLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, count } from "drizzle-orm";
@@ -144,6 +150,24 @@ export interface IStorage {
   getJobScoresByJob(jobId: string): Promise<ResumeJobScore[]>;
   updateJobScore(id: number, updates: Partial<InsertResumeJobScore>): Promise<ResumeJobScore>;
   deleteJobScore(id: number): Promise<void>;
+
+  // SMS operations
+  createSMSLog(smsLog: InsertSMSLog): Promise<SMSLog>;
+  getSMSLogById(id: string): Promise<SMSLog | undefined>;
+  getSMSLogsByRecipient(to: string, limit?: number): Promise<SMSLog[]>;
+  getSMSLogsByProvider(provider: string, limit?: number): Promise<SMSLog[]>;
+  getSMSLogsByDateRange(startDate: Date, endDate: Date): Promise<SMSLog[]>;
+  updateSMSLogDeliveryStatus(id: string, delivered: boolean): Promise<void>;
+  updateSMSLogExternalId(id: string, externalId: string): Promise<void>;
+
+  // WhatsApp operations
+  createWhatsAppLog(whatsappLog: InsertWhatsAppLog): Promise<WhatsAppLog>;
+  getWhatsAppLogById(id: string): Promise<WhatsAppLog | undefined>;
+  getWhatsAppLogsByRecipient(to: string, limit?: number): Promise<WhatsAppLog[]>;
+  getWhatsAppLogsByProvider(provider: string, limit?: number): Promise<WhatsAppLog[]>;
+  getWhatsAppLogsByDateRange(startDate: Date, endDate: Date): Promise<WhatsAppLog[]>;
+  updateWhatsAppLogDeliveryStatus(id: string, delivered: boolean, read?: boolean): Promise<void>;
+  updateWhatsAppLogExternalId(id: string, externalId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -766,6 +790,142 @@ export class DatabaseStorage implements IStorage {
 
   async deleteJobScore(id: number): Promise<void> {
     await db.delete(resumeJobScores).where(eq(resumeJobScores.id, id));
+  }
+
+  // SMS operations implementation
+  async createSMSLog(smsLog: InsertSMSLog): Promise<SMSLog> {
+    const [created] = await db
+      .insert(smsLogs)
+      .values(smsLog)
+      .returning();
+    return created;
+  }
+
+  async getSMSLogById(id: string): Promise<SMSLog | undefined> {
+    const [result] = await db
+      .select()
+      .from(smsLogs)
+      .where(eq(smsLogs.id, id));
+    return result;
+  }
+
+  async getSMSLogsByRecipient(to: string, limit: number = 50): Promise<SMSLog[]> {
+    return await db
+      .select()
+      .from(smsLogs)
+      .where(eq(smsLogs.to, to))
+      .orderBy(desc(smsLogs.sentAt))
+      .limit(limit);
+  }
+
+  async getSMSLogsByProvider(provider: string, limit: number = 50): Promise<SMSLog[]> {
+    return await db
+      .select()
+      .from(smsLogs)
+      .where(eq(smsLogs.provider, provider))
+      .orderBy(desc(smsLogs.sentAt))
+      .limit(limit);
+  }
+
+  async getSMSLogsByDateRange(startDate: Date, endDate: Date): Promise<SMSLog[]> {
+    return await db
+      .select()
+      .from(smsLogs)
+      .where(
+        and(
+          sql`${smsLogs.sentAt} >= ${startDate}`,
+          sql`${smsLogs.sentAt} <= ${endDate}`
+        )
+      )
+      .orderBy(desc(smsLogs.sentAt));
+  }
+
+  async updateSMSLogDeliveryStatus(id: string, delivered: boolean): Promise<void> {
+    await db
+      .update(smsLogs)
+      .set({
+        success: delivered,
+        deliveredAt: delivered ? new Date() : null
+      })
+      .where(eq(smsLogs.id, id));
+  }
+
+  async updateSMSLogExternalId(id: string, externalId: string): Promise<void> {
+    await db
+      .update(smsLogs)
+      .set({ externalId })
+      .where(eq(smsLogs.id, id));
+  }
+
+  // WhatsApp operations implementation
+  async createWhatsAppLog(whatsappLog: InsertWhatsAppLog): Promise<WhatsAppLog> {
+    const [created] = await db
+      .insert(whatsappLogs)
+      .values(whatsappLog)
+      .returning();
+    return created;
+  }
+
+  async getWhatsAppLogById(id: string): Promise<WhatsAppLog | undefined> {
+    const [result] = await db
+      .select()
+      .from(whatsappLogs)
+      .where(eq(whatsappLogs.id, id));
+    return result;
+  }
+
+  async getWhatsAppLogsByRecipient(to: string, limit: number = 50): Promise<WhatsAppLog[]> {
+    return await db
+      .select()
+      .from(whatsappLogs)
+      .where(eq(whatsappLogs.to, to))
+      .orderBy(desc(whatsappLogs.sentAt))
+      .limit(limit);
+  }
+
+  async getWhatsAppLogsByProvider(provider: string, limit: number = 50): Promise<WhatsAppLog[]> {
+    return await db
+      .select()
+      .from(whatsappLogs)
+      .where(eq(whatsappLogs.provider, provider))
+      .orderBy(desc(whatsappLogs.sentAt))
+      .limit(limit);
+  }
+
+  async getWhatsAppLogsByDateRange(startDate: Date, endDate: Date): Promise<WhatsAppLog[]> {
+    return await db
+      .select()
+      .from(whatsappLogs)
+      .where(
+        and(
+          sql`${whatsappLogs.sentAt} >= ${startDate}`,
+          sql`${whatsappLogs.sentAt} <= ${endDate}`
+        )
+      )
+      .orderBy(desc(whatsappLogs.sentAt));
+  }
+
+  async updateWhatsAppLogDeliveryStatus(id: string, delivered: boolean, read?: boolean): Promise<void> {
+    const updates: any = {
+      success: delivered,
+      deliveredAt: delivered ? new Date() : null
+    };
+
+    if (read !== undefined) {
+      updates.readAt = read ? new Date() : null;
+    }
+
+    await db
+      .update(whatsappLogs)
+      .set(updates)
+      .where(eq(whatsappLogs.id, id));
+  }
+
+  async updateWhatsAppLogExternalId(id: string, externalId: string): Promise<void> {
+    await db
+      .update(whatsappLogs)
+      .set({ externalId })
+      .where(eq(whatsappLogs.id, id));
   }
 }
 

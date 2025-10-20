@@ -618,6 +618,54 @@ export const airtableJobMatches = pgTable("airtable_job_matches", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// SMS Logs table - Track all SMS communications
+export const smsLogs = pgTable("sms_logs", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  to: varchar("to").notNull(),
+  message: text("message").notNull(),
+  type: varchar("type").notNull().default("notification"),
+  provider: varchar("provider").notNull(),
+  success: boolean("success").notNull().default(false),
+  error: text("error"),
+  externalId: varchar("external_id"), // Provider's message ID
+  cost: real("cost"), // Cost of the SMS if available
+  sentAt: timestamp("sent_at").defaultNow(),
+  deliveredAt: timestamp("delivered_at"),
+  userId: varchar("user_id"), // User who initiated the SMS
+  metadata: jsonb("metadata"), // Additional data like campaign, template info, etc.
+}, (table) => [
+  index("IDX_sms_logs_to").on(table.to),
+  index("IDX_sms_logs_provider").on(table.provider),
+  index("IDX_sms_logs_sent_at").on(table.sentAt),
+  index("IDX_sms_logs_success").on(table.success),
+]);
+
+// WhatsApp Logs table - Track all WhatsApp communications
+export const whatsappLogs = pgTable("whatsapp_logs", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  to: varchar("to").notNull(),
+  message: text("message"),
+  type: varchar("type").notNull().default("notification"),
+  templateName: varchar("template_name"),
+  templateParams: jsonb("template_params"),
+  provider: varchar("provider").notNull(),
+  success: boolean("success").notNull().default(false),
+  error: text("error"),
+  externalId: varchar("external_id"), // Provider's message ID
+  cost: real("cost"), // Cost of the WhatsApp message if available
+  sentAt: timestamp("sent_at").defaultNow(),
+  deliveredAt: timestamp("delivered_at"),
+  readAt: timestamp("read_at"),
+  userId: varchar("user_id"), // User who initiated the WhatsApp message
+  metadata: jsonb("metadata"), // Additional data like campaign, template info, etc.
+}, (table) => [
+  index("IDX_whatsapp_logs_to").on(table.to),
+  index("IDX_whatsapp_logs_provider").on(table.provider),
+  index("IDX_whatsapp_logs_sent_at").on(table.sentAt),
+  index("IDX_whatsapp_logs_success").on(table.success),
+  index("IDX_whatsapp_logs_template_name").on(table.templateName),
+]);
+
 // Type definitions for Airtable replacement tables
 export type AirtableUserProfile = typeof airtableUserProfiles.$inferSelect;
 export type InsertAirtableUserProfile = typeof airtableUserProfiles.$inferInsert;
@@ -652,3 +700,40 @@ export const insertAirtableJobMatchSchema = createInsertSchema(airtableJobMatche
   createdAt: true,
   updatedAt: true,
 });
+
+// Type definitions for SMS and WhatsApp tables
+export type SMSLog = typeof smsLogs.$inferSelect;
+export type InsertSMSLog = typeof smsLogs.$inferInsert;
+export type WhatsAppLog = typeof whatsappLogs.$inferSelect;
+export type InsertWhatsAppLog = typeof whatsappLogs.$inferInsert;
+
+// Validation schemas for SMS and WhatsApp tables
+export const insertSMSLogSchema = createInsertSchema(smsLogs).omit({
+  id: true,
+  sentAt: true,
+});
+
+export const insertWhatsAppLogSchema = createInsertSchema(whatsappLogs).omit({
+  id: true,
+  sentAt: true,
+});
+
+// Additional validation schemas for service parameters
+export const smsParamsSchema = z.object({
+  to: z.string().min(1, "Recipient phone number is required"),
+  message: z.string().min(1, "Message is required"),
+  type: z.enum(["notification", "verification", "alert", "interview"]).optional().default("notification"),
+});
+
+export const whatsappParamsSchema = z.object({
+  to: z.string().min(1, "Recipient WhatsApp number is required"),
+  message: z.string().optional(),
+  type: z.enum(["notification", "verification", "alert", "interview"]).optional().default("notification"),
+  templateName: z.string().optional(),
+  templateParams: z.record(z.any()).optional(),
+}).refine(
+  (data) => data.message || data.templateName,
+  {
+    message: "Either message or templateName must be provided",
+  }
+);

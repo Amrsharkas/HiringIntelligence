@@ -11,6 +11,8 @@ import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { registerSMSRoutes } from "./smsRoutes";
+import { registerWhatsAppRoutes } from "./whatsappRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -4231,6 +4233,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       });
     }
   });
+
+  // Register SMS and WhatsApp routes
+  registerSMSRoutes(app);
+  registerWhatsAppRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
