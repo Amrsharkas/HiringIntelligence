@@ -90,20 +90,24 @@ export class ResumeProcessingService {
   }
   private async extractTextFromFile(fileData: string, fileType: string): Promise<{ text: string; fileId?: string }> {
     console.log(`🔄 Extracting text from file type: ${fileType}, data length: ${fileData?.length}`);
-    
-    // Use OpenAI Files + Responses API to extract text from PDFs and Word docs
-    if (
-      fileType === 'application/pdf' ||
-      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      fileType === 'application/msword'
-    ) {
+
+    // Process any file format using OpenAI Files + Responses API
+    if (fileData && fileType !== 'text/plain') {
       try {
         const buffer = Buffer.from(fileData, 'base64');
-        const inferredName = fileType === 'application/pdf' ? 'resume.pdf'
-          : fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'resume.docx'
-          : 'resume.doc';
 
-        console.log('📤 Uploading file to OpenAI Files API for text extraction...');
+        // Determine file extension from mime type
+        let extension = '';
+        if (fileType === 'application/pdf') extension = '.pdf';
+        else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') extension = '.docx';
+        else if (fileType === 'application/msword') extension = '.doc';
+        else if (fileType === 'text/plain') extension = '.txt';
+        else if (fileType === 'application/rtf') extension = '.rtf';
+        else extension = '.dat'; // fallback for unknown types
+
+        const inferredName = `resume${extension}`;
+
+        console.log(`📤 Uploading file to OpenAI Files API for text extraction...`);
         const uploaded = await openai.files.create({
           file: await toFile(buffer, inferredName),
           purpose: 'assistants'
@@ -143,7 +147,7 @@ export class ResumeProcessingService {
       }
     }
 
-    // For plain text-like files, return as-is
+    // For plain text files or as fallback, return as-is
     return { text: fileData };
   }
 
