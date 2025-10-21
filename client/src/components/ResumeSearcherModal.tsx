@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -968,43 +969,78 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
               </div>
             ) : (
               <ScrollArea className="h-[60vh]">
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {jobs.map((job: any) => (
-                    <Card key={job.id} className="border-l-4 border-l-blue-500">
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
+                    <div key={job.id}>
+                      {/* Job Header */}
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-l-blue-500">
+                        <div className="flex items-center gap-3">
+                          <Briefcase className="h-5 w-5 text-blue-600" />
                           <div>
-                            <CardTitle className="flex items-center gap-2">
-                              <Briefcase className="h-5 w-5" />
-                              {job.title}
-                            </CardTitle>
-                            <CardDescription>
+                            <h3 className="font-semibold text-lg">{job.title}</h3>
+                            <p className="text-sm text-muted-foreground">
                               {job.location} • {job.jobType} • {job.salaryRange}
-                            </CardDescription>
+                            </p>
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {filteredProfiles
-                            .map(profile => ({
-                              ...profile,
-                              jobScore: profile.jobScores.find(score => score.jobId === job.id)
-                            }))
-                            .filter(profile => profile.jobScore)
-                            .sort((a, b) => (b.jobScore?.overallScore || 0) - (a.jobScore?.overallScore || 0))
-                            .map((profile) => (
-                                <Card key={`${job.id}-${profile.id}`} className="border border-gray-200">
-                                  <CardContent className="p-4">
-                                    {/* Compact View - Always Visible */}
-                                    <div className="flex items-start justify-between">
+                      </div>
+
+                      {/* Profiles Table for this Job */}
+                      {filteredProfiles
+                        .map(profile => ({
+                          ...profile,
+                          jobScore: profile.jobScores.find(score => score.jobId === job.id)
+                        }))
+                        .filter(profile => profile.jobScore)
+                        .sort((a, b) => (b.jobScore?.overallScore || 0) - (a.jobScore?.overallScore || 0)).length > 0 ? (
+                        <div className="border rounded-lg overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="min-w-[200px]">Candidate</TableHead>
+                                  <TableHead className="min-w-[100px]">Overall Score</TableHead>
+                                  <TableHead className="min-w-[100px]">Technical</TableHead>
+                                  <TableHead className="min-w-[100px]">Experience</TableHead>
+                                  <TableHead className="min-w-[120px]">Status</TableHead>
+                                  <TableHead className="min-w-[300px]">Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                            <TableBody>
+                              {filteredProfiles
+                                .map(profile => ({
+                                  ...profile,
+                                  jobScore: profile.jobScores.find(score => score.jobId === job.id)
+                                }))
+                                .filter(profile => profile.jobScore)
+                                .sort((a, b) => (b.jobScore?.overallScore || 0) - (a.jobScore?.overallScore || 0))
+                                .map((profile) => (
+                                  <TableRow key={`${job.id}-${profile.id}`}>
+                                    <TableCell>
                                       <div className="flex items-center gap-3">
                                         <User className="h-5 w-5 text-muted-foreground" />
                                         <div>
-                                          <h4 className="font-semibold text-lg">{profile.name}</h4>
-                                          <p className="text-sm text-muted-foreground">{profile.email}</p>
+                                          <div className="font-semibold">{profile.name}</div>
+                                          <div className="text-sm text-muted-foreground">{profile.email}</div>
                                         </div>
                                       </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className={`font-bold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.overallScore || 0)}`}>
+                                        {profile.jobScore?.overallScore || 0}%
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className={`font-semibold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.technicalSkillsScore || 0)}`}>
+                                        {profile.jobScore?.technicalSkillsScore || 0}%
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className={`font-semibold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.experienceScore || 0)}`}>
+                                        {profile.jobScore?.experienceScore || 0}%
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
                                       <div className="flex items-center gap-2">
                                         {profile.jobScore?.disqualified ? (
                                           <Badge variant="destructive" className="text-xs font-semibold">
@@ -1022,103 +1058,81 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                                           </Badge>
                                         )}
                                       </div>
-                                    </div>
-
-                                    {/* Score Summary - Always Visible */}
-                                    <div className="mt-4 grid grid-cols-3 gap-2">
-                                      <div className="text-center p-2 bg-gray-50 rounded border">
-                                        <div className={`text-sm font-bold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.overallScore || 0)}`}>
-                                          {profile.jobScore?.overallScore || 0}%
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">Overall</div>
-                                      </div>
-                                      <div className="text-center p-2 bg-gray-50 rounded border">
-                                        <div className={`text-sm font-bold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.technicalSkillsScore || 0)}`}>
-                                          {profile.jobScore?.technicalSkillsScore || 0}%
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">Technical</div>
-                                      </div>
-                                      <div className="text-center p-2 bg-gray-50 rounded border">
-                                        <div className={`text-sm font-bold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.experienceScore || 0)}`}>
-                                          {profile.jobScore?.experienceScore || 0}%
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">Experience</div>
-                                      </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-2 mt-4 pt-4 border-t">
-                                      {profile.jobScore?.invitationStatus !== 'invited' && !profile.jobScore?.disqualified && (
-                                        <Button
-                                          variant="default"
-                                          size="sm"
-                                          onClick={() => inviteApplicantMutation.mutate({
-                                            profileId: profile.id,
-                                            jobId: job.id.toString()
-                                          })}
-                                          disabled={inviteApplicantMutation.isPending}
-                                          className="flex items-center gap-2"
-                                        >
-                                          {inviteApplicantMutation.isPending ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <Mail className="h-3 w-3" />
-                                          )}
-                                          Invite
-                                        </Button>
-                                      )}
-                                      {exportSingleProfile(profile)}
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setSelectedProfile(profile)}
-                                      >
-                                        View Full Profile
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1 flex-wrap">
+                                        {profile.jobScore?.invitationStatus !== 'invited' && !profile.jobScore?.disqualified && (
                                           <Button
-                                            variant="outline"
+                                            variant="default"
                                             size="sm"
-                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            onClick={() => inviteApplicantMutation.mutate({
+                                              profileId: profile.id,
+                                              jobId: job.id.toString()
+                                            })}
+                                            disabled={inviteApplicantMutation.isPending}
+                                            className="h-8 px-2 text-xs"
                                           >
-                                            <Trash2 className="h-3 w-3" />
+                                            {inviteApplicantMutation.isPending ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <>
+                                                <Mail className="h-3 w-3 mr-1" />
+                                                Invite
+                                              </>
+                                            )}
                                           </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Profile</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Are you sure you want to delete {profile.name}'s profile? This action cannot be undone.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => deleteProfileMutation.mutate(profile.id)}
-                                              className="bg-red-600 hover:bg-red-700"
+                                        )}
+                                        {exportSingleProfile(profile)}
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => setSelectedProfile(profile)}
+                                          className="h-8 px-2 text-xs"
+                                        >
+                                          View
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                                             >
-                                              Delete
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )
-                            )}
-
-                          {filteredProfiles.filter(profile =>
-                            profile.jobScores.some(score => score.jobId === job.id)
-                          ).length === 0 && (
-                            <div className="text-center py-4 text-muted-foreground border border-dashed rounded-lg">
-                              No candidate profiles scored for this job yet
-                            </div>
-                          )}
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Are you sure you want to delete {profile.name}'s profile? This action cannot be undone.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                onClick={() => deleteProfileMutation.mutate(profile.id)}
+                                                className="bg-red-600 hover:bg-red-700"
+                                              >
+                                                Delete
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                            </Table>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+                          No candidate profiles scored for this job yet
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
