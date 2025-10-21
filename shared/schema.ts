@@ -340,6 +340,13 @@ export const interviewSessions = pgTable("interview_sessions", {
   completedAt: timestamp("completed_at"),
 });
 
+export const interviewRecordings = pgTable("interview_recordings", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull(),
+  recordingPath: varchar("recording_path").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Additional tables from HiringIntelligence
 export const acceptedApplicants = pgTable("accepted_applicants", {
   id: serial("id").primaryKey(),
@@ -497,6 +504,7 @@ export type JobMatch = typeof jobMatches.$inferSelect;
 export type Application = typeof applications.$inferSelect;
 export type ResumeUpload = typeof resumeUploads.$inferSelect;
 export type InterviewSession = typeof interviewSessions.$inferSelect;
+export type InterviewRecording = typeof interviewRecordings.$inferSelect;
 export type OpenAIRequest = typeof openaiRequests.$inferSelect;
 
 // Additional type definitions for HiringIntelligence compatibility
@@ -518,8 +526,16 @@ export type ScoredApplicant = typeof scoredApplicants.$inferSelect;
 export type InsertScoredApplicant = typeof scoredApplicants.$inferInsert;
 export type ResumeProfile = typeof resumeProfiles.$inferSelect;
 export type InsertResumeProfile = typeof resumeProfiles.$inferInsert;
+export type InsertApplicantProfile = typeof applicantProfiles.$inferInsert;
+export type InsertJobMatch = z.infer<typeof insertJobMatchSchema>;
+export type JobMatch = typeof jobMatches.$inferSelect;
+export type InsertApplication = z.infer<typeof insertApplicationSchema>;
+export type Application = typeof applications.$inferSelect;
+export type InsertInterviewSession = z.infer<typeof insertInterviewSessionSchema>;
+export type InterviewSession = typeof interviewSessions.$inferSelect;
 export type ResumeJobScore = typeof resumeJobScores.$inferSelect;
 export type InsertResumeJobScore = typeof resumeJobScores.$inferInsert;
+export type InsertInterviewRecording = z.infer<typeof insertInterviewRecordingSchema>;
 export type InsertOpenAIRequest = typeof openaiRequests.$inferInsert;
 export type OrganizationInvitation = typeof organizationInvitations.$inferSelect;
 export type InsertOrganizationInvitation = typeof organizationInvitations.$inferInsert;
@@ -542,6 +558,32 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   createdAt: true,
   updatedAt: true,
   views: true,
+});
+
+export const insertInterviewRecordingSchema = createInsertSchema(interviewRecordings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertJobMatchSchema = createInsertSchema(jobMatches).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertApplicationSchema = createInsertSchema(applications).omit({
+  id: true,
+  appliedAt: true,
+});
+
+export const insertInterviewSessionSchema = createInsertSchema(interviewSessions).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertResumeUploadSchema = createInsertSchema(resumeUploads).omit({
+  id: true,
+  uploadedAt: true,
 });
 
 // Airtable replacement tables
