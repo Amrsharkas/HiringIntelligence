@@ -311,6 +311,194 @@ The Plato Team
       return false;
     }
   }
+
+  async sendTeamInvitationEmail(params: {
+    email: string;
+    organizationName: string;
+    invitedByName: string;
+    role: string;
+    message: string;
+    registrationLink: string;
+    inviteCode: string;
+  }): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping team invitation email: SendGrid not configured');
+        return false;
+      }
+
+      const subject = `You're invited to join ${params.organizationName} on Plato Hiring`;
+
+      const html = this.generateTeamInvitationHTML(params);
+      const text = this.generateTeamInvitationText(params);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+
+      await this.mailService.send({
+        to: params.email,
+        from: { email: fromEmail, name: fromName },
+        subject,
+        text,
+        html,
+      });
+
+      console.log(`✅ Team invitation email sent to ${params.email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid team invitation email error:', error);
+      return false;
+    }
+  }
+
+  private generateTeamInvitationHTML(params: {
+    email: string;
+    organizationName: string;
+    invitedByName: string;
+    role: string;
+    message: string;
+    registrationLink: string;
+    inviteCode: string;
+  }): string {
+    const messageSection = params.message ? `
+      <div style="margin: 24px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #3b82f6;">
+        <h3 style="color: #1e40af; margin: 0 0 12px 0;">Personal Message</h3>
+        <p style="color: #374151; margin: 0; line-height: 1.6; font-style: italic;">"${params.message}"</p>
+      </div>
+    ` : '';
+
+    const roleDescription = {
+      admin: 'full administrative access including managing team members, jobs, and settings',
+      member: 'access to create and manage jobs, view candidates, and participate in hiring',
+      viewer: 'read-only access to view jobs, candidates, and hiring analytics'
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Team Invitation</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">👥</span>
+          </div>
+          <h1 style="color: #1f2937; margin: 0; font-size: 28px;">You're Invited!</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Join the team at ${params.organizationName}</p>
+        </div>
+
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Welcome to ${params.organizationName}!</h2>
+            <p style="color: #6b7280; margin: 8px 0 0 0;">
+              ${params.invitedByName} has invited you to join as a <strong style="color: #3b82f6; text-transform: capitalize;">${params.role}</strong>
+            </p>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; border: 2px solid #3b82f6;">
+            <h3 style="color: #1e40af; margin: 0 0 12px 0;">What you'll have access to:</h3>
+            <p style="color: #374151; margin: 0; line-height: 1.6;">
+              ${roleDescription[params.role as keyof typeof roleDescription] || 'access to team collaboration tools'}
+            </p>
+          </div>
+
+          ${messageSection}
+
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
+              <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🚀 Join Your Team</h3>
+              <p style="color: #d1fae5; margin: 0 0 24px 0; font-size: 16px;">Click below to accept the invitation and join ${params.organizationName}</p>
+              <a href="${params.registrationLink}"
+                 style="background: white; color: #059669; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+                Accept Invitation
+              </a>
+            </div>
+
+            <div style="background-color: #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+              <p style="color: #92400e; margin: 0; font-weight: 600; margin-bottom: 8px;">Invite Code: <span style="font-family: 'Courier New', monospace; font-size: 18px; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid #d97706;">${params.inviteCode}</span></p>
+              <p style="color: #92400e; margin: 0; font-size: 14px;">You can also join using this code on the registration page</p>
+            </div>
+
+            <p style="color: #6b7280; margin: 0; font-size: 14px;">
+              If the button doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="word-break: break-all; color: #3b82f6; font-size: 12px; margin: 8px 0 0 0;">
+              ${params.registrationLink}
+            </p>
+          </div>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">
+              <strong>Important:</strong> This invitation will expire in 7 days. If you need assistance or have questions, please contact ${params.invitedByName} or our support team.
+            </p>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; color: #9ca3af; font-size: 14px; margin-top: 24px;">
+          <p style="margin: 0;">
+            Best regards,<br>
+            The ${params.organizationName} Team<br>
+            <em>Invited by ${params.invitedByName}</em>
+          </p>
+        </div>
+
+      </body>
+      </html>
+    `;
+  }
+
+  private generateTeamInvitationText(params: {
+    email: string;
+    organizationName: string;
+    invitedByName: string;
+    role: string;
+    message: string;
+    registrationLink: string;
+    inviteCode: string;
+  }): string {
+    const messageSection = params.message ? `
+
+📝 PERSONAL MESSAGE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"${params.message}"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ` : '';
+
+    return `
+👥 YOU'RE INVITED TO JOIN ${params.organizationName.toUpperCase()}!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${params.invitedByName} has invited you to join the team as a ${params.role.toUpperCase()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Welcome to ${params.organizationName}! We're excited to have you join our hiring team.
+
+${messageSection}
+
+🚀 JOIN YOUR TEAM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Click here to accept: ${params.registrationLink}
+
+Invite Code: ${params.inviteCode}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT: This invitation will expire in 7 days.
+
+If you have any questions or need assistance, please contact ${params.invitedByName}.
+
+We look forward to having you on the team!
+
+Best regards,
+${params.organizationName} Team
+Invited by ${params.invitedByName}
+    `.trim();
+  }
 }
 
 export const emailService = new EmailService();

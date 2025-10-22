@@ -333,9 +333,8 @@ export default function OrganizationSetup() {
                     <Input
                       id="inviteCode"
                       {...joinForm.register("inviteCode")}
-                      placeholder="Enter your 6-character invite code"
+                      placeholder="Enter your invite code"
                       className="mt-2"
-                      maxLength={6}
                       style={{ textTransform: 'uppercase' }}
                     />
                     {joinForm.formState.errors.inviteCode && (
