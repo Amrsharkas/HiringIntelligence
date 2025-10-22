@@ -4101,6 +4101,64 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Bulk delete all resume profiles for an organization
+  app.delete('/api/resume-profiles', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get all profiles for the organization
+      const profiles = await storage.getResumeProfilesByOrganization(organization.id);
+
+      if (profiles.length === 0) {
+        return res.status(200).json({
+          message: "No profiles found to delete",
+          deletedCount: 0
+        });
+      }
+
+      let deletedCount = 0;
+      let deletedJobScores = 0;
+
+      // Delete each profile and its related job scores
+      for (const profile of profiles) {
+        try {
+          // Delete related job scores first
+          const jobScores = await storage.getJobScoresByProfile(profile.id);
+          for (const score of jobScores) {
+            await storage.deleteJobScore(score.id);
+            deletedJobScores++;
+          }
+
+          // Delete the profile
+          await storage.deleteResumeProfile(profile.id);
+          deletedCount++;
+        } catch (error) {
+          console.error(`Error deleting profile ${profile.id}:`, error);
+          // Continue with other profiles even if one fails
+        }
+      }
+
+      console.log(`✅ Bulk delete completed by user ${userId}: ${deletedCount} profiles and ${deletedJobScores} job scores deleted`);
+
+      res.status(200).json({
+        message: `Successfully deleted ${deletedCount} resume profiles`,
+        deletedCount,
+        deletedJobScores
+      });
+    } catch (error) {
+      console.error("Error bulk deleting resume profiles:", error);
+      res.status(500).json({
+        message: "Failed to delete profiles",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Invite applicant endpoint
   app.post('/api/invite-applicant', requireAuth, async (req: any, res) => {
     try {

@@ -330,6 +330,29 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     },
   });
 
+  // Delete all profiles mutation
+  const deleteAllProfilesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('DELETE', '/api/resume-profiles');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "All Profiles Deleted",
+        description: data.message || "All resume profiles have been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+      setSelectedProfile(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Deletion Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Export single profile as PDF
   const exportSingleProfile = (profile: ProfileWithScores) => {
     const fileName = `resume_${profile.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -913,6 +936,44 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                   <div className="flex gap-2 flex-wrap">
                     {exportDisqualifiedSummary()}
                     {exportAllProfiles()}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete All ({filteredProfiles.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete All Profiles</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete all {filteredProfiles.length} resume profiles?
+                            This action cannot be undone and will permanently remove all candidate data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteAllProfilesMutation.mutate()}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={deleteAllProfilesMutation.isPending}
+                          >
+                            {deleteAllProfilesMutation.isPending ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Deleting...
+                              </div>
+                            ) : (
+                              "Delete All Profiles"
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 )}
               </div>
