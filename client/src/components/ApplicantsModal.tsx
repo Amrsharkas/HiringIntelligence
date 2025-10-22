@@ -22,10 +22,14 @@ import {
   Eye,
   Clock,
   Star,
-  Phone
+  Phone,
+  Download,
+  Loader2
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { BlobProvider } from '@react-pdf/renderer';
+import ApplicantsPDF from './ApplicantsPDF';
 
 interface Applicant {
   id: string;
@@ -159,6 +163,59 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     shortlistMutation.mutate(applicantId);
   };
 
+  // Export all applicants as PDF
+  const exportAllApplicants = () => {
+    const fileName = `all_applicants_export_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    return (
+      <BlobProvider document={<ApplicantsPDF applicants={availableApplicants} includeScores={true} />}>
+        {({ blob, url, loading, error }) => {
+          if (loading) {
+            return (
+              <Button variant="outline" disabled>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating PDF...
+              </Button>
+            );
+          }
+
+          if (error) {
+            return (
+              <Button variant="outline" disabled>
+                PDF Generation Error
+              </Button>
+            );
+          }
+
+          const handleDownload = () => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = fileName;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+
+              toast({
+                title: "PDF Exported",
+                description: `All ${availableApplicants.length} applicants have been exported successfully`,
+              });
+            }
+          };
+
+          return (
+            <Button variant="outline" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Export All Applicants ({availableApplicants.length})
+            </Button>
+          );
+        }}
+      </BlobProvider>
+    );
+  };
+
   // Function to fetch and display user profile - OPTIMIZED FOR SPEED
   const handleViewProfile = async (applicant: Applicant) => {
     try {
@@ -228,9 +285,12 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 flex flex-col">
         <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-          <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
-            Job Applicants ({availableApplicants.length})
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
+              Job Applicants ({availableApplicants.length})
+            </DialogTitle>
+            {availableApplicants.length > 0 && exportAllApplicants()}
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
