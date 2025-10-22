@@ -3815,6 +3815,137 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Send team invitation endpoint
+  app.post('/api/invitations/send', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { emails, role, message } = req.body;
+
+      console.log(`📧 Sending team invitations from user: ${userId} for emails:`, emails);
+
+      // Validate required parameters
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json({ message: "At least one email address is required" });
+      }
+
+      if (!role || !['admin', 'member', 'viewer'].includes(role)) {
+        return res.status(400).json({ message: "Valid role is required (admin, member, or viewer)" });
+      }
+
+      // Validate email formats
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const invalidEmails = emails.filter(email => !emailRegex.test(email));
+      if (invalidEmails.length > 0) {
+        return res.status(400).json({
+          message: "Invalid email addresses detected",
+          invalidEmails
+        });
+      }
+
+      // Get user's organization to verify permissions
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(403).json({ message: "You must be a member of an organization to send invitations" });
+      }
+
+      // Check if user has permission to invite (owner or admin)
+      const userMember = await storage.getTeamMemberByUserAndOrg(userId, organization.id);
+      if (!userMember || !['owner', 'admin'].includes(userMember.role)) {
+        return res.status(403).json({ message: "You don't have permission to invite team members" });
+      }
+
+      // Import email service
+      const { emailService } = await import('./emailService');
+
+      const invitations = [];
+      const errors = [];
+
+      // Process each email
+      for (const email of emails) {
+        try {
+          // Generate unique token and invite code
+          const token = crypto.randomUUID();
+          const inviteCode = generateInviteCode();
+
+          // Set expiration to 7 days from now
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 7);
+
+          // Check if invitation already exists for this email and org
+          const existingInvitation = await storage.getPendingInvitationByEmailAndOrg(email, organization.id);
+          if (existingInvitation) {
+            errors.push({ email, error: "Invitation already sent to this email" });
+            continue;
+          }
+
+          // Create invitation in database
+          const invitation = await storage.createInvitation({
+            organizationId: organization.id,
+            email: email.toLowerCase().trim(),
+            role: role,
+            token: token,
+            inviteCode: inviteCode,
+            invitedBy: userId,
+            status: 'pending',
+            expiresAt: expiresAt,
+          });
+
+          // Send invitation email
+          const registrationLink = `${process.env.APP_URL || 'http://localhost:5000'}/organization-setup?inviteCode=${inviteCode}&organizationId=${organization.id}`;
+
+          const emailSent = await emailService.sendTeamInvitationEmail({
+            email: email,
+            organizationName: organization.companyName,
+            invitedByName: userMember.name || req.user.displayName || req.user.firstName || 'Team Member',
+            role: role,
+            message: message || '',
+            registrationLink: registrationLink,
+            inviteCode: inviteCode,
+          });
+
+          if (emailSent) {
+            invitations.push({
+              id: invitation.id,
+              email: email,
+              inviteCode: inviteCode,
+              role: role,
+              expiresAt: expiresAt,
+            });
+          } else {
+            errors.push({ email, error: "Failed to send invitation email" });
+          }
+
+        } catch (error) {
+          console.error(`Error sending invitation to ${email}:`, error);
+          errors.push({ email, error: "Failed to create invitation" });
+        }
+      }
+
+      console.log(`✅ Sent ${invitations.length} invitations, ${errors.length} errors`);
+
+      res.json({
+        success: true,
+        message: `Successfully sent ${invitations.length} invitation${invitations.length !== 1 ? 's' : ''}`,
+        invitations: invitations,
+        errors: errors,
+      });
+
+    } catch (error) {
+      console.error("Error sending team invitations:", error);
+      res.status(500).json({ message: "Failed to send invitations" });
+    }
+  });
+
+  // Helper function to generate 6-character invite code
+  function generateInviteCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
   // Get all resume profiles for organization
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {

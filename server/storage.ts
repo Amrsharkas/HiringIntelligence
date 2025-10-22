@@ -44,7 +44,7 @@ import {
   type InsertResumeJobScore,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, gt } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (updated for custom auth)
@@ -68,6 +68,7 @@ export interface IStorage {
   getInvitationByInviteCode(inviteCode: string): Promise<OrganizationInvitation | undefined>;
   getOrganizationInvitations(organizationId: number): Promise<OrganizationInvitation[]>;
   updateInvitationStatus(invitationId: number, status: string): Promise<void>;
+  getPendingInvitationByEmailAndOrg(email: string, organizationId: number): Promise<OrganizationInvitation | undefined>;
   acceptInvitation(token: string, userId: string): Promise<{ organization: Organization; member: OrganizationMember } | null>;
   getOrganizationMember(userId: string, organizationId: number): Promise<OrganizationMember | undefined>;
   
@@ -285,6 +286,19 @@ export class DatabaseStorage implements IStorage {
       .update(organizationInvitations)
       .set({ status })
       .where(eq(organizationInvitations.id, invitationId));
+  }
+
+  async getPendingInvitationByEmailAndOrg(email: string, organizationId: number): Promise<OrganizationInvitation | undefined> {
+    const [invitation] = await db
+      .select()
+      .from(organizationInvitations)
+      .where(and(
+        eq(organizationInvitations.email, email.toLowerCase().trim()),
+        eq(organizationInvitations.organizationId, organizationId),
+        eq(organizationInvitations.status, 'pending'),
+        gt(organizationInvitations.expiresAt, new Date())
+      ));
+    return invitation;
   }
 
   async getOrganizationMember(userId: string, organizationId: number): Promise<OrganizationMember | undefined> {
