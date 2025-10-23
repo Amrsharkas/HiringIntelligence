@@ -1,11 +1,12 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User, LoginData, RegisterData } from "@shared/schema";
+import { User, RegisterData } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 
 declare global {
@@ -77,6 +78,71 @@ export function setupAuth(app: Express) {
 
           return done(null, user);
         } catch (error) {
+          return done(error);
+        }
+      }
+    )
+  );
+
+  // Google OAuth strategy
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL,
+        scope: ['profile', 'email'],
+      },
+      async (_accessToken: any, _refreshToken: any, profile: any, done: any) => {
+        try {
+          const email = profile.emails?.[0]?.value;
+          const googleId = profile.id;
+          const firstName = profile.name?.givenName || '';
+          const lastName = profile.name?.familyName || '';
+          const profileImageUrl = profile.photos?.[0]?.value;
+
+          if (!email) {
+            return done(new Error('Email is required from Google profile'));
+          }
+
+          // Check if user already exists with this Google ID
+          let user = await storage.getUserByGoogleId(googleId);
+          if (user) {
+            console.log(`✅ Found existing Google user: ${user.email} (ID: ${user.id})`);
+            return done(null, user);
+          }
+
+          // Check if user exists with this email (account linking)
+          user = await storage.getUserByEmail(email);
+          if (user) {
+            // Link Google account to existing user
+            console.log(`🔗 Linking Google account to existing user: ${user.email} (ID: ${user.id})`);
+            const updatedUser = await storage.updateUserGoogleAuth(user.id, {
+              googleId,
+              authProvider: 'google',
+              profileImageUrl: profileImageUrl || user.profileImageUrl,
+            });
+            console.log(`✅ Successfully linked Google account for: ${updatedUser.email}`);
+            return done(null, updatedUser);
+          }
+
+          // Create new user from Google profile
+          const newUser = await storage.createUser({
+            email,
+            password: await hashPassword(randomBytes(32).toString('hex')), // Random password for OAuth users
+            firstName,
+            lastName,
+            profileImageUrl,
+            isVerified: true, // Auto-verify Google users
+            googleId,
+            authProvider: 'google',
+            passwordNeedsSetup: false,
+          });
+
+          console.log(`✅ Created new Google user: ${email} (ID: ${newUser.id})`);
+          return done(null, newUser);
+        } catch (error) {
+          console.error('Google OAuth error:', error);
           return done(error);
         }
       }
@@ -224,13 +290,14 @@ export function setupAuth(app: Express) {
 
     try {
       const { userId } = req.query;
+      const userIdStr = Array.isArray(userId) ? userId[0] : String(userId);
 
-      if (!userId) {
+      if (!userIdStr) {
         return res.status(400).json({ error: "userId is required" });
       }
 
       // Get user by ID
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(userIdStr);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -243,14 +310,49 @@ export function setupAuth(app: Express) {
 
         console.log(`🔓 Test login successful for user: ${user.email} (ID: ${user.id})`);
 
-        req.session.userId = user.id;
-
         res.redirect('/');
       });
     } catch (error) {
       console.error("Test login error:", error);
       res.status(500).json({ error: "Test login failed" });
     }
+  });
+
+  // Google OAuth routes
+  app.get("/auth/google", passport.authenticate("google"));
+
+  app.get(
+    "/auth/google/callback",
+    passport.authenticate("google", {
+      failureRedirect: "/signin?error=google-auth-failed",
+      failureFlash: true,
+    }),
+    (req, res) => {
+      // Successful authentication
+      if (req.user) {
+        const user = req.user as User;
+        console.log(`✅ Google OAuth successful for user: ${user.email} (ID: ${user.id})`);
+
+        // Ensure session is properly saved before redirect
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.redirect("/signin?error=session-save-failed");
+          }
+
+          console.log("✅ Session saved successfully, redirecting to dashboard");
+          res.redirect("/dashboard");
+        });
+      } else {
+        console.error("❌ Google OAuth failed: No user in request");
+        res.redirect("/signin?error=google-auth-failed");
+      }
+    }
+  );
+
+  // Google OAuth failure handler
+  app.get("/auth/google/failure", (_req, res) => {
+    res.redirect("/signin?error=google-auth-failed");
   });
 }
 

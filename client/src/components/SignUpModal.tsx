@@ -1,10 +1,13 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import GoogleSignInButton from "./GoogleSignInButton";
+import { isGoogleAuthError, getGoogleAuthError, clearGoogleAuthError, getGoogleAuthErrorMessage } from "@/lib/authUtils";
 import { X, Lock, User, Mail, UserPlus } from "lucide-react";
 
 interface SignUpModalProps {
@@ -23,7 +26,23 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
     confirmPassword: ""
   });
   const [passwordMatch, setPasswordMatch] = useState(true);
-  const { registerMutation } = useAuth();
+  const { registerMutation, signInWithGoogle } = useAuth();
+  const { toast } = useToast();
+
+  // Check for Google auth errors on mount
+  React.useEffect(() => {
+    if (isGoogleAuthError()) {
+      const error = getGoogleAuthError();
+      if (error) {
+        toast({
+          title: "Google Authentication Error",
+          description: getGoogleAuthErrorMessage(error),
+          variant: "destructive",
+        });
+        clearGoogleAuthError();
+      }
+    }
+  }, [toast]);
 
   const handleInputChange = (field: string, value: string) => {
     const newFormData = { ...formData, [field]: value };
@@ -219,7 +238,22 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
                   {registerMutation.isPending ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>
-              
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-200 dark:border-slate-700" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              {/* Google Sign-In Button */}
+              <GoogleSignInButton onClick={signInWithGoogle} />
+
               <div className="mt-6 text-center">
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Already have an account?{" "}

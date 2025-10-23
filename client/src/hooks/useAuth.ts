@@ -16,6 +16,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
+  signInWithGoogle: () => void;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -75,15 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       // Clear all React Query cache
       queryClient.clear();
-      
+
       // Clear any local storage items if they exist
       if (typeof window !== 'undefined') {
         localStorage.clear();
         sessionStorage.clear();
       }
-      
+
       console.log("✅ Logout successful, redirecting to homepage");
-      
+
       // Force immediate navigation to homepage
       window.location.href = '/';
     },
@@ -97,6 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const signInWithGoogle = () => {
+    // Redirect to Google OAuth endpoint
+    window.location.href = '/auth/google';
+  };
+
   const contextValue: AuthContextType = {
     user: user ?? null,
     isLoading,
@@ -105,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginMutation,
     logoutMutation,
     registerMutation,
+    signInWithGoogle,
   };
 
   return React.createElement(
