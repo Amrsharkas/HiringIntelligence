@@ -7,11 +7,19 @@ export const redisConnection = new Redis(process.env.REDIS_URL || 'redis://local
   // Enable offline queue
   enableOfflineQueue: true,
   // Set connection timeout
-  connectTimeout: 10000,
-  // Set command timeout
-  commandTimeout: 10000, // Increased timeout
+  connectTimeout: 30000,
+  // Set command timeout - Increased to handle long-running operations
+  commandTimeout: 60000, // 60 seconds timeout
   // Enable ready check
   enableReadyCheck: false,
+  // Set keep-alive to prevent connection drops
+  keepAlive: 30000,
+  // Set reconnect strategy
+  retryStrategy: (times) => {
+    // Exponential backoff strategy
+    const delay = Math.min(times * 500, 20000); // Cap at 20 seconds
+    return delay;
+  },
 });
 
 // Handle Redis connection events

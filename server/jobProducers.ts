@@ -111,3 +111,47 @@ export const scheduleInterviewEmailJob = async (
     priority: 3,
   });
 };
+
+// Bulk resume processing job producer
+export const addBulkResumeProcessingJob = async (data: {
+  files: Array<{
+    name: string;
+    content: string;
+    type: string;
+  }>;
+  userId: string;
+  organizationId: string;
+  jobId?: string;
+  customRules?: string;
+}) => {
+  return await resumeProcessingQueue.add('process-bulk-resumes', data, {
+    priority: 10,
+    delay: 0,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+  });
+};
+
+// Single resume processing job producer (for individual files)
+export const addSingleResumeProcessingJob = async (data: {
+  fileContent: string;
+  fileName: string;
+  fileType: string;
+  userId: string;
+  organizationId: string;
+  jobId?: string;
+  customRules?: string;
+}) => {
+  return await resumeProcessingQueue.add('process-single-resume', data, {
+    priority: 10,
+    delay: 0,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+  });
+};
