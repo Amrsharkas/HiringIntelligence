@@ -13,9 +13,11 @@ type AuthContextType = {
   isLoading: boolean;
   error: Error | null;
   isAuthenticated: boolean;
+  isEmailVerified: boolean;
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<User, Error, RegisterData>;
+  registerMutation: UseMutationResult<{ message: string; user: User }, Error, RegisterData>;
+  resendVerificationMutation: UseMutationResult<{ message: string }, Error, { email: string }>;
   signInWithGoogle: () => void;
 };
 
@@ -38,17 +40,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      const data = await res.json();
+
+      // Check if verification is required
+      if (res.status === 403 && data.requiresVerification) {
+        // Store email for resend verification form
+        if (data.email && typeof window !== 'undefined') {
+          localStorage.setItem('pending_verification_email', data.email);
+        }
+
+        // Show custom error and redirect to verification page
+        toast({
+          title: "Email Verification Required",
+          description: data.message,
+          variant: "destructive",
+        });
+
+        // Redirect to verification pending page after a short delay
+        setTimeout(() => {
+          window.location.href = '/verification-pending';
+        }, 1000);
+
+        throw new Error(data.message);
+      }
+
+      return data;
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/auth/user"], user);
+      toast({
+        title: "Login successful!",
+        description: "Welcome back to Plato Hiring.",
+      });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Don't show duplicate toast for verification errors (handled above)
+      if (!error.message.includes("Email verification required")) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -57,12 +90,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
+    onSuccess: (response: { message: string; user: User }) => {
+      // Don't automatically log in user - they need to verify email first
+      toast({
+        title: "Registration successful!",
+        description: response.message,
+      });
+
+      // Redirect to verification pending page
+      setTimeout(() => {
+        window.location.href = '/verification-pending';
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
         title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resendVerificationMutation = useMutation({
+    mutationFn: async ({ email }: { email: string }) => {
+      const res = await apiRequest("POST", "/api/resend-verification", { email });
+      return await res.json();
+    },
+    onSuccess: (response: { message: string }) => {
+      toast({
+        title: "Verification email sent!",
+        description: response.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to resend verification",
         description: error.message,
         variant: "destructive",
       });
@@ -108,9 +170,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     error,
     isAuthenticated: !!user,
+    isEmailVerified: user?.isVerified ?? false,
     loginMutation,
     logoutMutation,
     registerMutation,
+    resendVerificationMutation,
     signInWithGoogle,
   };
 
