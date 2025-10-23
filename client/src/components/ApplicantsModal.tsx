@@ -9,6 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -58,25 +68,65 @@ interface ApplicantsModalProps {
 export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Reset page when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentPage(1);
+    }
+  }, [isOpen]);
 
   // Auto-refresh applicants data every 10 seconds when modal is open
   useEffect(() => {
     if (!isOpen) return;
 
     const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
     }, 10000); // 10 seconds
 
     return () => clearInterval(interval);
-  }, [isOpen, queryClient]);
+  }, [isOpen, queryClient, currentPage, limit]);
 
-  // Fetch all applicants for this organization
-  const { data: applicants = [], isLoading } = useQuery<Applicant[]>({
-    queryKey: ["/api/real-applicants"],
+  // Fetch paginated applicants for this organization
+  const { data: response, isLoading } = useQuery<{
+    data: Applicant[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalCount: number;
+      limit: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+    };
+  }>({
+    queryKey: ["/api/real-applicants", currentPage, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: limit.toString(),
+      });
+      const response = await fetch(`/api/real-applicants?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch applicants');
+      }
+      return response.json();
+    },
     enabled: isOpen,
   });
+
+  const applicants = response?.data || [];
+  const pagination = response?.pagination || {
+    currentPage: 1,
+    totalPages: 0,
+    totalCount: 0,
+    limit: 10,
+    hasNextPage: false,
+    hasPrevPage: false,
+  };
 
   // Accept applicant mutation
   const acceptMutation = useMutation({
@@ -92,7 +142,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         title: "✅ Candidate successfully accepted and status updated",
         description: "The candidate status has been updated to 'Accepted' in Airtable.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
       queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
     },
     onError: (error: any) => {
@@ -114,7 +164,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         title: "Applicant Declined",
         description: "The applicant has been declined.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
     },
     onError: (error) => {
       toast({
@@ -135,11 +185,11 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         description: "Candidate successfully shortlisted",
       });
       // Invalidate all related queries immediately to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/applicants/count"] });
       // Force refetch immediately for both endpoints
-      queryClient.refetchQueries({ queryKey: ["/api/real-applicants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
       queryClient.refetchQueries({ queryKey: ["/api/shortlisted-applicants"] });
     },
     onError: (error: any) => {
@@ -274,9 +324,19 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     }
   };
 
+  // Pagination helpers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setCurrentPage(1);
+  };
+
   // Show only non-shortlisted applicants (pending or no status)
-  const availableApplicants = applicants.filter(app => 
-    app.status?.toLowerCase() !== 'shortlisted' && 
+  const availableApplicants = applicants.filter(app =>
+    app.status?.toLowerCase() !== 'shortlisted' &&
     app.status?.toLowerCase() !== 'accepted' &&
     app.status?.toLowerCase() !== 'denied'
   );
@@ -287,7 +347,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
-              Job Applicants ({availableApplicants.length})
+              Job Applicants ({pagination.totalCount})
             </DialogTitle>
             {availableApplicants.length > 0 && exportAllApplicants()}
           </div>
@@ -389,6 +449,82 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {pagination.totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600 dark:text-slate-400">Show per page:</span>
+                <Select value={limit.toString()} onValueChange={(value) => handleLimitChange(parseInt(value))}>
+                  <SelectTrigger className="w-20 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of {pagination.totalCount} applicants
+              </div>
+
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                      className={!pagination.hasPrevPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+
+                  {/* Generate page numbers */}
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.currentPage - 2 + i;
+                    }
+
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={pagination.currentPage === pageNum}
+                          className="cursor-pointer"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+
+                  {pagination.totalPages > 5 && pagination.currentPage < pagination.totalPages - 2 && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(Math.min(pagination.totalPages, currentPage + 1))}
+                      className={!pagination.hasNextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          </div>
+        )}
 
         {/* Detailed Profile Modal */}
         <Dialog open={!!selectedApplicant} onOpenChange={() => {
