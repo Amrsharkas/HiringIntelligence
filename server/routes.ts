@@ -503,7 +503,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
       const jobId = req.params.jobId ? parseInt(req.params.jobId) : null;
-      
+
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = (page - 1) * limit;
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
@@ -536,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const app of applicants) {
           if (app.userProfile && app.jobDescription) {
             try {
-              console.log(`🔍 Fresh AI scoring for: ${app.name} applying for: ${app.jobTitle}`);
+              console.log(`🔍 Fresh AI scoring for: ${app.applicantName} applying for: ${app.jobTitle}`);
               
               // Use detailed AI scoring for completely fresh analysis
               const detailedScore = await applicantScoringService.scoreApplicantDetailed(
@@ -547,7 +552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 [] // No specific skills list yet
               );
               
-              console.log(`📊 FRESH AI SCORES for ${app.name}:`);
+              console.log(`📊 FRESH AI SCORES for ${app.applicantName}:`);
               console.log(`   Overall: ${detailedScore.overallMatch}%`);
               console.log(`   Technical: ${detailedScore.technicalSkills}%`);
               console.log(`   Experience: ${detailedScore.experience}%`);
@@ -565,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               
             } catch (scoringError) {
-              console.error(`❌ SCORING ERROR for ${app.name}:`, scoringError);
+              console.error(`❌ SCORING ERROR for ${app.applicantName}:`, scoringError);
               
               // Add with error score on failure
               applicantsWithScores.push({
@@ -579,7 +584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           } else {
             // No profile data - cannot score
-            console.log(`⚠️  ${app.name}: Missing profile/job data - cannot score`);
+            console.log(`⚠️  ${app.applicantName}: Missing profile/job data - cannot score`);
             applicantsWithScores.push({
               ...app,
               matchScore: 0,
@@ -597,7 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Log fresh scoring status
         applicants.forEach(app => {
-          console.log(`📊 ${app.name}: Fresh AI score = ${app.matchScore}% (DYNAMIC ANALYSIS)`);
+          console.log(`📊 ${app.applicantName}: Fresh AI score = ${app.matchScore}% (DYNAMIC ANALYSIS)`);
         });
       }
 
@@ -608,9 +613,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...app,
         name: app.applicantName,
         email: app.applicantEmail,
-      }))
+      }));
 
-      res.json(applicants);
+      // Apply pagination
+      const totalCount = applicants.length;
+      const paginatedApplicants = applicants.slice(offset, offset + limit);
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // Return paginated response with metadata
+      res.json({
+        data: paginatedApplicants,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          limit,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
+      });
     } catch (error) {
       console.error("Error fetching real applicants:", error);
       res.status(500).json({ message: "Failed to fetch applicants" });
@@ -706,7 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 culturalFitScore: detailedScore.culturalFit
               });
             } catch (scoringError) {
-              console.error(`❌ SCORING ERROR for ${app.name}:`, scoringError);
+              console.error(`❌ SCORING ERROR for ${app.applicantName}:`, scoringError);
               applicantsWithScores.push({
                 ...app,
                 matchScore: 0,
