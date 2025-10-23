@@ -5,9 +5,9 @@ import { getQueryOptions } from "@/lib/queryConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { 
-  Briefcase, 
-  Users, 
+import {
+  Briefcase,
+  Users,
   Target,
   TrendingUp,
   Plus,
@@ -19,7 +19,8 @@ import {
   Settings,
   Bell,
   Building2,
-  Calendar
+  Calendar,
+  UserPlus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
@@ -30,6 +31,7 @@ import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { ApplicantsModal } from "@/components/ApplicantsModal";
 import { ShortlistedApplicantsModal } from "@/components/ShortlistedApplicantsModal";
 import { InviteCodeModal } from "@/components/InviteCodeModal";
+import { InviteTeamMembersModal } from "@/components/InviteTeamMembersModal";
 
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { InterviewManagementModal } from "@/components/InterviewManagementModal";
@@ -362,11 +364,26 @@ export default function EmployerDashboard() {
 
   const [isShortlistedApplicantsModalOpen, setIsShortlistedApplicantsModalOpen] = useState(false);
   const [isInviteCodeModalOpen, setIsInviteCodeModalOpen] = useState(false);
+  const [isInviteTeamMembersModalOpen, setIsInviteTeamMembersModalOpen] = useState(false);
 
   const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
   const [isInterviewManagementModalOpen, setIsInterviewManagementModalOpen] = useState(false);
   const [isAcceptedApplicantsModalOpen, setIsAcceptedApplicantsModalOpen] = useState(false);
   const [selectedApplicantForInterview, setSelectedApplicantForInterview] = useState<any>(null);
+
+  // Get team members to check admin permissions
+  const { data: teamMembers } = useQuery<any>({
+    queryKey: ["/api/companies/team"],
+    ...getQueryOptions(30000), // 30 seconds in production, disabled in development
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+
+  // Check if current user is admin or owner
+  const isAdminOrOwner = teamMembers?.some((member: any) =>
+    member.userId === user?.id && ['admin', 'owner'].includes(member.role)
+  );
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -617,14 +634,24 @@ export default function EmployerDashboard() {
                   <Calendar className="w-4 h-4 text-orange-600 dark:text-orange-400 mr-3" />
                   Manage Interviews
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full justify-start text-left hover:bg-purple-50 dark:hover:bg-purple-900/30"
                   onClick={() => setIsAnalyticsModalOpen(true)}
                 >
                   <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-3" />
                   View Analytics Report
                 </Button>
+                {isAdminOrOwner && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-left hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                    onClick={() => setIsInviteTeamMembersModalOpen(true)}
+                  >
+                    <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-3" />
+                    Invite Team Members
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
@@ -671,9 +698,14 @@ export default function EmployerDashboard() {
         isOpen={isShortlistedApplicantsModalOpen} 
         onClose={() => setIsShortlistedApplicantsModalOpen(false)} 
       />
-      <InviteCodeModal 
-        isOpen={isInviteCodeModalOpen} 
-        onClose={() => setIsInviteCodeModalOpen(false)} 
+      <InviteCodeModal
+        isOpen={isInviteCodeModalOpen}
+        onClose={() => setIsInviteCodeModalOpen(false)}
+      />
+
+      <InviteTeamMembersModal
+        isOpen={isInviteTeamMembersModalOpen}
+        onClose={() => setIsInviteTeamMembersModalOpen(false)}
       />
 
       <CreateInterviewModal 
