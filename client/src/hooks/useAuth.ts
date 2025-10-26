@@ -18,6 +18,9 @@ type AuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<{ message: string; user: User }, Error, RegisterData>;
   resendVerificationMutation: UseMutationResult<{ message: string }, Error, { email: string }>;
+  requestPasswordResetMutation: UseMutationResult<{ message: string }, Error, { email: string }>;
+  resetPasswordMutation: UseMutationResult<{ message: string }, Error, { token: string; password: string }>;
+  verifyResetTokenMutation: UseMutationResult<{ message: string; email: string; firstName: string }, Error, string>;
   signInWithGoogle: () => void;
 };
 
@@ -131,6 +134,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const requestPasswordResetMutation = useMutation({
+    mutationFn: async ({ email }: { email: string }) => {
+      const res = await apiRequest("POST", "/api/request-password-reset", { email });
+      return await res.json();
+    },
+    onSuccess: (response: { message: string }) => {
+      toast({
+        title: "Reset Email Sent",
+        description: response.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Send Reset Email",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ token, password }: { token: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/reset-password", { token, password });
+      return await res.json();
+    },
+    onSuccess: (response: { message: string }) => {
+      toast({
+        title: "Password Reset Successful",
+        description: response.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Password Reset Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const verifyResetTokenMutation = useMutation({
+    mutationFn: async (token: string) => {
+      const res = await apiRequest("GET", `/api/verify-reset-token/${token}`);
+      return await res.json();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Invalid Reset Link",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
@@ -175,6 +232,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logoutMutation,
     registerMutation,
     resendVerificationMutation,
+    requestPasswordResetMutation,
+    resetPasswordMutation,
+    verifyResetTokenMutation,
     signInWithGoogle,
   };
 
