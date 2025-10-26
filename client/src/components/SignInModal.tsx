@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import GoogleSignInButton from "./GoogleSignInButton";
+import { ForgotPasswordModal } from "./ForgotPasswordModal";
 import { isGoogleAuthError, getGoogleAuthError, clearGoogleAuthError, getGoogleAuthErrorMessage } from "@/lib/authUtils";
 import { X, Lock, User } from "lucide-react";
 
@@ -19,6 +20,7 @@ interface SignInModalProps {
 export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignInModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { loginMutation, signInWithGoogle } = useAuth();
   const { toast } = useToast();
 
@@ -131,6 +133,18 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
                 >
                   {loginMutation.isPending ? "Signing In..." : "Sign In"}
                 </Button>
+
+                {/* Forgot Password Link */}
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
               </form>
 
               {/* Divider */}
@@ -163,6 +177,13 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
           </Card>
         </motion.div>
       </motion.div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        onBackToLogin={() => setShowForgotPassword(false)}
+      />
     </AnimatePresence>
   );
 }

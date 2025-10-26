@@ -58,6 +58,13 @@ export interface IStorage {
   updateUserGoogleAuth(id: string, googleAuth: { googleId: string; authProvider: string; profileImageUrl?: string }): Promise<User>;
   verifyUserEmail(id: string): Promise<User | undefined>;
   updateVerificationToken(id: string, verificationToken: string): Promise<User | undefined>;
+
+  // Password reset operations
+  getUserByResetPasswordToken(token: string): Promise<User | undefined>;
+  setPasswordResetToken(userId: string, token: string, expires: Date): Promise<User>;
+  clearPasswordResetToken(userId: string): Promise<User>;
+  updateUserPassword(userId: string, hashedPassword: string): Promise<User>;
+
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Organization operations
@@ -243,6 +250,61 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  // Password reset operations
+  async getUserByResetPasswordToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.resetPasswordToken, token),
+          gt(users.resetPasswordExpires, new Date())
+        )
+      )
+      .limit(1);
+    return user;
+  }
+
+  async setPasswordResetToken(userId: string, token: string, expires: Date): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        resetPasswordToken: token,
+        resetPasswordExpires: expires,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async clearPasswordResetToken(userId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }
