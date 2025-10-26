@@ -52,9 +52,12 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByVerificationToken(verificationToken: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
   updateUserGoogleAuth(id: string, googleAuth: { googleId: string; authProvider: string; profileImageUrl?: string }): Promise<User>;
+  verifyUserEmail(id: string): Promise<User | undefined>;
+  updateVerificationToken(id: string, verificationToken: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Organization operations
@@ -192,6 +195,36 @@ export class DatabaseStorage implements IStorage {
         googleId: googleAuth.googleId,
         authProvider: googleAuth.authProvider,
         profileImageUrl: googleAuth.profileImageUrl,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getUserByVerificationToken(verificationToken: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.verificationToken, verificationToken));
+    return user;
+  }
+
+  async verifyUserEmail(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isVerified: true,
+        verificationToken: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateVerificationToken(id: string, verificationToken: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        verificationToken,
         updatedAt: new Date()
       })
       .where(eq(users.id, id))

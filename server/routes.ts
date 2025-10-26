@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import fetch from "node-fetch";
 import { storage } from "./storage";
-import { setupAuth, requireAuth } from "./auth";
+import { setupAuth, requireAuth, requireVerifiedAuth } from "./auth";
 import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
@@ -17,7 +17,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Get user's organization route
-  app.get('/api/organizations/current', requireAuth, async (req: any, res) => {
+  app.get('/api/organizations/current', requireVerifiedAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       console.log("Fetching organization for user:", userId);
@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Job posting routes
-  app.post('/api/job-postings', requireAuth, async (req: any, res) => {
+  app.post('/api/job-postings', requireVerifiedAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
@@ -4041,162 +4041,174 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Process single resume
+  // Process single resume (background job)
   app.post('/api/resume-profiles/process', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const { resumeText, fileType, jobId, customRules } = req.body;
-      
+      const { resumeText, fileType, fileName, jobId, customRules } = req.body;
+
       if (!resumeText || resumeText.trim().length < 50) {
         return res.status(400).json({ message: "Resume text is required and must be substantial" });
       }
 
-      // Process resume with AI
-      console.log(`🔄 Processing resume for organization ${organization.id}, file type: ${fileType}, text length: ${resumeText?.length}, custom rules: ${customRules ? 'provided' : 'none'}`);
-      const processedResume = await resumeProcessingService.processResume(resumeText, fileType, customRules);
-      console.log(`✅ Resume processed successfully:`, { name: processedResume.name, email: processedResume.email });
-      
-      // Save to database
-      const profileData = {
-        ...processedResume,
-        resumeText,
+      if (!fileName) {
+        return res.status(400).json({ message: "File name is required" });
+      }
+
+      // Create background job for processing
+      const { addSingleResumeProcessingJob } = await import('./jobProducers');
+
+      const job = await addSingleResumeProcessingJob({
+        fileContent: resumeText,
+        fileName: fileName || 'resume.txt',
+        fileType: fileType || 'text/plain',
+        userId,
         organizationId: organization.id,
-        createdBy: userId,
-      };
-      
-      const savedProfile = await storage.createResumeProfile(profileData);
-      
-      // Score against jobs - either specific job or all organization jobs
-      let jobs;
-      if (jobId) {
-        // Score against specific job only
-        const job = await storage.getJob(jobId);
-        if (!job || job.organizationId !== organization.id) {
-          return res.status(404).json({ message: "Job not found or doesn't belong to your organization" });
-        }
-        jobs = [job];
-        console.log(`🎯 Scoring resume against specific job: ${job.title}`);
-      } else {
-        // Score against all organization jobs
-        jobs = await storage.getJobsByOrganization(organization.id);
-        console.log(`🎯 Scoring resume against all ${jobs.length} jobs`);
-      }
+        jobId,
+        customRules
+      });
 
-      for (const job of jobs) {
-        try {
-          const jobScore = await resumeProcessingService.scoreResumeAgainstJob(
-            processedResume,
-            job.title,
-            job.description,
-            job.requirements || job.description,
-            customRules
-          );
-          
-          await storage.createJobScore({
-            profileId: savedProfile.id,
-            jobId: job.id,
-            ...jobScore,
-          });
+      console.log(`📋 Created background resume processing job ${job.id} for user ${userId}, file: ${fileName}`);
 
-          // Auto-invite if score meets per-job threshold
-          try {
-            const threshold = typeof (job as any).emailInviteThreshold === 'number' ? (job as any).emailInviteThreshold : (typeof (job as any).scoreMatchingThreshold === 'number' ? (job as any).scoreMatchingThreshold : 30);
-            const overall = jobScore.overallScore ?? 0;
-            if (overall >= threshold && processedResume.email) {
-              const { localDatabaseService } = await import('./localDatabaseService');
-              const companyName = organization.companyName || 'Our Company';
-
-              // Generate unique token and username
-              const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-              const names = (processedResume.name || '').trim().split(/\s+/);
-              const firstName = names[0] || '';
-              const lastName = names.slice(1).join(' ') || '';
-              const username = (firstName + (lastName ? lastName[0].toUpperCase() + lastName.slice(1) : ''))
-                .replace(/\s+/g, '')
-                .replace(/[^a-zA-Z0-9]/g, '');
-
-              // Create user profile in local database instead of Airtable
-              try {
-                console.log(`👤 Creating user profile for ${processedResume.email} in local database`);
-
-                // Create a user profile using the local database service
-                await localDatabaseService.createUserProfile({
-                  userId: savedProfile.id.toString(),
-                  name: processedResume.name || `${firstName} ${lastName}`.trim(),
-                  email: processedResume.email,
-                  phone: '', // Could be extracted from resume
-                  professionalSummary: processedResume.summary || '',
-                  experienceLevel: '', // Could be determined from resume
-                  location: '', // Could be extracted from resume
-                  fileId: processedResume.fileId,
-                } as any);
-
-                console.log(`✅ Successfully created user profile in local database`);
-              } catch (userErr) {
-                console.error('Error creating user profile in local database:', userErr);
-              }
-
-              // Use local database service instead of Airtable for creating interview invitation
-              try {
-                console.log(`📝 Creating job match and interview invitation for ${processedResume.email} using local database`);
-
-                // Create a job match record to track the interview invitation
-                await localDatabaseService.createJobMatch({
-                  userId: savedProfile.id.toString(),
-                  jobId: job.id.toString(),
-                  name: processedResume.name || processedResume.email,
-                  jobTitle: job.title,
-                  jobDescription: job.description,
-                  companyName: companyName,
-                  matchScore: overall,
-                  status: 'invited',
-                  interviewDate: new Date(),
-                  token: token, // Save the token for interview initiation
-                } as any);
-
-                console.log(`✅ Successfully created interview invitation in local database`);
-              } catch (aiErr) {
-                console.error('Error creating AI interview invitation:', aiErr);
-              }
-
-              // Build invitation link to Applicants app with token
-              const baseUrl = process.env.APPLICANTS_APP_URL || 'https://applicants.platohiring.com';
-              const invitationLink = `${baseUrl.replace(/\/$/, '')}/ai-interview-initation?token=${encodeURIComponent(token)}`;
-
-              // Send invitation email via SendGrid (non-blocking)
-              const { emailService } = await import('./emailService');
-              emailService.sendInterviewInvitationEmail({
-                applicantName: processedResume.name || processedResume.email,
-                applicantEmail: processedResume.email,
-                jobTitle: job.title,
-                companyName,
-                invitationLink,
-                matchScore: overall,
-                matchSummary: jobScore.matchSummary,
-              }).catch(err => console.warn('📧 Invitation email failed (non-blocking):', err));
-            }
-          } catch (inviteError) {
-            console.error(`Error inviting candidate for job ${job.id}:`, inviteError);
-          }
-        } catch (error) {
-          console.error(`Error scoring resume against job ${job.id}:`, error);
-          // Continue with other jobs even if one fails
-        }
-      }
-      
-      res.json({ success: true, profile: savedProfile });
+      res.json({
+        success: true,
+        jobId: job.id,
+        message: "Resume processing started in background",
+        status: "processing"
+      });
     } catch (error) {
-      console.error("Error processing resume:", error);
+      console.error("Error creating resume processing job:", error);
       console.error("Request body:", { resumeTextLength: req.body?.resumeText?.length, fileType: req.body?.fileType });
-      res.status(500).json({ 
-        message: "Failed to process resume", 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      res.status(500).json({
+        message: "Failed to start resume processing",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Process multiple resumes (bulk background job)
+  app.post('/api/resume-profiles/process-bulk', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const { files, jobId, customRules } = req.body;
+
+      if (!files || !Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ message: "Files array is required" });
+      }
+
+      // Validate files
+      for (const file of files) {
+        if (!file.content || file.content.trim().length < 50) {
+          return res.status(400).json({
+            message: `File ${file.name || 'unknown'} has insufficient content`
+          });
+        }
+        if (!file.name) {
+          return res.status(400).json({
+            message: `File name is required for all files`
+          });
+        }
+      }
+
+      // Create background job for bulk processing
+      const { addBulkResumeProcessingJob } = await import('./jobProducers');
+
+      const job = await addBulkResumeProcessingJob({
+        files: files.map(f => ({
+          name: f.name,
+          content: f.content,
+          type: f.type || 'text/plain'
+        })),
+        userId,
+        organizationId: organization.id,
+        jobId,
+        customRules
+      });
+
+      console.log(`📋 Created background bulk resume processing job ${job.id} for user ${userId}, ${files.length} files`);
+
+      res.json({
+        success: true,
+        jobId: job.id,
+        fileCount: files.length,
+        message: "Bulk resume processing started in background",
+        status: "processing"
+      });
+    } catch (error) {
+      console.error("Error creating bulk resume processing job:", error);
+      res.status(500).json({
+        message: "Failed to start bulk resume processing",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get resume processing job status
+  app.get('/api/resume-processing/status/:jobId', requireAuth, async (req: any, res) => {
+    try {
+      const { jobId } = req.params;
+      const userId = req.user.id;
+
+      if (!jobId) {
+        return res.status(400).json({ message: "Job ID is required" });
+      }
+
+      // Get job from BullMQ
+      const { resumeProcessingQueue } = await import('./queues');
+      const job = await resumeProcessingQueue.getJob(jobId);
+
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Get job state and progress
+      const jobState = await job.getState();
+      const jobData = job.data;
+      const progress = job.progress;
+
+      // Verify job belongs to this user
+      if (jobData.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to view this job" });
+      }
+
+      // Get job results if completed
+      let result = null;
+      let failedReason = null;
+
+      if (jobState === 'completed') {
+        result = job.returnvalue;
+      } else if (jobState === 'failed') {
+        failedReason = job.failedReason;
+      }
+
+      res.json({
+        jobId: job.id,
+        status: jobState,
+        progress: progress || 0,
+        data: jobData,
+        result,
+        failedReason,
+        createdAt: new Date(job.timestamp).toISOString(),
+        processedOn: job.processedOn ? new Date(job.processedOn).toISOString() : null,
+        finishedOn: job.finishedOn ? new Date(job.finishedOn).toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error fetching job status:", error);
+      res.status(500).json({
+        message: "Failed to fetch job status",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

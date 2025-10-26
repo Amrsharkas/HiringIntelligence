@@ -12,6 +12,10 @@ import OrganizationSetup from "@/pages/organization-setup";
 import { AcceptInvitation } from "@/pages/AcceptInvitation";
 import InviteAccept from "@/pages/InviteAccept";
 import NotFound from "@/pages/not-found";
+import EmailVerificationPendingPage from "@/pages/EmailVerificationPendingPage";
+import VerifyEmailPage from "@/pages/VerifyEmailPage";
+import VerificationSentPage from "@/pages/VerificationSentPage";
+import ResendVerificationPage from "@/pages/ResendVerificationPage";
 import { useEffect } from "react";
 
 function DashboardRedirect() {
@@ -53,10 +57,17 @@ function Router() {
 
   return (
     <Switch>
+      {/* Email verification routes - accessible without authentication */}
+      <Route path="/verify-email" component={VerifyEmailPage} />
+      <Route path="/verify-email/:token" component={VerifyEmailPage} />
+      <Route path="/verification-pending" component={EmailVerificationPendingPage} />
+      <Route path="/verification-sent" component={VerificationSentPage} />
+      <Route path="/resend-verification" component={ResendVerificationPage} />
+
       {/* Enhanced invitation routes - accessible without full auth checks */}
       <Route path="/invite/accept" component={InviteAccept} />
       <Route path="/accept-invitation" component={AcceptInvitation} />
-      
+
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
