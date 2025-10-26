@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, Plus, Loader2 } from "lucide-react";
+import { Building2, Users, Plus, Loader2, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
@@ -56,6 +57,7 @@ const COMPANY_SIZES = [
 
 export default function OrganizationSetup() {
   const { toast } = useToast();
+  const { logoutMutation } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("create");
 
@@ -173,6 +175,10 @@ export default function OrganizationSetup() {
     joinOrgMutation.mutate(data);
   };
 
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-6">
       <motion.div
@@ -192,10 +198,21 @@ export default function OrganizationSetup() {
 
         <Card className="bg-white dark:bg-slate-800 shadow-xl border-0">
           <CardHeader>
-            <CardTitle className="text-xl text-center">Choose Your Path</CardTitle>
-            <CardDescription className="text-center">
-              You can always invite team members or change settings later
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div className="text-center flex-1">
+                <CardTitle className="text-xl">Choose Your Path</CardTitle>
+                <CardDescription>
+                  You can always invite team members or change settings later
+                </CardDescription>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="ml-4 p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors duration-200"
+                title="Sign Out"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
