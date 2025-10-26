@@ -47,6 +47,7 @@ interface Applicant {
   email: string;
   location: string;
   appliedDate: string;
+  applicationDate: string;
   status: string;
   jobId: string;
   jobTitle: string;
@@ -324,6 +325,16 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     }
   };
 
+  const getStatusReadableName = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending': return 'Pending Review';
+      case 'accepted': return 'Application Accepted';
+      case 'denied': return 'Application Denied';
+      case 'interview_completed': return 'Interview Completed';
+      default: return 'Unknown Status';
+    }
+  }
+
   // Pagination helpers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -562,12 +573,12 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                         )}
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          <span>Applied {new Date(selectedApplicant.appliedDate).toLocaleDateString()}</span>
+                          <span>Applied {new Date(selectedApplicant.applicationDate).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
                     <Badge className={`${getStatusColor(selectedApplicant.status || 'pending')} border-0`}>
-                      {selectedApplicant.status || 'Pending'}
+                      {getStatusReadableName(selectedApplicant.status) || 'Pending'}
                     </Badge>
                   </div>
                 </div>
