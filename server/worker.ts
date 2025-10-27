@@ -4,6 +4,7 @@ import { redisConnection, closeRedisConnection } from './redis';
 import { resumeProcessingService } from './resumeProcessingService';
 import { emailService } from './emailService';
 import { matchingService } from './matchingService';
+import { fileStorageService } from './fileStorageService';
 
 // Check Redis connection health
 const checkRedisHealth = async () => {
@@ -31,6 +32,24 @@ const resumeProcessingWorker = new Worker(
         console.log(`📄 Processing single resume: ${fileName} for user ${userId}, organization ${organizationId}`);
 
         // Update progress
+        job.updateProgress(5);
+
+        // Save file locally first
+        console.log(`💾 Saving file locally...`);
+        let savedFileInfo;
+        try {
+          savedFileInfo = await fileStorageService.saveFileFromBase64(
+            fileContent,
+            fileName,
+            fileType || 'text/plain',
+            userId
+          );
+          console.log(`✅ File saved locally: ${savedFileInfo.relativePath}`);
+        } catch (fileError) {
+          console.warn(`⚠️ Failed to save file locally (will continue without local file):`, fileError);
+          // Continue processing even if file saving fails
+        }
+
         job.updateProgress(10);
 
         // Process resume with AI
@@ -197,6 +216,24 @@ const resumeProcessingWorker = new Worker(
             console.log(`📄 Processing file ${i + 1}/${files.length}: ${file.name}`);
 
             // Update progress for current file
+            job.updateProgress(baseProgress + 3);
+
+            // Save file locally first
+            console.log(`💾 Saving file locally...`);
+            let savedFileInfo;
+            try {
+              savedFileInfo = await fileStorageService.saveFileFromBase64(
+                file.content,
+                file.name,
+                file.type || 'text/plain',
+                userId
+              );
+              console.log(`✅ File saved locally: ${savedFileInfo.relativePath}`);
+            } catch (fileError) {
+              console.warn(`⚠️ Failed to save file locally (will continue without local file):`, fileError);
+              // Continue processing even if file saving fails
+            }
+
             job.updateProgress(baseProgress + 5);
 
             // Process resume with AI
@@ -330,7 +367,7 @@ const resumeProcessingWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 3, // Reduced concurrency for better resource management
+    concurrency: 8, // Increased concurrency for better job throughput
     // Set job timeout to handle long-running operations
     settings: {
       // Increase lock duration to handle long-running operations
@@ -379,7 +416,7 @@ const emailWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 5, // Reduced from 10 to reduce Redis load
+    concurrency: 15, // Increased concurrency for better email throughput
     settings: {
       lockDuration: 180000, // 3 minutes
       maxStalledCount: 3,
@@ -424,7 +461,7 @@ const interviewInvitationWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 5, // Reduced from 10 to reduce Redis load
+    concurrency: 15, // Increased concurrency for better email throughput
     settings: {
       lockDuration: 180000, // 3 minutes
       maxStalledCount: 3,
@@ -458,7 +495,7 @@ const candidateMatchingWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 2, // Reduced from 3 to reduce Redis load further
+    concurrency: 8, // Increased concurrency for better matching throughput
     settings: {
       lockDuration: 180000, // 3 minutes
       maxStalledCount: 3,
