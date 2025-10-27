@@ -76,7 +76,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
   const [customRules, setCustomRules] = useState<string>('');
-  const [showProcessingNotice, setShowProcessingNotice] = useState(false);
+const [hasSubmittedProcessing, setHasSubmittedProcessing] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch company job postings
@@ -314,7 +314,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background. Please refresh the page manually to see new profiles once processing is complete.`,
       });
 
-      setShowProcessingNotice(true);
+setHasSubmittedProcessing(true);
       clearAllFiles();
       setActiveTab('results');
 
@@ -322,7 +322,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
         // Hide the notice after profiles are refreshed (even if empty)
-        setShowProcessingNotice(false);
+        setHasSubmittedProcessing(false);
       }, 5000);
     },
     onError: (error: Error) => {
@@ -1004,13 +1004,13 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
         {activeTab === 'results' && (
           <div className="space-y-4">
-            {/* Background Processing Notice - only show when processing */}
-            {(showProcessingNotice || processFilesMutation.isPending) && (
+          {/* Background Processing Notice - only show if processing has been initiated */}
+            {hasSubmittedProcessing && (
               <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-sm text-blue-800">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Resumes are being processed in the background. Please refresh the page manually to see new profiles once processing is complete.</span>
+                  <span>Resumes are being processed in the background. Results will appear here when processing is complete.</span>
                   </div>
                 </CardContent>
               </Card>
