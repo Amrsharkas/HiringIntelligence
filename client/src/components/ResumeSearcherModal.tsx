@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -83,11 +83,22 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     queryKey: ['/api/job-postings'],
   });
 
-  // Fetch processed resume profiles with pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  // Fetch processed resume profiles with per-job pagination
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [jobPages, setJobPages] = useState<{ [key: string]: number }>({});
 
-  const { data: profilesResponse, isLoading: profilesLoading } = useQuery<{
+  // Initialize job pages to 1 when jobs are loaded
+  useEffect(() => {
+    if (jobs.length > 0) {
+      const initialPages: { [key: string]: number } = {};
+      jobs.forEach((job: any) => {
+        initialPages[job.id] = 1;
+      });
+      setJobPages(initialPages);
+    }
+  }, [jobs]);
+
+  const { data: profilesResponse, isLoading: profilesLoading, refetch: refetchProfiles } = useQuery<{
     data: ProfileWithScores[];
     pagination: {
       currentPage: number;
@@ -98,9 +109,9 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
       hasPrevPage: boolean;
     };
   }>({
-    queryKey: ['/api/resume-profiles', currentPage, itemsPerPage],
+    queryKey: ['/api/resume-profiles', 1, 1000], // Get all profiles (with high limit) for proper per-job pagination
     queryFn: async () => {
-      const response = await fetch(`/api/resume-profiles?page=${currentPage}&limit=${itemsPerPage}`, {
+      const response = await fetch(`/api/resume-profiles?page=1&limit=1000`, {
         credentials: 'include'
       });
       if (!response.ok) {
@@ -580,6 +591,38 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     profile.experience.some(exp => exp.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Helper function to get paginated profiles for a specific job
+  const getPaginatedProfilesForJob = (jobId: string) => {
+    const jobProfiles = filteredProfiles
+      .map(profile => ({
+        ...profile,
+        jobScore: profile.jobScores.find(score => score.jobId === jobId)
+      }))
+      .filter(profile => profile.jobScore)
+      .sort((a, b) => (b.jobScore?.overallScore || 0) - (a.jobScore?.overallScore || 0));
+
+    const currentPage = jobPages[jobId] || 1;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    return {
+      profiles: jobProfiles.slice(startIndex, endIndex),
+      totalCount: jobProfiles.length,
+      currentPage,
+      totalPages: Math.ceil(jobProfiles.length / itemsPerPage),
+      hasNextPage: currentPage < Math.ceil(jobProfiles.length / itemsPerPage),
+      hasPrevPage: currentPage > 1
+    };
+  };
+
+  // Helper function to set page for a specific job
+  const setJobPage = (jobId: string, page: number) => {
+    setJobPages(prev => ({
+      ...prev,
+      [jobId]: page
+    }));
+  };
+
   // Detailed Analysis Component
   const DetailedAnalysis = ({ jobScore }: { jobScore: JobScoring }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -1041,12 +1084,6 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                       profile.jobScores.some(score => !score.disqualified)
                     ).length}
                   </span>
-                  {pagination && (
-                    <>
-                      <span>•</span>
-                      <span>Showing {profiles.length} of {pagination.totalItems} (Page {pagination.currentPage} of {pagination.totalPages})</span>
-                    </>
-                  )}
                 </div>
 
                 {/* Page size selector */}
@@ -1056,7 +1093,14 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                     value={itemsPerPage}
                     onChange={(e) => {
                       setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1); // Reset to first page when changing page size
+                      // Reset all job pages to 1 when changing page size
+                      setJobPages(prev => {
+                        const newPages: { [key: string]: number } = {};
+                        Object.keys(prev).forEach(jobId => {
+                          newPages[jobId] = 1;
+                        });
+                        return newPages;
+                      });
                     }}
                     className="text-sm border border-gray-300 rounded px-2 py-1"
                   >
@@ -1078,223 +1122,218 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
             ) : (
               <ScrollArea className="h-[60vh]">
                 <div className="space-y-6">
-                  {jobs.map((job: any) => (
-                    <div key={job.id}>
-                      {/* Job Header */}
-                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-l-blue-500">
-                        <div className="flex items-center gap-3">
-                          <Briefcase className="h-5 w-5 text-blue-600" />
-                          <div>
-                            <h3 className="font-semibold text-lg">{job.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {job.location} • {job.jobType} • {job.salaryRange}
-                            </p>
+                  {jobs.map((job: any) => {
+                    const jobPagination = getPaginatedProfilesForJob(job.id);
+
+                    return (
+                      <div key={job.id}>
+                        {/* Job Header */}
+                        <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-l-blue-500">
+                          <div className="flex items-center gap-3">
+                            <Briefcase className="h-5 w-5 text-blue-600" />
+                            <div>
+                              <h3 className="font-semibold text-lg">{job.title}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {job.location} • {job.jobType} • {job.salaryRange}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Profiles Table for this Job */}
-                      {filteredProfiles
-                        .map(profile => ({
-                          ...profile,
-                          jobScore: profile.jobScores.find(score => score.jobId === job.id)
-                        }))
-                        .filter(profile => profile.jobScore)
-                        .sort((a, b) => (b.jobScore?.overallScore || 0) - (a.jobScore?.overallScore || 0)).length > 0 ? (
-                        <div className="border rounded-lg overflow-hidden">
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="min-w-[200px]">Candidate</TableHead>
-                                  <TableHead className="min-w-[100px]">Overall Score</TableHead>
-                                  <TableHead className="min-w-[100px]">Technical</TableHead>
-                                  <TableHead className="min-w-[100px]">Experience</TableHead>
-                                  <TableHead className="min-w-[120px]">Status</TableHead>
-                                  <TableHead className="min-w-[300px]">Actions</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                            <TableBody>
-                              {filteredProfiles
-                                .map(profile => ({
-                                  ...profile,
-                                  jobScore: profile.jobScores.find(score => score.jobId === job.id)
-                                }))
-                                .filter(profile => profile.jobScore)
-                                .sort((a, b) => (b.jobScore?.overallScore || 0) - (a.jobScore?.overallScore || 0))
-                                .map((profile) => (
-                                  <TableRow key={`${job.id}-${profile.id}`}>
-                                    <TableCell>
-                                      <div className="flex items-center gap-3">
-                                        <User className="h-5 w-5 text-muted-foreground" />
-                                        <div>
-                                          <div className="font-semibold">{profile.name}</div>
-                                          <div className="text-sm text-muted-foreground">{profile.email}</div>
+                        {/* Profiles Table for this Job */}
+                        {jobPagination.totalCount > 0 ? (
+                          <div className="border rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="min-w-[200px]">Candidate</TableHead>
+                                    <TableHead className="min-w-[100px]">Overall Score</TableHead>
+                                    <TableHead className="min-w-[100px]">Technical</TableHead>
+                                    <TableHead className="min-w-[100px]">Experience</TableHead>
+                                    <TableHead className="min-w-[120px]">Status</TableHead>
+                                    <TableHead className="min-w-[300px]">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {jobPagination.profiles.map((profile) => (
+                                    <TableRow key={`${job.id}-${profile.id}`}>
+                                      <TableCell>
+                                        <div className="flex items-center gap-3">
+                                          <User className="h-5 w-5 text-muted-foreground" />
+                                          <div>
+                                            <div className="font-semibold">{profile.name}</div>
+                                            <div className="text-sm text-muted-foreground">{profile.email}</div>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className={`font-bold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.overallScore || 0)}`}>
-                                        {profile.jobScore?.overallScore || 0}%
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className={`font-semibold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.technicalSkillsScore || 0)}`}>
-                                        {profile.jobScore?.technicalSkillsScore || 0}%
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className={`font-semibold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.experienceScore || 0)}`}>
-                                        {profile.jobScore?.experienceScore || 0}%
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        {profile.jobScore?.disqualified ? (
-                                          <Badge variant="destructive" className="text-xs font-semibold">
-                                            DISQUALIFIED
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant={getScoreBadgeVariant(profile.jobScore?.overallScore || 0)}>
-                                            {profile.jobScore?.overallScore}% Match
-                                          </Badge>
-                                        )}
-                                        {profile.jobScore?.invitationStatus === 'invited' && (
-                                          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 text-xs">
-                                            <MailCheck className="h-3 w-3 mr-1" />
-                                            Invited
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-1 flex-wrap">
-                                        {profile.jobScore?.invitationStatus !== 'invited' && !profile.jobScore?.disqualified && (
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className={`font-bold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.overallScore || 0)}`}>
+                                          {profile.jobScore?.overallScore || 0}%
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className={`font-semibold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.technicalSkillsScore || 0)}`}>
+                                          {profile.jobScore?.technicalSkillsScore || 0}%
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className={`font-semibold ${profile.jobScore?.disqualified ? 'text-red-600' : getScoreColor(profile.jobScore?.experienceScore || 0)}`}>
+                                          {profile.jobScore?.experienceScore || 0}%
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center gap-2">
+                                          {profile.jobScore?.disqualified ? (
+                                            <Badge variant="destructive" className="text-xs font-semibold">
+                                              DISQUALIFIED
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant={getScoreBadgeVariant(profile.jobScore?.overallScore || 0)}>
+                                              {profile.jobScore?.overallScore}% Match
+                                            </Badge>
+                                          )}
+                                          {profile.jobScore?.invitationStatus === 'invited' && (
+                                            <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 text-xs">
+                                              <MailCheck className="h-3 w-3 mr-1" />
+                                              Invited
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          {profile.jobScore?.invitationStatus !== 'invited' && !profile.jobScore?.disqualified && (
+                                            <Button
+                                              variant="default"
+                                              size="sm"
+                                              onClick={() => inviteApplicantMutation.mutate({
+                                                profileId: profile.id,
+                                                jobId: job.id.toString()
+                                              })}
+                                              disabled={inviteApplicantMutation.isPending}
+                                              className="h-8 px-2 text-xs"
+                                            >
+                                              {inviteApplicantMutation.isPending ? (
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                              ) : (
+                                                <>
+                                                  <Mail className="h-3 w-3 mr-1" />
+                                                  Invite
+                                                </>
+                                              )}
+                                            </Button>
+                                          )}
+                                          {exportSingleProfile(profile)}
                                           <Button
-                                            variant="default"
+                                            variant="outline"
                                             size="sm"
-                                            onClick={() => inviteApplicantMutation.mutate({
-                                              profileId: profile.id,
-                                              jobId: job.id.toString()
-                                            })}
-                                            disabled={inviteApplicantMutation.isPending}
+                                            onClick={() => setSelectedProfile(profile)}
                                             className="h-8 px-2 text-xs"
                                           >
-                                            {inviteApplicantMutation.isPending ? (
-                                              <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                              <>
-                                                <Mail className="h-3 w-3 mr-1" />
-                                                Invite
-                                              </>
-                                            )}
+                                            View
                                           </Button>
-                                        )}
-                                        {exportSingleProfile(profile)}
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => setSelectedProfile(profile)}
-                                          className="h-8 px-2 text-xs"
-                                        >
-                                          View
-                                        </Button>
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                                            >
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>Delete Profile</AlertDialogTitle>
-                                              <AlertDialogDescription>
-                                                Are you sure you want to delete {profile.name}'s profile? This action cannot be undone.
-                                              </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                              <AlertDialogAction
-                                                onClick={() => deleteProfileMutation.mutate(profile.id)}
-                                                className="bg-red-600 hover:bg-red-700"
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                                               >
-                                                Delete
-                                              </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                            </Table>
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Are you sure you want to delete {profile.name}'s profile? This action cannot be undone.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() => deleteProfileMutation.mutate(profile.id)}
+                                                  className="bg-red-600 hover:bg-red-700"
+                                                >
+                                                  Delete
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+
+                            {/* Job-specific pagination controls */}
+                            {jobPagination.totalPages > 1 && (
+                              <div className="flex justify-center mt-4 p-4 border-t">
+                                <Pagination>
+                                  <PaginationContent>
+                                    <PaginationItem>
+                                      <PaginationPrevious
+                                        onClick={() => setJobPage(job.id, jobPagination.currentPage - 1)}
+                                        className={!jobPagination.hasPrevPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                      />
+                                    </PaginationItem>
+
+                                    {/* Show page numbers for this job */}
+                                    {Array.from({ length: Math.min(5, jobPagination.totalPages) }, (_, i) => {
+                                      let pageNum;
+                                      if (jobPagination.totalPages <= 5) {
+                                        pageNum = i + 1;
+                                      } else if (jobPagination.currentPage <= 3) {
+                                        pageNum = i + 1;
+                                      } else if (jobPagination.currentPage >= jobPagination.totalPages - 2) {
+                                        pageNum = jobPagination.totalPages - 4 + i;
+                                      } else {
+                                        pageNum = jobPagination.currentPage - 2 + i;
+                                      }
+
+                                      return (
+                                        <PaginationItem key={pageNum}>
+                                          <PaginationLink
+                                            onClick={() => setJobPage(job.id, pageNum)}
+                                            isActive={pageNum === jobPagination.currentPage}
+                                            className="cursor-pointer"
+                                          >
+                                            {pageNum}
+                                          </PaginationLink>
+                                        </PaginationItem>
+                                      );
+                                    })}
+
+                                    <PaginationItem>
+                                      <PaginationNext
+                                        onClick={() => setJobPage(job.id, jobPagination.currentPage + 1)}
+                                        className={!jobPagination.hasNextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                      />
+                                    </PaginationItem>
+                                  </PaginationContent>
+                                </Pagination>
+                                <div className="ml-4 text-sm text-muted-foreground">
+                                  Showing {jobPagination.profiles.length} of {jobPagination.totalCount} candidates
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
-                          No candidate profiles scored for this job yet
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+                            No candidate profiles scored for this job yet
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </ScrollArea>
             )}
 
-            {/* Pagination Controls */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex justify-center mt-6">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        className={!pagination.hasPrevPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-
-                    {/* Show page numbers */}
-                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (pagination.totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= pagination.totalPages - 2) {
-                        pageNum = pagination.totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-
-                      return (
-                        <PaginationItem key={pageNum}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(pageNum)}
-                            isActive={pageNum === currentPage}
-                            className="cursor-pointer"
-                          >
-                            {pageNum}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                        className={!pagination.hasNextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
-          </div>
+                      </div>
         )}
 
         {/* Profile Detail Modal */}
