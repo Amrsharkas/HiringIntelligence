@@ -4159,64 +4159,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Get resume processing job status
-  app.get('/api/resume-processing/status/:jobId', requireAuth, async (req: any, res) => {
-    try {
-      const { jobId } = req.params;
-      const userId = req.user.id;
-
-      if (!jobId) {
-        return res.status(400).json({ message: "Job ID is required" });
-      }
-
-      // Get job from BullMQ
-      const { resumeProcessingQueue } = await import('./queues');
-      const job = await resumeProcessingQueue.getJob(jobId);
-
-      if (!job) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-
-      // Get job state and progress
-      const jobState = await job.getState();
-      const jobData = job.data;
-      const progress = job.progress;
-
-      // Verify job belongs to this user
-      if (jobData.userId !== userId) {
-        return res.status(403).json({ message: "You don't have permission to view this job" });
-      }
-
-      // Get job results if completed
-      let result = null;
-      let failedReason = null;
-
-      if (jobState === 'completed') {
-        result = job.returnvalue;
-      } else if (jobState === 'failed') {
-        failedReason = job.failedReason;
-      }
-
-      res.json({
-        jobId: job.id,
-        status: jobState,
-        progress: progress || 0,
-        data: jobData,
-        result,
-        failedReason,
-        createdAt: new Date(job.timestamp).toISOString(),
-        processedOn: job.processedOn ? new Date(job.processedOn).toISOString() : null,
-        finishedOn: job.finishedOn ? new Date(job.finishedOn).toISOString() : null,
-      });
-    } catch (error) {
-      console.error("Error fetching job status:", error);
-      res.status(500).json({
-        message: "Failed to fetch job status",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
+  
   // Delete resume profile
   app.delete('/api/resume-profiles/:id', requireAuth, async (req: any, res) => {
     try {

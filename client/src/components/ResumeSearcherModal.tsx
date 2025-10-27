@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -76,103 +76,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
   const [customRules, setCustomRules] = useState<string>('');
-  const [activeJobs, setActiveJobs] = useState<Array<{
-    id: string;
-    fileCount: number;
-    status: string;
-    message: string;
-    startTime: Date;
-    customRules?: string;
-    processingJobId?: string;
-    progress?: number;
-    result?: any;
-    failedReason?: string;
-  }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pollingIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-
-  // Job status polling function
-  const startJobStatusPolling = (jobId: string) => {
-    // Clear existing polling for this job if any
-    if (pollingIntervalsRef.current.has(jobId)) {
-      clearInterval(pollingIntervalsRef.current.get(jobId)!);
-    }
-
-    // Start polling every 2 seconds
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/resume-processing/status/${jobId}`, {
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          const jobStatus = await response.json();
-
-          setActiveJobs(prev => prev.map(job =>
-            job.id === jobId
-              ? {
-                  ...job,
-                  status: jobStatus.status,
-                  progress: jobStatus.progress,
-                  result: jobStatus.result,
-                  failedReason: jobStatus.failedReason
-                }
-              : job
-          ));
-
-          // Stop polling if job is completed or failed
-          if (jobStatus.status === 'completed' || jobStatus.status === 'failed') {
-            clearInterval(interval);
-            pollingIntervalsRef.current.delete(jobId);
-
-            // Show completion notification
-            if (jobStatus.status === 'completed') {
-              const successCount = jobStatus.result?.successfulFiles || 1;
-              const totalCount = jobStatus.result?.totalFiles || 1;
-
-              toast({
-                title: "Resume Processing Complete",
-                description: `Successfully processed ${successCount} of ${totalCount} resume(s)`,
-              });
-
-              // Refresh profiles list
-              queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
-
-              // Remove job from active jobs after delay
-              setTimeout(() => {
-                setActiveJobs(prev => prev.filter(job => job.id !== jobId));
-              }, 5000);
-            } else if (jobStatus.status === 'failed') {
-              toast({
-                title: "Resume Processing Failed",
-                description: jobStatus.failedReason || "Processing failed due to an error",
-                variant: "destructive",
-              });
-
-              // Remove failed job after delay
-              setTimeout(() => {
-                setActiveJobs(prev => prev.filter(job => job.id !== jobId));
-              }, 10000);
-            }
-          }
-        } else {
-          console.error(`Failed to fetch job status for ${jobId}:`, response.statusText);
-        }
-      } catch (error) {
-        console.error(`Error polling job status for ${jobId}:`, error);
-      }
-    }, 2000);
-
-    pollingIntervalsRef.current.set(jobId, interval);
-  };
-
-  // Clean up polling on unmount
-  useEffect(() => {
-    return () => {
-      pollingIntervalsRef.current.forEach(interval => clearInterval(interval));
-      pollingIntervalsRef.current.clear();
-    };
-  }, []);
 
   // Fetch company job postings
   const { data: jobs = [] } = useQuery<any[]>({
@@ -395,28 +299,16 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     onSuccess: (result) => {
       toast({
         title: "Resume Processing Started",
-        description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background`,
+        description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background. The results will appear here once processing is complete.`,
       });
-
-      // Store job info for status tracking
-      const jobInfo = {
-        id: result.jobId,
-        fileCount: result.fileCount,
-        status: result.status,
-        message: result.message,
-        startTime: new Date(),
-        customRules,
-        processingJobId
-      };
-
-      // Initialize job tracking
-      setActiveJobs(prev => [...prev, jobInfo]);
 
       clearAllFiles();
       setActiveTab('results');
 
-      // Start polling for job status
-      startJobStatusPolling(result.jobId);
+      // Refresh profiles list after a delay to allow for processing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+      }, 5000);
     },
     onError: (error: Error) => {
       toast({
@@ -504,7 +396,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
     return (
       <BlobProvider document={<ProfilePDF profile={profile} jobs={jobs} />}>
-        {({ blob, url, loading, error }) => {
+        {({ blob, loading, error }) => {
           if (loading) {
             return (
               <Button variant="outline" size="sm" disabled>
@@ -570,7 +462,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
     return (
       <BlobProvider document={<ProfilesPDF profiles={disqualifiedProfiles} jobs={jobs} />}>
-        {({ blob, url, loading, error }) => {
+        {({ blob, loading, error }) => {
           if (loading) {
             return (
               <Button variant="outline" disabled>
@@ -623,7 +515,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
     return (
       <BlobProvider document={<ProfilesPDF profiles={filteredProfiles} jobs={jobs} />}>
-        {({ blob, url, loading, error }) => {
+        {({ blob, loading, error }) => {
           if (loading) {
             return (
               <Button variant="outline" disabled>
@@ -1065,61 +957,15 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
         {activeTab === 'results' && (
           <div className="space-y-4">
-            {/* Active Jobs Progress */}
-            {activeJobs.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium flex items-center gap-2">
+            {/* Background Processing Notice */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-sm text-blue-800">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing Resume{activeJobs.length > 1 ? 's' : ''} ({activeJobs.length} job{activeJobs.length > 1 ? 's' : ''})
-                </h4>
-                <div className="space-y-2">
-                  {activeJobs.map((job) => (
-                    <Card key={job.id} className="border-blue-200 bg-blue-50/30">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium">
-                              Processing {job.fileCount} file{job.fileCount > 1 ? 's' : ''}
-                            </span>
-                          </div>
-                          <Badge variant="secondary" className="text-xs">
-                            {job.status}
-                          </Badge>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Progress</span>
-                            <span>{job.progress || 0}%</span>
-                          </div>
-                          <Progress value={job.progress || 0} className="h-2" />
-                        </div>
-
-                        {/* Additional Details */}
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          <div>Started: {job.startTime.toLocaleTimeString()}</div>
-                          {job.processingJobId !== 'all' && (
-                            <div>Job: Active scoring against selected job</div>
-                          )}
-                          {job.customRules && (
-                            <div>Custom rules applied</div>
-                          )}
-                        </div>
-
-                        {/* Error Message */}
-                        {job.failedReason && (
-                          <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
-                            Error: {job.failedReason}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <span>Resumes are being processed in the background. Results will appear here when processing is complete.</span>
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
             {/* Search Bar and Export Controls */}
             <div className="space-y-4">
