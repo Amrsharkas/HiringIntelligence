@@ -124,15 +124,19 @@ export const addBulkResumeProcessingJob = async (data: {
   jobId?: string;
   customRules?: string;
 }) => {
-  return await resumeProcessingQueue.add('process-bulk-resumes', data, {
-    priority: 10,
-    delay: 0,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-  });
+  const jobPromises = data.files.map(file =>
+    addSingleResumeProcessingJob({
+      fileContent: file.content,
+      fileName: file.name,
+      fileType: file.type,
+      userId: data.userId,
+      organizationId: data.organizationId,
+      jobId: data.jobId,
+      customRules: data.customRules
+    })
+  );
+
+  return await Promise.all(jobPromises);
 };
 
 // Single resume processing job producer (for individual files)
