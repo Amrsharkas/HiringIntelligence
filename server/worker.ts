@@ -367,7 +367,7 @@ const resumeProcessingWorker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 8, // Increased concurrency for better job throughput
+    concurrency: 15, // Increased concurrency for better job throughput
     // Set job timeout to handle long-running operations
     settings: {
       // Increase lock duration to handle long-running operations
