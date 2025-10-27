@@ -52,9 +52,19 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByVerificationToken(verificationToken: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
   updateUserGoogleAuth(id: string, googleAuth: { googleId: string; authProvider: string; profileImageUrl?: string }): Promise<User>;
+  verifyUserEmail(id: string): Promise<User | undefined>;
+  updateVerificationToken(id: string, verificationToken: string): Promise<User | undefined>;
+
+  // Password reset operations
+  getUserByResetPasswordToken(token: string): Promise<User | undefined>;
+  setPasswordResetToken(userId: string, token: string, expires: Date): Promise<User>;
+  clearPasswordResetToken(userId: string): Promise<User>;
+  updateUserPassword(userId: string, hashedPassword: string): Promise<User>;
+
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Organization operations
@@ -199,6 +209,36 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByVerificationToken(verificationToken: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.verificationToken, verificationToken));
+    return user;
+  }
+
+  async verifyUserEmail(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isVerified: true,
+        verificationToken: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateVerificationToken(id: string, verificationToken: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        verificationToken,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -210,6 +250,61 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  // Password reset operations
+  async getUserByResetPasswordToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.resetPasswordToken, token),
+          gt(users.resetPasswordExpires, new Date())
+        )
+      )
+      .limit(1);
+    return user;
+  }
+
+  async setPasswordResetToken(userId: string, token: string, expires: Date): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        resetPasswordToken: token,
+        resetPasswordExpires: expires,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async clearPasswordResetToken(userId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }

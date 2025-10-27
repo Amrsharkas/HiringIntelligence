@@ -1,4 +1,5 @@
 import { MailService } from '@sendgrid/mail';
+import { getAppBaseUrl } from '../server/auth';
 
 interface InterviewEmailData {
   applicantName: string;
@@ -11,6 +12,28 @@ interface InterviewEmailData {
   meetingLink?: string;
   timeZone: string;
   notes?: string;
+}
+
+interface VerificationEmailData {
+  email: string;
+  firstName: string;
+  verificationLink: string;
+}
+
+interface VerificationSuccessEmailData {
+  email: string;
+  firstName: string;
+}
+
+interface PasswordResetEmailData {
+  email: string;
+  firstName: string;
+  resetLink: string;
+}
+
+interface PasswordResetSuccessEmailData {
+  email: string;
+  firstName: string;
 }
 
 class EmailService {
@@ -499,7 +522,506 @@ ${params.organizationName} Team
 Invited by ${params.invitedByName}
     `.trim();
   }
+
+  async sendVerificationEmail(data: VerificationEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping verification email: SendGrid not configured');
+        return false;
+      }
+
+      const subject = 'Verify Your Email Address - Plato Hiring';
+      const html = this.generateVerificationEmailHTML(data);
+      const text = this.generateVerificationEmailText(data);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+
+      await this.mailService.send({
+        to: data.email,
+        from: { email: fromEmail, name: fromName },
+        subject,
+        text,
+        html,
+      });
+
+      console.log(`✅ Verification email sent successfully to ${data.email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid verification email error:', error);
+      return false;
+    }
+  }
+
+  async sendVerificationSuccessEmail(data: VerificationSuccessEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping verification success email: SendGrid not configured');
+        return false;
+      }
+
+      const subject = 'Email Verified Successfully - Welcome to Plato Hiring!';
+      const html = this.generateVerificationSuccessEmailHTML(data);
+      const text = this.generateVerificationSuccessEmailText(data);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+
+      await this.mailService.send({
+        to: data.email,
+        from: { email: fromEmail, name: fromName },
+        subject,
+        text,
+        html,
+      });
+
+      console.log(`✅ Verification success email sent to ${data.email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid verification success email error:', error);
+      return false;
+    }
+  }
+
+  private generateVerificationEmailHTML(data: VerificationEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Email Address</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">✉️</span>
+          </div>
+          <h1 style="color: #1f2937; margin: 0; font-size: 28px;">Verify Your Email</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to Plato Hiring!</p>
+        </div>
+
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Hi ${data.firstName}!</h2>
+            <p style="color: #6b7280; margin: 8px 0 0 0;">Thanks for signing up for Plato Hiring.</p>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; border: 2px solid #3b82f6;">
+            <h3 style="color: #1e40af; margin: 0 0 12px 0;">Please verify your email address</h3>
+            <p style="color: #374151; margin: 0; line-height: 1.6;">
+              To complete your registration and access all features of Plato Hiring, please verify your email address by clicking the button below.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
+              <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🚀 Verify Your Email</h3>
+              <p style="color: #d1fae5; margin: 0 0 24px 0; font-size: 16px;">Click below to verify your email and activate your account</p>
+              <a href="${data.verificationLink}"
+                 style="background: white; color: #059669; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+                Verify Email Address
+              </a>
+            </div>
+
+            <div style="background-color: #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+              <p style="color: #92400e; margin: 0; font-weight: 600;">Important:</p>
+              <p style="color: #92400e; margin: 8px 0 0 0; font-size: 14px;">This verification link will expire in 1 week for security reasons.</p>
+            </div>
+
+            <p style="color: #6b7280; margin: 0; font-size: 14px;">
+              If the button doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="word-break: break-all; color: #3b82f6; font-size: 12px; margin: 8px 0 0 0;">
+              ${data.verificationLink}
+            </p>
+          </div>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">
+              If you didn't create an account with Plato Hiring, you can safely ignore this email.
+              The verification link will expire automatically.
+            </p>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; color: #9ca3af; font-size: 14px; margin-top: 24px;">
+          <p style="margin: 0;">
+            Best regards,<br>
+            The Plato Hiring Team
+          </p>
+        </div>
+
+      </body>
+      </html>
+    `;
+  }
+
+  private generateVerificationEmailText(data: VerificationEmailData): string {
+    return `
+✉️ VERIFY YOUR EMAIL ADDRESS - PLATO HIRING
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hi ${data.firstName}!
+
+Welcome to Plato Hiring! Thanks for signing up for our platform.
+
+VERIFY YOUR EMAIL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+To complete your registration and access all features, please verify your email address by clicking the link below:
+
+${data.verificationLink}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 CLICK THE LINK ABOVE TO VERIFY YOUR EMAIL
+
+IMPORTANT: This verification link will expire in 1 week for security reasons.
+
+If you didn't create an account with Plato Hiring, you can safely ignore this email. The verification link will expire automatically.
+
+We're excited to have you join our platform!
+
+Best regards,
+The Plato Hiring Team
+    `.trim();
+  }
+
+  private generateVerificationSuccessEmailHTML(data: VerificationSuccessEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Verified Successfully</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">✅</span>
+          </div>
+          <h1 style="color: #1f2937; margin: 0; font-size: 28px;">Email Verified!</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to Plato Hiring</p>
+        </div>
+
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Congratulations ${data.firstName}!</h2>
+            <p style="color: #6b7280; margin: 8px 0 0 0;">Your email address has been successfully verified.</p>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; border: 2px solid #10b981;">
+            <h3 style="color: #065f46; margin: 0 0 12px 0;">🎉 What's Next?</h3>
+            <p style="color: #374151; margin: 0; line-height: 1.6;">
+              Your account is now active and ready to use! You can log in to Plato Hiring and start using all our features to streamline your hiring process.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 24px; border-radius: 12px;">
+              <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🚀 Get Started Now</h3>
+              <a href="${getAppBaseUrl()}/signin"
+                 style="background: white; color: #3b82f6; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                Login to Your Account
+              </a>
+            </div>
+          </div>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <h3 style="color: #374151; margin: 0 0 12px 0;">With Plato Hiring, you can:</h3>
+            <ul style="color: #6b7280; margin: 0; padding-left: 20px; line-height: 1.8;">
+              <li>Post job opportunities and manage applications</li>
+              <li>AI-powered resume screening and matching</li>
+              <li>Schedule interviews and communicate with candidates</li>
+              <li>Collaborate with your hiring team</li>
+              <li>Track candidates through the entire hiring pipeline</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; color: #9ca3af; font-size: 14px; margin-top: 24px;">
+          <p style="margin: 0;">
+            Best regards,<br>
+            The Plato Hiring Team
+          </p>
+        </div>
+
+      </body>
+      </html>
+    `;
+  }
+
+  private generateVerificationSuccessEmailText(data: VerificationSuccessEmailData): string {
+    return `
+✅ EMAIL VERIFIED SUCCESSFULLY - PLATO HIRING
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Congratulations ${data.firstName}!
+
+Your email address has been successfully verified and your account is now active.
+
+🎉 WELCOME TO PLATO HIRING!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You can now log in and start using all our features:
+
+• Post job opportunities and manage applications
+• AI-powered resume screening and matching
+• Schedule interviews and communicate with candidates
+• Collaborate with your hiring team
+• Track candidates through the entire hiring pipeline
+
+GET STARTED:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Login to your account now: ${getAppBaseUrl()}/signin
+
+We're excited to help you streamline your hiring process!
+
+Best regards,
+The Plato Hiring Team
+    `.trim();
+  }
+
+  async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping password reset email: SendGrid not configured');
+        return false;
+      }
+
+      const subject = 'Reset Your Password - Plato Hiring';
+      const html = this.generatePasswordResetEmailHTML(data);
+      const text = this.generatePasswordResetEmailText(data);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+
+      await this.mailService.send({
+        to: data.email,
+        from: { email: fromEmail, name: fromName },
+        subject,
+        text,
+        html,
+      });
+
+      console.log(`✅ Password reset email sent to ${data.email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid password reset email error:', error);
+      return false;
+    }
+  }
+
+  async sendPasswordResetSuccessEmail(data: PasswordResetSuccessEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping password reset success email: SendGrid not configured');
+        return false;
+      }
+
+      const subject = 'Password Reset Successfully - Plato Hiring';
+      const html = this.generatePasswordResetSuccessEmailHTML(data);
+      const text = this.generatePasswordResetSuccessEmailText(data);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+
+      await this.mailService.send({
+        to: data.email,
+        from: { email: fromEmail, name: fromName },
+        subject,
+        text,
+        html,
+      });
+
+      console.log(`✅ Password reset success email sent to ${data.email}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid password reset success email error:', error);
+      return false;
+    }
+  }
+
+  private generatePasswordResetEmailHTML(data: PasswordResetEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">🔐</span>
+          </div>
+          <h1 style="color: #1f2937; font-size: 28px; font-weight: 700; margin-bottom: 10px;">Reset Your Password</h1>
+          <p style="color: #6b7280; font-size: 16px;">Hi ${data.firstName || 'there'}, we received a request to reset your password</p>
+        </div>
+
+        <div style="background: #f9fafb; border-radius: 12px; padding: 30px; margin-bottom: 30px;">
+          <h2 style="color: #1f2937; font-size: 20px; font-weight: 600; margin-bottom: 15px;">Password Reset Request</h2>
+          <p style="color: #6b7280; margin-bottom: 20px;">
+            We received a request to reset the password for your Plato Hiring account. If you made this request, click the button below to reset your password:
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.resetLink}" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px; text-align: center;">
+            or copy and paste this link into your browser:
+          </p>
+          <p style="background: #f3f4f6; padding: 10px; border-radius: 6px; word-break: break-all; font-size: 12px; text-align: center; color: #6b7280;">
+            ${data.resetLink}
+          </p>
+        </div>
+
+        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+          <h3 style="color: #92400e; font-size: 16px; font-weight: 600; margin-bottom: 10px;">⚠️ Security Notice</h3>
+          <ul style="color: #92400e; margin: 0; padding-left: 20px; font-size: 14px;">
+            <li>This link will expire in 1 hour for security reasons</li>
+            <li>If you didn't request this password reset, please ignore this email</li>
+            <li>Your password will remain unchanged if you don't click the link</li>
+            <li>Never share this link with anyone</li>
+          </ul>
+        </div>
+
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p>If you have any questions or concerns, contact our support team at support@platohiring.com</p>
+          <p style="margin-top: 10px;">© 2024 Plato Hiring. All rights reserved.</p>
+        </div>
+
+      </body>
+      </html>
+    `.trim();
+  }
+
+  private generatePasswordResetEmailText(data: PasswordResetEmailData): string {
+    return `
+RESET YOUR PASSWORD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hi ${data.firstName || 'there'},
+
+We received a request to reset the password for your Plato Hiring account.
+
+RESET LINK:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${data.resetLink}
+
+INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Click the link above or copy and paste it into your browser
+2. Create a new password for your account
+3. Use your new password to log in
+
+SECURITY NOTICE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• This link expires in 1 hour for security reasons
+• If you didn't request this reset, please ignore this email
+• Your password will remain unchanged if you don't use the link
+• Never share this link with anyone
+
+If you have any questions, contact us at support@platohiring.com
+
+Best regards,
+The Plato Hiring Team
+    `.trim();
+  }
+
+  private generatePasswordResetSuccessEmailHTML(data: PasswordResetSuccessEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset Successfully</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">✅</span>
+          </div>
+          <h1 style="color: #1f2937; font-size: 28px; font-weight: 700; margin-bottom: 10px;">Password Reset Successfully!</h1>
+          <p style="color: #6b7280; font-size: 16px;">Hi ${data.firstName || 'there'}, your password has been reset</p>
+        </div>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 30px; margin-bottom: 30px;">
+          <h2 style="color: #166534; font-size: 20px; font-weight: 600; margin-bottom: 15px;">✅ Password Reset Complete</h2>
+          <p style="color: #166534; margin-bottom: 20px;">
+            Your password for your Plato Hiring account has been successfully reset. You can now use your new password to log in to your account.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${getAppBaseUrl()}/signin" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
+              Log In to Your Account
+            </a>
+          </div>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+          <h3 style="color: #1f2937; font-size: 16px; font-weight: 600; margin-bottom: 10px;">🔐 Security Tips</h3>
+          <ul style="color: #6b7280; margin: 0; padding-left: 20px; font-size: 14px;">
+            <li>Use a strong, unique password for your account</li>
+            <li>Never share your password with anyone</li>
+            <li>Enable two-factor authentication if available</li>
+            <li>Change your password regularly</li>
+          </ul>
+        </div>
+
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p>If you didn't reset your password, please contact our support team immediately at support@platohiring.com</p>
+          <p style="margin-top: 10px;">© 2024 Plato Hiring. All rights reserved.</p>
+        </div>
+
+      </body>
+      </html>
+    `.trim();
+  }
+
+  private generatePasswordResetSuccessEmailText(data: PasswordResetSuccessEmailData): string {
+    return `
+PASSWORD RESET SUCCESSFUL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hi ${data.firstName || 'there'},
+
+Your password for your Plato Hiring account has been successfully reset!
+
+LOGIN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You can now log in to your account with your new password:
+${getAppBaseUrl()}/signin
+
+SECURITY TIPS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Use a strong, unique password
+• Never share your password with anyone
+• Enable two-factor authentication if available
+• Change your password regularly
+
+If you didn't reset your password, please contact us immediately at support@platohiring.com
+
+Best regards,
+The Plato Hiring Team
+    `.trim();
+  }
 }
 
 export const emailService = new EmailService();
-export { InterviewEmailData };
+export { InterviewEmailData, VerificationEmailData, VerificationSuccessEmailData, PasswordResetEmailData, PasswordResetSuccessEmailData };

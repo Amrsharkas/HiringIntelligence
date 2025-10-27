@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import fetch from "node-fetch";
 import { storage } from "./storage";
-import { setupAuth, requireAuth } from "./auth";
+import { setupAuth, requireAuth, requireVerifiedAuth } from "./auth";
 import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
@@ -21,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupBullDashboard(app);
 
   // Get user's organization route
-  app.get('/api/organizations/current', requireAuth, async (req: any, res) => {
+  app.get('/api/organizations/current', requireVerifiedAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       console.log("Fetching organization for user:", userId);
@@ -241,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Job posting routes
-  app.post('/api/job-postings', requireAuth, async (req: any, res) => {
+  app.post('/api/job-postings', requireVerifiedAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
