@@ -11,10 +11,14 @@ import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { setupBullDashboard } from "./dashboard";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupAuth(app);
+
+  // Setup BullMQ Dashboard
+  setupBullDashboard(app);
 
   // Get user's organization route
   app.get('/api/organizations/current', requireAuth, async (req: any, res) => {
