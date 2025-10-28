@@ -190,7 +190,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
           model: "gpt-4o",
           messages: baseMessages as any,
           response_format: { type: "json_object" },
-          max_tokens: 1500,
+          temperature: 0,
         }),
         {
           requestType: "resume_processing",
