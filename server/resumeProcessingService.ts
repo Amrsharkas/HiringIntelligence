@@ -91,8 +91,14 @@ export class ResumeProcessingService {
   private async extractTextFromFile(fileData: string, fileType: string): Promise<{ text: string; fileId?: string }> {
     console.log(`🔄 Extracting text from file type: ${fileType}, data length: ${fileData?.length}`);
 
+    // For text files, return the data directly without processing
+    if (fileType === 'text' || fileType === 'text/plain') {
+      console.log(`📝 Text file detected - returning content directly`);
+      return { text: fileData };
+    }
+
     // Process any file format using OpenAI Files + Responses API
-    if (fileData && fileType !== 'text/plain') {
+    if (fileData) {
       try {
         const buffer = Buffer.from(fileData, 'base64');
 
@@ -147,8 +153,8 @@ export class ResumeProcessingService {
       }
     }
 
-    // For plain text files or as fallback, return as-is
-    return { text: fileData };
+    // If no file data or unsupported type, return empty text
+    return { text: '' };
   }
 
   async processResume(resumeText: string, fileType?: string, customRules?: string): Promise<ProcessedResume> {

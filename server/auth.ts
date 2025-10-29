@@ -664,3 +664,49 @@ export const requireVerifiedAuth = (req: any, res: any, next: any) => {
 
   next();
 };
+
+// Middleware to check for service API key (for inter-service communication)
+export const requireServiceAuth = (req: any, res: any, next: any) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ error: "Authorization header required" });
+  }
+
+  const token = authHeader.replace('Bearer ', '').trim();
+  const serviceApiKey = process.env.SERVICE_API_KEY;
+
+  if (!serviceApiKey) {
+    console.error('SERVICE_API_KEY environment variable not set');
+    return res.status(500).json({ error: "Service authentication not configured" });
+  }
+
+  if (token !== serviceApiKey) {
+    return res.status(401).json({ error: "Invalid service API key" });
+  }
+
+  next();
+};
+
+// Middleware that allows either user authentication OR service API key
+export const requireAuthOrService = (req: any, res: any, next: any) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ error: "Authorization required" });
+  }
+
+  const serviceApiKey = process.env.SERVICE_API_KEY;
+
+  // Check if it's a service API key
+  if (serviceApiKey && authHeader.replace('Bearer ', '').trim() === serviceApiKey) {
+    return next();
+  }
+
+  // Otherwise, check for user authentication
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  next();
+};

@@ -34,20 +34,25 @@ const resumeProcessingWorker = new Worker(
         // Update progress
         job.updateProgress(5);
 
-        // Save file locally first
-        console.log(`💾 Saving file locally...`);
-        let savedFileInfo;
-        try {
-          savedFileInfo = await fileStorageService.saveFileFromBase64(
-            fileContent,
-            fileName,
-            fileType || 'text/plain',
-            userId
-          );
-          console.log(`✅ File saved locally: ${savedFileInfo.relativePath}`);
-        } catch (fileError) {
-          console.warn(`⚠️ Failed to save file locally (will continue without local file):`, fileError);
-          // Continue processing even if file saving fails
+        // For text files, we don't need to save locally - just use the content directly
+        // For other file types, save locally for processing
+        if (fileType !== 'text') {
+          console.log(`💾 Saving file locally...`);
+          let savedFileInfo;
+          try {
+            savedFileInfo = await fileStorageService.saveFileFromBase64(
+              fileContent,
+              fileName,
+              fileType || 'text/plain',
+              userId
+            );
+            console.log(`✅ File saved locally: ${savedFileInfo.relativePath}`);
+          } catch (fileError) {
+            console.warn(`⚠️ Failed to save file locally (will continue without local file):`, fileError);
+            // Continue processing even if file saving fails
+          }
+        } else {
+          console.log(`📝 Text file detected - using content directly, no local save needed`);
         }
 
         job.updateProgress(10);
@@ -61,7 +66,7 @@ const resumeProcessingWorker = new Worker(
 
         // Get organization for database operations
         const { storage } = await import('./storage');
-        const organization = await storage.getOrganizationByUser(userId);
+        const organization = await storage.getOrganizationById(organizationId);
         if (!organization) {
           throw new Error('Organization not found');
         }
@@ -218,20 +223,25 @@ const resumeProcessingWorker = new Worker(
             // Update progress for current file
             job.updateProgress(baseProgress + 3);
 
-            // Save file locally first
-            console.log(`💾 Saving file locally...`);
-            let savedFileInfo;
-            try {
-              savedFileInfo = await fileStorageService.saveFileFromBase64(
-                file.content,
-                file.name,
-                file.type || 'text/plain',
-                userId
-              );
-              console.log(`✅ File saved locally: ${savedFileInfo.relativePath}`);
-            } catch (fileError) {
-              console.warn(`⚠️ Failed to save file locally (will continue without local file):`, fileError);
-              // Continue processing even if file saving fails
+            // For text files, we don't need to save locally - just use the content directly
+            // For other file types, save locally for processing
+            if (file.type !== 'text') {
+              console.log(`💾 Saving file locally...`);
+              let savedFileInfo;
+              try {
+                savedFileInfo = await fileStorageService.saveFileFromBase64(
+                  file.content,
+                  file.name,
+                  file.type || 'text/plain',
+                  userId
+                );
+                console.log(`✅ File saved locally: ${savedFileInfo.relativePath}`);
+              } catch (fileError) {
+                console.warn(`⚠️ Failed to save file locally (will continue without local file):`, fileError);
+                // Continue processing even if file saving fails
+              }
+            } else {
+              console.log(`📝 Text file detected - using content directly, no local save needed`);
             }
 
             job.updateProgress(baseProgress + 5);

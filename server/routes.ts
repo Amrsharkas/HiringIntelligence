@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import fetch from "node-fetch";
 import { storage } from "./storage";
-import { setupAuth, requireAuth, requireVerifiedAuth } from "./auth";
+import { setupAuth, requireAuth, requireVerifiedAuth, requireAuthOrService } from "./auth";
 import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
@@ -4046,13 +4046,30 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Process single resume (background job)
-  app.post('/api/resume-profiles/process', requireAuth, async (req: any, res) => {
+  app.post('/api/resume-profiles/process', requireAuthOrService, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const organization = await storage.getOrganizationByUser(userId);
+      // Check if this is a service-to-service call
+      let userId: string | undefined;
+      let organizationId: string | undefined;
+      const serviceApiKey = process.env.SERVICE_API_KEY;
+      const authHeader = req.headers.authorization;
 
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
+      if (serviceApiKey && authHeader && authHeader.replace('Bearer ', '').trim() === serviceApiKey) {
+        // Service-to-service call - use the userId from the request body
+        userId = req.body.userId;
+        const jobId = req.body.jobId;
+        organizationId = req.body.organizationId || process.env.DEFAULT_ORGANIZATION_ID || 'system-org';
+        console.log('📡 Service-to-service call received for resume processing');
+      } else {
+        // Regular user authentication
+        userId = req.user.id;
+        const organization = await storage.getOrganizationByUser(userId);
+
+        if (!organization) {
+          return res.status(404).json({ message: "Organization not found" });
+        }
+
+        organizationId = organization.id;
       }
 
       const { resumeText, fileType, fileName, jobId, customRules } = req.body;
@@ -4073,7 +4090,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         fileName: fileName || 'resume.txt',
         fileType: fileType || 'text/plain',
         userId,
-        organizationId: organization.id,
+        organizationId,
         jobId,
         customRules
       });
