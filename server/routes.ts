@@ -9,6 +9,7 @@ import { wrapOpenAIRequest } from "./openaiTracker";
 import { localDatabaseService } from "./localDatabaseService";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
+import { emailService } from "./emailService";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
@@ -1997,225 +1998,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Real applicants - Accept candidate (move from platojobapplications to platojobmatches)
-  app.post('/api/real-applicants/:id/accept', requireAuth, async (req: any, res) => {
-    try {
-      const airtableRecordId = req.params.id; // This is the Airtable record ID like "recTL77B7HtjJyRqA"
-      
-      console.log(`🎯 Accepting applicant with Airtable record ID: ${airtableRecordId}...`);
-      
-      // Step 1: Fetch applicant record from platojobapplications table using the record ID
-      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const APPLICATIONS_BASE_ID = 'appEYs1fTytFXoJ7x';
-      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
-      
-      // Get applicant record from platojobapplications using the Airtable record ID
-      const applicantUrl = `https://api.airtable.com/v0/${APPLICATIONS_BASE_ID}/Table%201/${airtableRecordId}`;
-      const applicantResponse = await fetch(applicantUrl, {
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!applicantResponse.ok) {
-        if (applicantResponse.status === 404) {
-          return res.status(404).json({ message: "Applicant not found in platojobapplications table" });
-        }
-        throw new Error(`Failed to fetch applicant: ${applicantResponse.status} ${applicantResponse.statusText}`);
-      }
-
-      const applicantData = await applicantResponse.json();
-      const fields = applicantData.fields;
-      
-      console.log(`📋 Raw applicant data:`, JSON.stringify(applicantData, null, 2));
-      console.log(`📋 Applicant fields:`, JSON.stringify(fields, null, 2));
-      
-      // Step 2: Extract the actual User ID and other data from the record fields
-      const actualUserId = fields['Applicant User ID']; // Use the correct field name from Airtable
-      const applicantName = fields['Applicant Name']; // Use the correct field name
-      const jobId = fields['Job ID'];
-      const jobTitle = fields['Job title']; // lowercase 't' in title
-      const jobDescription = fields['Job description']; // lowercase 'd' in description
-      const companyName = fields['Company'];
-      
-      console.log(`📋 Extracted data - User ID: ${actualUserId}, Name: ${applicantName}, Job: ${jobTitle}`);
-      
-      // Step 3: Validate required fields exist - all fields should be present now with correct names
-      if (!actualUserId || !applicantName || !jobTitle || !companyName) {
-        const missingFields = [];
-        if (!actualUserId) missingFields.push('Applicant User ID');
-        if (!applicantName) missingFields.push('Applicant Name');
-        if (!jobTitle) missingFields.push('Job title');
-        if (!companyName) missingFields.push('Company');
-        
-        console.log(`❌ Missing required fields: ${missingFields.join(', ')}`);
-        console.log(`❌ Field values - User ID: "${actualUserId}", Name: "${applicantName}", Job: "${jobTitle}", Company: "${companyName}"`);
-        return res.status(400).json({ 
-          message: `Missing required fields: ${missingFields.join(', ')}`,
-          missingFields: missingFields,
-          availableFields: fields ? Object.keys(fields) : [],
-          fieldValues: {
-            'Applicant User ID': actualUserId,
-            'Applicant Name': applicantName,
-            'Job title': jobTitle,
-            'Company': companyName
-          }
-        });
-      }
-      
-      // Step 4: Create job match record in platojobmatches table using the REAL User ID
-      const jobMatchData = {
-        fields: {
-          'Name': applicantName,
-          'User ID': actualUserId, // Use the actual User ID from the record, not the Airtable record ID
-          'Job title': jobTitle,
-          'Job Description': jobDescription || 'No description provided',
-          'Company name': companyName,
-          'Job ID': jobId // Include Job ID if available
-        }
-      };
-
-      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-      const matchResponse = await fetch(matchesUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(jobMatchData)
-      });
-
-      if (!matchResponse.ok) {
-        const errorText = await matchResponse.text();
-        console.error(`❌ Failed to create job match:`, errorText);
-        throw new Error(`Failed to create job match: ${matchResponse.status} ${matchResponse.statusText} - ${errorText}`);
-      }
-
-      const createdMatch = await matchResponse.json();
-      console.log(`✅ Created job match record with ID: ${createdMatch.id} for User ID: ${actualUserId}`);
-      
-      // Step 5: Update applicant status to 'Accepted' in platojobapplications
-      const statusUpdateData = {
-        fields: {
-          'Status': 'Accepted'
-        }
-      };
-
-      const statusUpdateResponse = await fetch(applicantUrl, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(statusUpdateData)
-      });
-
-      if (!statusUpdateResponse.ok) {
-        console.warn(`⚠️ Failed to update applicant status: ${statusUpdateResponse.status}`);
-      } else {
-        console.log(`✅ Updated applicant status to 'Accepted' for record ${airtableRecordId}`);
-      }
-      
-      // Step 6: Store accepted applicant locally for interview scheduling
-      const user = req.user as any;
-      const userId = user.id; // Use direct user.id instead of user.claims.sub for local auth
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (organization) {
-        try {
-          console.log(`🔄 Attempting to store accepted applicant locally:`, {
-            candidateId: actualUserId,
-            candidateName: applicantName,
-            candidateEmail: "",
-            jobId: jobId.toString(),
-            jobTitle: jobTitle,
-            organizationId: organization.id,
-            acceptedBy: userId
-          });
-          
-          await storage.addAcceptedApplicant({
-            candidateId: actualUserId,
-            candidateName: applicantName,
-            candidateEmail: "", // We don't have email from this record  
-            jobId: jobId.toString(),
-            jobTitle: jobTitle,
-            organizationId: organization.id,
-            acceptedBy: userId
-          });
-          console.log(`✅ Stored accepted applicant locally for organization ${organization.id}`);
-        } catch (error) {
-          console.error(`❌ Failed to store accepted applicant locally:`, error);
-        }
-      } else {
-        console.warn(`⚠️ No organization found for user ${userId}`);
-      }
-      
-      console.log(`✅ Successfully accepted applicant ${applicantName} (User ID: ${actualUserId})`);
-      res.json({ 
-        message: "Applicant accepted successfully",
-        applicantName: applicantName,
-        actualUserId: actualUserId,
-        jobTitle: jobTitle,
-        matchId: createdMatch.id,
-        airtableRecordId: airtableRecordId
-      });
-      
-    } catch (error) {
-      console.error("❌ Error accepting applicant:", error);
-      res.status(500).json({ 
-        message: "Failed to accept applicant",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-  
-  // Real applicants - Decline candidate (update status in platojobapplications)
-  app.post('/api/real-applicants/:id/decline', requireAuth, async (req: any, res) => {
-    try {
-      const applicantId = req.params.id;
-      
-      console.log(`❌ Declining applicant ${applicantId}...`);
-      
-      // Get applicant name for logging
-      // Use local database service instead of Airtable
-      let applicantName = 'Unknown Applicant';
-      try {
-        const applicant = await localDatabaseService.getJobApplication(applicantId);
-        applicantName = applicant?.applicantUserId || 'Unknown Applicant';
-      } catch (error) {
-        console.warn(`⚠️ Could not fetch applicant name: ${error}`);
-      }
-      
-      // Update status in applications table instead of deleting
-      console.log(`❌ Updating applicant ${applicantId} status to denied in local database...`);
-      // Use local database service instead of Airtable
-      try {
-        await localDatabaseService.updateJobApplication(applicantId, { status: 'denied' } as any);
-      } catch (error) {
-        console.warn('⚠️ Could not update application status:', error);
-      }
-      
-      console.log(`✅ Successfully declined applicant ${applicantName} (${applicantId})`);
-      res.json({ 
-        message: "Applicant declined - status updated",
-        applicantName: applicantName,
-        undoData: {
-          applicantId,
-          applicantName,
-          action: 'decline'
-        }
-      });
-      
-    } catch (error) {
-      console.error("❌ Error declining applicant:", error);
-      res.status(500).json({ 
-        message: "Failed to decline applicant",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   // Fix most recent accepted candidate User ID
   app.post('/api/fix-recent-candidate-userid', requireAuth, async (req: any, res) => {
     try {
@@ -2794,21 +2576,46 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       console.log(`✅ Status updated to 'Accepted' for ${application.applicantName}`);
 
-      // Then create job match record
-      console.log(`🔄 Creating job match record for ${application.applicantName}...`);
-      await localDatabaseService.createJobMatch({
-        name: application.applicantName,
-        userId: application.applicantUserId,
-        jobTitle: application.jobTitle,
-        jobDescription: application.jobDescription || '',
-        companyName: organization.companyName,
-        jobId: application.jobId,
-        status: 'accepted'
-      });
+      // // Then create job match record
+      // console.log(`🔄 Creating job match record for ${application.applicantName}...`);
+      // await localDatabaseService.createJobMatch({
+      //   name: application.applicantName,
+      //   userId: application.applicantUserId,
+      //   jobTitle: application.jobTitle,
+      //   jobDescription: application.jobDescription || '',
+      //   companyName: organization.companyName,
+      //   jobId: application.jobId,
+      //   status: 'accepted'
+      // });
 
-      console.log(`✅ Successfully accepted applicant ${application.applicantName}: Status updated + Job match created`);
-      res.json({ 
-        success: true, 
+      // console.log(`✅ Successfully accepted applicant ${application.applicantName}: Status updated + Job match created`);
+
+      // Send acceptance email
+      try {
+        console.log(`📧 Sending acceptance email to ${application.applicantName}...`);
+        const emailSent = await emailService.sendApplicantAcceptanceEmail({
+          applicantName: application.applicantName,
+          applicantEmail: application.applicantEmail || '',
+          jobTitle: application.jobTitle,
+          companyName: organization.companyName,
+          appliedDate: application.createdAt ? new Date(application.createdAt).toLocaleDateString() : undefined,
+          skills: application.skills || [],
+          experience: application.experience || undefined,
+          matchScore: application.matchScore || undefined
+        });
+
+        if (emailSent) {
+          console.log(`✅ Acceptance email sent successfully to ${application.applicantName}`);
+        } else {
+          console.warn(`⚠️ Failed to send acceptance email to ${application.applicantName}`);
+        }
+      } catch (emailError) {
+        console.error(`❌ Error sending acceptance email:`, emailError);
+        // Continue with the response even if email fails
+      }
+
+      res.json({
+        success: true,
         message: "Candidate successfully accepted and status updated",
         applicant: {
           ...application,
@@ -2824,9 +2631,20 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.post('/api/real-applicants/:id/decline', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
+      const userId = req.user?.id;
       // Use local database service instead of Airtable
 
       console.log(`Declining and deleting applicant ${applicantId}...`);
+
+      // Get applicant details for email
+      let application;
+      let organization;
+      try {
+        application = await localDatabaseService.getJobApplication(applicantId);
+        organization = await storage.getOrganizationByUser(userId);
+      } catch (error) {
+        console.warn('⚠️ Could not fetch applicant or organization details:', error);
+      }
 
       // Update the applicant record status in local database instead of deleting
       try {
@@ -2834,11 +2652,38 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       } catch (error) {
         console.warn('⚠️ Could not update application status to declined:', error);
       }
-      
+
       console.log(`✅ Successfully declined and deleted applicant ${applicantId}`);
-      res.json({ 
-        success: true, 
-        message: "Applicant declined and removed" 
+
+      // Send rejection email
+      if (application && organization) {
+        try {
+          console.log(`📧 Sending rejection email to ${application.applicantName}...`);
+          const emailSent = await emailService.sendApplicantRejectionEmail({
+            applicantName: application.applicantName,
+            applicantEmail: application.applicantEmail || '',
+            jobTitle: application.jobTitle,
+            companyName: organization.companyName,
+            appliedDate: application.createdAt ? new Date(application.createdAt).toLocaleDateString() : undefined,
+            skills: application.skills || [],
+            experience: application.experience || undefined,
+            matchScore: application.matchScore || undefined
+          });
+
+          if (emailSent) {
+            console.log(`✅ Rejection email sent successfully to ${application.applicantName}`);
+          } else {
+            console.warn(`⚠️ Failed to send rejection email to ${application.applicantName}`);
+          }
+        } catch (emailError) {
+          console.error(`❌ Error sending rejection email:`, emailError);
+          // Continue with the response even if email fails
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Applicant declined and removed"
       });
     } catch (error) {
       console.error("Error declining real applicant:", error);
@@ -2890,9 +2735,33 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       await storage.addToShortlist(shortlistedData);
       
       console.log(`✅ DATABASE SHORTLIST SUCCESS: Applicant ${applicantId} added to database shortlist`);
-      
-      res.json({ 
-        success: true, 
+
+      // Send shortlist email
+      try {
+        console.log(`📧 Sending shortlist email to ${applicant.applicantName}...`);
+        const emailSent = await emailService.sendApplicantShortlistEmail({
+          applicantName: applicant.applicantName,
+          applicantEmail: applicant.applicantEmail || '',
+          jobTitle: applicant.jobTitle,
+          companyName: organization.companyName,
+          appliedDate: applicant.createdAt ? new Date(applicant.createdAt).toLocaleDateString() : undefined,
+          skills: applicant.skills || [],
+          experience: applicant.experience || undefined,
+          matchScore: applicant.matchScore || undefined
+        });
+
+        if (emailSent) {
+          console.log(`✅ Shortlist email sent successfully to ${applicant.applicantName}`);
+        } else {
+          console.warn(`⚠️ Failed to send shortlist email to ${applicant.applicantName}`);
+        }
+      } catch (emailError) {
+        console.error(`❌ Error sending shortlist email:`, emailError);
+        // Continue with the response even if email fails
+      }
+
+      res.json({
+        success: true,
         message: "Candidate added to shortlist successfully",
         applicantId: applicantId
       });

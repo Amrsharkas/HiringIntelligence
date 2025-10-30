@@ -140,8 +140,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     },
     onSuccess: () => {
       toast({
-        title: "✅ Candidate successfully accepted and status updated",
-        description: "The candidate status has been updated to 'Accepted' in Airtable.",
+        title: "✅ Candidate Accepted and Email Sent",
+        description: "The candidate has been accepted and will receive a notification email shortly.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
       queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
@@ -162,8 +162,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     },
     onSuccess: () => {
       toast({
-        title: "Applicant Declined",
-        description: "The applicant has been declined.",
+        title: "📧 Applicant Declined and Notified",
+        description: "The applicant has been declined and will receive a notification email.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
     },
@@ -183,7 +183,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     },
     onSuccess: () => {
       toast({
-        description: "Candidate successfully shortlisted",
+        title: "📋 Candidate Shortlisted and Notified",
+        description: "The candidate has been shortlisted and will receive a notification email.",
       });
       // Invalidate all related queries immediately to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });

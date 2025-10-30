@@ -36,6 +36,17 @@ interface PasswordResetSuccessEmailData {
   firstName: string;
 }
 
+interface ApplicantStatusEmailData {
+  applicantName: string;
+  applicantEmail: string;
+  jobTitle: string;
+  companyName: string;
+  appliedDate?: string;
+  skills?: string[];
+  experience?: string;
+  matchScore?: number;
+}
+
 class EmailService {
   private mailService: MailService | null;
 
@@ -1021,7 +1032,510 @@ Best regards,
 The Plato Hiring Team
     `.trim();
   }
+
+  async sendApplicantAcceptanceEmail(data: ApplicantStatusEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping applicant acceptance email: SendGrid not configured');
+        return false;
+      }
+      const emailHTML = this.generateApplicantAcceptanceEmailHTML(data);
+      const emailText = this.generateApplicantAcceptanceEmailText(data);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+      await this.mailService.send({
+        to: data.applicantEmail,
+        from: { email: fromEmail, name: fromName },
+        subject: `🎉 Congratulations! Your Application for ${data.jobTitle} at ${data.companyName}`,
+        text: emailText,
+        html: emailHTML,
+      });
+
+      console.log(`✅ Applicant acceptance email sent successfully to ${data.applicantEmail}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid applicant acceptance email error:', error);
+      return false;
+    }
+  }
+
+  async sendApplicantRejectionEmail(data: ApplicantStatusEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping applicant rejection email: SendGrid not configured');
+        return false;
+      }
+      const emailHTML = this.generateApplicantRejectionEmailHTML(data);
+      const emailText = this.generateApplicantRejectionEmailText(data);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+      await this.mailService.send({
+        to: data.applicantEmail,
+        from: { email: fromEmail, name: fromName },
+        subject: `Update on Your Application for ${data.jobTitle} at ${data.companyName}`,
+        text: emailText,
+        html: emailHTML,
+      });
+
+      console.log(`✅ Applicant rejection email sent successfully to ${data.applicantEmail}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid applicant rejection email error:', error);
+      return false;
+    }
+  }
+
+  async sendApplicantShortlistEmail(data: ApplicantStatusEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping applicant shortlist email: SendGrid not configured');
+        return false;
+      }
+      const emailHTML = this.generateApplicantShortlistEmailHTML(data);
+      const emailText = this.generateApplicantShortlistEmailText(data);
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+      await this.mailService.send({
+        to: data.applicantEmail,
+        from: { email: fromEmail, name: fromName },
+        subject: `📋 Great News! You've been Shortlisted for ${data.jobTitle} at ${data.companyName}`,
+        text: emailText,
+        html: emailHTML,
+      });
+
+      console.log(`✅ Applicant shortlist email sent successfully to ${data.applicantEmail}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid applicant shortlist email error:', error);
+      return false;
+    }
+  }
+
+  private generateApplicantAcceptanceEmailHTML(data: ApplicantStatusEmailData): string {
+    const skillsSection = data.skills && data.skills.length > 0 ? `
+      <div style="margin: 20px 0;">
+        <h4 style="color: #374151; margin: 0 0 8px 0; font-size: 14px;">Your Key Skills That Impressed Us:</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${data.skills.map(skill => `<span style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 500;">${skill}</span>`).join('')}
+        </div>
+      </div>
+    ` : '';
+
+    const matchScoreSection = data.matchScore ? `
+      <div style="margin: 20px 0; padding: 16px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 8px; border: 2px solid #10b981;">
+        <h4 style="color: #065f46; margin: 0 0 8px 0; font-size: 14px;">AI Match Score: ${data.matchScore}%</h4>
+        <p style="color: #065f46; margin: 0; font-size: 13px;">Our AI analysis found strong alignment between your profile and this role's requirements.</p>
+      </div>
+    ` : '';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Application Accepted</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">🎉</span>
+          </div>
+          <h1 style="color: #059669; margin: 0; font-size: 28px;">Congratulations!</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Your application has been accepted</p>
+        </div>
+
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px;">
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Dear ${data.applicantName},</h2>
+            <p style="color: #6b7280; margin: 8px 0 0 0;">
+              We are thrilled to offer you the <strong style="color: #059669;">${data.jobTitle}</strong> position at <strong style="color: #059669;">${data.companyName}</strong>!
+            </p>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; border: 2px solid #10b981;">
+            <h3 style="color: #065f46; margin: 0 0 12px 0;">🌟 Welcome to the Team!</h3>
+            <p style="color: #065f46; margin: 0; line-height: 1.6;">
+              After careful review of your application, we were impressed with your qualifications and experience. We believe you'll be a valuable addition to our team and are excited to have you join us.
+            </p>
+          </div>
+
+          ${skillsSection}
+          ${matchScoreSection}
+
+          <div style="display: grid; gap: 16px; margin: 24px 0;">
+            <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+              <span style="margin-right: 12px; font-size: 18px;">💼</span>
+              <div>
+                <strong style="color: #374151;">Position:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.jobTitle}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+              <span style="margin-right: 12px; font-size: 18px;">🏢</span>
+              <div>
+                <strong style="color: #374151;">Company:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.companyName}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 12px 0;">
+              <span style="margin-right: 12px; font-size: 18px;">📅</span>
+              <div>
+                <strong style="color: #374151;">Applied:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.appliedDate || 'Recently'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; border-radius: 12px;">
+              <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🚀 What's Next?</h3>
+              <p style="color: #d1fae5; margin: 0 0 24px 0; font-size: 16px;">
+                Our HR team will contact you shortly with the formal offer letter and next steps for onboarding.
+              </p>
+              <p style="color: #d1fae5; margin: 0; font-size: 14px;">
+                Please keep an eye on your email for important follow-up communications.
+              </p>
+            </div>
+          </div>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">
+              If you have any questions or need to discuss anything, please don't hesitate to reach out to us. We're here to support your transition and help you get started.
+            </p>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; color: #9ca3af; font-size: 14px;">
+          <p style="margin: 0;">
+            Congratulations again, and welcome aboard!<br>
+            The ${data.companyName} Hiring Team
+          </p>
+        </div>
+
+      </body>
+      </html>
+    `;
+  }
+
+  private generateApplicantAcceptanceEmailText(data: ApplicantStatusEmailData): string {
+    return `
+🎉 CONGRATULATIONS! YOUR APPLICATION HAS BEEN ACCEPTED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dear ${data.applicantName},
+
+We are thrilled to offer you the ${data.jobTitle} position at ${data.companyName}!
+
+After careful review of your application, we were impressed with your qualifications and experience. We believe you'll be a valuable addition to our team and are excited to have you join us.
+
+${data.matchScore ? `🎯 AI Match Score: ${data.matchScore}%
+Our AI analysis found strong alignment between your profile and this role's requirements.` : ''}
+
+${data.skills && data.skills.length > 0 ? `🔑 Your Key Skills That Impressed Us:
+${data.skills.join(', ')}` : ''}
+
+JOB DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💼 Position: ${data.jobTitle}
+🏢 Company: ${data.companyName}
+📅 Applied: ${data.appliedDate || 'Recently'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 WHAT'S NEXT?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Our HR team will contact you shortly with the formal offer letter and next steps for onboarding.
+
+Please keep an eye on your email for important follow-up communications.
+
+If you have any questions or need to discuss anything, please don't hesitate to reach out to us.
+
+Congratulations again, and welcome aboard!
+
+${data.companyName} Hiring Team
+    `.trim();
+  }
+
+  private generateApplicantRejectionEmailHTML(data: ApplicantStatusEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Application Update</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">📧</span>
+          </div>
+          <h1 style="color: #4b5563; margin: 0; font-size: 28px;">Application Update</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Thank you for your interest</p>
+        </div>
+
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px;">
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Dear ${data.applicantName},</h2>
+            <p style="color: #6b7280; margin: 8px 0 0 0;">
+              Thank you for your interest in the <strong style="color: #4b5563;">${data.jobTitle}</strong> position at <strong style="color: #4b5563;">${data.companyName}</strong>.
+            </p>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-radius: 12px; border: 2px solid #d1d5db;">
+            <h3 style="color: #4b5563; margin: 0 0 12px 0;">📝 Application Status Update</h3>
+            <p style="color: #4b5563; margin: 0; line-height: 1.6;">
+              After careful consideration of your application and qualifications, we have decided to move forward with other candidates whose experience more closely aligns with the specific requirements of this role.
+            </p>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; border: 2px solid #f59e0b;">
+            <h3 style="color: #92400e; margin: 0 0 12px 0;">💡 Keep in Touch</h3>
+            <p style="color: #92400e; margin: 0; line-height: 1.6;">
+              We were impressed with your background and encourage you to apply for future positions that match your skills and experience. We'll keep your resume on file for future opportunities.
+            </p>
+          </div>
+
+          <div style="display: grid; gap: 16px; margin: 24px 0;">
+            <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+              <span style="margin-right: 12px; font-size: 18px;">💼</span>
+              <div>
+                <strong style="color: #374151;">Position Applied:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.jobTitle}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+              <span style="margin-right: 12px; font-size: 18px;">🏢</span>
+              <div>
+                <strong style="color: #374151;">Company:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.companyName}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 12px 0;">
+              <span style="margin-right: 12px; font-size: 18px;">📅</span>
+              <div>
+                <strong style="color: #374151;">Applied:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.appliedDate || 'Recently'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <h3 style="color: #374151; margin: 0 0 12px 0;">🌟 Best Wishes for Your Job Search</h3>
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">
+              We appreciate the time and effort you invested in your application and wish you the very best in your job search. We hope you find a great opportunity that matches your talents and career goals.
+            </p>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; color: #9ca3af; font-size: 14px;">
+          <p style="margin: 0;">
+            Best regards,<br>
+            The ${data.companyName} Hiring Team
+          </p>
+        </div>
+
+      </body>
+      </html>
+    `;
+  }
+
+  private generateApplicantRejectionEmailText(data: ApplicantStatusEmailData): string {
+    return `
+📧 APPLICATION UPDATE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dear ${data.applicantName},
+
+Thank you for your interest in the ${data.jobTitle} position at ${data.companyName}.
+
+APPLICATION STATUS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+After careful consideration of your application and qualifications, we have decided to move forward with other candidates whose experience more closely aligns with the specific requirements of this role.
+
+💡 KEEP IN TOUCH:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+We were impressed with your background and encourage you to apply for future positions that match your skills and experience. We'll keep your resume on file for future opportunities.
+
+JOB DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💼 Position Applied: ${data.jobTitle}
+🏢 Company: ${data.companyName}
+📅 Applied: ${data.appliedDate || 'Recently'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌟 BEST WISHES FOR YOUR JOB SEARCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+We appreciate the time and effort you invested in your application and wish you the very best in your job search. We hope you find a great opportunity that matches your talents and career goals.
+
+Best regards,
+${data.companyName} Hiring Team
+    `.trim();
+  }
+
+  private generateApplicantShortlistEmailHTML(data: ApplicantStatusEmailData): string {
+    const skillsSection = data.skills && data.skills.length > 0 ? `
+      <div style="margin: 20px 0;">
+        <h4 style="color: #374151; margin: 0 0 8px 0; font-size: 14px;">Your Relevant Skills:</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${data.skills.map(skill => `<span style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 500;">${skill}</span>`).join('')}
+        </div>
+      </div>
+    ` : '';
+
+    const matchScoreSection = data.matchScore ? `
+      <div style="margin: 20px 0; padding: 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; border: 2px solid #3b82f6;">
+        <h4 style="color: #1e40af; margin: 0 0 8px 0; font-size: 14px;">AI Match Score: ${data.matchScore}%</h4>
+        <p style="color: #1e40af; margin: 0; font-size: 13px;">Our AI analysis identified strong alignment between your profile and this role.</p>
+      </div>
+    ` : '';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>You've Been Shortlisted</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 32px;">📋</span>
+          </div>
+          <h1 style="color: #2563eb; margin: 0; font-size: 28px;">You've Been Shortlisted!</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Great news about your application</p>
+        </div>
+
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px;">
+
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Dear ${data.applicantName},</h2>
+            <p style="color: #6b7280; margin: 8px 0 0 0;">
+              Great news! You've been shortlisted for the <strong style="color: #2563eb;">${data.jobTitle}</strong> position at <strong style="color: #2563eb;">${data.companyName}</strong>!
+            </p>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; border: 2px solid #2563eb;">
+            <h3 style="color: #1e40af; margin: 0 0 12px 0;">🌟 Congratulations on Making the Shortlist!</h3>
+            <p style="color: #1e40af; margin: 0; line-height: 1.6;">
+              After reviewing your application, our team was impressed with your qualifications and experience. You've been selected as one of our top candidates and we'd like to move forward with the next steps in the hiring process.
+            </p>
+          </div>
+
+          ${skillsSection}
+          ${matchScoreSection}
+
+          <div style="display: grid; gap: 16px; margin: 24px 0;">
+            <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+              <span style="margin-right: 12px; font-size: 18px;">💼</span>
+              <div>
+                <strong style="color: #374151;">Position:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.jobTitle}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+              <span style="margin-right: 12px; font-size: 18px;">🏢</span>
+              <div>
+                <strong style="color: #374151;">Company:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.companyName}</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; padding: 12px 0;">
+              <span style="margin-right: 12px; font-size: 18px;">📅</span>
+              <div>
+                <strong style="color: #374151;">Applied:</strong>
+                <span style="color: #6b7280; margin-left: 8px;">${data.appliedDate || 'Recently'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <div style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); padding: 32px; border-radius: 12px;">
+              <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🚀 What's Next?</h3>
+              <p style="color: #dbeafe; margin: 0 0 24px 0; font-size: 16px;">
+                Our hiring team will review the shortlisted candidates and contact you within 3-5 business days to schedule an interview or discuss the next steps.
+              </p>
+              <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 16px;">
+                <p style="color: white; margin: 0; font-size: 14px;">
+                  <strong>💡 Tip:</strong> Keep an eye on your email for interview invitations and be prepared to discuss your experience and how it relates to this role.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+            <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">
+              We're excited about the possibility of working with you! If you have any questions in the meantime, please don't hesitate to reach out.
+            </p>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; color: #9ca3af; font-size: 14px;">
+          <p style="margin: 0;">
+            Best regards,<br>
+            The ${data.companyName} Hiring Team
+          </p>
+        </div>
+
+      </body>
+      </html>
+    `;
+  }
+
+  private generateApplicantShortlistEmailText(data: ApplicantStatusEmailData): string {
+    return `
+📋 YOU'VE BEEN SHORTLISTED!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dear ${data.applicantName},
+
+Great news! You've been shortlisted for the ${data.jobTitle} position at ${data.companyName}!
+
+🌟 CONGRATULATIONS ON MAKING THE SHORTLIST!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+After reviewing your application, our team was impressed with your qualifications and experience. You've been selected as one of our top candidates and we'd like to move forward with the next steps in the hiring process.
+
+${data.matchScore ? `🎯 AI Match Score: ${data.matchScore}%
+Our AI analysis identified strong alignment between your profile and this role.` : ''}
+
+${data.skills && data.skills.length > 0 ? `🔑 Your Relevant Skills:
+${data.skills.join(', ')}` : ''}
+
+JOB DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💼 Position: ${data.jobTitle}
+🏢 Company: ${data.companyName}
+📅 Applied: ${data.appliedDate || 'Recently'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 WHAT'S NEXT?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Our hiring team will review the shortlisted candidates and contact you within 3-5 business days to schedule an interview or discuss the next steps.
+
+💡 TIP: Keep an eye on your email for interview invitations and be prepared to discuss your experience and how it relates to this role.
+
+We're excited about the possibility of working with you! If you have any questions in the meantime, please don't hesitate to reach out.
+
+Best regards,
+${data.companyName} Hiring Team
+    `.trim();
+  }
 }
 
 export const emailService = new EmailService();
-export { InterviewEmailData, VerificationEmailData, VerificationSuccessEmailData, PasswordResetEmailData, PasswordResetSuccessEmailData };
+export { InterviewEmailData, VerificationEmailData, VerificationSuccessEmailData, PasswordResetEmailData, PasswordResetSuccessEmailData, ApplicantStatusEmailData };
