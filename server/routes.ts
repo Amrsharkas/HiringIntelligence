@@ -10,6 +10,7 @@ import { localDatabaseService } from "./localDatabaseService";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
 import { emailService } from "./emailService";
+import { ragIndexingService } from "./ragIndexingService";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
@@ -246,28 +247,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(400).json({ message: "No organization found. Please create one first." });
       }
-      
+
       const jobData = insertJobSchema.parse({
         ...req.body,
         organizationId: organization.id,
         createdById: userId
       });
-      
+
       const job = await storage.createJob(jobData);
-      
+
       // Get organization info for Airtable sync
       const org = await storage.getOrganizationByUser(userId);
       const companyName = org?.companyName || 'Unknown Company';
-      
+
       // Auto-fill job applications table with AI-enhanced information
       // const { jobApplicationsAutoFill } = await import('./jobApplicationsAutoFill');
       // jobApplicationsAutoFill.autoFillJobApplication(job, companyName)
       //   .catch(error => console.error("Error auto-filling job application:", error));
-      
+
+      // Index job in RAG system for search
+      try {
+        console.log(`📚 Indexing job ${job.id} in RAG system...`);
+        const ragResult = await ragIndexingService.indexJob({
+          id: job.id,
+          title: job.title,
+          description: job.description,
+          requirements: job.requirements,
+          technicalSkills: job.technicalSkills || [],
+          softSkills: job.softSkills || [],
+          experience: job.experienceLevel,
+          employmentType: job.employmentType,
+          workplaceType: job.workplaceType,
+          seniorityLevel: job.seniorityLevel,
+          industry: job.industry,
+          location: job.location,
+          organizationId: organization.id
+        });
+
+        if (ragResult.success) {
+          console.log(`✅ ${ragResult.message}`);
+        } else {
+          console.warn(`⚠️ ${ragResult.message}`);
+        }
+      } catch (ragError) {
+        // Log error but don't fail the job creation
+        console.error("❌ Error indexing job in RAG:", ragError);
+      }
+
       res.json(job);
     } catch (error) {
       console.error("Error creating job:", error);
@@ -312,10 +342,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/job-postings/:id', requireAuth, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
+      const userId = req.user.id;
       const jobData = insertJobSchema.partial().parse(req.body);
-      
+
       const job = await storage.updateJob(jobId, jobData);
-      
+
+      // Re-index updated job in RAG system
+      try {
+        console.log(`📚 Re-indexing job ${jobId} in RAG system after update...`);
+        const organization = await storage.getOrganizationByUser(userId);
+        const ragResult = await ragIndexingService.indexJob({
+          id: job.id,
+          title: job.title,
+          description: job.description,
+          requirements: job.requirements,
+          technicalSkills: job.technicalSkills || [],
+          softSkills: job.softSkills || [],
+          experience: job.experienceLevel,
+          employmentType: job.employmentType,
+          workplaceType: job.workplaceType,
+          seniorityLevel: job.seniorityLevel,
+          industry: job.industry,
+          location: job.location,
+          organizationId: organization?.id
+        });
+
+        if (ragResult.success) {
+          console.log(`✅ ${ragResult.message}`);
+        } else {
+          console.warn(`⚠️ ${ragResult.message}`);
+        }
+      } catch (ragError) {
+        // Log error but don't fail the job update
+        console.error("❌ Error re-indexing job in RAG:", ragError);
+      }
+
       res.json(job);
     } catch (error) {
       console.error("Error updating job:", error);
@@ -351,11 +412,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`✅ Job ${jobId} found and user has permission. Proceeding with deletion...`);
-      
+
       // Delete from database first (mark as inactive)
       await storage.deleteJob(jobId);
       console.log(`✅ Job ${jobId} marked as inactive in database`);
-      
+
+      // Remove job from RAG system
+      try {
+        console.log(`📚 Removing job ${jobId} from RAG system...`);
+        const ragResult = await ragIndexingService.removeJob(jobId);
+
+        if (ragResult.success) {
+          console.log(`✅ ${ragResult.message}`);
+        } else {
+          console.warn(`⚠️ ${ragResult.message}`);
+        }
+      } catch (ragError) {
+        // Log error but don't fail the job deletion
+        console.error("❌ Error removing job from RAG:", ragError);
+      }
+
       res.json({ message: "Job deleted successfully" });
     } catch (error) {
       console.error("❌ Error deleting job:", error);
@@ -4276,6 +4352,100 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       console.error("Error inviting applicant:", error);
       res.status(500).json({
         message: "Failed to invite applicant",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Bulk index all jobs in RAG system
+  app.get('/api/jobs/bulk-index-rag', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      console.log(`📚 Starting bulk index of all jobs for organization ${organization.id}...`);
+
+      // Get all jobs for the organization
+      const jobs = await storage.getJobsByOrganization(organization.id);
+
+      if (jobs.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: "No jobs found to index",
+          indexedCount: 0,
+          failedCount: 0
+        });
+      }
+
+      console.log(`📊 Found ${jobs.length} jobs to index`);
+
+      // Use the RAG indexing service to index each job
+      let indexedCount = 0;
+      let failedCount = 0;
+      const results = [];
+
+      for (const job of jobs) {
+        try {
+          const jobData = {
+            id: job.id,
+            title: job.title,
+            description: job.description || '',
+            requirements: job.requirements || '',
+            technicalSkills: job.technicalSkills || [],
+            softSkills: job.softSkills || [],
+            experience: job.experienceLevel || '',
+            employmentType: job.employmentType || '',
+            workplaceType: job.workplaceType || '',
+            seniorityLevel: job.seniorityLevel || '',
+            industry: job.industry || '',
+            location: job.location || '',
+            organizationId: organization.id
+          };
+
+          const result = await ragIndexingService.indexJob(jobData);
+
+          if (result.success) {
+            indexedCount++;
+          } else {
+            failedCount++;
+          }
+
+          results.push({
+            jobId: job.id,
+            jobTitle: job.title,
+            success: result.success,
+            message: result.message
+          });
+        } catch (jobError) {
+          console.error(`❌ Error indexing job ${job.id}:`, jobError);
+          failedCount++;
+          results.push({
+            jobId: job.id,
+            jobTitle: job.title,
+            success: false,
+            message: jobError instanceof Error ? jobError.message : "Unknown error"
+          });
+        }
+      }
+
+      console.log(`✅ Bulk indexing completed: ${indexedCount} successful, ${failedCount} failed`);
+
+      res.json({
+        success: true,
+        message: `Successfully indexed ${indexedCount} jobs in RAG system. ${failedCount} failed.`,
+        indexedCount,
+        failedCount,
+        results
+      });
+
+    } catch (error) {
+      console.error("❌ Error bulk indexing jobs in RAG:", error);
+      res.status(500).json({
+        message: "Failed to bulk index jobs in RAG system",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
