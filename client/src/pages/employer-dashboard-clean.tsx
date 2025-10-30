@@ -35,7 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // Live components
 const StatNumber = memo(({ value }: { value: number }) => (
-  <div className="text-3xl font-bold" style={{ minWidth: '60px', textAlign: 'center' }}>
+  <div className="text-2xl sm:text-3xl font-bold" style={{ minWidth: '50px', textAlign: 'center' }}>
     {value}
   </div>
 ));
@@ -155,40 +155,40 @@ export default function EmployerDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2">
               Welcome back!
             </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-300">
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300">
               Manage your hiring process with <LiveOrganizationName />
             </p>
           </div>
           <Button
             onClick={() => setLocation("/api/logout")}
             variant="outline"
-            className="hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="hover:bg-slate-100 dark:hover:bg-slate-700 w-full sm:w-auto"
           >
             Sign Out
           </Button>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <InteractiveCard
             index={0}
             onClick={() => setIsJobModalOpen(true)}
             className="bg-gradient-to-br from-blue-500/10 via-blue-400/5 to-transparent"
           >
-            <div className="p-6 h-full flex items-center justify-between">
+            <div className="p-4 sm:p-6 h-full flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Post New Job</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Create and publish job openings</p>
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Post New Job</h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Create and publish job openings</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </InteractiveCard>
@@ -198,13 +198,13 @@ export default function EmployerDashboard() {
             onClick={() => setIsActiveJobsModalOpen(true)}
             className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
           >
-            <div className="p-6 h-full flex items-center justify-between">
+            <div className="p-4 sm:p-6 h-full flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">View Active Jobs</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Manage your job listings</p>
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">View Active Jobs</h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Manage your job listings</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                <Eye className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </InteractiveCard>
@@ -214,20 +214,20 @@ export default function EmployerDashboard() {
             onClick={() => setIsRecentActivityModalOpen(true)}
             className="bg-gradient-to-br from-purple-500/10 via-purple-400/5 to-transparent"
           >
-            <div className="p-6 h-full flex items-center justify-between">
+            <div className="p-4 sm:p-6 h-full flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Recent Activity</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">View latest updates</p>
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Recent Activity</h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View latest updates</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </InteractiveCard>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {[
             { 
               label: "Active Jobs", 
@@ -264,13 +264,13 @@ export default function EmployerDashboard() {
               onClick={stat.onClick}
               className={`bg-gradient-to-br from-${stat.color}-500/10 via-${stat.color}-400/5 to-transparent`}
             >
-              <div className="p-6 h-full flex flex-col justify-between">
+              <div className="p-4 sm:p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-4">
-                  <stat.icon className={`w-8 h-8 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+                  <stat.icon className={`w-6 h-6 sm:w-8 sm:h-8 text-${stat.color}-600 dark:text-${stat.color}-400`} />
                 </div>
                 <div>
                   {stat.component}
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
+                  <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
                     {stat.label}
                   </p>
                 </div>
@@ -280,7 +280,7 @@ export default function EmployerDashboard() {
         </div>
 
         {/* Bottom Section */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-slate-900 dark:text-white flex items-center gap-2">

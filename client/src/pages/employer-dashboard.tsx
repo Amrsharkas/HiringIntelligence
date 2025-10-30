@@ -68,7 +68,7 @@ const LiveOrganizationName = memo(() => {
 });
 
 const StatNumber = memo(({ value }: { value: number }) => (
-  <div className="text-3xl font-bold" style={{ minWidth: '60px', textAlign: 'center' }}>
+  <div className="text-2xl sm:text-3xl font-bold" style={{ minWidth: '50px', textAlign: 'center' }}>
     {value}
   </div>
 ));
@@ -435,25 +435,25 @@ export default function EmployerDashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/60 sticky top-0 z-50"
       >
-        <div className="h-16 px-6 flex items-center justify-between">
-          <div className="flex items-center space-x-8">
+        <div className="h-16 px-4 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center space-x-2 sm:space-x-8">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setLocation("/employer-dashboard")}
-              className="text-2xl font-bold text-black dark:text-white"
+              className="text-xl sm:text-2xl font-bold text-black dark:text-white"
             >
               Plato
             </motion.button>
             
-            <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 px-4 py-2 rounded-xl border border-blue-200/50 dark:border-blue-700/50">
+            <div className="hidden md:flex items-center gap-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 px-4 py-2 rounded-xl border border-blue-200/50 dark:border-blue-700/50">
               <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Member of <LiveOrganizationName />
               </span>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <button
               className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
               style={{
@@ -465,39 +465,40 @@ export default function EmployerDashboard() {
             </button>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium cursor-pointer transition-all duration-200 will-change-transform hover:scale-105"
+              className="px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium cursor-pointer transition-all duration-200 will-change-transform hover:scale-105"
               style={{
                 transformOrigin: 'center',
                 transform: 'translateZ(0)'
               }}
             >
-              Sign Out
+              <span className="hidden sm:inline">Sign Out</span>
+              <span className="sm:hidden">Out</span>
             </button>
           </div>
         </div>
       </motion.header>
 
       {/* Main Content Area */}
-      <div className="p-6 pb-20">
+      <div className="p-4 sm:p-6 pb-20">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="grid gap-6"
+          className="grid gap-4 sm:gap-6"
         >
           {/* Top Action Cards */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <InteractiveCard
               index={0}
               onClick={() => setIsJobModalOpen(true)}
               className="bg-gradient-to-br from-blue-500/10 via-blue-400/5 to-transparent"
             >
-              <div className="p-6 h-full flex items-center justify-between">
+              <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Post New Job</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Create job posting</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Post New Job</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Create job posting</p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                  <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </InteractiveCard>
@@ -507,13 +508,13 @@ export default function EmployerDashboard() {
               onClick={() => setIsShortlistedApplicantsModalOpen(true)}
               className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
             >
-              <div className="p-6 h-full flex items-center justify-between">
+              <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Shortlisted Applicants</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">View your favorites</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Shortlisted Applicants</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View your favorites</p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </InteractiveCard>
@@ -523,20 +524,20 @@ export default function EmployerDashboard() {
               onClick={() => setIsAnalyticsModalOpen(true)}
               className="bg-gradient-to-br from-purple-500/10 via-purple-400/5 to-transparent"
             >
-              <div className="p-6 h-full flex items-center justify-between">
+              <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Analytics</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">View hiring insights</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Analytics</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View hiring insights</p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                  <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </InteractiveCard>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {useMemo(() => [
               { 
                 label: "Active Jobs", 
@@ -573,10 +574,10 @@ export default function EmployerDashboard() {
                 onClick={stat.onClick}
                 className={`bg-gradient-to-br from-${stat.color}-500/10 via-${stat.color}-400/5 to-transparent`}
               >
-                <div className="p-6 h-full flex flex-col justify-between">
+                <div className="p-4 sm:p-6 h-full flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-4">
                     <div className="group-hover:scale-110 transition-transform duration-200">
-                      <stat.icon className={`w-8 h-8 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+                      <stat.icon className={`w-6 h-6 sm:w-8 sm:h-8 text-${stat.color}-600 dark:text-${stat.color}-400`} />
                     </div>
                     <div className="text-right">
                       <div className={`text-${stat.color}-600 dark:text-${stat.color}-400`}>
@@ -585,7 +586,7 @@ export default function EmployerDashboard() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{stat.label}</p>
+                    <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">{stat.label}</p>
                   </div>
                 </div>
               </InteractiveCard>
@@ -593,7 +594,7 @@ export default function EmployerDashboard() {
           </div>
 
           {/* Quick Actions Grid */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <Card className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-800 border-slate-200/60 dark:border-slate-700/60">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
