@@ -690,6 +690,10 @@ export const requireServiceAuth = (req: any, res: any, next: any) => {
 
 // Middleware that allows either user authentication OR service API key
 export const requireAuthOrService = (req: any, res: any, next: any) => {
+  if (req.user) {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
