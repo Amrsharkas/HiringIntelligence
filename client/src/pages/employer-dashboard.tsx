@@ -36,6 +36,7 @@ import { InviteTeamMembersModal } from "@/components/InviteTeamMembersModal";
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { InterviewManagementModal } from "@/components/InterviewManagementModal";
 import AcceptedApplicantsModal from "@/components/AcceptedApplicantsModal";
+import { CreditBalanceCard } from "@/components/CreditBalanceCard";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -537,7 +538,10 @@ export default function EmployerDashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+            {/* Credit Balance Card */}
+            <CreditBalanceCard />
+
             {useMemo(() => [
               { 
                 label: "Active Jobs", 
@@ -570,7 +574,7 @@ export default function EmployerDashboard() {
             ], [matches?.length, 0]).map((stat, index) => (
               <InteractiveCard
                 key={stat.label}
-                index={index + 3}
+                index={index + 4}
                 onClick={stat.onClick}
                 className={`bg-gradient-to-br from-${stat.color}-500/10 via-${stat.color}-400/5 to-transparent`}
               >

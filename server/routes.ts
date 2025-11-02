@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import fetch from "node-fetch";
 import { storage } from "./storage";
 import { setupAuth, requireAuth, requireVerifiedAuth, requireAuthOrService } from "./auth";
+import { requireCredits, deductCredits, attachCreditBalance } from "./creditMiddleware";
+import { requireResumeProcessingCredits, deductResumeProcessingCredits } from "./resumeCreditMiddleware";
+import { creditService } from "./creditService";
 import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
@@ -27,15 +30,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       console.log("Fetching organization for user:", userId);
-      
+
       // Get user's organization
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "No organization found" });
       }
-      
-      res.json(organization);
+
+      // Get credit balance for the organization
+      const creditBalance = await creditService.getCreditBalance(organization.id);
+
+      res.json({
+        ...organization,
+        creditBalance
+      });
     } catch (error) {
       console.error("Error fetching organization:", error);
       res.status(500).json({ message: "Failed to fetch organization" });
@@ -78,6 +87,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching organization:", error);
       res.status(500).json({ message: "Failed to fetch organization" });
+    }
+  });
+
+  // Credit management endpoints
+  app.get('/api/organizations/current/credits', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const creditBalance = await creditService.getCreditBalance(organization.id);
+
+      if (!creditBalance) {
+        return res.status(404).json({ message: "Credit balance not found" });
+      }
+
+      res.json(creditBalance);
+    } catch (error) {
+      console.error("Error fetching credit balance:", error);
+      res.status(500).json({ message: "Failed to fetch credit balance" });
+    }
+  });
+
+  app.get('/api/organizations/current/credits/history', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const creditHistory = await creditService.getCreditHistory(organization.id, limit);
+
+      res.json(creditHistory);
+    } catch (error) {
+      console.error("Error fetching credit history:", error);
+      res.status(500).json({ message: "Failed to fetch credit history" });
+    }
+  });
+
+  app.get('/api/organizations/current/credits/usage', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const creditUsage = await creditService.getCreditUsage(organization.id);
+
+      res.json(creditUsage);
+    } catch (error) {
+      console.error("Error fetching credit usage:", error);
+      res.status(500).json({ message: "Failed to fetch credit usage" });
+    }
+  });
+
+  // Admin endpoint to add credits (should be protected by additional admin checks in production)
+  app.post('/api/organizations/:organizationId/credits/add', requireAuth, async (req: any, res) => {
+    try {
+      const { organizationId } = req.params;
+      const { amount, description } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Credit amount must be a positive number" });
+      }
+
+      // In production, add admin role verification here
+      // For now, we'll allow the organization owner to add credits
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization || organization.id !== organizationId) {
+        return res.status(403).json({ message: "Not authorized to add credits to this organization" });
+      }
+
+      await creditService.addCredits(
+        organizationId,
+        amount,
+        description || `Manual credit addition by ${userId}`
+      );
+
+      const updatedBalance = await creditService.getCreditBalance(organizationId);
+
+      res.json({
+        success: true,
+        message: `Successfully added ${amount} credits`,
+        creditBalance: updatedBalance
+      });
+    } catch (error) {
+      console.error("Error adding credits:", error);
+      res.status(500).json({
+        message: "Failed to add credits",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Credit pricing endpoints
+  app.get('/api/credits/pricing', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const pricing = await creditService.getAllPricing();
+      res.json(pricing);
+    } catch (error) {
+      console.error("Error fetching pricing:", error);
+      res.status(500).json({ message: "Failed to fetch pricing" });
+    }
+  });
+
+  app.get('/api/credits/pricing/:actionType', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const { actionType } = req.params;
+      const cost = await creditService.getActionCost(actionType as any);
+      res.json({ actionType, cost });
+    } catch (error) {
+      console.error("Error fetching action cost:", error);
+      res.status(500).json({ message: "Failed to fetch action cost" });
+    }
+  });
+
+  // Admin endpoint to update pricing
+  app.post('/api/credits/pricing', requireAuth, async (req: any, res) => {
+    try {
+      const { actionType, cost, description, isActive } = req.body;
+
+      if (!actionType || cost === undefined) {
+        return res.status(400).json({ message: "Action type and cost are required" });
+      }
+
+      if (cost < 0) {
+        return res.status(400).json({ message: "Cost must be a non-negative number" });
+      }
+
+      // In production, add admin role verification here
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      await creditService.upsertPricing(actionType, cost, description, isActive);
+
+      res.json({
+        success: true,
+        message: `Successfully updated pricing for ${actionType}`,
+        actionType,
+        cost
+      });
+    } catch (error) {
+      console.error("Error updating pricing:", error);
+      res.status(500).json({
+        message: "Failed to update pricing",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Initialize default pricing on first request
+  app.post('/api/credits/pricing/initialize', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      await creditService.initializeDefaultPricing();
+
+      res.json({
+        success: true,
+        message: "Default pricing initialized successfully"
+      });
+    } catch (error) {
+      console.error("Error initializing pricing:", error);
+      res.status(500).json({
+        message: "Failed to initialize pricing",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -3991,31 +4186,15 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Process single resume (background job)
-  app.post('/api/resume-profiles/process', requireAuthOrService, async (req: any, res) => {
+  app.post('/api/resume-profiles/process', requireAuthOrService, requireResumeProcessingCredits, async (req: any, res) => {
     try {
-      // Check if this is a service-to-service call
-      let userId: string | undefined;
-      let organizationId: string | undefined;
-      const serviceApiKey = process.env.SERVICE_API_KEY;
-      const authHeader = req.headers.authorization;
+      // Get user and organization info from middleware
+      const isServiceCall = req.isServiceCall;
+      const organization = req.organization;
+      const userId = isServiceCall ? req.body.userId : req.user.id;
+      const organizationId = organization.id;
 
-      if (serviceApiKey && authHeader && authHeader.replace('Bearer ', '').trim() === serviceApiKey) {
-        // Service-to-service call - use the userId from the request body
-        userId = req.body.userId;
-        const jobId = req.body.jobId;
-        organizationId = req.body.organizationId || process.env.DEFAULT_ORGANIZATION_ID || 'system-org';
-        console.log('📡 Service-to-service call received for resume processing');
-      } else {
-        // Regular user authentication
-        userId = req.user.id;
-        const organization = await storage.getOrganizationByUser(userId);
-
-        if (!organization) {
-          return res.status(404).json({ message: "Organization not found" });
-        }
-
-        organizationId = organization.id;
-      }
+      console.log(`📋 Resume processing request: ${isServiceCall ? 'Service call' : 'User call'} for org ${organizationId}`);
 
       const { resumeText, fileType, fileName, jobId, customRules } = req.body;
 
@@ -4042,11 +4221,20 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       console.log(`📋 Created background resume processing job ${job.id} for user ${userId}, file: ${fileName}`);
 
+      // Deduct credits after successful job creation (only for non-service calls)
+      if (!isServiceCall) {
+        await deductResumeProcessingCredits(req, res, () => {});
+      }
+
+      // Get updated credit balance for response
+      const creditBalance = isServiceCall ? null : await creditService.getCreditBalance(organizationId);
+
       res.json({
         success: true,
         jobId: job.id,
         message: "Resume processing started in background",
-        status: "processing"
+        status: "processing",
+        ...(creditBalance && { creditBalance })
       });
     } catch (error) {
       console.error("Error creating resume processing job:", error);

@@ -56,6 +56,30 @@ export const organizations = pgTable("organizations", {
   companySize: varchar("company_size"),
   description: text("description"),
   ownerId: varchar("owner_id"),
+  creditLimit: integer("credit_limit").notNull().default(100),
+  currentCredits: integer("current_credits").notNull().default(100),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Credit transactions table
+export const creditTransactions = pgTable("credit_transactions", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: varchar("organization_id").notNull(),
+  amount: integer("amount").notNull(),
+  type: varchar("type").notNull(), // 'resume_processing', 'manual_adjustment'
+  description: text("description"),
+  relatedId: varchar("related_id"), // Can reference resume profile ID or other entities
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Credit pricing table - defines how much each action costs
+export const creditPricing = pgTable("credit_pricing", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  actionType: varchar("action_type").notNull().unique(), // 'resume_processing', 'ai_matching', etc.
+  cost: integer("cost").notNull(), // How many credits this action costs
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -501,6 +525,10 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 
 export type Organization = typeof organizations.$inferSelect;
+export type CreditTransaction = typeof creditTransactions.$inferSelect;
+export type InsertCreditTransaction = typeof creditTransactions.$inferInsert;
+export type CreditPricing = typeof creditPricing.$inferSelect;
+export type InsertCreditPricing = typeof creditPricing.$inferInsert;
 export type Job = typeof jobs.$inferSelect;
 export type Candidate = typeof candidates.$inferSelect;
 export type Match = typeof matches.$inferSelect;
@@ -546,6 +574,17 @@ export type OrganizationInvitation = typeof organizationInvitations.$inferSelect
 export type InsertOrganizationInvitation = typeof organizationInvitations.$inferInsert;
 
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCreditPricingSchema = createInsertSchema(creditPricing).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

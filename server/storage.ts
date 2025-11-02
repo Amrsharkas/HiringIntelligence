@@ -14,6 +14,8 @@ import {
   shortlistedApplicants,
   resumeProfiles,
   resumeJobScores,
+  creditTransactions,
+  creditPricing,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -42,6 +44,10 @@ import {
   type InsertResumeProfile,
   type ResumeJobScore,
   type InsertResumeJobScore,
+  type CreditTransaction,
+  type InsertCreditTransaction,
+  type CreditPricing,
+  type InsertCreditPricing,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, count, gt } from "drizzle-orm";
