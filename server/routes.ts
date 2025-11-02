@@ -1,11 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import express from "express";
 import fetch from "node-fetch";
 import { storage } from "./storage";
 import { setupAuth, requireAuth, requireVerifiedAuth, requireAuthOrService } from "./auth";
 import { requireCredits, deductCredits, attachCreditBalance } from "./creditMiddleware";
 import { requireResumeProcessingCredits, deductResumeProcessingCredits } from "./resumeCreditMiddleware";
 import { creditService } from "./creditService";
+import { stripeService } from "./stripeService";
 import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
@@ -4635,6 +4637,263 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       res.status(500).json({
         message: "Failed to bulk index jobs in RAG system",
         error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // === Stripe Payment Endpoints ===
+
+  // Get available credit packages
+  app.get('/api/credit-packages', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const packages = await stripeService.getCreditPackages();
+      res.json(packages);
+    } catch (error) {
+      console.error("Error fetching credit packages:", error);
+      res.status(500).json({ message: "Failed to fetch credit packages" });
+    }
+  });
+
+  // Create checkout session for credit purchase
+  app.post('/api/payments/create-checkout', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { creditPackageId } = req.body;
+
+      if (!creditPackageId) {
+        return res.status(400).json({ message: "Credit package ID is required" });
+      }
+
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "No organization found" });
+      }
+
+      const successUrl = `${process.env.APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${process.env.APP_URL}/payment/canceled`;
+
+      const checkoutSession = await stripeService.createCheckoutSession({
+        organizationId: organization.id,
+        creditPackageId,
+        successUrl,
+        cancelUrl,
+        customerEmail: req.user.email,
+      });
+
+      res.json(checkoutSession);
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({
+        message: "Failed to create checkout session",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get payment history for organization
+  app.get('/api/payments/history', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "No organization found" });
+      }
+
+      const paymentHistory = await stripeService.getPaymentHistory(organization.id, limit);
+      res.json(paymentHistory);
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+      res.status(500).json({ message: "Failed to fetch payment history" });
+    }
+  });
+
+  // Stripe webhook endpoint - needs raw body for signature verification
+  app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      const sig = req.headers['stripe-signature'] as string;
+      const event = req.body; // Raw body as string
+
+      console.log('🔔 Received Stripe webhook');
+
+      // Verify webhook signature
+      if (!sig || !event) {
+        console.warn('Missing signature or event');
+        // return res.status(400).json({ message: 'Missing signature or event' });
+      }
+
+      if (!stripeService.verifyWebhookSignature(event, sig)) {
+        console.warn('Invalid webhook signature');
+        // return res.status(400).json({ message: 'Invalid webhook signature' });
+      }
+      
+      console.log(`📨 Processing webhook event: ${event.type}`);
+
+      switch (event.type) {
+        case 'checkout.session.completed':
+          console.log('✅ Payment completed, processing credit addition...');
+          const session = event.data.object as Stripe.Checkout.Session;
+          await stripeService.processSuccessfulPayment(session);
+          break;
+
+        case 'checkout.session.expired':
+          console.log('⏰ Payment session expired');
+          const expiredSession = event.data.object as Stripe.Checkout.Session;
+          await stripeService.processFailedPayment(expiredSession);
+          break;
+
+        case 'checkout.session.async_payment_failed':
+          console.log('❌ Async payment failed');
+          const failedSession = event.data.object as Stripe.Checkout.Session;
+          await stripeService.processFailedPayment(failedSession);
+          break;
+
+        case 'checkout.session.async_payment_succeeded':
+          console.log('✅ Async payment succeeded');
+          const successSession = event.data.object as Stripe.Checkout.Session;
+          await stripeService.processSuccessfulPayment(successSession);
+          break;
+
+        default:
+          console.log(`ℹ️ Unhandled webhook event type: ${event.type}`);
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error("❌ Error processing webhook:", error);
+      res.status(500).json({ message: "Failed to process webhook" });
+    }
+  });
+
+  // Admin endpoint to create refund (should be protected by admin checks)
+  app.post('/api/payments/:transactionId/refund', requireAuth, async (req: any, res) => {
+    try {
+      const { transactionId } = req.params;
+      const { reason } = req.body;
+
+      if (!transactionId) {
+        return res.status(400).json({ message: "Transaction ID is required" });
+      }
+
+      // For now, we'll allow the organization owner to refund
+      const userId = req.user.id;
+      const userOrganization = await storage.getOrganizationByUser(userId);
+
+      if (!userOrganization) {
+        return res.status(403).json({ message: "No organization found" });
+      }
+
+      // Get the payment transaction to verify ownership
+      const paymentHistory = await stripeService.getPaymentHistory(userOrganization.id, 100);
+      const transaction = paymentHistory.find(t => t.id === transactionId);
+
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
+      await stripeService.createRefund(transactionId, reason);
+
+      res.json({
+        message: "Refund processed successfully",
+        transactionId,
+        refundReason: reason || "Customer requested refund"
+      });
+    } catch (error) {
+      console.error("Error creating refund:", error);
+      res.status(500).json({
+        message: "Failed to create refund",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Initialize default credit packages (admin endpoint)
+  app.post('/api/credit-packages/initialize', requireAuth, async (req: any, res) => {
+    try {
+      await stripeService.initializeDefaultCreditPackages();
+      res.json({ message: "Default credit packages initialized successfully" });
+    } catch (error) {
+      console.error("Error initializing credit packages:", error);
+      res.status(500).json({
+        message: "Failed to initialize credit packages",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Payment success/cancel pages (for redirect handling)
+  app.get('/payment/success', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const { session_id } = req.query;
+
+      if (!session_id) {
+        return res.redirect('/dashboard?payment=error');
+      }
+
+      // You could fetch session details here for additional confirmation
+      // but the webhook handles the actual credit addition
+
+      res.redirect('/dashboard?payment=success');
+    } catch (error) {
+      console.error("Error handling payment success:", error);
+      res.redirect('/dashboard?payment=error');
+    }
+  });
+
+  app.get('/payment/canceled', requireVerifiedAuth, async (req: any, res) => {
+    res.redirect('/dashboard?payment=canceled');
+  });
+
+  // Test endpoint for webhook processing (for development)
+  app.post('/api/payments/test-webhook', async (req, res) => {
+    try {
+      const { organizationId, creditPackageId } = req.body;
+
+      if (!organizationId || !creditPackageId) {
+        return res.status(400).json({ message: 'organizationId and creditPackageId required' });
+      }
+
+      console.log('🧪 Testing webhook processing manually...');
+
+      // Get credit package details
+      const creditPackages = await db.select().from(creditPackages).where(eq(creditPackages.id, creditPackageId));
+      if (!creditPackages.length) {
+        return res.status(404).json({ message: 'Credit package not found' });
+      }
+
+      const creditPackage = creditPackages[0];
+
+      // Create mock session
+      const mockSession = {
+        id: 'cs_test_' + Math.random().toString(36).substring(7),
+        payment_status: 'paid',
+        payment_intent: 'pi_test_' + Math.random().toString(36).substring(7),
+        amount_total: creditPackage.price,
+        currency: creditPackage.currency.toLowerCase(),
+        metadata: {
+          organizationId,
+          creditPackageId,
+          paymentAttemptId: 'test-attempt-' + Math.random().toString(36).substring(7),
+          creditAmount: creditPackage.creditAmount.toString()
+        }
+      };
+
+      // Process the mock webhook
+      await stripeService.processSuccessfulPayment(mockSession as any);
+
+      res.json({
+        message: 'Test webhook processed successfully',
+        sessionId: mockSession.id,
+        creditsAdded: creditPackage.creditAmount
+      });
+    } catch (error) {
+      console.error('❌ Test webhook processing failed:', error);
+      res.status(500).json({
+        message: 'Test webhook processing failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });

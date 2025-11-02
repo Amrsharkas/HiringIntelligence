@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useToast } from "@/hooks/use-toast";
 import { CreditHistoryModal } from "./CreditHistoryModal";
+import { CreditPurchaseModal } from "./CreditPurchaseModal";
 
 interface CreditBalance {
   currentCredits: number;
@@ -22,7 +23,13 @@ interface CreditBalance {
   remainingCredits: number;
 }
 
-const CreditBalanceDisplay = memo(({ onViewHistory }: { onViewHistory?: () => void }) => {
+const CreditBalanceDisplay = memo(({
+  onViewHistory,
+  onTopUp
+}: {
+  onViewHistory?: () => void;
+  onTopUp?: () => void;
+}) => {
   const { toast } = useToast();
 
   const { data: creditBalance, isLoading, error } = useQuery<CreditBalance>({
@@ -31,19 +38,21 @@ const CreditBalanceDisplay = memo(({ onViewHistory }: { onViewHistory?: () => vo
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    onError: (error: any) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
+
+  // Handle unauthorized errors
+  React.useEffect(() => {
+    if (error && isUnauthorizedError(error as any)) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [error, toast]);
 
   if (isLoading) {
     return (
@@ -65,7 +74,7 @@ const CreditBalanceDisplay = memo(({ onViewHistory }: { onViewHistory?: () => vo
   }
 
   const creditPercentage = (creditBalance.remainingCredits / creditBalance.creditLimit) * 100;
-  const isLowCredits = creditBalance.remainingCredits <= 10;
+  const isLowCredits = creditBalance.remainingCredits <= 100;
   const isVeryLowCredits = creditBalance.remainingCredits <= 5;
 
   return (
@@ -136,20 +145,36 @@ const CreditBalanceDisplay = memo(({ onViewHistory }: { onViewHistory?: () => vo
           <span className="text-xs text-slate-500">
             Limit: {creditBalance.creditLimit}
           </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onViewHistory) {
-                onViewHistory();
-              }
-            }}
-          >
-            <Info className="w-3 h-3 mr-1" />
-            Details
-          </Button>
+          <div className="flex items-center gap-1">
+            {isLowCredits && onTopUp && (
+              <Button
+                size="sm"
+                variant="default"
+                className="h-6 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTopUp();
+                }}
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Top Up
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onViewHistory) {
+                  onViewHistory();
+                }
+              }}
+            >
+              <Info className="w-3 h-3 mr-1" />
+              Details
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -160,6 +185,7 @@ CreditBalanceDisplay.displayName = "CreditBalanceDisplay";
 
 export const CreditBalanceCard = memo(() => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
   return (
     <>
@@ -178,12 +204,24 @@ export const CreditBalanceCard = memo(() => {
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <Info className="w-4 h-4 text-slate-400" />
         </div>
-        <CreditBalanceDisplay onViewHistory={() => setIsHistoryModalOpen(true)} />
+        <CreditBalanceDisplay
+          onViewHistory={() => setIsHistoryModalOpen(true)}
+          onTopUp={() => setIsPurchaseModalOpen(true)}
+        />
       </motion.div>
 
       <CreditHistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
+      />
+
+      <CreditPurchaseModal
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+        onSuccess={() => {
+          // Refresh credit data after successful purchase
+          window.location.reload();
+        }}
       />
     </>
   );

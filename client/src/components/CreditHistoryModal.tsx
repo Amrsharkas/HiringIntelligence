@@ -17,9 +17,11 @@ import {
   Plus,
   Minus,
   AlertCircle,
+  DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { PaymentHistoryModal } from "./PaymentHistoryModal";
 
 interface CreditHistoryModalProps {
   isOpen: boolean;
@@ -400,6 +402,7 @@ const UsageStats = () => {
 
 export function CreditHistoryModal({ isOpen, onClose }: CreditHistoryModalProps) {
   const [activeTab, setActiveTab] = useState("history");
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -436,14 +439,18 @@ export function CreditHistoryModal({ isOpen, onClose }: CreditHistoryModalProps)
           {/* Content */}
           <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="history" className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  Transaction History
+                  Transactions
                 </TabsTrigger>
                 <TabsTrigger value="usage" className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
                   Usage Stats
+                </TabsTrigger>
+                <TabsTrigger value="payments" className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Payment History
                 </TabsTrigger>
               </TabsList>
 
@@ -454,10 +461,34 @@ export function CreditHistoryModal({ isOpen, onClose }: CreditHistoryModalProps)
               <TabsContent value="usage">
                 <UsageStats />
               </TabsContent>
+
+              <TabsContent value="payments">
+                <div className="text-center py-8">
+                  <DollarSign className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                    Payment History
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-4">
+                    View detailed payment transactions and billing history
+                  </p>
+                  <Button
+                    onClick={() => setIsPaymentHistoryOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    View Payment History
+                  </Button>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
         </motion.div>
       </div>
+
+      <PaymentHistoryModal
+        isOpen={isPaymentHistoryOpen}
+        onClose={() => setIsPaymentHistoryOpen(false)}
+      />
     </AnimatePresence>
   );
 }
