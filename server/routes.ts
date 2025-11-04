@@ -2239,7 +2239,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       const response = await wrapOpenAIRequest(
         () => openai.chat.completions.create({
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_COMPREHENSIVE_MATCH_ANALYSIS || "gpt-4o",
           messages: [
             {
               role: "system",
@@ -2255,7 +2255,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         }),
         {
           requestType: "comprehensive_match_analysis",
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_COMPREHENSIVE_MATCH_ANALYSIS || "gpt-4o",
           requestData: { prompt: prompt.substring(0, 500) },
           metadata: { route: "comprehensive_match_analysis" }
         }

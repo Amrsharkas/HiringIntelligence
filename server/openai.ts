@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
 
-// Using "gpt-5" per user request across all calls
+// OpenAI client - models are configured via environment variables
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" });
 
 export async function generateJobDescription(
@@ -59,7 +59,7 @@ Write in clear, accessible language that attracts top talent.`;
 
     const response = await wrapOpenAIRequest(
       () => openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: process.env.OPENAI_MODEL_JOB_DESCRIPTION || "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -71,7 +71,7 @@ Write in clear, accessible language that attracts top talent.`;
       }),
       {
         requestType: "job_description_generation",
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_JOB_DESCRIPTION || "gpt-4o-mini",
         requestData: { jobTitle, companyName, location, metadata, prompt },
         metadata: { jobTitle, companyName }
       }
@@ -146,7 +146,7 @@ Write in clear, professional language suitable for Egyptian job market.`;
 
     const response = await wrapOpenAIRequest(
       () => openai.chat.completions.create({
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_JOB_REQUIREMENTS || "gpt-4o",
         messages: [
           {
             role: "system",
@@ -158,7 +158,7 @@ Write in clear, professional language suitable for Egyptian job market.`;
       }),
       {
         requestType: "job_requirements_generation",
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_JOB_REQUIREMENTS || "gpt-4o",
         requestData: { jobTitle, jobDescription, metadata, prompt },
         metadata: { jobTitle }
       }
@@ -177,7 +177,7 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
 
     const response = await wrapOpenAIRequest(
       () => openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: process.env.OPENAI_MODEL_TECHNICAL_SKILLS || "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -190,7 +190,7 @@ export async function extractTechnicalSkills(jobTitle: string, jobDescription: s
       }),
       {
         requestType: "technical_skills_extraction",
-        model: "gpt-4o-mini",
+        model: process.env.OPENAI_MODEL_TECHNICAL_SKILLS || "gpt-4o-mini",
         requestData: { jobTitle, jobDescription, prompt },
         metadata: { jobTitle }
       }
@@ -246,13 +246,13 @@ Return only the formatted profile text with markdown styling.`;
 
     const response = await wrapOpenAIRequest(
       () => openai.chat.completions.create({
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_USER_PROFILE_FORMAT || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 400,
       }),
       {
         requestType: "user_profile_formatting",
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_USER_PROFILE_FORMAT || "gpt-4o",
         requestData: { rawProfile, prompt },
         metadata: { profileLength: rawProfile.length }
       }
@@ -315,7 +315,7 @@ Respond with JSON in this exact format: { "score": number, "reasoning": "honest 
 
     const response = await wrapOpenAIRequest(
       () => openai.chat.completions.create({
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_CANDIDATE_MATCH_RATING || "gpt-4o",
         messages: [
           {
             role: "system",
@@ -330,7 +330,7 @@ Respond with JSON in this exact format: { "score": number, "reasoning": "honest 
       }),
       {
         requestType: "candidate_match_rating",
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_CANDIDATE_MATCH_RATING || "gpt-4o",
         requestData: { candidate, job, prompt },
         metadata: { candidateName: candidate.name, jobTitle: job.title }
       }
@@ -413,13 +413,13 @@ export async function analyzeApplicantProfile(
 
     const response = await wrapOpenAIRequest(
       () => openai.chat.completions.create({
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_APPLICANT_PROFILE_ANALYSIS || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       }),
       {
         requestType: "applicant_profile_analysis",
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_APPLICANT_PROFILE_ANALYSIS || "gpt-4o",
         requestData: { applicantData, jobTitle, jobDescription, requiredSkills, prompt },
         metadata: { jobTitle, applicantName: applicantData.name }
       }
@@ -468,7 +468,7 @@ Respond with JSON in this format: { "questions": ["question1", "question2", "que
 
     const response = await wrapOpenAIRequest(
       () => openai.chat.completions.create({
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_EMPLOYER_QUESTIONS || "gpt-4o",
         messages: [
           {
             role: "system",
@@ -481,7 +481,7 @@ Respond with JSON in this format: { "questions": ["question1", "question2", "que
       }),
       {
         requestType: "employer_questions_generation",
-        model: "gpt-4o",
+        model: process.env.OPENAI_MODEL_EMPLOYER_QUESTIONS || "gpt-4o",
         requestData: { jobTitle, jobDescription, requirements, prompt },
         metadata: { jobTitle }
       }

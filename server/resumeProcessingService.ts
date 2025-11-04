@@ -121,7 +121,7 @@ export class ResumeProcessingService {
 
         console.log(`🔎 Requesting text extraction via Responses API for file ${uploaded.id} (${inferredName})`);
         const response: any = await (openai as any).responses.create({
-          model: 'gpt-5',
+          model: process.env.OPENAI_MODEL_TEXT_EXTRACTION || 'gpt-5',
           input: [
             {
               role: 'user',
@@ -193,14 +193,14 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
 
       const response = await wrapOpenAIRequest(
         () => openai.chat.completions.create({
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_RESUME_PROCESSING || "gpt-4o",
           messages: baseMessages as any,
           response_format: { type: "json_object" },
           temperature: 0,
         }),
         {
           requestType: "resume_processing",
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_RESUME_PROCESSING || "gpt-4o",
           requestData: { extractedText: extractedText.substring(0, 500), baseMessages: baseMessages.slice(0, 2) },
           metadata: { textLength: extractedText.length }
         }
@@ -211,7 +211,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
         console.warn("Model returned empty content for resume processing. Retrying without response_format...");
         const retry = await wrapOpenAIRequest(
           () => openai.chat.completions.create({
-            model: "gpt-4o",
+            model: process.env.OPENAI_MODEL_RESUME_PROCESSING || "gpt-4o",
             messages: [
               ...baseMessages,
               { role: "system", content: `Return ONLY a valid JSON object. No markdown, no commentary.${customRules ? ` Apply the custom parsing rules: ${customRules}` : ''}` }
@@ -221,7 +221,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
           }),
           {
             requestType: "resume_processing_retry",
-            model: "gpt-4o",
+            model: process.env.OPENAI_MODEL_RESUME_PROCESSING || "gpt-4o",
             requestData: { extractedText: extractedText.substring(0, 500), retry: true },
             metadata: { textLength: extractedText.length, isRetry: true }
           }
@@ -257,7 +257,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
         console.warn("First parse failed. Retrying request without response_format...");
         const retry = await wrapOpenAIRequest(
           () => openai.chat.completions.create({
-            model: "gpt-4o",
+            model: process.env.OPENAI_MODEL_RESUME_PROCESSING || "gpt-4o",
             messages: [
               ...baseMessages,
               { role: "system", content: `Return ONLY a valid JSON object. No markdown, no commentary.${customRules ? ` Apply the custom parsing rules: ${customRules}` : ''}` }
@@ -267,7 +267,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
           }),
           {
             requestType: "resume_processing_parse_retry",
-            model: "gpt-4o",
+            model: process.env.OPENAI_MODEL_RESUME_PROCESSING || "gpt-4o",
             requestData: { extractedText: extractedText.substring(0, 500), retry: true, parseError: true },
             metadata: { textLength: extractedText.length, isRetry: true, parseError: true }
           }
@@ -332,7 +332,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
     try {
       const response = await wrapOpenAIRequest(
         () => openai.chat.completions.create({
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o",
           messages: [
             {
               role: "system",
@@ -447,7 +447,7 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
         }),
         {
           requestType: "resume_job_scoring",
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o",
           requestData: { resumeName: resume.name, jobTitle, skills: resume.skills },
           metadata: { candidateName: resume.name, jobTitle }
         }
@@ -459,7 +459,7 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
         console.warn("Model returned empty content for job scoring. Retrying without response_format...");
         const retry = await wrapOpenAIRequest(
           () => openai.chat.completions.create({
-            model: "gpt-4o",
+            model: process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o",
             messages: [
               {
                 role: "system",
@@ -575,7 +575,7 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
           }),
           {
             requestType: "resume_job_scoring_retry",
-            model: "gpt-4o",
+            model: process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o",
             requestData: { resumeName: resume.name, jobTitle, retry: true },
             metadata: { candidateName: resume.name, jobTitle, isRetry: true }
           }

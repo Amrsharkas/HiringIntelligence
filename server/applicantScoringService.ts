@@ -103,7 +103,7 @@ Return JSON in this exact format:
 
       const response = await wrapOpenAIRequest(
         () => openai.chat.completions.create({
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_APPLICANT_DETAILED_SCORING || "gpt-4o",
           messages: [
             {
               role: "system",
@@ -118,7 +118,7 @@ Return JSON in this exact format:
         }),
         {
           requestType: "detailed_applicant_scoring",
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_APPLICANT_DETAILED_SCORING || "gpt-4o",
           requestData: { userProfile, jobTitle, jobDescription, jobRequirements, jobSkills, prompt },
           metadata: { jobTitle, profileLength: userProfile.length }
         }
@@ -202,7 +202,7 @@ Provide an honest, fair assessment that reflects the candidate's actual suitabil
 
       const response = await wrapOpenAIRequest(
         () => openai.chat.completions.create({
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_APPLICANT_SCORING || "gpt-4o",
           messages: [
             {
               role: "system",
@@ -217,7 +217,7 @@ Provide an honest, fair assessment that reflects the candidate's actual suitabil
         }),
         {
           requestType: "applicant_scoring",
-          model: "gpt-4o",
+          model: process.env.OPENAI_MODEL_APPLICANT_SCORING || "gpt-4o",
           requestData: { userProfile, jobDescription, prompt },
           metadata: { profileLength: userProfile.length }
         }
