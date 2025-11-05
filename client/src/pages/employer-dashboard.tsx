@@ -40,6 +40,7 @@ import { CreditBalanceCard } from "@/components/CreditBalanceCard";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import logo from "@assets/logo.png";
 
 // Live components that refresh only their specific data without page reload
 const LiveJobCount = memo(() => {
@@ -442,9 +443,13 @@ export default function EmployerDashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setLocation("/employer-dashboard")}
-              className="text-xl sm:text-2xl font-bold text-black dark:text-white"
+              className="flex items-center"
             >
-              Plato
+              <img 
+                src={logo} 
+                alt="Plato Logo" 
+                className="h-8 sm:h-10 w-auto p-2"
+              />
             </motion.button>
             
             <div className="hidden md:flex items-center gap-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 px-4 py-2 rounded-xl border border-blue-200/50 dark:border-blue-700/50">

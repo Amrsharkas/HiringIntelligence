@@ -43,6 +43,7 @@ import melanite2Logo from "@assets/image_1752004532230.png";
 import monument2Logo from "@assets/image_1752004540355.png";
 import skillcreds2Logo from "@assets/image_1752004548842.png";
 import jaugmentor2Logo from "@assets/image_1752004558896.png";
+import logo from "@assets/logo.png";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -118,9 +119,11 @@ export default function Landing() {
       >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Plato
-            </div>
+            <img 
+              src={logo} 
+              alt="Plato Logo" 
+              className="h-10 w-auto p-2"
+            />
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
