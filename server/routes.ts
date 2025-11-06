@@ -8,6 +8,8 @@ import { requireCredits, deductCredits, attachCreditBalance } from "./creditMidd
 import { requireResumeProcessingCredits, deductResumeProcessingCredits } from "./resumeCreditMiddleware";
 import { creditService } from "./creditService";
 import { stripeService } from "./stripeService";
+import { subscriptionService } from "./subscriptionService";
+import { setupSubscriptionSystem } from "./setupSubscriptionSystem";
 import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
@@ -273,6 +275,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error initializing pricing:", error);
       res.status(500).json({
         message: "Failed to initialize pricing",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Subscription plan endpoints
+  app.get('/api/subscriptions/plans', async (req: any, res) => {
+    try {
+      const plans = await subscriptionService.getAvailablePlans();
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching subscription plans:", error);
+      res.status(500).json({ message: "Failed to fetch subscription plans" });
+    }
+  });
+
+  app.post('/api/subscriptions/plans/initialize', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const plans = await subscriptionService.createDefaultSubscriptionPlans();
+
+      res.json({
+        success: true,
+        message: "Default subscription plans created successfully",
+        plans
+      });
+    } catch (error) {
+      console.error("Error initializing subscription plans:", error);
+      res.status(500).json({
+        message: "Failed to initialize subscription plans",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get current organization subscription
+  app.get('/api/subscriptions/current', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const subscription = await subscriptionService.getActiveSubscription(organization.id);
+
+      if (!subscription) {
+        return res.json(null);
+      }
+
+      res.json(subscription);
+    } catch (error) {
+      console.error("Error fetching subscription:", error);
+      res.status(500).json({ message: "Failed to fetch subscription" });
+    }
+  });
+
+  // Subscribe to a plan
+  app.post('/api/subscriptions/subscribe', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { planId, billingCycle, trialDays } = req.body;
+
+      if (!planId || !billingCycle) {
+        return res.status(400).json({ message: "Plan ID and billing cycle are required" });
+      }
+
+      if (!['monthly', 'yearly'].includes(billingCycle)) {
+        return res.status(400).json({ message: "Billing cycle must be 'monthly' or 'yearly'" });
+      }
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Check if already subscribed
+      const existingSubscription = await subscriptionService.getActiveSubscription(organization.id);
+      if (existingSubscription) {
+        return res.status(400).json({ 
+          message: "Organization already has an active subscription",
+          subscription: existingSubscription
+        });
+      }
+
+      // Create Stripe checkout session
+      const checkoutSession = await stripeService.createSubscriptionCheckout({
+        organizationId: organization.id,
+        planId,
+        billingCycle,
+        successUrl: `${process.env.APP_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${process.env.APP_URL}/subscription/canceled`,
+        customerEmail: req.user.email,
+        trialDays: trialDays || 0,
+      });
+
+      res.json({
+        success: true,
+        checkoutUrl: checkoutSession.url,
+        sessionId: checkoutSession.sessionId
+      });
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({
+        message: "Failed to create subscription",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Cancel subscription
+  app.post('/api/subscriptions/cancel', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { immediate } = req.body;
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const subscription = await subscriptionService.getActiveSubscription(organization.id);
+      if (!subscription) {
+        return res.status(404).json({ message: "No active subscription found" });
+      }
+
+      await subscriptionService.cancelSubscription(subscription.id, immediate || false);
+
+      res.json({
+        success: true,
+        message: immediate 
+          ? "Subscription canceled immediately" 
+          : "Subscription will be canceled at the end of the billing period"
+      });
+    } catch (error) {
+      console.error("Error canceling subscription:", error);
+      res.status(500).json({
+        message: "Failed to cancel subscription",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get expiring credits
+  app.get('/api/subscriptions/credits/expiring', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const expiringCredits = await subscriptionService.getExpiringCredits(organization.id);
+
+      res.json(expiringCredits);
+    } catch (error) {
+      console.error("Error fetching expiring credits:", error);
+      res.status(500).json({ message: "Failed to fetch expiring credits" });
+    }
+  });
+
+  // Admin: Create Stripe subscription products
+  app.post('/api/subscriptions/stripe/create-products', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      await stripeService.createSubscriptionProducts();
+
+      res.json({
+        success: true,
+        message: "Stripe subscription products created successfully"
+      });
+    } catch (error) {
+      console.error("Error creating Stripe products:", error);
+      res.status(500).json({
+        message: "Failed to create Stripe products",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Admin: Complete subscription system setup (one-time setup)
+  app.post('/api/subscriptions/setup', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Run the complete setup
+      await setupSubscriptionSystem();
+
+      res.json({
+        success: true,
+        message: "Subscription system setup completed successfully"
+      });
+    } catch (error) {
+      console.error("Error setting up subscription system:", error);
+      res.status(500).json({
+        message: "Failed to setup subscription system",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
@@ -4736,7 +4953,12 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         case 'checkout.session.completed':
           console.log('✅ Payment completed, processing credit addition...');
           const session = event.data.object as Stripe.Checkout.Session;
-          await stripeService.processSuccessfulPayment(session);
+          // Check if this is for subscription or one-time payment
+          if (session.mode === 'subscription') {
+            console.log('📦 Subscription checkout completed, will be handled by subscription.created');
+          } else {
+            await stripeService.processSuccessfulPayment(session);
+          }
           break;
 
         case 'checkout.session.expired':
@@ -4755,6 +4977,37 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           console.log('✅ Async payment succeeded');
           const successSession = event.data.object as Stripe.Checkout.Session;
           await stripeService.processSuccessfulPayment(successSession);
+          break;
+
+        // Subscription webhook events
+        case 'customer.subscription.created':
+          console.log('🔔 Subscription created');
+          const createdSubscription = event.data.object as Stripe.Subscription;
+          await stripeService.handleSubscriptionCreated(createdSubscription);
+          break;
+
+        case 'customer.subscription.updated':
+          console.log('🔔 Subscription updated');
+          const updatedSubscription = event.data.object as Stripe.Subscription;
+          await stripeService.handleSubscriptionUpdated(updatedSubscription);
+          break;
+
+        case 'customer.subscription.deleted':
+          console.log('🔔 Subscription deleted');
+          const deletedSubscription = event.data.object as Stripe.Subscription;
+          await stripeService.handleSubscriptionDeleted(deletedSubscription);
+          break;
+
+        case 'invoice.paid':
+          console.log('💰 Invoice paid');
+          const paidInvoice = event.data.object as Stripe.Invoice;
+          await stripeService.handleInvoicePaid(paidInvoice);
+          break;
+
+        case 'invoice.payment_failed':
+          console.log('❌ Invoice payment failed');
+          const failedInvoice = event.data.object as Stripe.Invoice;
+          await stripeService.handleInvoicePaymentFailed(failedInvoice);
           break;
 
         default:

@@ -20,7 +20,9 @@ import {
   Bell,
   Building2,
   Calendar,
-  UserPlus
+  UserPlus,
+  Sparkles,
+  Crown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
@@ -36,7 +38,7 @@ import { InviteTeamMembersModal } from "@/components/InviteTeamMembersModal";
 import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { InterviewManagementModal } from "@/components/InterviewManagementModal";
 import AcceptedApplicantsModal from "@/components/AcceptedApplicantsModal";
-import { CreditBalanceCard } from "@/components/CreditBalanceCard";
+import { SubscriptionManagementModal } from "@/components/SubscriptionManagementModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -68,6 +70,54 @@ const LiveOrganizationName = memo(() => {
   });
   return <span>{organization?.companyName || "Your Organization"}</span>;
 });
+
+// Header component showing credits and subscription plan
+const HeaderCreditsAndPlan = memo(({ onManageClick }: { onManageClick: () => void }) => {
+  const { data: subscription } = useQuery<any>({
+    queryKey: ["/api/subscriptions/current"],
+    ...getQueryOptions(60000),
+    staleTime: 0,
+  });
+
+  const { data: organization } = useQuery<any>({
+    queryKey: ["/api/organizations/current"],
+    ...getQueryOptions(30000),
+    staleTime: 0,
+  });
+
+  const credits = organization?.currentCredits || 0;
+  const planName = subscription?.plan?.name || "No Plan";
+
+  return (
+    <div className="hidden lg:flex items-center gap-2">
+      {/* Credits Display - Clickable */}
+      <button
+        onClick={onManageClick}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 border border-emerald-200/50 dark:border-emerald-700/50 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all duration-200 hover:scale-105 cursor-pointer"
+      >
+        <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+          {credits.toLocaleString()}
+        </span>
+        <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">credits</span>
+      </button>
+
+      {/* Plan Display with Manage Button */}
+      <button
+        onClick={onManageClick}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/50 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 hover:scale-105"
+      >
+        <Crown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+          {planName}
+        </span>
+        <Settings className="w-3.5 h-3.5 text-blue-600/70 dark:text-blue-400/70" />
+      </button>
+    </div>
+  );
+});
+
+HeaderCreditsAndPlan.displayName = 'HeaderCreditsAndPlan';
 
 const StatNumber = memo(({ value }: { value: number }) => (
   <div className="text-2xl sm:text-3xl font-bold" style={{ minWidth: '50px', textAlign: 'center' }}>
@@ -372,6 +422,7 @@ export default function EmployerDashboard() {
   const [isInterviewManagementModalOpen, setIsInterviewManagementModalOpen] = useState(false);
   const [isAcceptedApplicantsModalOpen, setIsAcceptedApplicantsModalOpen] = useState(false);
   const [selectedApplicantForInterview, setSelectedApplicantForInterview] = useState<any>(null);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   // Get team members to check admin permissions
   const { data: teamMembers } = useQuery<any>({
@@ -460,6 +511,9 @@ export default function EmployerDashboard() {
             </div>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Credits and Plan Display */}
+            <HeaderCreditsAndPlan onManageClick={() => setIsSubscriptionModalOpen(true)} />
+            
             <button
               className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
               style={{
@@ -543,9 +597,7 @@ export default function EmployerDashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
-            {/* Credit Balance Card */}
-            <CreditBalanceCard />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
 
             {useMemo(() => [
               { 
@@ -735,6 +787,11 @@ export default function EmployerDashboard() {
         isOpen={isAcceptedApplicantsModalOpen} 
         onClose={() => setIsAcceptedApplicantsModalOpen(false)} 
         onScheduleInterview={handleScheduleInterview}
+      />
+
+      <SubscriptionManagementModal 
+        isOpen={isSubscriptionModalOpen} 
+        onClose={() => setIsSubscriptionModalOpen(false)} 
       />
     </div>
   );

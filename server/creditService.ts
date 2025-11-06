@@ -31,7 +31,7 @@ export class CreditService {
 
       return {
         currentCredits: org.currentCredits || 0,
-        creditLimit: org.creditLimit || 100,
+        creditLimit: org.creditLimit || 0,
         remainingCredits: (org.currentCredits || 0)
       };
     } catch (error) {

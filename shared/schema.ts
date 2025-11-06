@@ -56,8 +56,12 @@ export const organizations = pgTable("organizations", {
   companySize: varchar("company_size"),
   description: text("description"),
   ownerId: varchar("owner_id"),
-  creditLimit: integer("credit_limit").notNull().default(100),
-  currentCredits: integer("current_credits").notNull().default(100),
+  creditLimit: integer("credit_limit").notNull().default(0),
+  currentCredits: integer("current_credits").notNull().default(0),
+  // Subscription fields
+  subscriptionStatus: varchar("subscription_status").default("inactive"), // active, inactive, trial, past_due, canceled
+  currentSubscriptionId: varchar("current_subscription_id"),
+  jobPostsUsed: integer("job_posts_used").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -95,6 +99,76 @@ export const creditPackages = pgTable("credit_packages", {
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0), // For display ordering
   stripePriceId: varchar("stripe_price_id"), // Stripe price ID for this package
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription plans table - monthly/yearly subscription tiers
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(), // Starter, Growth, Pro, Enterprise
+  description: text("description"),
+  monthlyPrice: integer("monthly_price").notNull(), // in cents (EGP)
+  yearlyPrice: integer("yearly_price").notNull(), // with 18% discount
+  monthlyCredits: integer("monthly_credits").notNull(), // Credits allocated per month
+  jobPostsLimit: integer("job_posts_limit"), // null = unlimited
+  supportLevel: varchar("support_level").notNull(), // standard, priority, dedicated
+  features: jsonb("features"), // Additional feature flags
+  stripePriceIdMonthly: varchar("stripe_price_id_monthly"),
+  stripePriceIdYearly: varchar("stripe_price_id_yearly"),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Organization subscriptions table
+export const organizationSubscriptions = pgTable("organization_subscriptions", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: varchar("organization_id").notNull(),
+  subscriptionPlanId: varchar("subscription_plan_id").notNull(),
+  stripeSubscriptionId: varchar("stripe_subscription_id").unique(),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  status: varchar("status").notNull(), // active, canceled, past_due, trialing, incomplete
+  billingCycle: varchar("billing_cycle").notNull(), // monthly, yearly
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  canceledAt: timestamp("canceled_at"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription invoices table - track all subscription billing
+export const subscriptionInvoices = pgTable("subscription_invoices", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationSubscriptionId: varchar("organization_subscription_id").notNull(),
+  organizationId: varchar("organization_id").notNull(),
+  stripeInvoiceId: varchar("stripe_invoice_id").unique(),
+  amount: integer("amount").notNull(), // in cents
+  currency: varchar("currency").notNull().default("EGP"),
+  status: varchar("status").notNull(), // paid, open, void, uncollectible
+  creditsAllocated: integer("credits_allocated").notNull().default(0),
+  invoiceDate: timestamp("invoice_date"),
+  dueDate: timestamp("due_date"),
+  paidAt: timestamp("paid_at"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Credit expirations table - track credit expiry (45 days)
+export const creditExpirations = pgTable("credit_expirations", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: varchar("organization_id").notNull(),
+  creditAmount: integer("credit_amount").notNull(),
+  source: varchar("source").notNull(), // subscription, purchase
+  sourceId: varchar("source_id"), // subscription_invoice_id or payment_transaction_id
+  expiresAt: timestamp("expires_at").notNull(),
+  remainingCredits: integer("remaining_credits").notNull(),
+  isExpired: boolean("is_expired").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -590,6 +664,14 @@ export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
 export type InsertPaymentTransaction = typeof paymentTransactions.$inferInsert;
 export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
 export type InsertPaymentAttempt = typeof paymentAttempts.$inferInsert;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
+export type OrganizationSubscription = typeof organizationSubscriptions.$inferSelect;
+export type InsertOrganizationSubscription = typeof organizationSubscriptions.$inferInsert;
+export type SubscriptionInvoice = typeof subscriptionInvoices.$inferSelect;
+export type InsertSubscriptionInvoice = typeof subscriptionInvoices.$inferInsert;
+export type CreditExpiration = typeof creditExpirations.$inferSelect;
+export type InsertCreditExpiration = typeof creditExpirations.$inferInsert;
 export type Job = typeof jobs.$inferSelect;
 export type Candidate = typeof candidates.$inferSelect;
 export type Match = typeof matches.$inferSelect;
@@ -662,6 +744,30 @@ export const insertPaymentAttemptSchema = createInsertSchema(paymentAttempts).om
   id: true,
   createdAt: true,
   completedAt: true,
+});
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrganizationSubscriptionSchema = createInsertSchema(organizationSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubscriptionInvoiceSchema = createInsertSchema(subscriptionInvoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCreditExpirationSchema = createInsertSchema(creditExpirations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertOrganizationInvitationSchema = createInsertSchema(organizationInvitations).omit({

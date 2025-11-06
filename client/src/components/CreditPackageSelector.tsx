@@ -38,20 +38,17 @@ interface CreditPackageSelectorProps {
   isLoading?: boolean;
 }
 
-const getPackageIcon = (name: string) => {
-  if (name.includes('Starter')) return <Sparkles className="w-5 h-5" />;
-  if (name.includes('Professional')) return <Star className="w-5 h-5" />;
-  if (name.includes('Business')) return <Zap className="w-5 h-5" />;
-  if (name.includes('Enterprise') || name.includes('Corporate')) return <Crown className="w-5 h-5" />;
+const getPackageIcon = (creditAmount: number) => {
+  if (creditAmount === 100) return <Sparkles className="w-5 h-5" />;
+  if (creditAmount === 300) return <Star className="w-5 h-5" />;
+  if (creditAmount === 1000) return <Crown className="w-5 h-5" />;
   return <CreditCard className="w-5 h-5" />;
 };
 
-const getPackageColor = (name: string) => {
-  if (name.includes('Starter')) return 'from-blue-500 to-blue-600';
-  if (name.includes('Professional')) return 'from-purple-500 to-purple-600';
-  if (name.includes('Business')) return 'from-indigo-500 to-indigo-600';
-  if (name.includes('Enterprise')) return 'from-amber-500 to-amber-600';
-  if (name.includes('Corporate')) return 'from-rose-500 to-rose-600';
+const getPackageColor = (creditAmount: number) => {
+  if (creditAmount === 100) return 'from-blue-500 to-blue-600';
+  if (creditAmount === 300) return 'from-purple-500 to-purple-600';
+  if (creditAmount === 1000) return 'from-amber-500 to-amber-600';
   return 'from-slate-500 to-slate-600';
 };
 
@@ -119,18 +116,19 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
     <div className="space-y-4">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Choose Your Credit Package
+          Additional Credit Packs
         </h2>
         <p className="text-slate-600 dark:text-slate-400">
-          Get more credits to continue processing resumes and finding the best candidates
+          Purchase additional credits as needed to scale your hiring efforts beyond your subscription
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
         {sortedPackages.map((pkg, index) => {
           const isSelected = selectedPackageId === pkg.id;
           const pricePerCredit = pkg.price / pkg.creditAmount; // in cents
-          const savings = pkg.creditAmount >= 500 ? Math.round((1 - pricePerCredit / 10) * 100) : 0; // Compare to base rate of $0.10/credit
+          const baseRate = 9000; // 90 EGP per credit in cents
+          const savings = baseRate > 0 ? Math.round((1 - pricePerCredit / baseRate) * 100) : 0;
 
           return (
             <motion.div
@@ -156,8 +154,8 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`p-2 rounded-lg bg-gradient-to-r ${getPackageColor(pkg.name)} text-white`}>
-                      {getPackageIcon(pkg.name)}
+                    <div className={`p-2 rounded-lg bg-gradient-to-r ${getPackageColor(pkg.creditAmount)} text-white`}>
+                      {getPackageIcon(pkg.creditAmount)}
                     </div>
                     {isSelected && (
                       <div className="bg-blue-500 text-white rounded-full p-1">
@@ -180,9 +178,9 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
                     <div className="flex items-baseline justify-between">
                       <div>
                         <span className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                          ${(pkg.price / 100).toFixed(2)}
+                          {(pkg.price / 100).toLocaleString('en-US')}
                         </span>
-                        <span className="text-sm text-slate-500 ml-1">USD</span>
+                        <span className="text-sm text-slate-500 ml-1">EGP</span>
                       </div>
                       <div className="text-right">
                         <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
@@ -194,7 +192,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
 
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-600 dark:text-slate-400">
-                        ${(pricePerCredit / 100).toFixed(2)} per credit
+                        {(pricePerCredit / 100).toFixed(0)} EGP per credit
                       </span>
                       {pkg.creditAmount >= 1000 && (
                         <Badge variant="secondary" className="text-xs">

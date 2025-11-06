@@ -1,0 +1,109 @@
+/**
+ * Setup Script for Subscription System
+ * 
+ * This script initializes the subscription system by:
+ * 1. Creating subscription plans with EGP pricing
+ * 2. Deactivating old credit packages
+ * 3. Creating new credit packages (100, 300, 1000)
+ * 4. Optionally creating Stripe products/prices
+ * 
+ * Run this script once after deploying the subscription system
+ */
+
+import { subscriptionService } from './subscriptionService';
+import { stripeService } from './stripeService';
+import { db } from './db';
+import { creditPackages } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+export async function setupSubscriptionSystem() {
+  console.log('🚀 Starting subscription system setup...\n');
+
+  try {
+    // Step 1: Create subscription plans
+    console.log('📋 Step 1: Creating subscription plans...');
+    const plans = await subscriptionService.createDefaultSubscriptionPlans();
+    console.log(`✅ Created ${plans.length} subscription plans:`);
+    plans.forEach(plan => {
+      console.log(`   - ${plan.name}: ${plan.monthlyCredits} credits/month`);
+    });
+    console.log('');
+
+    // Step 2: Deactivate old credit packages
+    console.log('📦 Step 2: Deactivating old credit packages...');
+    const oldPackageNames = [
+      'Starter Pack',
+      'Professional Pack', 
+      'Business Pack',
+      'Enterprise Pack',
+      'Corporate Pack'
+    ];
+
+    let deactivatedCount = 0;
+    for (const name of oldPackageNames) {
+      const result = await db
+        .update(creditPackages)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(creditPackages.name, name));
+      
+      if (result.rowCount && result.rowCount > 0) {
+        deactivatedCount++;
+        console.log(`   ✓ Deactivated: ${name}`);
+      }
+    }
+    console.log(`✅ Deactivated ${deactivatedCount} old packages\n`);
+
+    // Step 3: Create new credit packages
+    console.log('💳 Step 3: Creating new credit packages...');
+    await stripeService.initializeDefaultCreditPackages();
+    console.log('✅ Created new credit packages (100, 300, 1000)\n');
+
+    // Step 4: Create Stripe products (optional - requires Stripe API)
+    console.log('🔵 Step 4: Creating Stripe subscription products...');
+    try {
+      await stripeService.createSubscriptionProducts();
+      console.log('✅ Stripe products created successfully\n');
+    } catch (error) {
+      console.log('⚠️  Stripe product creation skipped (requires valid Stripe credentials)');
+      console.log('   You can run this later via: POST /api/subscriptions/stripe/create-products\n');
+    }
+
+    // Summary
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('✅ Subscription system setup completed successfully!\n');
+    console.log('📝 Next steps:');
+    console.log('   1. Configure Stripe webhook: stripe listen --forward-to localhost:3005/api/payments/webhook');
+    console.log('   2. Add webhook secret to .env: STRIPE_WEBHOOK_SECRET=whsec_...');
+    console.log('   3. Test subscription flow by creating a new organization');
+    console.log('   4. Subscribe to a plan via the dashboard');
+    console.log('   5. Verify credits are allocated after payment\n');
+    console.log('💡 Subscription Plans Available:');
+    console.log('   - Starter: 14,500 EGP/month (200 credits)');
+    console.log('   - Growth: 39,000 EGP/month (700 credits)');
+    console.log('   - Pro: 95,000 EGP/month (1,900 credits)');
+    console.log('   - Enterprise: 155,000 EGP/month (3,500 credits)\n');
+    console.log('💡 Additional Credit Packs:');
+    console.log('   - 100 Credits: 9,000 EGP');
+    console.log('   - 300 Credits: 24,000 EGP');
+    console.log('   - 1,000 Credits: 70,000 EGP');
+    console.log('═══════════════════════════════════════════════════════════\n');
+
+  } catch (error) {
+    console.error('❌ Error during setup:', error);
+    throw error;
+  }
+}
+
+// Run setup if executed directly (ES module version)
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
+  setupSubscriptionSystem()
+    .then(() => {
+      console.log('Setup completed successfully');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Setup failed:', error);
+      process.exit(1);
+    });
+}
