@@ -514,10 +514,10 @@ export class StripeService {
         ? plan.stripePriceIdMonthly 
         : plan.stripePriceIdYearly;
 
-      // If no Stripe price ID, create session with price_data
-      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = priceId
-        ? [{ price: priceId, quantity: 1 }]
-        : [{
+      const shouldUseInlinePrice = params.billingCycle === 'yearly' || !priceId;
+
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = shouldUseInlinePrice
+        ? [{
             price_data: {
               currency: 'egp',
               product_data: {
@@ -530,7 +530,8 @@ export class StripeService {
               },
             },
             quantity: 1,
-          }];
+          }]
+        : [{ price: priceId, quantity: 1 }];
 
       // Create checkout session
       const sessionParams: Stripe.Checkout.SessionCreateParams = {

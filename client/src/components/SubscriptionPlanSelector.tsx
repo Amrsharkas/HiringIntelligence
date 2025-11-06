@@ -83,11 +83,19 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
   });
 
   const subscribeMutation = useMutation({
-    mutationFn: async ({ planId, billingCycle }: { planId: string; billingCycle: 'monthly' | 'yearly' }) => {
+    mutationFn: async ({
+      planId,
+      billingCycle,
+      priceCents,
+    }: {
+      planId: string;
+      billingCycle: 'monthly' | 'yearly';
+      priceCents: number;
+    }) => {
       const response = await fetch('/api/subscriptions/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, billingCycle }),
+        body: JSON.stringify({ planId, billingCycle, priceCents }),
         credentials: 'include',
       });
 
@@ -114,11 +122,14 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
     },
   });
 
-  const handleSubscribe = (planId: string) => {
-    setSelectedPlanId(planId);
+  const handleSubscribe = (plan: SubscriptionPlan) => {
+    setSelectedPlanId(plan.id);
+    const billingCycle = isYearly ? 'yearly' : 'monthly';
+    const priceCents = billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
     subscribeMutation.mutate({
-      planId,
-      billingCycle: isYearly ? 'yearly' : 'monthly',
+      planId: plan.id,
+      billingCycle,
+      priceCents,
     });
   };
 
@@ -265,7 +276,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                         ? 'bg-blue-600 hover:bg-blue-700'
                         : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
                     }`}
-                    onClick={() => handleSubscribe(plan.id)}
+                    onClick={() => handleSubscribe(plan)}
                     disabled={isLoading || subscribeMutation.isLoading}
                   >
                     {isLoading ? (

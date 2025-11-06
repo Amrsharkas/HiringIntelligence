@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryOptions } from "@/lib/queryConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Clock, 
   UserMinus, 
@@ -15,7 +20,11 @@ import {
   Building2,
   Users,
   BarChart3,
-  Zap
+  Zap,
+  Sparkles,
+  Star,
+  Crown,
+  ArrowRight
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import SignInModal from "@/components/SignInModal";
@@ -45,13 +54,53 @@ import skillcreds2Logo from "@assets/image_1752004548842.png";
 import jaugmentor2Logo from "@assets/image_1752004558896.png";
 import logo from "@assets/logo.png";
 
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  monthlyCredits: number;
+  jobPostsLimit: number | null;
+  supportLevel: string;
+  features: Record<string, any>;
+  sortOrder: number;
+}
+
+const getPlanIcon = (name: string) => {
+  if (name === 'Starter') return <Sparkles className="w-8 h-8" />;
+  if (name === 'Growth') return <Star className="w-8 h-8" />;
+  if (name === 'Pro') return <Zap className="w-8 h-8" />;
+  if (name === 'Enterprise') return <Crown className="w-8 h-8" />;
+  return <Building2 className="w-8 h-8" />;
+};
+
+const getPlanColor = (name: string) => {
+  if (name === 'Starter') return 'from-blue-500 to-blue-600';
+  if (name === 'Growth') return 'from-purple-500 to-purple-600';
+  if (name === 'Pro') return 'from-amber-500 to-amber-600';
+  if (name === 'Enterprise') return 'from-rose-500 to-rose-600';
+  return 'from-slate-500 to-slate-600';
+};
+
+const formatPrice = (cents: number) => {
+  return (cents / 100).toLocaleString('en-US');
+};
+
 export default function Landing() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [currentLogoIndex, setCurrentLogoIndex] = useState(0);
+  const [isYearly, setIsYearly] = useState(false);
 
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
+
+  // Fetch subscription plans
+  const { data: plans } = useQuery<SubscriptionPlan[]>({
+    queryKey: ["/api/subscriptions/plans"],
+    ...getQueryOptions(300000), // Cache for 5 minutes
+  });
 
   const companyLogos = [
     { name: "Fridge No More", logo: fridgenoMoreLogo },
@@ -554,6 +603,179 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-20 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
+              AI-Powered Hiring Plans & Pricing
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-8">
+              Choose the plan that fits your hiring needs. Each plan includes AI-powered CV analysis 
+              and interview packages to streamline your recruitment process.
+            </p>
+
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-3">
+              <Label className={`text-sm ${!isYearly ? 'font-semibold' : 'text-slate-500'}`}>
+                Monthly
+              </Label>
+              <Switch
+                checked={isYearly}
+                onCheckedChange={setIsYearly}
+              />
+              <Label className={`text-sm ${isYearly ? 'font-semibold' : 'text-slate-500'}`}>
+                Yearly
+                <Badge className="ml-2 bg-green-500 hover:bg-green-600">Save 18%</Badge>
+              </Label>
+            </div>
+          </motion.div>
+
+          {/* Plans Grid */}
+          {plans && plans.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              {[...plans].sort((a, b) => a.sortOrder - b.sortOrder).map((plan, index) => {
+                const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+                const pricePerMonth = isYearly ? plan.yearlyPrice / 12 : plan.monthlyPrice;
+                const isPopular = plan.name === 'Growth';
+
+                return (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    className={`relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-2xl transition-all duration-300 ${
+                      isPopular 
+                        ? 'border-purple-500 ring-2 ring-purple-500 scale-105' 
+                        : 'border-slate-200/60 dark:border-slate-700/60'
+                    }`}
+                  >
+                    {isPopular && (
+                      <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 hover:bg-purple-600">
+                        Most Popular
+                      </Badge>
+                    )}
+
+                    {/* Plan Icon */}
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${getPlanColor(plan.name)} text-white flex items-center justify-center mb-6`}>
+                      {getPlanIcon(plan.name)}
+                    </div>
+
+                    {/* Plan Name */}
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                      {plan.name}
+                    </h3>
+
+                    {/* Price */}
+                    <div className="mb-6">
+                      <div className="flex items-baseline">
+                        <span className="text-4xl font-bold text-slate-900 dark:text-white">
+                          {formatPrice(pricePerMonth)}
+                        </span>
+                        <span className="text-slate-500 ml-2">EGP/month</span>
+                      </div>
+                      {isYearly && (
+                        <p className="text-sm text-slate-500 mt-1">
+                          Billed {formatPrice(price)} EGP yearly
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 min-h-[40px]">
+                      {plan.description}
+                    </p>
+
+                    {/* Features */}
+                    <div className="space-y-3 mb-8">
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                          {plan.monthlyCredits} AI Credits/month
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                          ~{Math.floor(plan.monthlyCredits / 5)} engaged candidates/month
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                          {plan.jobPostsLimit === null ? 'Unlimited' : plan.jobPostsLimit} Job Posts
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-slate-700 dark:text-slate-300 capitalize">
+                          {plan.supportLevel} Support
+                        </span>
+                      </div>
+
+                      {plan.features?.dedicatedManager && (
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-slate-700 dark:text-slate-300">
+                            Dedicated Manager
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CTA Button */}
+                    <Button
+                      onClick={() => setShowSignUp(true)}
+                      className={`w-full ${
+                        isPopular
+                          ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                          : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
+                      } text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300`}
+                    >
+                      Get Started
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Credit Usage Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            viewport={{ once: true }}
+            className="text-center space-y-3 pt-8 border-t border-slate-200 dark:border-slate-700"
+          >
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              AI Credit Usage Per Candidate
+            </h3>
+            <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+              <p>• AI CV Analysis (Scan + AI Report + Match Score): <span className="font-semibold">1 credit</span></p>
+              <p>• AI Interview Package (Persona + Technical + AI Report): <span className="font-semibold">4 credits</span></p>
+              <p className="font-bold text-slate-900 dark:text-white">Total per engaged candidate: 5 credits</p>
+            </div>
+            <p className="text-xs text-slate-500 mt-4">
+              Credits expire after 45 days to ensure optimal usage.
+            </p>
+          </motion.div>
         </div>
       </section>
 
