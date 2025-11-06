@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { TERMS_OF_SERVICE_TEXT } from "./terms";
 
 // Session storage table
 export const sessions = pgTable(
@@ -41,6 +42,8 @@ export const users = pgTable("users", {
   verificationToken: varchar("verification_token"),
   resetPasswordToken: varchar("reset_password_token"),
   resetPasswordExpires: timestamp("reset_password_expires"),
+  termsAcceptedAt: timestamp("terms_accepted_at"),
+  termsAcceptedText: text("terms_accepted_text"),
   // Google OAuth fields
   googleId: varchar("google_id").unique(),
   authProvider: varchar("auth_provider").default("local"),
@@ -645,6 +648,14 @@ export const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   username: z.string().min(3, "Username must be at least 3 characters"),
+  acceptedTerms: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the terms to create an account" }),
+  }),
+  acceptedTermsText: z
+    .string()
+    .refine((value) => value === TERMS_OF_SERVICE_TEXT, {
+      message: "Submitted terms do not match the current Terms of Service",
+    }),
 });
 
 // Type definitions

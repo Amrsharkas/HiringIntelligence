@@ -6,7 +6,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User, RegisterData } from "@shared/schema";
+import { User, registerSchema } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { emailService } from "./emailService";
 
@@ -187,7 +187,16 @@ export function setupAuth(app: Express) {
   // Registration endpoint
   app.post("/api/register", async (req, res, next) => {
     try {
-      const { email, password, firstName, lastName, username } = req.body as RegisterData;
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        const firstIssue = parsed.error.issues[0];
+        return res.status(400).json({
+          error: firstIssue?.message ?? "Invalid registration data",
+          issues: parsed.error.issues,
+        });
+      }
+
+      const { email, password, firstName, lastName, username, acceptedTermsText } = parsed.data;
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -216,6 +225,8 @@ export function setupAuth(app: Express) {
         username,
         isVerified: false, // Require email verification
         verificationToken,
+        termsAcceptedAt: new Date(),
+        termsAcceptedText: acceptedTermsText,
       });
 
       // Send verification email
@@ -242,6 +253,8 @@ export function setupAuth(app: Express) {
           username: newUser.username,
           role: newUser.role,
           isVerified: newUser.isVerified,
+          termsAcceptedAt: newUser.termsAcceptedAt,
+          termsAcceptedText: newUser.termsAcceptedText,
         }
       });
     } catch (error) {
