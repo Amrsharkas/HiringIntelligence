@@ -56,87 +56,8 @@ export const organizations = pgTable("organizations", {
   companySize: varchar("company_size"),
   description: text("description"),
   ownerId: varchar("owner_id"),
-  creditLimit: integer("credit_limit").notNull().default(100),
-  currentCredits: integer("current_credits").notNull().default(100),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Credit transactions table
-export const creditTransactions = pgTable("credit_transactions", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  organizationId: varchar("organization_id").notNull(),
-  amount: integer("amount").notNull(),
-  type: varchar("type").notNull(), // 'resume_processing', 'manual_adjustment'
-  description: text("description"),
-  relatedId: varchar("related_id"), // Can reference resume profile ID or other entities
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Credit pricing table - defines how much each action costs
-export const creditPricing = pgTable("credit_pricing", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  actionType: varchar("action_type").notNull().unique(), // 'resume_processing', 'ai_matching', etc.
-  cost: integer("cost").notNull(), // How many credits this action costs
-  description: text("description"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Credit packages table - predefined credit bundles for purchase
-export const creditPackages = pgTable("credit_packages", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  name: varchar("name").notNull(), // e.g., "Starter Pack", "Professional Pack"
-  description: text("description"),
-  creditAmount: integer("credit_amount").notNull(), // Number of credits in this package
-  price: integer("price").notNull(), // Price in cents (e.g., 1000 = $10.00)
-  currency: varchar("currency").notNull().default("USD"),
-  isActive: boolean("is_active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0), // For display ordering
-  stripePriceId: varchar("stripe_price_id"), // Stripe price ID for this package
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Payment transactions table - stores all payment attempts and records
-export const paymentTransactions = pgTable("payment_transactions", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  organizationId: varchar("organization_id").notNull(),
-  stripeCheckoutSessionId: varchar("stripe_checkout_session_id").unique(),
-  stripePaymentIntentId: varchar("stripe_payment_intent_id").unique(),
-  stripeInvoiceId: varchar("stripe_invoice_id"),
-  creditPackageId: varchar("credit_package_id").notNull(),
-  amount: integer("amount").notNull(), // Amount in cents
-  currency: varchar("currency").notNull().default("USD"),
-  status: varchar("status").notNull(), // 'pending', 'succeeded', 'failed', 'canceled', 'refunded'
-  paymentMethod: varchar("payment_method"), // e.g., 'card', 'apple_pay', 'google_pay'
-  creditsPurchased: integer("credits_purchased").notNull(),
-  creditsAdded: integer("credits_added").default(0), // Actual credits added to account
-  failureReason: text("failure_reason"),
-  refundedAmount: integer("refunded_amount").default(0), // Amount refunded in cents
-  refundedCredits: integer("refunded_credits").default(0), // Credits refunded
-  metadata: jsonb("metadata"), // Additional payment metadata
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  completedAt: timestamp("completed_at"), // When payment was completed
-});
-
-// Payment attempts table - tracks all payment attempts for analytics
-export const paymentAttempts = pgTable("payment_attempts", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  organizationId: varchar("organization_id").notNull(),
-  transactionId: varchar("transaction_id"), // Link to payment_transactions if successful
-  creditPackageId: varchar("credit_package_id").notNull(),
-  amount: integer("amount").notNull(),
-  currency: varchar("currency").notNull().default("USD"),
-  status: varchar("status").notNull(), // 'initiated', 'succeeded', 'failed', 'abandoned'
-  failureReason: text("failure_reason"),
-  userAgent: text("user_agent"),
-  ipAddress: varchar("ip_address"),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").defaultNow(),
-  completedAt: timestamp("completed_at"),
 });
 
 // Organization members table
@@ -580,16 +501,6 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 
 export type Organization = typeof organizations.$inferSelect;
-export type CreditTransaction = typeof creditTransactions.$inferSelect;
-export type InsertCreditTransaction = typeof creditTransactions.$inferInsert;
-export type CreditPricing = typeof creditPricing.$inferSelect;
-export type InsertCreditPricing = typeof creditPricing.$inferInsert;
-export type CreditPackage = typeof creditPackages.$inferSelect;
-export type InsertCreditPackage = typeof creditPackages.$inferInsert;
-export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
-export type InsertPaymentTransaction = typeof paymentTransactions.$inferInsert;
-export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
-export type InsertPaymentAttempt = typeof paymentAttempts.$inferInsert;
 export type Job = typeof jobs.$inferSelect;
 export type Candidate = typeof candidates.$inferSelect;
 export type Match = typeof matches.$inferSelect;
@@ -634,35 +545,6 @@ export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   updatedAt: true,
 });
 
-export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertCreditPricingSchema = createInsertSchema(creditPricing).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertCreditPackageSchema = createInsertSchema(creditPackages).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertPaymentTransactionSchema = createInsertSchema(paymentTransactions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  completedAt: true,
-});
-
-export const insertPaymentAttemptSchema = createInsertSchema(paymentAttempts).omit({
-  id: true,
-  createdAt: true,
-  completedAt: true,
-});
 
 export const insertOrganizationInvitationSchema = createInsertSchema(organizationInvitations).omit({
   id: true,

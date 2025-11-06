@@ -84,11 +84,7 @@ const [hasSubmittedProcessing, setHasSubmittedProcessing] = useState<boolean>(fa
     queryKey: ['/api/job-postings'],
   });
 
-  // Fetch resume processing cost
-  const { data: resumeProcessingCost = { cost: 1 } } = useQuery<{ actionType: string; cost: number }>({
-    queryKey: ['/api/credits/pricing/resume_processing'],
-  });
-
+  
   // Fetch processed resume profiles with per-job pagination
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [jobPages, setJobPages] = useState<{ [key: string]: number }>({});
@@ -319,9 +315,7 @@ const [hasSubmittedProcessing, setHasSubmittedProcessing] = useState<boolean>(fa
         description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background. Please refresh the page manually to see new profiles once processing is complete.`,
       });
 
-      // Refresh credit balance after processing starts
-      queryClient.invalidateQueries({ queryKey: ['/api/organizations/current/credits'] });
-
+      
 setHasSubmittedProcessing(true);
       clearAllFiles();
       setActiveTab('results');
@@ -334,32 +328,11 @@ setHasSubmittedProcessing(true);
       }, 5000);
     },
     onError: (error: Error) => {
-      // Check if it's a credit-related error
-      if (error.message.includes('Insufficient credits') || error.message.includes('credit')) {
-        toast({
-          title: "Insufficient Credits",
-          description: error.message,
-          variant: "destructive",
-          action: (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                // Refresh credit balance and potentially show add credits modal
-                queryClient.invalidateQueries({ queryKey: ['/api/organizations/current/credits'] });
-              }}
-            >
-              Check Balance
-            </Button>
-          ),
-        });
-      } else {
-        toast({
-          title: "Processing Failed to Start",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Processing Failed to Start",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -1004,26 +977,7 @@ setHasSubmittedProcessing(true);
                     </div>
                   )}
 
-                  {/* Credit Cost Indicator */}
-                  {selectedFiles.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-900">
-                            Credit Cost
-                          </span>
-                        </div>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                          {selectedFiles.length * resumeProcessingCost.cost} credit{(selectedFiles.length * resumeProcessingCost.cost) !== 1 ? 's' : ''}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-blue-700 mt-1">
-                        Each resume processing requires {resumeProcessingCost.cost} credit{resumeProcessingCost.cost !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  )}
-
+                  
                   {/* Process Button */}
                   <Button
                     onClick={() => processFilesMutation.mutate(selectedFiles)}
