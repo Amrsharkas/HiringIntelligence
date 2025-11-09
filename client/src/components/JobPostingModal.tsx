@@ -90,6 +90,7 @@ const WORKPLACE_TYPES = [
 ];
 
 const SENIORITY_LEVELS = [
+  "Internship",
   "Entry-level",
   "Junior",
   "Mid-level",

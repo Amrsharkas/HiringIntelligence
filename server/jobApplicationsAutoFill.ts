@@ -85,13 +85,13 @@ export class JobApplicationsAutoFill {
 
   private extractExperienceLevel(jobTitle: string, description: string): string {
     const combined = `${jobTitle} ${description}`.toLowerCase();
-    
+
     if (combined.includes('senior') || combined.includes('lead') || combined.includes('principal')) return 'Senior';
     if (combined.includes('junior') || combined.includes('entry') || combined.includes('graduate')) return 'Junior';
     if (combined.includes('mid') || combined.includes('intermediate')) return 'Mid-level';
     if (combined.includes('director') || combined.includes('vp') || combined.includes('head of')) return 'Executive';
-    if (combined.includes('intern') || combined.includes('trainee')) return 'Intern';
-    
+    if (combined.includes('intern') || combined.includes('trainee')) return 'Internship';
+
     return 'Mid-level';
   }
 
