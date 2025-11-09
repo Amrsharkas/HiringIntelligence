@@ -56,6 +56,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Organization routes
+  app.get('/api/organizations/check-url', requireAuth, async (req: any, res) => {
+    try {
+      const url = typeof req.query.url === 'string' ? req.query.url.trim() : '';
+
+      if (!url) {
+        return res.status(400).json({ available: false, message: "URL is required" });
+      }
+
+      const existing = await storage.getOrganizationByUrl(url);
+      res.json({ available: !existing });
+    } catch (error) {
+      console.error("Error checking organization URL:", error);
+      res.status(500).json({ available: false, message: "Failed to check URL availability" });
+    }
+  });
+
   app.post('/api/organizations', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -67,13 +83,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ownerId: userId
       });
       
+      const normalizedUrl = orgData.url.trim();
+      const existingOrganization = await storage.getOrganizationByUrl(normalizedUrl);
+
+      if (existingOrganization) {
+        return res.status(409).json({ message: "Organization URL already in use" });
+      }
+
+      const organization = await storage.createOrganization({
+        ...orgData,
+        url: normalizedUrl,
+      });
+
       console.log("Parsed org data:", orgData);
-      const organization = await storage.createOrganization(orgData);
       console.log("Created organization:", organization);
       res.json(organization);
     } catch (error) {
       console.error("Error creating organization:", error);
       console.error("Error details:", error instanceof Error ? error.message : error);
+
+      if (
+        error instanceof Error &&
+        (error.message.includes('organizations_url_unique') || error.message.includes('duplicate key value'))
+      ) {
+        return res.status(409).json({ message: "Organization URL already in use" });
+      }
+
       res.status(500).json({ message: "Failed to create organization", error: error instanceof Error ? error.message : String(error) });
     }
   });

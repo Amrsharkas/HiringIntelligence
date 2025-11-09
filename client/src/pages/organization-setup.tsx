@@ -19,6 +19,11 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 
 const createOrgSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
+  url: z
+    .string()
+    .trim()
+    .min(1, "Organization URL is required")
+    .max(255, "URL must be 255 characters or less"),
   industry: z.string().min(1, "Industry is required"),
   companySize: z.string().min(1, "Company size is required"),
   description: z.string().optional(),
@@ -60,11 +65,14 @@ export default function OrganizationSetup() {
   const { logoutMutation } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("create");
+  const [urlStatus, setUrlStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle');
+  const [urlFeedback, setUrlFeedback] = useState<string>("");
 
   const createForm = useForm<CreateOrgData>({
     resolver: zodResolver(createOrgSchema),
     defaultValues: {
       companyName: "",
+      url: "",
       industry: "",
       companySize: "",
       description: "",
@@ -97,7 +105,10 @@ export default function OrganizationSetup() {
 
   const createOrgMutation = useMutation({
     mutationFn: async (data: CreateOrgData) => {
-      const response = await apiRequest("POST", "/api/organizations", data);
+      const response = await apiRequest("POST", "/api/organizations", {
+        ...data,
+        url: data.url.trim(),
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -121,9 +132,13 @@ export default function OrganizationSetup() {
         }, 500);
         return;
       }
+      const message =
+        error instanceof Error && error.message.includes("Organization URL already in use")
+          ? "Organization URL already in use"
+          : error.message || "Failed to create organization. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to create organization. Please try again.",
+        description: message,
         variant: "destructive",
       });
     },
@@ -178,6 +193,51 @@ export default function OrganizationSetup() {
   const handleLogout = () => {
     logoutMutation.mutate();
   };
+
+  const urlValue = createForm.watch("url");
+
+  useEffect(() => {
+    const trimmed = (urlValue || "").trim();
+
+    if (!trimmed) {
+      setUrlStatus('idle');
+      setUrlFeedback('');
+      return;
+    }
+
+    let cancelled = false;
+    setUrlStatus('checking');
+    setUrlFeedback('');
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await apiRequest(
+          "GET",
+          `/api/organizations/check-url?url=${encodeURIComponent(trimmed)}`
+        );
+        const data = await response.json();
+
+        if (cancelled) return;
+
+        if (data.available) {
+          setUrlStatus('available');
+          setUrlFeedback('URL is available');
+        } else {
+          setUrlStatus('taken');
+          setUrlFeedback('URL is already in use');
+        }
+      } catch (error) {
+        if (cancelled) return;
+        setUrlStatus('error');
+        setUrlFeedback(error instanceof Error ? error.message : 'Unable to check URL');
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [urlValue]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-6">
@@ -240,6 +300,34 @@ export default function OrganizationSetup() {
                     {createForm.formState.errors.companyName && (
                       <p className="text-red-500 text-sm mt-1">
                         {createForm.formState.errors.companyName.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="url">Organization URL</Label>
+                    <Input
+                      id="url"
+                      {...createForm.register("url")}
+                      placeholder="Choose a unique URL"
+                      className="mt-2"
+                    />
+                    {createForm.formState.errors.url && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {createForm.formState.errors.url.message}
+                      </p>
+                    )}
+                    {urlStatus !== 'idle' && urlFeedback && (
+                      <p
+                        className={`text-sm mt-1 ${
+                          urlStatus === 'available'
+                            ? 'text-green-600'
+                            : urlStatus === 'checking'
+                            ? 'text-slate-500'
+                            : 'text-red-500'
+                        }`}
+                      >
+                        {urlStatus === 'checking' ? 'Checking availability…' : urlFeedback}
                       </p>
                     )}
                   </div>
@@ -313,7 +401,11 @@ export default function OrganizationSetup() {
 
                   <Button
                     type="submit"
-                    disabled={createOrgMutation.isPending}
+                    disabled={
+                      createOrgMutation.isPending ||
+                      urlStatus === 'checking' ||
+                      urlStatus === 'taken'
+                    }
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   >
                     {createOrgMutation.isPending && (
