@@ -360,14 +360,6 @@ const LiveRecentActivity = memo(() => {
       });
     }
 
-    // Always show sync activity
-    activities.push({
-      id: 'sync-active',
-      color: 'bg-emerald-600 dark:bg-emerald-400',
-      text: 'Real-time Airtable sync running smoothly',
-      time: '1 minute ago'
-    });
-
     // Take only first 3 items to fit the UI
     return activities.slice(0, 3);
   };
