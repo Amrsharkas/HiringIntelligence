@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Upload, File, X, Loader2, FileText } from 'lucide-react';
+import { Upload, File, X, Loader2, FileText, Search, Briefcase } from 'lucide-react';
 
 
 interface ResumeSearcherModalProps {
@@ -19,11 +18,10 @@ interface ResumeSearcherModalProps {
 
 export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProps) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'upload'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'results'>('upload');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [customRules, setCustomRules] = useState<string>('');
-const [hasSubmittedProcessing, setHasSubmittedProcessing] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch company job postings
@@ -228,15 +226,12 @@ const [hasSubmittedProcessing, setHasSubmittedProcessing] = useState<boolean>(fa
       // Refresh credit balance after processing starts
       queryClient.invalidateQueries({ queryKey: ['/api/organizations/current/credits'] });
 
-setHasSubmittedProcessing(true);
       clearAllFiles();
       setActiveTab('results');
 
       // Refresh profiles list after a delay to allow for processing
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
-        // Hide the notice after profiles are refreshed (even if empty)
-        setHasSubmittedProcessing(false);
       }, 5000);
     },
     onError: (error: Error) => {
@@ -364,7 +359,7 @@ setHasSubmittedProcessing(true);
                     onChange={handleFileSelect}
                     className="hidden"
                   />
-                  
+
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -375,7 +370,7 @@ setHasSubmittedProcessing(true);
                       <Upload className="h-4 w-4" />
                       Select Files
                     </Button>
-                    
+
                     {selectedFiles.length > 0 && (
                       <Button
                         type="button"
@@ -466,8 +461,8 @@ setHasSubmittedProcessing(true);
               </CardContent>
             </Card>
           </div>
-  
-            </div>
+        )}
+        </div>
       </DialogContent>
     </Dialog>
   );
