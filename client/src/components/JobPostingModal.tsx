@@ -823,6 +823,27 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                 )}
                 <p className="text-xs text-slate-500 mt-1">Language in which interviews will be conducted</p>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-orange-600" />
+                  Score Matching Threshold
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...form.register("scoreMatchingThreshold", { valueAsNumber: true })}
+                  placeholder="30"
+                  className="mt-2"
+                />
+                {form.formState.errors.scoreMatchingThreshold && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.scoreMatchingThreshold.message as any}</p>
+                )}
+                <p className="text-xs text-slate-500 mt-1">Only candidates with a score ≥ this value will be saved.</p>
+              </div>
               <div>
                 <Label className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-purple-600" />
