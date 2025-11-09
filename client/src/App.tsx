@@ -9,6 +9,7 @@ import { usePendingInvitation } from "@/hooks/usePendingInvitation";
 import Landing from "@/pages/landing";
 import EmployerDashboard from "@/pages/employer-dashboard";
 import OrganizationSetup from "@/pages/organization-setup";
+import ResumeProfiles from "@/pages/resume-profiles";
 import { AcceptInvitation } from "@/pages/AcceptInvitation";
 import InviteAccept from "@/pages/InviteAccept";
 import NotFound from "@/pages/not-found";
@@ -87,6 +88,7 @@ function Router() {
         <>
           <Route path="/dashboard" component={EmployerDashboard} />
           <Route path="/employer-dashboard" component={EmployerDashboard} />
+          <Route path="/resume-profiles" component={ResumeProfiles} />
           <Route path="/organization-setup" component={EmployerDashboard} />
           <Route path="/" component={DashboardRedirect} />
         </>

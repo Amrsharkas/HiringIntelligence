@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle, Mail } from "lucide-react";
+import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle, Mail, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -40,6 +40,7 @@ const jobFormSchema = z.object({
     language: z.string(),
     fluency: z.string()
   })).default([]),
+  interviewLanguage: z.string().optional(),
   certifications: z.string().optional(),
   // Score matching threshold: 0-100
   scoreMatchingThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(30),
@@ -117,7 +118,7 @@ const INDUSTRIES = [
 
 const LANGUAGES = [
   "Arabic",
-  "English", 
+  "English",
   "French",
   "German",
   "Spanish",
@@ -126,6 +127,11 @@ const LANGUAGES = [
   "Chinese",
   "Japanese",
   "Russian"
+];
+
+const INTERVIEW_LANGUAGES = [
+  "Arabic",
+  "English"
 ];
 
 const FLUENCY_LEVELS = [
@@ -285,6 +291,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         seniorityLevel: editJob.seniorityLevel || "",
         industry: editJob.industry || "",
         languagesRequired: editJob.languagesRequired || [],
+        interviewLanguage: editJob.interviewLanguage || "no-preference",
         certifications: editJob.certifications || "",
       });
       setSelectedSoftSkills(editJob.softSkills || []);
@@ -603,6 +610,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       employerQuestions: employerQuestionsArray,
       aiPrompt: data.aiPrompt || "",
       languagesRequired: validLanguages,
+      // Handle interview language - convert "no-preference" to empty string
+      interviewLanguage: data.interviewLanguage === "no-preference" ? "" : data.interviewLanguage,
       // Convert salary values to numbers if they exist
       salaryMin: data.salaryMin ? parseInt(data.salaryMin) : undefined,
       salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
@@ -787,20 +796,32 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
               </div>
               <div>
                 <Label className="flex items-center gap-2">
-                  Score Matching Threshold
+                  <Languages className="w-4 h-4 text-indigo-600" />
+                  Interview Language
                 </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  {...form.register("scoreMatchingThreshold", { valueAsNumber: true })}
-                  placeholder="30"
-                  className="mt-2"
+                <Controller
+                  name="interviewLanguage"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value || "no-preference"}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select interview language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no-preference">No preference</SelectItem>
+                        {INTERVIEW_LANGUAGES.map((language) => (
+                          <SelectItem key={language} value={language}>
+                            {language}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
-                {form.formState.errors.scoreMatchingThreshold && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.scoreMatchingThreshold.message as any}</p>
+                {form.formState.errors.interviewLanguage && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.interviewLanguage.message}</p>
                 )}
-                <p className="text-xs text-slate-500 mt-1">Only candidates with a score ≥ this value will be saved.</p>
+                <p className="text-xs text-slate-500 mt-1">Language in which interviews will be conducted</p>
               </div>
               <div>
                 <Label className="flex items-center gap-2">

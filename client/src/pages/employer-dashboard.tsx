@@ -22,7 +22,8 @@ import {
   Calendar,
   UserPlus,
   Sparkles,
-  Crown
+  Crown,
+  FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
@@ -672,16 +673,24 @@ export default function EmployerDashboard() {
                   <Plus className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-3" />
                   Create New Job Posting
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full justify-start text-left hover:bg-green-50 dark:hover:bg-green-900/30"
                   onClick={() => setIsCandidatesModalOpen(true)}
                 >
                   <Eye className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
                   Resume Searcher
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                  onClick={() => setLocation('/resume-profiles')}
+                >
+                  <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mr-3" />
+                  View All Resume Profiles
+                </Button>
+                <Button
+                  variant="ghost"
                   className="w-full justify-start text-left hover:bg-purple-50 dark:hover:bg-purple-900/30"
                   onClick={() => setIsAcceptedApplicantsModalOpen(true)}
                 >

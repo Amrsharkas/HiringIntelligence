@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { X, Edit, Trash2, Users, Eye, DollarSign, Calendar } from "lucide-react";
+import { X, Edit, Trash2, Users, Eye, DollarSign, Calendar, MapPin, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -197,6 +197,21 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
                             <Eye className="w-4 h-4" />
                             {job.views || 0} views
                           </span>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
+                          {job.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {job.location}
+                            </span>
+                          )}
+                          {job.interviewLanguage && (
+                            <span className="flex items-center gap-1">
+                              <Languages className="w-4 h-4" />
+                              Interview: {job.interviewLanguage}
+                            </span>
+                          )}
                         </div>
 
                         {/* Skills Display */}

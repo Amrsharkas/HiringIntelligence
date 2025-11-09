@@ -263,6 +263,7 @@ export const jobs = pgTable("jobs", {
   seniorityLevel: varchar("seniority_level").notNull(),
   industry: varchar("industry").notNull(),
   languagesRequired: jsonb("languages_required"),
+  interviewLanguage: varchar("interview_language"),
   certifications: text("certifications"),
   organizationId: varchar("organization_id"),
   createdById: varchar("created_by_id"),
