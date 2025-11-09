@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { X, Edit, Trash2, Users, Eye, DollarSign, Calendar, MapPin, Languages } from "lucide-react";
+import { X, Edit, Trash2, Users, Eye, DollarSign, Calendar, MapPin, Languages, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -80,6 +80,25 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
   const handleDeleteJob = (jobId: number, jobTitle: string) => {
     if (window.confirm(`Are you sure you want to delete "${jobTitle}"?`)) {
       deleteJobMutation.mutate(jobId);
+    }
+  };
+
+  const handleShareJob = async (jobId: number, jobTitle: string) => {
+    const applicantsAppUrl = import.meta.env.VITE_APPLICANTS_APP_URL || '';
+    const shareLink = `${applicantsAppUrl}/jobs/${jobId}`;
+
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      toast({
+        title: "Link Copied!",
+        description: `Share link for "${jobTitle}" has been copied to clipboard.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy link to clipboard. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -257,6 +276,15 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
                       </div>
                       
                       <div className="flex items-center gap-2 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleShareJob(job.id, job.title)}
+                          className="text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
+                          title="Copy share link"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
