@@ -40,15 +40,15 @@ export class SubscriptionService {
         {
           name: 'Starter',
           description: '200 AI Credits/month (~40 engaged candidates/month)',
-          monthlyPrice: 1450000, // 14,500 EGP in cents
-          yearlyPrice: 1189000,  // 11,890 EGP (18% discount)
-          monthlyCredits: 200,
+          monthlyPrice: 2900000,
+          yearlyPrice: 2900000 * (1-0.18) * 12,
+          monthlyCredits: 300,
           jobPostsLimit: 5,
           supportLevel: 'standard',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            creditsPerMonth: 200,
+            creditsPerMonth: 300,
             jobPosts: 5,
           },
           sortOrder: 1,
@@ -56,16 +56,16 @@ export class SubscriptionService {
         {
           name: 'Growth',
           description: '700 AI Credits/month (~140 engaged candidates/month)',
-          monthlyPrice: 3900000, // 39,000 EGP
-          yearlyPrice: 3198000,  // 31,980 EGP (18% discount)
-          monthlyCredits: 700,
+          monthlyPrice: 3900000,
+          yearlyPrice: 3900000 * (1-0.18) * 12,
+          monthlyCredits: 600,
           jobPostsLimit: 20,
           supportLevel: 'priority',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            creditsPerMonth: 700,
-            jobPosts: 20,
+            creditsPerMonth: 600,
+            jobPosts: 15,
             prioritySupport: true,
           },
           sortOrder: 2,
@@ -73,15 +73,15 @@ export class SubscriptionService {
         {
           name: 'Pro',
           description: '1,900 AI Credits/month (~380 engaged candidates/month)',
-          monthlyPrice: 9500000, // 95,000 EGP
-          yearlyPrice: 7790000,  // 77,900 EGP (18% discount)
-          monthlyCredits: 1900,
+          monthlyPrice: 4900000,
+          yearlyPrice: 4900000 * (1-0.18) * 12,
+          monthlyCredits: 1000,
           jobPostsLimit: null, // Unlimited
           supportLevel: 'priority',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            creditsPerMonth: 1900,
+            creditsPerMonth: 1000,
             jobPosts: 'unlimited',
             prioritySupport: true,
           },
@@ -89,11 +89,11 @@ export class SubscriptionService {
         },
         {
           name: 'Enterprise',
-          description: '3,500 AI Credits/month (~700 engaged candidates/month)',
-          monthlyPrice: 15500000, // 155,000 EGP
-          yearlyPrice: 12710000,  // 127,100 EGP (18% discount)
+          description: 'Custom',
+          monthlyPrice: 0,
+          yearlyPrice: 0,
           monthlyCredits: 3500,
-          jobPostsLimit: null, // Unlimited
+          jobPostsLimit: null,
           supportLevel: 'dedicated',
           features: {
             aiCvAnalysis: true,

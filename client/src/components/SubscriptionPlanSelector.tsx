@@ -214,16 +214,26 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
                   
                   <div className="mt-4">
-                    <div className="flex items-baseline">
-                      <span className="text-3xl font-bold">
-                        {formatPrice(pricePerMonth)}
-                      </span>
-                      <span className="text-slate-500 ml-2">EGP/month</span>
-                    </div>
-                    {isYearly && (
-                      <p className="text-sm text-slate-500 mt-1">
-                        Billed {formatPrice(price)} EGP yearly
-                      </p>
+                    {price === 0 ? (
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold text-rose-600 dark:text-rose-400">
+                          Contact Us
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-baseline">
+                          <span className="text-3xl font-bold">
+                            {formatPrice(pricePerMonth)}
+                          </span>
+                          <span className="text-slate-500 ml-2">EGP/month</span>
+                        </div>
+                        {isYearly && (
+                          <p className="text-sm text-slate-500 mt-1">
+                            Billed {formatPrice(price)} EGP yearly
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </CardHeader>
@@ -284,6 +294,8 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Processing...
                       </>
+                    ) : price === 0 ? (
+                      'Contact Us'
                     ) : (
                       <>
                         Get Started

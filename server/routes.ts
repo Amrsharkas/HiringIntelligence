@@ -564,7 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin: Complete subscription system setup (one-time setup)
-  app.post('/api/subscriptions/setup', requireAuth, async (req: any, res) => {
+  app.get('/api/subscriptions/setup', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
