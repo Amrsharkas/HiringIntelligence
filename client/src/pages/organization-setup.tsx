@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, Users, Plus, Loader2, LogOut } from "lucide-react";
@@ -39,15 +39,20 @@ type JoinOrgData = z.infer<typeof joinOrgSchema>;
 
 const INDUSTRIES = [
   "Technology",
-  "Healthcare", 
-  "Finance",
+  "Marketing",
   "Education",
+  "Finance",
+  "Legal",
+  "Healthcare",
   "Retail",
   "Manufacturing",
   "Consulting",
-  "Media & Entertainment",
-  "Non-profit",
+  "Real Estate",
+  "Media",
   "Government",
+  "Non-profit",
+  "Construction",
+  "Transportation",
   "Other"
 ];
 
@@ -339,18 +344,14 @@ export default function OrganizationSetup() {
                         name="industry"
                         control={createForm.control}
                         render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Select industry" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {INDUSTRIES.map((industry) => (
-                                <SelectItem key={industry} value={industry}>
-                                  {industry}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Combobox
+                            options={INDUSTRIES}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Select or create industry..."
+                            allowCustomValue={true}
+                            className="mt-2"
+                          />
                         )}
                       />
                       {createForm.formState.errors.industry && (
@@ -366,18 +367,14 @@ export default function OrganizationSetup() {
                         name="companySize"
                         control={createForm.control}
                         render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Select size" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {COMPANY_SIZES.map((size) => (
-                                <SelectItem key={size} value={size}>
-                                  {size}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Combobox
+                            options={COMPANY_SIZES}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Select or create size..."
+                            allowCustomValue={true}
+                            className="mt-2"
+                          />
                         )}
                       />
                       {createForm.formState.errors.companySize && (

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -689,18 +688,14 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   name="employmentType"
                   control={form.control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select employment type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EMPLOYMENT_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={EMPLOYMENT_TYPES}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select or create employment type..."
+                      allowCustomValue={true}
+                      className="mt-2"
+                    />
                   )}
                 />
                 {form.formState.errors.employmentType && (
@@ -713,18 +708,14 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   name="workplaceType"
                   control={form.control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select workplace type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WORKPLACE_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={WORKPLACE_TYPES}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select or create workplace type..."
+                      allowCustomValue={true}
+                      className="mt-2"
+                    />
                   )}
                 />
                 {form.formState.errors.workplaceType && (
@@ -740,18 +731,14 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   name="seniorityLevel"
                   control={form.control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select seniority level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SENIORITY_LEVELS.map((level) => (
-                          <SelectItem key={level} value={level}>
-                            {level}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={SENIORITY_LEVELS}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select or create seniority level..."
+                      allowCustomValue={true}
+                      className="mt-2"
+                    />
                   )}
                 />
                 {form.formState.errors.seniorityLevel && (
@@ -804,19 +791,14 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   name="interviewLanguage"
                   control={form.control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value || "no-preference"}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select interview language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="no-preference">No preference</SelectItem>
-                        {INTERVIEW_LANGUAGES.map((language) => (
-                          <SelectItem key={language} value={language}>
-                            {language}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={["No preference", ...INTERVIEW_LANGUAGES]}
+                      value={field.value === "" || !field.value ? "No preference" : field.value}
+                      onValueChange={(value) => field.onChange(value === "No preference" ? "no-preference" : value)}
+                      placeholder="Select or create interview language..."
+                      allowCustomValue={true}
+                      className="mt-2"
+                    />
                   )}
                 />
                 {form.formState.errors.interviewLanguage && (
@@ -883,18 +865,13 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                     name="salaryRange"
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select salary range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(usesEgpSalary ? EGP_SALARY_RANGES : SALARY_RANGES).map((range) => (
-                            <SelectItem key={range} value={range}>
-                              {range}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Combobox
+                        options={usesEgpSalary ? EGP_SALARY_RANGES : SALARY_RANGES}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select or create salary range..."
+                        allowCustomValue={true}
+                      />
                     )}
                   />
                 </div>
@@ -1001,26 +978,19 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
               <div>
                 <Label>Soft Skills</Label>
                 <div className="mt-2">
-                  <Select
+                  <Combobox
+                    options={SOFT_SKILLS.filter(skill => !selectedSoftSkills.includes(skill))}
+                    value=""
                     onValueChange={(value) => {
-                      if (!selectedSoftSkills.includes(value)) {
+                      if (value && !selectedSoftSkills.includes(value)) {
                         const newSkills = [...selectedSoftSkills, value];
                         setSelectedSoftSkills(newSkills);
                         form.setValue("softSkills", newSkills);
                       }
                     }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Add soft skills" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOFT_SKILLS.filter(skill => !selectedSoftSkills.includes(skill)).map((skill) => (
-                        <SelectItem key={skill} value={skill}>
-                          {skill}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Add soft skills..."
+                    allowCustomValue={true}
+                  />
                   <div className="flex flex-wrap gap-2 mt-3">
                     {selectedSoftSkills.map((skill) => (
                       <Badge key={skill} variant="secondary" className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
@@ -1042,42 +1012,25 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
               <div>
                 <Label>Technical Skills</Label>
                 <div className="mt-2">
-                  <Select
+                  <Combobox
+                    options={[
+                      ...dynamicTechnicalSkills.filter(skill => !selectedTechnicalSkills.includes(skill)),
+                      ...TECHNICAL_SKILLS.filter(skill =>
+                        !selectedTechnicalSkills.includes(skill) &&
+                        !dynamicTechnicalSkills.includes(skill)
+                      )
+                    ]}
+                    value=""
                     onValueChange={(value) => {
-                      if (!selectedTechnicalSkills.includes(value)) {
+                      if (value && !selectedTechnicalSkills.includes(value)) {
                         const newSkills = [...selectedTechnicalSkills, value];
                         setSelectedTechnicalSkills(newSkills);
                         form.setValue("technicalSkills", newSkills);
                       }
                     }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={dynamicTechnicalSkills.length > 0 ? "Add AI-suggested skills" : "Add technical skills"} />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {dynamicTechnicalSkills.length > 0 ? (
-                        <>
-                          {dynamicTechnicalSkills.filter(skill => !selectedTechnicalSkills.includes(skill)).map((skill) => (
-                            <SelectItem key={skill} value={skill} className="bg-blue-50 dark:bg-blue-900/20">
-                              <div className="flex items-center gap-2">
-                                <Sparkles className="w-3 h-3 text-blue-500" />
-                                {skill}
-                              </div>
-                            </SelectItem>
-                          ))}
-                          <div className="border-t my-1"></div>
-                        </>
-                      ) : null}
-                      {TECHNICAL_SKILLS.filter(skill => 
-                        !selectedTechnicalSkills.includes(skill) && 
-                        !dynamicTechnicalSkills.includes(skill)
-                      ).map((skill) => (
-                        <SelectItem key={skill} value={skill}>
-                          {skill}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder={dynamicTechnicalSkills.length > 0 ? "Add AI-suggested skills..." : "Add technical skills..."}
+                    allowCustomValue={true}
+                  />
                   <div className="flex flex-wrap gap-2 mt-3">
                     {selectedTechnicalSkills.map((skill) => {
                       const isAiSuggested = dynamicTechnicalSkills.includes(skill);
@@ -1127,7 +1080,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                 {selectedLanguages.map((langReq, index) => (
                   <div key={index} className="flex gap-3 items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                     <div className="flex-1">
-                      <Select
+                      <Combobox
+                        options={LANGUAGES}
                         value={langReq.language}
                         onValueChange={(value) => {
                           const newLanguages = [...selectedLanguages];
@@ -1135,21 +1089,13 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                           setSelectedLanguages(newLanguages);
                           form.setValue("languagesRequired", newLanguages);
                         }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LANGUAGES.map((lang) => (
-                            <SelectItem key={lang} value={lang}>
-                              {lang}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Select or create language..."
+                        allowCustomValue={true}
+                      />
                     </div>
                     <div className="flex-1">
-                      <Select
+                      <Combobox
+                        options={FLUENCY_LEVELS}
                         value={langReq.fluency}
                         onValueChange={(value) => {
                           const newLanguages = [...selectedLanguages];
@@ -1157,18 +1103,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                           setSelectedLanguages(newLanguages);
                           form.setValue("languagesRequired", newLanguages);
                         }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select fluency level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FLUENCY_LEVELS.map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {level}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Select or create fluency level..."
+                        allowCustomValue={true}
+                      />
                     </div>
                     <Button
                       type="button"
