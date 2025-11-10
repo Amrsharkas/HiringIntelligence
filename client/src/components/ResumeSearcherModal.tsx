@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Upload, File, X, Loader2, FileText, Search, Briefcase } from 'lucide-react';
+import { CreditPurchaseModal } from './CreditPurchaseModal';
 
 
 interface ResumeSearcherModalProps {
@@ -22,6 +23,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [customRules, setCustomRules] = useState<string>('');
+  const [showCreditModal, setShowCreditModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch company job postings
@@ -205,23 +207,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     onError: (error: Error) => {
       // Check if it's a credit-related error
       if (error.message.includes('Insufficient credits') || error.message.includes('credit')) {
-        toast({
-          title: "Insufficient Credits",
-          description: error.message,
-          variant: "destructive",
-          action: (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                // Refresh credit balance and potentially show add credits modal
-                queryClient.invalidateQueries({ queryKey: ['/api/organizations/current/credits'] });
-              }}
-            >
-              Check Balance
-            </Button>
-          ),
-        });
+        // Show modal for adding credits instead of toast
+        setShowCreditModal(true);
       } else {
         toast({
           title: "Processing Failed to Start",
@@ -432,6 +419,17 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         )}
         </div>
       </DialogContent>
+
+      {/* Credit Purchase Modal */}
+      <CreditPurchaseModal
+        isOpen={showCreditModal}
+        onClose={() => setShowCreditModal(false)}
+        onSuccess={() => {
+          setShowCreditModal(false);
+          // Refresh credit balance after successful purchase
+          queryClient.invalidateQueries({ queryKey: ['/api/organizations/current/credits'] });
+        }}
+      />
     </Dialog>
   );
 }
