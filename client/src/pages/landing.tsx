@@ -680,16 +680,26 @@ export default function Landing() {
 
                     {/* Price */}
                     <div className="mb-6">
-                      <div className="flex items-baseline">
-                        <span className="text-4xl font-bold text-slate-900 dark:text-white">
-                          {formatPrice(pricePerMonth)}
-                        </span>
-                        <span className="text-slate-500 ml-2">EGP/month</span>
-                      </div>
-                      {isYearly && (
-                        <p className="text-sm text-slate-500 mt-1">
-                          Billed {formatPrice(price)} EGP yearly
-                        </p>
+                      {price === 0 ? (
+                        <div className="flex items-baseline">
+                          <span className="text-4xl font-bold text-rose-600 dark:text-rose-400">
+                            Contact Us
+                          </span>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-baseline">
+                            <span className="text-4xl font-bold text-slate-900 dark:text-white">
+                              {formatPrice(pricePerMonth)}
+                            </span>
+                            <span className="text-slate-500 ml-2">EGP/month</span>
+                          </div>
+                          {isYearly && (
+                            <p className="text-sm text-slate-500 mt-1">
+                              Billed {formatPrice(price)} EGP yearly
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -747,8 +757,8 @@ export default function Landing() {
                           : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
                       } text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300`}
                     >
-                      Get Started
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      {price === 0 ? 'Contact Us' : 'Get Started'}
+                      {price !== 0 && <ArrowRight className="w-4 h-4 ml-2" />}
                     </Button>
                   </motion.div>
                 );
