@@ -116,6 +116,13 @@ export function setupAuth(app: Express) {
       },
       async (_accessToken: any, _refreshToken: any, profile: any, done: any) => {
         try {
+          console.log('🔍 Google OAuth callback triggered, profile:', JSON.stringify({
+            id: profile.id,
+            email: profile.emails?.[0]?.value,
+            name: profile.name,
+            hasPhoto: !!profile.photos?.[0]?.value
+          }, null, 2));
+
           const email = profile.emails?.[0]?.value;
           const googleId = profile.id;
           const firstName = profile.name?.givenName || '';
@@ -123,21 +130,24 @@ export function setupAuth(app: Express) {
           const profileImageUrl = profile.photos?.[0]?.value;
 
           if (!email) {
+            console.error('❌ No email found in Google profile');
             return done(new Error('Email is required from Google profile'));
           }
 
+          console.log(`🔍 Processing Google OAuth for: ${email}, Google ID: ${googleId}`);
+
           // Check if user already exists with this Google ID
           let user = await storage.getUserByGoogleId(googleId);
-          if (user) {
+          if (user && user.role === "user") {
             console.log(`✅ Found existing Google user: ${user.email} (ID: ${user.id})`);
             return done(null, user);
           }
 
-          // Check if user exists with this email (account linking)
+          // Check if user exists with this email and same role (account linking)
           user = await storage.getUserByEmail(email);
-          if (user) {
-            // Link Google account to existing user
-            console.log(`🔗 Linking Google account to existing user: ${user.email} (ID: ${user.id})`);
+          if (user && user.role === "user") {
+            // Link Google account to existing user with 'user' role
+            console.log(`🔗 Linking Google account to existing user: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
             const updatedUser = await storage.updateUserGoogleAuth(user.id, {
               googleId,
               authProvider: 'google',
@@ -145,23 +155,52 @@ export function setupAuth(app: Express) {
             });
             console.log(`✅ Successfully linked Google account for: ${updatedUser.email}`);
             return done(null, updatedUser);
+          } else if (user && user.role !== "user") {
+            // Email exists but with different role - create new Google OAuth user with 'user' role
+            console.log(`📧 Email exists with different role (${user.role}) - creating new Google OAuth user: ${email}`);
+            try {
+              const newUser = await storage.createUser({
+                email,
+                password: await hashPassword(randomBytes(32).toString('hex')), // Random password for OAuth users
+                firstName,
+                lastName,
+                profileImageUrl,
+                isVerified: true, // Auto-verify Google users
+                googleId,
+                authProvider: 'google',
+                passwordNeedsSetup: false,
+                role: 'user', // Explicitly set role to 'user' for Google OAuth users
+              });
+              console.log(`✅ Created new Google OAuth user with 'user' role: ${email} (ID: ${newUser.id})`);
+              return done(null, newUser);
+            } catch (createError) {
+              console.error(`❌ Failed to create Google OAuth user:`, createError);
+              return done(createError as Error);
+            }
           }
 
           // Create new user from Google profile
-          const newUser = await storage.createUser({
-            email,
-            password: await hashPassword(randomBytes(32).toString('hex')), // Random password for OAuth users
-            firstName,
-            lastName,
-            profileImageUrl,
-            isVerified: true, // Auto-verify Google users
-            googleId,
-            authProvider: 'google',
-            passwordNeedsSetup: false,
-          });
+          console.log(`👤 Creating new Google user: ${email} (No existing user found)`);
+          try {
+            const newUser = await storage.createUser({
+              email,
+              password: await hashPassword(randomBytes(32).toString('hex')), // Random password for OAuth users
+              firstName,
+              lastName,
+              profileImageUrl,
+              isVerified: true, // Auto-verify Google users
+              googleId,
+              authProvider: 'google',
+              passwordNeedsSetup: false,
+              role: 'user', // Explicitly set role to 'user' for Google OAuth users
+            });
 
-          console.log(`✅ Created new Google user: ${email} (ID: ${newUser.id})`);
-          return done(null, newUser);
+            console.log(`✅ Created new Google user: ${email} (ID: ${newUser.id})`);
+            return done(null, newUser);
+          } catch (createError) {
+            console.error(`❌ Failed to create new Google user:`, createError);
+            return done(createError as Error);
+          }
         } catch (error) {
           console.error('Google OAuth error:', error);
           return done(error);
@@ -280,6 +319,15 @@ export function setupAuth(app: Express) {
           message: "Please verify your email address before logging in. Check your inbox for the verification email or request a new one.",
           requiresVerification: true,
           email: user.email
+        });
+      }
+
+      // Check if user has the required role (only "user" role allowed)
+      if (user.role !== "user") {
+        return res.status(403).json({
+          error: "Access denied",
+          message: "This login is only available for users with 'user' role. Your account has a different role.",
+          userRole: user.role
         });
       }
 
@@ -459,6 +507,16 @@ export function setupAuth(app: Express) {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Check if user has the required role (only "user" role allowed)
+      if (user.role !== "user") {
+        console.error(`❌ Test login access denied for user: ${user.email} - Role: ${user.role} (required: user)`);
+        return res.status(403).json({
+          error: "Access denied",
+          message: "This test login is only available for users with 'user' role",
+          userRole: user.role
+        });
+      }
+
       // Log the user in
       req.login(user, (loginErr) => {
         if (loginErr) {
@@ -488,7 +546,7 @@ export function setupAuth(app: Express) {
       // Successful authentication
       if (req.user) {
         const user = req.user as User;
-        console.log(`✅ Google OAuth successful for user: ${user.email} (ID: ${user.id})`);
+        console.log(`✅ Google OAuth successful for user: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
 
         // Ensure session is properly saved before redirect
         req.session.save((err) => {
