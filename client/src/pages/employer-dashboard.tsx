@@ -40,6 +40,7 @@ import { CreateInterviewModal } from "@/components/CreateInterviewModal";
 import { InterviewManagementModal } from "@/components/InterviewManagementModal";
 import AcceptedApplicantsModal from "@/components/AcceptedApplicantsModal";
 import { SubscriptionManagementModal } from "@/components/SubscriptionManagementModal";
+import { SettingsModal } from "@/components/SettingsModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -416,6 +417,7 @@ export default function EmployerDashboard() {
   const [isAcceptedApplicantsModalOpen, setIsAcceptedApplicantsModalOpen] = useState(false);
   const [selectedApplicantForInterview, setSelectedApplicantForInterview] = useState<any>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Get team members to check admin permissions
   const { data: teamMembers } = useQuery<any>({
@@ -506,7 +508,17 @@ export default function EmployerDashboard() {
           <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Credits and Plan Display */}
             <HeaderCreditsAndPlan onManageClick={() => setIsSubscriptionModalOpen(true)} />
-            
+
+            <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
+              style={{
+                transformOrigin: 'center',
+                transform: 'translateZ(0)'
+              }}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
             <button
               className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
               style={{
@@ -790,9 +802,14 @@ export default function EmployerDashboard() {
         onScheduleInterview={handleScheduleInterview}
       />
 
-      <SubscriptionManagementModal 
-        isOpen={isSubscriptionModalOpen} 
-        onClose={() => setIsSubscriptionModalOpen(false)} 
+      <SubscriptionManagementModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
       />
     </div>
   );

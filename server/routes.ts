@@ -10,7 +10,7 @@ import { creditService } from "./creditService";
 import { stripeService } from "./stripeService";
 import { subscriptionService } from "./subscriptionService";
 import { setupSubscriptionSystem } from "./setupSubscriptionSystem";
-import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema } from "@shared/schema";
+import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema, type InsertOrganization } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
 import { localDatabaseService } from "./localDatabaseService";
@@ -52,6 +52,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching organization:", error);
       res.status(500).json({ message: "Failed to fetch organization" });
+    }
+  });
+
+  // Update user's organization route
+  app.put('/api/organizations/current', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const orgData = req.body;
+
+      console.log("Updating organization for user:", userId);
+      console.log("Organization data:", orgData);
+
+      // Get user's current organization
+      const currentOrganization = await storage.getOrganizationByUser(userId);
+
+      if (!currentOrganization) {
+        return res.status(404).json({ message: "No organization found" });
+      }
+
+      // If URL is being updated, check if it's already taken by another organization
+      if (orgData.url && orgData.url !== currentOrganization.url) {
+        const existingOrg = await storage.getOrganizationByUrl(orgData.url);
+        if (existingOrg) {
+          return res.status(409).json({ message: "Organization URL already in use" });
+        }
+      }
+
+      // Update organization with only the allowed fields
+      const updates: Partial<InsertOrganization> = {
+        companyName: orgData.companyName,
+        url: orgData.url,
+        industry: orgData.industry,
+        companySize: orgData.companySize,
+        description: orgData.description,
+      };
+
+      // Remove undefined values
+      Object.keys(updates).forEach(key => {
+        if (updates[key as keyof typeof updates] === undefined) {
+          delete updates[key as keyof typeof updates];
+        }
+      });
+
+      const updatedOrganization = await storage.updateOrganization(currentOrganization.id, updates);
+
+      console.log("Updated organization:", updatedOrganization);
+      res.json(updatedOrganization);
+    } catch (error) {
+      console.error("Error updating organization:", error);
+      console.error("Error details:", error instanceof Error ? error.message : error);
+
+      if (
+        error instanceof Error &&
+        (error.message.includes('organizations_url_unique') || error.message.includes('duplicate key value'))
+      ) {
+        return res.status(409).json({ message: "Organization URL already in use" });
+      }
+
+      res.status(500).json({ message: "Failed to update organization" });
     }
   });
 
