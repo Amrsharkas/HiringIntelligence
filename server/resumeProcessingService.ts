@@ -102,14 +102,37 @@ export class ResumeProcessingService {
       try {
         const buffer = Buffer.from(fileData, 'base64');
 
-        // Determine file extension from mime type
+        // Determine file extension from mime type - support all file types
         let extension = '';
         if (fileType === 'application/pdf') extension = '.pdf';
         else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') extension = '.docx';
         else if (fileType === 'application/msword') extension = '.doc';
         else if (fileType === 'text/plain') extension = '.txt';
-        else if (fileType === 'application/rtf') extension = '.rtf';
-        else extension = '.dat'; // fallback for unknown types
+        else if (fileType === 'text/csv') extension = '.csv';
+        else if (fileType === 'text/html') extension = '.html';
+        else if (fileType === 'text/rtf' || fileType === 'application/rtf') extension = '.rtf';
+        else if (fileType === 'image/jpeg' || fileType === 'image/jpg') extension = '.jpg';
+        else if (fileType === 'image/png') extension = '.png';
+        else if (fileType === 'image/gif') extension = '.gif';
+        else if (fileType === 'image/tiff') extension = '.tiff';
+        else if (fileType === 'image/bmp') extension = '.bmp';
+        else if (fileType === 'application/vnd.ms-excel') extension = '.xls';
+        else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') extension = '.xlsx';
+        else if (fileType === 'application/vnd.ms-powerpoint') extension = '.ppt';
+        else if (fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') extension = '.pptx';
+        else if (fileType.startsWith('image/')) {
+          // Handle any image type
+          extension = '.' + fileType.split('/')[1];
+        }
+        else if (fileType.startsWith('text/')) {
+          // Handle any text type
+          extension = '.' + fileType.split('/')[1];
+        }
+        else if (fileType.startsWith('application/')) {
+          // Handle application types by using a generic .bin extension
+          extension = '.bin';
+        }
+        else extension = '.file'; // fallback for unknown types
 
         const inferredName = `resume${extension}`;
 

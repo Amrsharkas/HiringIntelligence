@@ -41,24 +41,9 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     const maxFileSize = 5 * 1024 * 1024; // 5MB limit
     
     const validFiles = files.filter(file => {
-      // Check file type
-      const isValidType = file.type === 'application/pdf' || 
-        file.type === 'text/plain' || 
-        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        file.type === 'application/msword';
-      
       // Check file size
       const isValidSize = file.size <= maxFileSize;
-      
-      if (!isValidType) {
-        toast({
-          title: "Invalid file type",
-          description: `${file.name} is not supported. Only PDF, DOC, DOCX, and TXT files are allowed.`,
-          variant: "destructive",
-        });
-        return false;
-      }
-      
+
       if (!isValidSize) {
         toast({
           title: "File too large",
@@ -67,7 +52,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         });
         return false;
       }
-      
+
       return true;
     });
     
@@ -91,42 +76,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   const extractTextFromFile = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
-      if (file.type === 'application/pdf') {
-        // For PDF files, we'll send the base64 data to the server for processing
-        reader.onload = (e) => {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          // Use a more efficient method for large files
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = '';
-          const chunkSize = 0x8000; // 32KB chunks
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            const chunk = bytes.subarray(i, i + chunkSize);
-            binary += String.fromCharCode.apply(null, Array.from(chunk));
-          }
-          const base64 = btoa(binary);
-          resolve(base64);
-        };
-        reader.onerror = () => reject(new Error('Failed to read PDF file'));
-        reader.readAsArrayBuffer(file);
-      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/msword') {
-        // For DOCX files, we'll send the base64 data to the server for processing
-        reader.onload = (e) => {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          // Use a more efficient method for large files
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = '';
-          const chunkSize = 0x8000; // 32KB chunks
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            const chunk = bytes.subarray(i, i + chunkSize);
-            binary += String.fromCharCode.apply(null, Array.from(chunk));
-          }
-          const base64 = btoa(binary);
-          resolve(base64);
-        };
-        reader.onerror = () => reject(new Error('Failed to read DOCX file'));
-        reader.readAsArrayBuffer(file);
-      } else {
+
+      if (file.type === 'text/plain' || file.type.startsWith('text/')) {
         // For text files, read as text
         reader.onload = (e) => {
           const text = e.target?.result as string;
@@ -134,6 +85,23 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         };
         reader.onerror = () => reject(new Error('Failed to read text file'));
         reader.readAsText(file);
+      } else {
+        // For all other files (PDF, images, documents, etc.), send base64 data to server for processing
+        reader.onload = (e) => {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          // Use a more efficient method for large files
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          const chunkSize = 0x8000; // 32KB chunks
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          const base64 = btoa(binary);
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name} file`));
+        reader.readAsArrayBuffer(file);
       }
     });
   };
@@ -345,7 +313,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                   Upload Resume Files
                 </CardTitle>
                 <CardDescription>
-                  Upload single or multiple resume files (PDF, DOC, DOCX, TXT) for AI analysis
+                  Upload single or multiple resume files (any format) for AI analysis
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -355,7 +323,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept=".pdf,.doc,.docx,.txt"
+                    accept="*"
                     onChange={handleFileSelect}
                     className="hidden"
                   />
@@ -455,8 +423,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
 
                 {/* File Format Help */}
                 <div className="text-xs text-muted-foreground">
-                  <p>Supported formats: PDF, DOC, DOCX, TXT (max 5MB per file)</p>
-                  <p>Note: Text extraction works best with text-based files. Scanned PDFs may not process correctly.</p>
+                  <p>Supported formats: All file types (max 5MB per file)</p>
+                  <p>Note: Text extraction works best with text-based and image-based files. The AI will attempt to extract text from any file format.</p>
                 </div>
               </CardContent>
             </Card>
