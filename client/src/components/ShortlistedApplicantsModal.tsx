@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Eye, Trash2, Calendar, User, Briefcase, StickyNote, CheckCircle, XCircle } from "lucide-react";
+import { Eye, Trash2, Calendar, User, Briefcase, StickyNote, XCircle, CalendarPlus } from "lucide-react";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 // Temporarily removing DetailedProfileModal import as it needs to be created separately
@@ -50,44 +50,22 @@ export function ShortlistedApplicantsModal({
   const queryClient = useQueryClient();
   const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedApplicantForSchedule, setSelectedApplicantForSchedule] = useState<any>(null);
+  const [interviewData, setInterviewData] = useState({
+    scheduledDate: '',
+    scheduledTime: '',
+    timeZone: 'UTC',
+    interviewType: 'video',
+    meetingLink: '',
+    notes: ''
+  });
 
   // Fetch shortlisted applicants from dedicated shortlisted endpoint
   const { data: shortlistedApplicants = [], isLoading } = useQuery<ShortlistedApplicant[]>({
     queryKey: ["/api/shortlisted-applicants"],
     enabled: isOpen,
     refetchOnWindowFocus: false,
-  });
-
-  const acceptApplicantMutation = useMutation({
-    mutationFn: async (shortlistId: string) => {
-      return await apiRequest("POST", `/api/shortlisted-applicants/${shortlistId}/accept`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/interviews"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
-      toast({
-        description: "Candidate accepted and moved to interviews",
-      });
-    },
-    onError: (error: any) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to accept candidate",
-        variant: "destructive",
-      });
-    },
   });
 
   const denyApplicantMutation = useMutation({
@@ -120,7 +98,47 @@ export function ShortlistedApplicantsModal({
     },
   });
 
-
+  const scheduleInterviewMutation = useMutation({
+    mutationFn: async (data: { shortlistId: string; interviewData: any }) => {
+      return await apiRequest("POST", `/api/shortlisted-applicants/${data.shortlistId}/schedule-interview`, data.interviewData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
+      setIsScheduleModalOpen(false);
+      setSelectedApplicantForSchedule(null);
+      setInterviewData({
+        scheduledDate: '',
+        scheduledTime: '',
+        timeZone: 'UTC',
+        interviewType: 'video',
+        meetingLink: '',
+        notes: ''
+      });
+      toast({
+        description: "Interview scheduled successfully",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to schedule interview",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleViewProfile = async (applicant: any) => {
     try {
@@ -191,10 +209,33 @@ export function ShortlistedApplicantsModal({
     }
   };
 
-  const handleAccept = (applicant: ShortlistedApplicant) => {
-    if (window.confirm("Accept this candidate and move them to interviews?")) {
-      acceptApplicantMutation.mutate(applicant.id);
+  const handleScheduleInterview = (applicant: ShortlistedApplicant) => {
+    setSelectedApplicantForSchedule(applicant);
+    setInterviewData({
+      scheduledDate: '',
+      scheduledTime: '',
+      timeZone: 'UTC',
+      interviewType: 'video',
+      meetingLink: '',
+      notes: ''
+    });
+    setIsScheduleModalOpen(true);
+  };
+
+  const handleSubmitSchedule = () => {
+    if (!selectedApplicantForSchedule || !interviewData.scheduledDate || !interviewData.scheduledTime) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
     }
+
+    scheduleInterviewMutation.mutate({
+      shortlistId: selectedApplicantForSchedule.id,
+      interviewData
+    });
   };
 
   const handleDeny = (applicant: ShortlistedApplicant) => {
@@ -266,12 +307,12 @@ export function ShortlistedApplicantsModal({
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => handleAccept(applicant)}
-                            disabled={acceptApplicantMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
+                            variant="outline"
+                            onClick={() => handleScheduleInterview(applicant)}
+                            className="border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 text-xs px-3 py-1.5 h-8"
                           >
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Accept
+                            <CalendarPlus className="h-3 w-3 mr-1" />
+                            Schedule Interview
                           </Button>
                           <Button
                             size="sm"
@@ -390,6 +431,146 @@ export function ShortlistedApplicantsModal({
                   </div>
                 )}
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Schedule Interview Modal */}
+      {isScheduleModalOpen && selectedApplicantForSchedule && (
+        <Dialog open={isScheduleModalOpen} onOpenChange={() => {
+          setIsScheduleModalOpen(false);
+          setSelectedApplicantForSchedule(null);
+        }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarPlus className="h-5 w-5 text-blue-600" />
+                Schedule Interview - {selectedApplicantForSchedule.name || selectedApplicantForSchedule.applicantName}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
+                  {selectedApplicantForSchedule.jobTitle}
+                </h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  {selectedApplicantForSchedule.email}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={interviewData.scheduledDate}
+                    onChange={(e) => setInterviewData({...interviewData, scheduledDate: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={interviewData.scheduledTime}
+                    onChange={(e) => setInterviewData({...interviewData, scheduledTime: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Time Zone *
+                  </label>
+                  <select
+                    value={interviewData.timeZone}
+                    onChange={(e) => setInterviewData({...interviewData, timeZone: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  >
+                    <option value="UTC">UTC</option>
+                    <option value="EST">Eastern (EST/EDT)</option>
+                    <option value="CST">Central (CST/CDT)</option>
+                    <option value="MST">Mountain (MST/MDT)</option>
+                    <option value="PST">Pacific (PST/PDT)</option>
+                    <option value="GMT">GMT</option>
+                    <option value="CET">Central European (CET)</option>
+                    <option value="JST">Japan (JST)</option>
+                    <option value="AEST">Australian Eastern (AEST)</option>
+                    <option value="IST">India (IST)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Interview Type
+                  </label>
+                  <select
+                    value={interviewData.interviewType}
+                    onChange={(e) => setInterviewData({...interviewData, interviewType: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  >
+                    <option value="video">Video Call</option>
+                    <option value="phone">Phone Call</option>
+                    <option value="in-person">In-Person</option>
+                  </select>
+                </div>
+              </div>
+
+              {interviewData.interviewType === 'video' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Meeting Link
+                  </label>
+                  <input
+                    type="url"
+                    value={interviewData.meetingLink}
+                    onChange={(e) => setInterviewData({...interviewData, meetingLink: e.target.value})}
+                    placeholder="https://zoom.us/j/..."
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  value={interviewData.notes}
+                  onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
+                  rows={3}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="Additional notes for the interview..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsScheduleModalOpen(false);
+                  setSelectedApplicantForSchedule(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitSchedule}
+                disabled={scheduleInterviewMutation.isPending || !interviewData.scheduledDate || !interviewData.scheduledTime}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {scheduleInterviewMutation.isPending ? 'Scheduling...' : 'Schedule Interview'}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

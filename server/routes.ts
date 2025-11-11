@@ -3442,6 +3442,118 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Schedule interview for shortlisted applicant (accept + schedule in one step)
+  app.post('/api/shortlisted-applicants/:id/schedule-interview', requireAuth, async (req: any, res) => {
+    try {
+      const shortlistId = req.params.id;
+      const userId = req.user?.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log(`✅ SCHEDULE SHORTLISTED: User ${userId} scheduling interview for shortlisted applicant ${shortlistId}...`);
+
+      const { scheduledDate, scheduledTime, timeZone, interviewType, meetingLink, notes } = req.body;
+
+      // Get shortlisted applicant details
+      const shortlistedApplicants = await storage.getShortlistedApplicants(userId);
+      const shortlistedApplicant = shortlistedApplicants.find(app => app.id === shortlistId);
+
+      if (!shortlistedApplicant) {
+        return res.status(404).json({ message: "Shortlisted applicant not found" });
+      }
+
+      // Get full applicant details from local database
+      const applicantDetails = await localDatabaseService.getJobApplication(shortlistedApplicant.applicantId);
+
+      if (!applicantDetails) {
+        return res.status(404).json({ message: "Applicant details not found" });
+      }
+
+      // Create interview record
+      const { realInterviews } = await import('@shared/schema');
+      const { nanoid } = await import('nanoid');
+      const { db } = await import('./db');
+
+      const interviewId = nanoid();
+      const interviewer = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || 'Unknown';
+
+      // Get candidate name - use applicantName or fallback to name
+      const candidateName = shortlistedApplicant.applicantName || shortlistedApplicant.name || 'Unknown Applicant';
+
+      const [interview] = await db.insert(realInterviews).values({
+        id: interviewId,
+        candidateName: candidateName,
+        candidateEmail: applicantDetails.name || '',
+        candidateId: shortlistedApplicant.applicantId,
+        jobId: shortlistedApplicant.jobId,
+        jobTitle: shortlistedApplicant.jobTitle,
+        scheduledDate,
+        scheduledTime,
+        timeZone: timeZone || 'UTC',
+        interviewType: interviewType || 'video',
+        meetingLink: meetingLink || '',
+        interviewer,
+        status: 'scheduled',
+        notes: notes || `Interview scheduled for shortlisted candidate`,
+        organizationId: organization.id.toString(),
+      }).returning();
+
+      // Remove from shortlist
+      await storage.removeFromShortlist(shortlistId);
+
+      console.log(`✅ SCHEDULE SUCCESS: Interview created for ${shortlistedApplicant.applicantName}`);
+
+      // Send email notification to the candidate
+      const finalEmail = (applicantDetails.name || '').trim();
+      if (finalEmail && finalEmail.includes('@')) {
+        try {
+          const { emailService } = await import('./emailService');
+          const { format } = await import('date-fns');
+
+          const formattedDate = format(new Date(scheduledDate), 'EEEE, MMMM do, yyyy');
+
+          const emailData = {
+            applicantName: shortlistedApplicant.applicantName,
+            applicantEmail: finalEmail,
+            interviewDate: formattedDate,
+            interviewTime: scheduledTime,
+            jobTitle: shortlistedApplicant.jobTitle,
+            companyName: organization.name || 'Company',
+            interviewType: interviewType || 'video',
+            meetingLink: meetingLink,
+            timeZone: timeZone || 'UTC',
+            notes: notes
+          };
+
+          const emailSent = await emailService.sendInterviewScheduledEmail(emailData);
+          if (emailSent) {
+            console.log(`✅ Interview notification email sent successfully`);
+          }
+        } catch (emailError) {
+          console.error("❌ EMAIL ERROR:", emailError);
+          // Don't fail the whole request if email fails
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Interview scheduled successfully",
+        interviewId: interviewId
+      });
+    } catch (error) {
+      console.error("❌ SCHEDULE ERROR:", error);
+      res.status(500).json({ message: "Failed to schedule interview", error: error.message });
+    }
+  });
+
   // Deny shortlisted applicant (remove from shortlist)
   app.post('/api/shortlisted-applicants/:id/deny', requireAuth, async (req: any, res) => {
     try {
