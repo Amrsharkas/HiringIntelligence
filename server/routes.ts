@@ -1690,13 +1690,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Use local database service instead of Airtable
           const applicantDetails = await localDatabaseService.getJobApplication(shortlisted.applicantId);
           if (applicantDetails) {
+            console.log(`📋 Applicant details for ${shortlisted.applicantId}:`, {
+              name: applicantDetails.name,
+              applicantName: shortlisted.applicantName,
+              applicantEmail: applicantDetails.applicantEmail
+            });
+
             enrichedApplicants.push({
               id: shortlisted.id,
               employerId: shortlisted.employerId,
               applicantId: shortlisted.applicantId,
               applicantName: shortlisted.applicantName,
-              name: applicantDetails.name,
-              email: applicantDetails.name, // Using name as placeholder
+              name: applicantDetails.applicantName || shortlisted.applicantName || 'Unknown Applicant',
+              email: applicantDetails.applicantEmail || applicantDetails.email || 'No email available',
               jobTitle: shortlisted.jobTitle,
               jobId: shortlisted.jobId,
               note: shortlisted.note,
@@ -1705,6 +1711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               createdAt: shortlisted.createdAt,
               updatedAt: shortlisted.updatedAt,
               // Include all the applicant details for display
+              applicantUserId: applicantDetails.applicantUserId,
               userProfile: applicantDetails.userProfile,
               companyName: applicantDetails.companyName,
               jobDescription: applicantDetails.jobDescription,
@@ -1714,11 +1721,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               experienceScore: applicantDetails.experienceScore,
               culturalFitScore: applicantDetails.culturalFitScore,
             });
+          } else {
+            console.log(`⚠️ No applicant details found for ${shortlisted.applicantId}, using shortlisted data`);
+            enrichedApplicants.push({
+              ...shortlisted,
+              name: shortlisted.applicantName || 'Unknown Applicant',
+              email: 'No email available',
+            });
           }
         } catch (error) {
           console.error(`❌ Error enriching applicant ${shortlisted.applicantId}:`, error);
           // Include basic info even if enrichment fails
-          enrichedApplicants.push(shortlisted);
+          enrichedApplicants.push({
+            ...shortlisted,
+            name: shortlisted.applicantName || 'Unknown Applicant',
+            email: 'No email available',
+          });
         }
       }
       

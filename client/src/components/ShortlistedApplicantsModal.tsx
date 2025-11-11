@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Eye, Trash2, Calendar, User, Briefcase, StickyNote, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
+import ReactMarkdown from "react-markdown";
 // Temporarily removing DetailedProfileModal import as it needs to be created separately
 
 interface ShortlistedApplicant {
@@ -25,6 +26,7 @@ interface ShortlistedApplicant {
   dateShortlisted: string;
   createdAt: string;
   updatedAt: string;
+  applicantUserId?: string;
   userProfile?: string;
   companyName?: string;
   jobDescription?: string;
@@ -122,34 +124,69 @@ export function ShortlistedApplicantsModal({
 
   const handleViewProfile = async (applicant: any) => {
     try {
-      console.log('🔍 SHORTLISTED: Fetching profile for:', applicant.name);
-      
-      // Use public profile endpoint
-      const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.name)}`);
-      if (response.ok) {
-        const userProfile = await response.json();
+      console.log('🔍 SHORTLISTED: Fetching profile for:', applicant.name, 'User ID:', applicant.applicantUserId);
+
+      // Show modal immediately with applicant data
+      setSelectedApplicant(applicant);
+      setIsProfileModalOpen(true);
+
+      // Fetch profile in background
+      let profileResponse;
+      if (applicant.applicantUserId) {
+        profileResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.applicantUserId)}`);
+      } else {
+        // Fallback to using name if applicantUserId is not available
+        profileResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.name)}`);
+      }
+
+      if (profileResponse.ok) {
+        const userProfile = await profileResponse.json();
         console.log('✅ SHORTLISTED: Profile fetched successfully:', userProfile);
-        setSelectedApplicant({
-          ...applicant,
+        setSelectedApplicant(prev => ({
+          ...prev,
           userProfile: userProfile.userProfile,
           profileData: userProfile
-        });
+        }));
       } else {
-        console.error('❌ SHORTLISTED: Failed to fetch profile:', response.status);
-        setSelectedApplicant({
-          ...applicant,
-          userProfile: null,
-          profileData: null
-        });
+        console.error('❌ SHORTLISTED: Failed to fetch profile:', profileResponse.status);
+        // Try with name as fallback if we used userId first
+        if (applicant.applicantUserId) {
+          try {
+            const fallbackResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.name)}`);
+            if (fallbackResponse.ok) {
+              const fallbackProfile = await fallbackResponse.json();
+              console.log('✅ SHORTLISTED: Fallback profile fetched successfully:', fallbackProfile);
+              setSelectedApplicant(prev => ({
+                ...prev,
+                userProfile: fallbackProfile.userProfile,
+                profileData: fallbackProfile
+              }));
+            } else {
+              setSelectedApplicant(prev => ({
+                ...prev,
+                userProfile: null,
+                profileData: null
+              }));
+            }
+          } catch (fallbackError) {
+            console.error('❌ SHORTLISTED: Fallback profile fetch failed:', fallbackError);
+            setSelectedApplicant(prev => ({
+              ...prev,
+              userProfile: null,
+              profileData: null
+            }));
+          }
+        } else {
+          setSelectedApplicant(prev => ({
+            ...prev,
+            userProfile: null,
+            profileData: null
+          }));
+        }
       }
-      setIsProfileModalOpen(true);
     } catch (error) {
       console.error('❌ SHORTLISTED: Error fetching profile:', error);
-      setSelectedApplicant({
-        ...applicant,
-        userProfile: null,
-        profileData: null
-      });
+      setSelectedApplicant(applicant);
       setIsProfileModalOpen(true);
     }
   };
@@ -167,7 +204,9 @@ export function ShortlistedApplicantsModal({
   };
 
   const handleDecline = (applicantId: string) => {
-    declineMutation.mutate(applicantId);
+    if (window.confirm("Remove this candidate from your shortlist?")) {
+      denyApplicantMutation.mutate(applicantId);
+    }
   };
 
   return (
@@ -208,7 +247,7 @@ export function ShortlistedApplicantsModal({
                         <div className="space-y-1">
                           <CardTitle className="text-lg flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            {applicant.name}
+                            {applicant.name || applicant.applicantName || 'Unknown Applicant'}
                           </CardTitle>
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Briefcase className="h-4 w-4" />
@@ -284,7 +323,7 @@ export function ShortlistedApplicantsModal({
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                Profile Details - {selectedApplicant.name}
+                Profile Details - {selectedApplicant.name || selectedApplicant.applicantName || 'Unknown Applicant'}
               </DialogTitle>
             </DialogHeader>
             
@@ -294,7 +333,7 @@ export function ShortlistedApplicantsModal({
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
-                      {selectedApplicant.name}
+                      {selectedApplicant.name || selectedApplicant.applicantName || 'Unknown Applicant'}
                     </h2>
                     <p className="text-lg text-slate-600 dark:text-slate-400 mb-1">
                       {selectedApplicant.jobTitle}
@@ -315,23 +354,32 @@ export function ShortlistedApplicantsModal({
                   Comprehensive Profile
                 </h3>
                 
-                {selectedApplicant.userProfile ? (
-                  <div className="prose prose-slate dark:prose-invert max-w-none">
-                    <div 
-                      className="whitespace-pre-wrap text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{ 
-                        __html: selectedApplicant.userProfile
-                          .replace(/^# /gm, '<h1 class="text-xl font-bold mt-6 mb-3">')
-                          .replace(/^## /gm, '<h2 class="text-lg font-semibold mt-4 mb-2">')
-                          .replace(/^### /gm, '<h3 class="text-md font-medium mt-3 mb-2">')
-                          .replace(/^\*\*(.*?)\*\*/gm, '<strong>$1</strong>')
-                          .replace(/^\* (.*?)$/gm, '<li>$1</li>')
-                          .replace(/^• (.*?)$/gm, '<li>$1</li>')
-                          .replace(/\n\n/g, '</p><p>')
-                          .replace(/^(?!<[h|l])/gm, '<p>')
-                          .replace(/$(?![>])/gm, '</p>')
+                {selectedApplicant.userProfile && typeof selectedApplicant.userProfile === 'string' ? (
+                  <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({children}) => <h1 className="text-xl font-bold mt-6 mb-3">{children}</h1>,
+                        h2: ({children}) => <h2 className="text-lg font-semibold mt-4 mb-2">{children}</h2>,
+                        h3: ({children}) => <h3 className="text-md font-medium mt-3 mb-2">{children}</h3>,
+                        p: ({children}) => <p className="mb-4">{children}</p>,
+                        ul: ({children}) => <ul className="list-disc list-inside mb-4">{children}</ul>,
+                        ol: ({children}) => <ol className="list-decimal list-inside mb-4">{children}</ol>,
+                        li: ({children}) => <li className="mb-1">{children}</li>,
+                        strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                        em: ({children}) => <em className="italic">{children}</em>,
+                        blockquote: ({children}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">{children}</blockquote>,
+                        code: ({inline, children}) =>
+                          inline ? (
+                            <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm">{children}</code>
+                          ) : (
+                            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto mb-4">
+                              <code>{children}</code>
+                            </pre>
+                          )
                       }}
-                    />
+                    >
+                      {selectedApplicant.userProfile}
+                    </ReactMarkdown>
                   </div>
                 ) : (
                   <div className="text-center py-8">
