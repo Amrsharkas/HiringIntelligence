@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
 import { ActiveJobsModal } from "@/components/ActiveJobsModal";
 import { ResumeSearcherModal } from "@/components/ResumeSearcherModal";
+import { ResumeSearchModal } from "@/components/ResumeSearchModal";
 
 import { AnalyticsModal } from "@/components/AnalyticsModal";
 import { ApplicantsModal } from "@/components/ApplicantsModal";
@@ -404,6 +405,7 @@ export default function EmployerDashboard() {
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [isActiveJobsModalOpen, setIsActiveJobsModalOpen] = useState(false);
   const [isCandidatesModalOpen, setIsCandidatesModalOpen] = useState(false);
+  const [isResumeSearchModalOpen, setIsResumeSearchModalOpen] = useState(false);
 
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [isApplicantsModalOpen, setIsApplicantsModalOpen] = useState(false);
@@ -687,6 +689,14 @@ export default function EmployerDashboard() {
                 </Button>
                 <Button
                   variant="ghost"
+                  className="w-full justify-start text-left hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                  onClick={() => setIsResumeSearchModalOpen(true)}
+                >
+                  <Target className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-3" />
+                  Search Resumes by Job
+                </Button>
+                <Button
+                  variant="ghost"
                   className="w-full justify-start text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
                   onClick={() => setLocation('/resume-profiles')}
                 >
@@ -754,9 +764,13 @@ export default function EmployerDashboard() {
         isOpen={isActiveJobsModalOpen} 
         onClose={() => setIsActiveJobsModalOpen(false)} 
       />
-      <ResumeSearcherModal 
-        isOpen={isCandidatesModalOpen} 
-        onClose={() => setIsCandidatesModalOpen(false)} 
+      <ResumeSearcherModal
+        isOpen={isCandidatesModalOpen}
+        onClose={() => setIsCandidatesModalOpen(false)}
+      />
+      <ResumeSearchModal
+        isOpen={isResumeSearchModalOpen}
+        onClose={() => setIsResumeSearchModalOpen(false)}
       />
 
       <AnalyticsModal 

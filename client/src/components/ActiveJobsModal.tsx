@@ -2,11 +2,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { X, Edit, Trash2, Users, Eye, DollarSign, Calendar, MapPin, Languages, Share2 } from "lucide-react";
+import { X, Edit, Trash2, Users, Eye, DollarSign, Calendar, MapPin, Languages, Share2, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { JobPostingModal } from "./JobPostingModal";
+import { ResumeSearchModal } from "./ResumeSearchModal";
 
 
 interface ActiveJobsModalProps {
@@ -19,6 +20,8 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
   const queryClient = useQueryClient();
   const [editingJob, setEditingJob] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isResumeSearchModalOpen, setIsResumeSearchModalOpen] = useState(false);
+  const [selectedJobForSearch, setSelectedJobForSearch] = useState<number | undefined>(undefined);
 
 
 
@@ -100,6 +103,11 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSearchResumes = (jobId: number) => {
+    setSelectedJobForSearch(jobId);
+    setIsResumeSearchModalOpen(true);
   };
 
 
@@ -279,6 +287,15 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => handleSearchResumes(job.id)}
+                          className="text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                          title="Search matching resumes"
+                        >
+                          <Target className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleShareJob(job.id, job.title)}
                           className="text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
                           title="Copy share link"
@@ -321,7 +338,16 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
         }}
         editJob={editingJob}
       />
-      
+
+      {/* Resume Search Modal */}
+      <ResumeSearchModal
+        isOpen={isResumeSearchModalOpen}
+        onClose={() => {
+          setIsResumeSearchModalOpen(false);
+          setSelectedJobForSearch(undefined);
+        }}
+        preSelectedJobId={selectedJobForSearch}
+      />
 
     </AnimatePresence>
   );

@@ -18,6 +18,7 @@ import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
 import { emailService } from "./emailService";
 import { ragIndexingService } from "./ragIndexingService";
+import { resumeRagService } from "./resumeRagService";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
@@ -3470,12 +3471,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         return res.status(404).json({ message: "Shortlisted applicant not found" });
       }
 
+      console.log('🔍 Shortlisted applicant data:', shortlistedApplicant);
+
       // Get full applicant details from local database
       const applicantDetails = await localDatabaseService.getJobApplication(shortlistedApplicant.applicantId);
 
       if (!applicantDetails) {
         return res.status(404).json({ message: "Applicant details not found" });
       }
+
+      console.log('🔍 Applicant details:', applicantDetails);
 
       // Create interview record
       const { realInterviews } = await import('@shared/schema');
@@ -3487,11 +3492,12 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       // Get candidate name - use applicantName or fallback to name
       const candidateName = shortlistedApplicant.applicantName || shortlistedApplicant.name || 'Unknown Applicant';
+      console.log('🔍 Using candidateName:', candidateName, '(applicantName:', shortlistedApplicant.applicantName, ', name:', shortlistedApplicant.name, ')');
 
       const [interview] = await db.insert(realInterviews).values({
         id: interviewId,
         candidateName: candidateName,
-        candidateEmail: applicantDetails.name || '',
+        candidateEmail: applicantDetails.applicantEmail || '',
         candidateId: shortlistedApplicant.applicantId,
         jobId: shortlistedApplicant.jobId,
         jobTitle: shortlistedApplicant.jobTitle,
@@ -3509,10 +3515,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Remove from shortlist
       await storage.removeFromShortlist(shortlistId);
 
-      console.log(`✅ SCHEDULE SUCCESS: Interview created for ${shortlistedApplicant.applicantName}`);
+      console.log(`✅ SCHEDULE SUCCESS: Interview created for ${candidateName}`);
 
       // Send email notification to the candidate
-      const finalEmail = (applicantDetails.name || '').trim();
+      const finalEmail = (applicantDetails.applicantEmail || '').trim();
       if (finalEmail && finalEmail.includes('@')) {
         try {
           const { emailService } = await import('./emailService');
@@ -4628,6 +4634,197 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Search resumes using RAG based on job requirements
+  app.get('/api/resume-profiles/search', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { jobId } = req.query;
+
+      if (!jobId) {
+        return res.status(400).json({ message: "Job ID is required" });
+      }
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get job details
+      const job = await storage.getJobById(parseInt(jobId, 10));
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      if (job.organizationId !== organization.id) {
+        return res.status(403).json({ message: "You don't have permission to access this job" });
+      }
+
+      // Construct search query from job requirements
+      // Similar to how jobs are indexed, we create a natural language query
+      const queryParts: string[] = [];
+
+      queryParts.push(`Looking for candidates for a ${job.title} position`);
+
+      if (job.seniorityLevel) {
+        queryParts.push(`at ${job.seniorityLevel} level`);
+      }
+
+      if (job.description) {
+        queryParts.push(`\n\n${job.description}`);
+      }
+
+      if (job.requirements) {
+        queryParts.push(`\n\nRequirements: ${job.requirements}`);
+      }
+
+      if (job.technicalSkills && job.technicalSkills.length > 0) {
+        queryParts.push(`\n\nRequired technical skills: ${job.technicalSkills.join(", ")}`);
+      }
+
+      if (job.softSkills && job.softSkills.length > 0) {
+        queryParts.push(`\n\nDesired soft skills: ${job.softSkills.join(", ")}`);
+      }
+
+      if (job.experienceLevel) {
+        queryParts.push(`\n\nExperience level: ${job.experienceLevel}`);
+      }
+
+      const searchQuery = queryParts.join("");
+
+      console.log(`🔍 Searching for resumes matching job: ${job.title}`);
+
+      // Search RAG for matching resumes
+      const ragResults = await resumeRagService.searchResumes(searchQuery, 20); // Get top 20 matches
+
+      // Transform results
+      const matches = resumeRagService.transformToResumeMatches(ragResults);
+
+      // // Filter to only include resumes from this organization
+      // const orgMatches = matches.filter(match => {
+      //   // Find the RAG result by UUID (stored in payload)
+      //   const ragResult = ragResults.find(r => {
+      //     const uuid = r.payload.id || (r.payload as any).uuid;
+      //     return uuid === match.id;
+      //   });
+      //   return ragResult?.payload?.organizationId === organization.id;
+      // });
+
+      // Enrich with existing job scores if available
+      const enrichedMatches = await Promise.all(matches.map(async (match) => {
+        const jobScores = await storage.getJobScoresByProfile(match.resume.id);
+        const scoreForThisJob = jobScores.find(score => score.jobId === job.id);
+
+        return {
+          ...match,
+          existingScore: scoreForThisJob ? {
+            overallScore: scoreForThisJob.overallScore,
+            technicalSkillsScore: scoreForThisJob.technicalSkillsScore,
+            experienceScore: scoreForThisJob.experienceScore,
+            culturalFitScore: scoreForThisJob.culturalFitScore,
+            matchSummary: scoreForThisJob.matchSummary,
+          } : null
+        };
+      }));
+
+      console.log(`✅ Found ${enrichedMatches.length} matching resumes for job ${job.title}`);
+
+      res.json({
+        success: true,
+        job: {
+          id: job.id,
+          title: job.title
+        },
+        matches: enrichedMatches,
+        totalMatches: enrichedMatches.length
+      });
+    } catch (error) {
+      console.error("Error searching resumes:", error);
+      res.status(500).json({
+        message: "Failed to search resumes",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Bulk index all existing resumes into RAG
+  app.get('/api/resume-profiles/bulk-index', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      console.log(`📚 Starting bulk RAG indexing for organization ${organization.id}`);
+
+      // Get all resume profiles for this organization
+      const profiles = await storage.getResumeProfilesByOrganization(organization.id);
+
+      if (profiles.length === 0) {
+        return res.json({
+          success: true,
+          message: "No resumes to index",
+          indexed: 0,
+          failed: 0
+        });
+      }
+
+      let indexed = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      // Index each resume
+      for (const profile of profiles) {
+        try {
+          console.log(`📚 Indexing resume ${profile.id} (${profile.name})...`);
+          const result = await ragIndexingService.indexResume({
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            phone: profile.phone,
+            summary: profile.summary,
+            experience: profile.experience,
+            skills: profile.skills,
+            education: profile.education,
+            certifications: profile.certifications,
+            languages: profile.languages,
+            resumeText: profile.resumeText,
+            organizationId: profile.organizationId
+          });
+
+          if (result.success) {
+            indexed++;
+          } else {
+            failed++;
+            errors.push(`${profile.name}: ${result.message}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error indexing resume ${profile.id}:`, error);
+          failed++;
+          errors.push(`${profile.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      console.log(`✅ Bulk indexing complete: ${indexed} indexed, ${failed} failed`);
+
+      res.json({
+        success: true,
+        message: `Indexed ${indexed} out of ${profiles.length} resumes`,
+        indexed,
+        failed,
+        total: profiles.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Error bulk indexing resumes:", error);
+      res.status(500).json({
+        message: "Failed to bulk index resumes",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Process single resume (background job)
   app.post('/api/resume-profiles/process', requireAuthOrService, requireResumeProcessingCredits, async (req: any, res) => {
     try {
@@ -4787,6 +4984,14 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Delete the profile
       await storage.deleteResumeProfile(id);
 
+      // Remove from RAG index
+      try {
+        await ragIndexingService.removeResume(id);
+        console.log(`📚 Removed resume ${id} from RAG index`);
+      } catch (ragError) {
+        console.error(`⚠️ Failed to remove resume from RAG index (non-blocking):`, ragError);
+      }
+
       console.log(`✅ Resume profile deleted: ${id} with ${jobScores.length} job scores by user ${userId}`);
 
       res.status(200).json({ message: "Profile deleted successfully" });
@@ -4834,6 +5039,14 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
           // Delete the profile
           await storage.deleteResumeProfile(profile.id);
+
+          // Remove from RAG index
+          try {
+            await ragIndexingService.removeResume(profile.id);
+          } catch (ragError) {
+            console.error(`⚠️ Failed to remove resume ${profile.id} from RAG index:`, ragError);
+          }
+
           deletedCount++;
         } catch (error) {
           console.error(`Error deleting profile ${profile.id}:`, error);

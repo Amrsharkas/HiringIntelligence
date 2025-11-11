@@ -5,6 +5,7 @@ import { resumeProcessingService } from './resumeProcessingService';
 import { emailService } from './emailService';
 import { matchingService } from './matchingService';
 import { fileStorageService } from './fileStorageService';
+import { ragIndexingService } from './ragIndexingService';
 
 // Check Redis connection health
 const checkRedisHealth = async () => {
@@ -81,6 +82,29 @@ const resumeProcessingWorker = new Worker(
 
         const savedProfile = await storage.createResumeProfile(profileData);
         console.log(`💾 Saved profile to database: ${savedProfile.id}`);
+
+        // Index resume in RAG system for semantic search
+        try {
+          console.log(`📚 Indexing resume ${savedProfile.id} in RAG system...`);
+          const ragResult = await ragIndexingService.indexResume({
+            id: savedProfile.id,
+            name: savedProfile.name,
+            email: savedProfile.email,
+            phone: savedProfile.phone,
+            summary: savedProfile.summary,
+            experience: savedProfile.experience,
+            skills: savedProfile.skills,
+            education: savedProfile.education,
+            certifications: savedProfile.certifications,
+            languages: savedProfile.languages,
+            resumeText: savedProfile.resumeText,
+            organizationId: savedProfile.organizationId
+          });
+          console.log(`📚 RAG indexing result:`, ragResult.message);
+        } catch (ragError) {
+          console.error(`⚠️ Failed to index resume in RAG (non-blocking):`, ragError);
+          // Don't fail the entire job if RAG indexing fails
+        }
 
         job.updateProgress(50);
 
@@ -268,6 +292,29 @@ const resumeProcessingWorker = new Worker(
 
             const savedProfile = await storage.createResumeProfile(profileData);
             console.log(`💾 Saved profile: ${savedProfile.id}`);
+
+            // Index resume in RAG system for semantic search
+            try {
+              console.log(`📚 Indexing resume ${savedProfile.id} in RAG system...`);
+              const ragResult = await ragIndexingService.indexResume({
+                id: savedProfile.id,
+                name: savedProfile.name,
+                email: savedProfile.email,
+                phone: savedProfile.phone,
+                summary: savedProfile.summary,
+                experience: savedProfile.experience,
+                skills: savedProfile.skills,
+                education: savedProfile.education,
+                certifications: savedProfile.certifications,
+                languages: savedProfile.languages,
+                resumeText: savedProfile.resumeText,
+                organizationId: savedProfile.organizationId
+              });
+              console.log(`📚 RAG indexing result:`, ragResult.message);
+            } catch (ragError) {
+              console.error(`⚠️ Failed to index resume in RAG (non-blocking):`, ragError);
+              // Don't fail the entire job if RAG indexing fails
+            }
 
             job.updateProgress(baseProgress + 25);
 
