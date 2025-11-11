@@ -2,17 +2,14 @@ import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Users, 
-  Calendar, 
+import {
+  BarChart3,
+  TrendingUp,
+  Users,
+  Calendar,
   Briefcase,
-  Target,
-  Clock,
-  CheckCircle
+  Target
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface AnalyticsModalProps {
   isOpen: boolean;
@@ -38,18 +35,6 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
 
   const { data: interviewsCount = { count: 0 } } = useQuery<{ count: number }>({
     queryKey: ["/api/interviews/count"],
-    enabled: isOpen,
-  });
-
-  // Real performance data from analytics API
-  const { data: performanceData = [] } = useQuery<Array<{name: string, applications: number, interviews: number, hires: number}>>({
-    queryKey: ["/api/analytics/performance"],
-    enabled: isOpen,
-  });
-
-  // Real source data from analytics API
-  const { data: sourceData = [] } = useQuery<Array<{name: string, value: number, color: string}>>({
-    queryKey: ["/api/analytics/sources"],
     enabled: isOpen,
   });
 
@@ -138,116 +123,6 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
                 </CardContent>
               </Card>
             ))}
-          </div>
-
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Performance Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Hiring Performance Trends
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="applications" fill="#3B82F6" name="Applications" />
-                      <Bar dataKey="interviews" fill="#8B5CF6" name="Interviews" />
-                      <Bar dataKey="hires" fill="#10B981" name="Hires" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Source Distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Candidate Sources
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={sourceData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {sourceData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Additional Insights */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Avg. Time to Hire</p>
-                    <p className="text-lg font-semibold">18 days</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Success Rate</p>
-                    <p className="text-lg font-semibold">
-                      {applicantsCount.count > 0 ? Math.floor((interviewsCount.count / applicantsCount.count) * 100) : 85}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Interview Conversion</p>
-                    <p className="text-lg font-semibold">
-                      {candidatesCount.count > 0 || interviewsCount.count > 0 ? Math.max(60, Math.floor(Math.random() * 25 + 65)) : 0}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Recent Activity Summary */}
