@@ -27,7 +27,6 @@ import {
   Mail,
   MapPin,
   Calendar,
-  CheckCircle,
   XCircle,
   Eye,
   Clock,
@@ -129,32 +128,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     hasPrevPage: false,
   };
 
-  // Accept applicant mutation
-  const acceptMutation = useMutation({
-    mutationFn: async (applicant: Applicant) => {
-      await apiRequest("POST", `/api/real-applicants/${applicant.id}/accept`, {
-        jobId: applicant.jobId,
-        userId: applicant.userId,
-        name: applicant.name
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "✅ Candidate Accepted and Email Sent",
-        description: "The candidate has been accepted and will receive a notification email shortly.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
-      queryClient.invalidateQueries({ queryKey: ["/api/interviews/count"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Error: Failed to update candidate status in Airtable. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
+  
   // Decline applicant mutation
   const declineMutation = useMutation({
     mutationFn: async (applicantId: string) => {
@@ -202,10 +176,6 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
       });
     },
   });
-
-  const handleAccept = (applicant: Applicant) => {
-    acceptMutation.mutate(applicant);
-  };
 
   const handleDecline = (applicantId: string) => {
     declineMutation.mutate(applicantId);
@@ -433,15 +403,6 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                         >
                           <Star className="w-3 h-3 mr-1" />
                           Shortlist
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAccept(applicant)}
-                          disabled={acceptMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 h-8"
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Accept
                         </Button>
                         <Button
                           variant="outline"
@@ -1053,19 +1014,6 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <Button
-                    onClick={() => {
-                      if (selectedApplicant) {
-                        handleAccept(selectedApplicant);
-                        setSelectedApplicant(null);
-                      }
-                    }}
-                    disabled={acceptMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Accept Applicant
-                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
