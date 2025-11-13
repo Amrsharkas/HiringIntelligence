@@ -4573,7 +4573,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       // Parse pagination parameters
       const pageNum = parseInt(page, 10);
-      const limitNum = parseInt(limit, 10);
+      const limitNum = parseInt(limit, 1000);
       const validPage = pageNum > 0 ? pageNum : 1;
       const validLimit = limitNum > 0 && limitNum <= 100 ? limitNum : 10; // Cap at 100 for performance
 
