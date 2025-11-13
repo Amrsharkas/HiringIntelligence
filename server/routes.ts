@@ -22,6 +22,7 @@ import { resumeRagService } from "./resumeRagService";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
+import { resumeProcessingQueue } from "./queues";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -4559,6 +4560,88 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
     return result;
   }
+
+  // Get active resume processing jobs
+  app.get('/api/resume-processing/active-jobs', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get active and waiting jobs from the queue
+      const [activeJobs, waitingJobs] = await Promise.all([
+        resumeProcessingQueue.getActive(),
+        resumeProcessingQueue.getWaiting()
+      ]);
+
+      // Calculate total files and progress
+      let totalFiles = 0;
+      let totalProgress = 0;
+      let completedFiles = 0;
+
+      const allJobs = [...activeJobs, ...waitingJobs];
+
+      allJobs.forEach((job: any) => {
+        const jobData = job.data || {};
+        const progress = job.progress || 0;
+
+        // Count files
+        if (job.name === 'process-single-resume') {
+          totalFiles += 1;
+          completedFiles += progress / 100;
+        } else if (job.name === 'process-bulk-resumes') {
+          const fileCount = jobData.files?.length || 0;
+          totalFiles += fileCount;
+          // For bulk jobs, progress represents overall completion of all files
+          completedFiles += (fileCount * progress) / 100;
+        }
+
+        totalProgress += progress;
+      });
+
+      // Calculate overall progress percentage
+      const overallProgress = allJobs.length > 0
+        ? Math.round(totalProgress / allJobs.length)
+        : 0;
+
+      // Get details of currently processing jobs for display
+      const activeJobDetails = activeJobs.map((job: any) => {
+        const jobData = job.data || {};
+        let fileName = 'Unknown';
+        let fileCount = 0;
+
+        if (job.name === 'process-single-resume') {
+          fileName = jobData.fileName || 'Resume';
+          fileCount = 1;
+        } else if (job.name === 'process-bulk-resumes') {
+          fileCount = jobData.files?.length || 0;
+          fileName = `${fileCount} files`;
+        }
+
+        return {
+          fileName,
+          fileCount,
+          progress: job.progress || 0,
+        };
+      });
+
+      res.json({
+        totalFiles,
+        completedFiles: Math.round(completedFiles),
+        overallProgress,
+        activeJobsCount: activeJobs.length,
+        waitingJobsCount: waitingJobs.length,
+        activeJobDetails,
+        hasActiveJobs: allJobs.length > 0
+      });
+    } catch (error) {
+      console.error("Error fetching active jobs:", error);
+      res.status(500).json({ message: "Failed to fetch active jobs" });
+    }
+  });
 
   // Get all resume profiles for organization
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {

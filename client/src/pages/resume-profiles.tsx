@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -95,6 +95,34 @@ export default function ResumeProfiles() {
     queryKey: ['/api/job-postings'],
   });
 
+  // Fetch active resume processing jobs
+  const { data: activeJobsData } = useQuery<{
+    totalFiles: number;
+    completedFiles: number;
+    overallProgress: number;
+    activeJobsCount: number;
+    waitingJobsCount: number;
+    activeJobDetails: Array<{
+      fileName: string;
+      fileCount: number;
+      progress: number;
+    }>;
+    hasActiveJobs: boolean;
+  }>({
+    queryKey: ['/api/resume-processing/active-jobs'],
+    queryFn: async () => {
+      const response = await fetch('/api/resume-processing/active-jobs', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch active jobs');
+      }
+      return response.json();
+    },
+    refetchInterval: 2000, // Poll every 2 seconds
+    refetchIntervalInBackground: true,
+  });
+
   // Fetch resume profiles with pagination and filters
   const { data: profilesResponse, isLoading: profilesLoading } = useQuery<{
     data: ProfileWithScores[];
@@ -139,6 +167,14 @@ export default function ResumeProfiles() {
   // The API should return the data in the format we need
   const totalPages = serverPagination?.totalPages || 1;
   const totalItems = serverPagination?.totalItems || 0;
+
+  // Refresh profiles when active jobs complete
+  useEffect(() => {
+    if (activeJobsData && !activeJobsData.hasActiveJobs) {
+      // All jobs completed, refresh profiles list
+      queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+    }
+  }, [activeJobsData]);
 
   // Display all profiles, including those without job scores
   const displayRows = useMemo(() => {
@@ -628,6 +664,86 @@ export default function ResumeProfiles() {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Resume Profiles</h1>
             <p className="text-gray-600">View and manage all candidate profiles with job match scores</p>
           </div>
+
+          {/* Active Jobs Progress Indicator */}
+          <AnimatePresence>
+            {activeJobsData && activeJobsData.hasActiveJobs && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="mb-6 border-blue-200 bg-blue-50/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                      Resume Processing in Progress
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-white rounded-lg p-6 border border-blue-200">
+                      {/* Overall Progress */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-2xl font-bold text-blue-600">
+                            {activeJobsData.completedFiles} / {activeJobsData.totalFiles}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {activeJobsData.totalFiles === 1 ? 'Resume' : 'Resumes'} Processed
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-3xl font-bold text-blue-600">{activeJobsData.overallProgress}%</p>
+                          <p className="text-xs text-muted-foreground">Complete</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="mb-4">
+                        <Progress value={activeJobsData.overallProgress} className="h-3" />
+                      </div>
+
+                      {/* Status Details */}
+                      <div className="flex items-center gap-6 text-sm">
+                        {activeJobsData.activeJobsCount > 0 && (
+                          <div className="flex items-center gap-2 text-blue-600">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="font-medium">
+                              {activeJobsData.activeJobsCount} {activeJobsData.activeJobsCount === 1 ? 'job' : 'jobs'} processing
+                            </span>
+                          </div>
+                        )}
+                        {activeJobsData.waitingJobsCount > 0 && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <FileText className="h-4 w-4" />
+                            <span>
+                              {activeJobsData.waitingJobsCount} {activeJobsData.waitingJobsCount === 1 ? 'job' : 'jobs'} in queue
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Active Job Details */}
+                      {activeJobsData.activeJobDetails && activeJobsData.activeJobDetails.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Currently Processing:</p>
+                          <div className="space-y-1">
+                            {activeJobsData.activeJobDetails.map((job, index) => (
+                              <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <div className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></div>
+                                <span>{job.fileName} ({job.progress}%)</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Filters Card */}
           <Card className="mb-6">
