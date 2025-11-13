@@ -95,14 +95,34 @@ export default function ResumeProfiles() {
     queryKey: ['/api/job-postings'],
   });
 
-  // Fetch resume profiles with pagination
+  // Fetch resume profiles with pagination and filters
   const { data: profilesResponse, isLoading: profilesLoading } = useQuery<{
     data: ProfileWithScores[];
     pagination: any;
   }>({
-    queryKey: ['/api/resume-profiles', currentPage, itemsPerPage],
+    queryKey: ['/api/resume-profiles', currentPage, itemsPerPage, searchTerm, selectedJobFilter, selectedStatusFilter],
     queryFn: async () => {
-      const response = await fetch(`/api/resume-profiles?page=${currentPage}&limit=${itemsPerPage}`, {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      });
+
+      // Add search term if exists
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      // Add job filter if selected
+      if (selectedJobFilter !== 'all') {
+        params.append('jobId', selectedJobFilter);
+      }
+
+      // Add status filter if selected
+      if (selectedStatusFilter !== 'all') {
+        params.append('status', selectedStatusFilter);
+      }
+
+      const response = await fetch(`/api/resume-profiles?${params}`, {
         credentials: 'include'
       });
       if (!response.ok) {
@@ -115,36 +135,59 @@ export default function ResumeProfiles() {
   const profiles = profilesResponse?.data || [];
   const serverPagination = profilesResponse?.pagination;
 
-  // Flatten profiles into profile-job rows
-  const flattenedRows = useMemo(() => {
-    const rows: ProfileJobRow[] = [];
-    profiles.forEach(profile => {
-      profile.jobScores.forEach(jobScore => {
+  // For server-side pagination, we don't need client-side flattening logic
+  // The API should return the data in the format we need
+  const totalPages = serverPagination?.totalPages || 1;
+  const totalItems = serverPagination?.totalItems || 0;
+
+  // Display all profiles, including those without job scores
+  const displayRows = useMemo(() => {
+    const rows: any[] = [];
+
+    profiles.forEach((profile: any) => {
+      if (profile.jobScores && profile.jobScores.length > 0) {
+        // Profile has job scores - create a row for each job score
+        profile.jobScores.forEach((jobScore: any) => {
+          rows.push({
+            profileId: profile.id,
+            name: profile.name,
+            email: profile.email,
+            phone: profile.phone,
+            jobId: jobScore.jobId,
+            jobTitle: jobScore.jobTitle,
+            overallScore: jobScore.overallScore,
+            technicalSkillsScore: jobScore.technicalSkillsScore,
+            experienceScore: jobScore.experienceScore,
+            culturalFitScore: jobScore.culturalFitScore,
+            disqualified: jobScore.disqualified || false,
+            invitationStatus: jobScore.invitationStatus || null,
+            profile,
+            jobScore
+          });
+        });
+      } else {
+        // Profile has no job scores - create a row for the profile without job info
         rows.push({
           profileId: profile.id,
           name: profile.name,
           email: profile.email,
           phone: profile.phone,
-          jobId: jobScore.jobId,
-          jobTitle: jobScore.jobTitle,
-          overallScore: jobScore.overallScore,
-          technicalSkillsScore: jobScore.technicalSkillsScore,
-          experienceScore: jobScore.experienceScore,
-          culturalFitScore: jobScore.culturalFitScore,
-          disqualified: jobScore.disqualified || false,
-          invitationStatus: jobScore.invitationStatus || null,
+          jobId: null,
+          jobTitle: 'No Job Analysis',
+          overallScore: 0,
+          technicalSkillsScore: 0,
+          experienceScore: 0,
+          culturalFitScore: 0,
+          disqualified: false,
+          invitationStatus: null,
           profile,
-          jobScore
+          jobScore: null
         });
-      });
+      }
     });
+
     return rows;
   }, [profiles]);
-
-  // For server-side pagination, we don't need client-side pagination logic
-  // The API handles pagination and filtering
-  const totalPages = serverPagination?.totalPages || 1;
-  const totalItems = serverPagination?.totalItems || 0;
 
   // Reset to page 1 when filters change
   const handleFilterChange = () => {
@@ -313,9 +356,9 @@ export default function ResumeProfiles() {
 
   // Export all filtered profiles as PDF
   const exportAllProfiles = () => {
-    // Get unique profiles from flattened rows
+    // Get unique profiles from display rows
     const uniqueProfiles = Array.from(
-      new Map(flattenedRows.map(row => [row.profileId, row.profile])).values()
+      new Map(displayRows.map(row => [row.profileId, row.profile])).values()
     );
 
     const fileName = `resume_profiles_export_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -658,16 +701,16 @@ export default function ResumeProfiles() {
                   <span>Total Profiles: {totalItems}</span>
                   <span>•</span>
                   <span className="text-green-600">
-                    Qualified: {flattenedRows.filter(row => !row.disqualified).length}
+                    Qualified: {displayRows.filter(row => !row.disqualified).length}
                   </span>
                   <span>•</span>
                   <span className="text-red-600">
-                    Disqualified: {flattenedRows.filter(row => row.disqualified).length}
+                    Disqualified: {displayRows.filter(row => row.disqualified).length}
                   </span>
                 </div>
 
                 <div className="flex gap-2">
-                  {flattenedRows.length > 0 && exportAllProfiles()}
+                  {displayRows.length > 0 && exportAllProfiles()}
                   {profiles.length > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -721,7 +764,7 @@ export default function ResumeProfiles() {
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
                   <p className="text-muted-foreground">Loading profiles...</p>
                 </div>
-              ) : flattenedRows.length === 0 ? (
+              ) : displayRows.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   {profiles.length === 0
                     ? 'No resume profiles yet. Upload some resumes to get started.'
@@ -741,7 +784,7 @@ export default function ResumeProfiles() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {flattenedRows.map((row, index) => (
+                        {displayRows.map((row, index) => (
                           <TableRow key={`${row.profileId}-${row.jobId}-${index}`}>
                             <TableCell>
                               <div className="flex items-center gap-3">
@@ -849,6 +892,16 @@ export default function ResumeProfiles() {
                         ))}
                       </TableBody>
                     </Table>
+                  </div>
+
+                  {/* Debug Info - Show what API returns */}
+                  <div className="px-6 py-2 bg-yellow-50 text-yellow-800 text-xs">
+                    <div>API Response Debug:</div>
+                    <div>Profiles count: {profiles.length}</div>
+                    <div>Display rows count: {displayRows.length}</div>
+                    <div>Total items from server: {totalItems}</div>
+                    <div>JobScores per profile: {profiles.map((p: any, i) => `Profile ${i+1}: ${p.jobScores?.length || 0} scores`).join(', ')}</div>
+                    <div>Server pagination: {JSON.stringify(serverPagination)}</div>
                   </div>
 
                   {/* Pagination */}
