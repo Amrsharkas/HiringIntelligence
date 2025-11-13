@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -94,14 +95,14 @@ export default function ResumeProfiles() {
     queryKey: ['/api/job-postings'],
   });
 
-  // Fetch all resume profiles
+  // Fetch resume profiles with pagination
   const { data: profilesResponse, isLoading: profilesLoading } = useQuery<{
     data: ProfileWithScores[];
     pagination: any;
   }>({
-    queryKey: ['/api/resume-profiles', 1, 1000], // Get all profiles
+    queryKey: ['/api/resume-profiles', currentPage, itemsPerPage],
     queryFn: async () => {
-      const response = await fetch(`/api/resume-profiles?page=1&limit=1000`, {
+      const response = await fetch(`/api/resume-profiles?page=${currentPage}&limit=${itemsPerPage}`, {
         credentials: 'include'
       });
       if (!response.ok) {
@@ -112,6 +113,7 @@ export default function ResumeProfiles() {
   });
 
   const profiles = profilesResponse?.data || [];
+  const serverPagination = profilesResponse?.pagination;
 
   // Flatten profiles into profile-job rows
   const flattenedRows = useMemo(() => {
@@ -139,52 +141,50 @@ export default function ResumeProfiles() {
     return rows;
   }, [profiles]);
 
-  // Apply filters
-  const filteredRows = useMemo(() => {
-    let filtered = [...flattenedRows];
-
-    // Search filter (name, email, skills)
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(row =>
-        row.name.toLowerCase().includes(term) ||
-        row.email.toLowerCase().includes(term) ||
-        row.profile.skills.some(skill => skill.toLowerCase().includes(term))
-      );
-    }
-
-    // Job filter
-    if (selectedJobFilter !== 'all') {
-      filtered = filtered.filter(row => row.jobId === selectedJobFilter);
-    }
-
-    // Status filter
-    if (selectedStatusFilter !== 'all') {
-      if (selectedStatusFilter === 'qualified') {
-        filtered = filtered.filter(row => !row.disqualified);
-      } else if (selectedStatusFilter === 'disqualified') {
-        filtered = filtered.filter(row => row.disqualified);
-      } else if (selectedStatusFilter === 'invited') {
-        filtered = filtered.filter(row => row.invitationStatus === 'invited');
-      } else if (selectedStatusFilter === 'not-invited') {
-        filtered = filtered.filter(row => row.invitationStatus !== 'invited' && !row.disqualified);
-      }
-    }
-
-    return filtered;
-  }, [flattenedRows, searchTerm, selectedJobFilter, selectedStatusFilter]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
-  const paginatedRows = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredRows.slice(startIndex, endIndex);
-  }, [filteredRows, currentPage, itemsPerPage]);
+  // For server-side pagination, we don't need client-side pagination logic
+  // The API handles pagination and filtering
+  const totalPages = serverPagination?.totalPages || 1;
+  const totalItems = serverPagination?.totalItems || 0;
 
   // Reset to page 1 when filters change
   const handleFilterChange = () => {
     setCurrentPage(1);
+  };
+
+  // Helper function to generate pagination items
+  const generatePaginationItems = () => {
+    const items = [];
+
+    if (totalPages <= 7) {
+      // Show all pages if total pages is 7 or less
+      for (let i = 1; i <= totalPages; i++) {
+        items.push(i);
+      }
+    } else {
+      // Show first page
+      items.push(1);
+
+      if (currentPage > 3) {
+        items.push('ellipsis');
+      }
+
+      // Show pages around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        items.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        items.push('ellipsis');
+      }
+
+      // Show last page
+      items.push(totalPages);
+    }
+
+    return items;
   };
 
   // Invite applicant mutation
@@ -313,9 +313,9 @@ export default function ResumeProfiles() {
 
   // Export all filtered profiles as PDF
   const exportAllProfiles = () => {
-    // Get unique profiles from filtered rows
+    // Get unique profiles from flattened rows
     const uniqueProfiles = Array.from(
-      new Map(filteredRows.map(row => [row.profileId, row.profile])).values()
+      new Map(flattenedRows.map(row => [row.profileId, row.profile])).values()
     );
 
     const fileName = `resume_profiles_export_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -655,19 +655,19 @@ export default function ResumeProfiles() {
               {/* Stats & Actions */}
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <div className="flex gap-4 text-sm text-muted-foreground">
-                  <span>Total Rows: {filteredRows.length}</span>
+                  <span>Total Profiles: {totalItems}</span>
                   <span>•</span>
                   <span className="text-green-600">
-                    Qualified: {filteredRows.filter(row => !row.disqualified).length}
+                    Qualified: {flattenedRows.filter(row => !row.disqualified).length}
                   </span>
                   <span>•</span>
                   <span className="text-red-600">
-                    Disqualified: {filteredRows.filter(row => row.disqualified).length}
+                    Disqualified: {flattenedRows.filter(row => row.disqualified).length}
                   </span>
                 </div>
 
                 <div className="flex gap-2">
-                  {filteredRows.length > 0 && exportAllProfiles()}
+                  {flattenedRows.length > 0 && exportAllProfiles()}
                   {profiles.length > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -721,7 +721,7 @@ export default function ResumeProfiles() {
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
                   <p className="text-muted-foreground">Loading profiles...</p>
                 </div>
-              ) : filteredRows.length === 0 ? (
+              ) : flattenedRows.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   {profiles.length === 0
                     ? 'No resume profiles yet. Upload some resumes to get started.'
@@ -741,7 +741,7 @@ export default function ResumeProfiles() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedRows.map((row, index) => (
+                        {flattenedRows.map((row, index) => (
                           <TableRow key={`${row.profileId}-${row.jobId}-${index}`}>
                             <TableCell>
                               <div className="flex items-center gap-3">
@@ -853,70 +853,61 @@ export default function ResumeProfiles() {
 
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-6 py-4 border-t">
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-muted-foreground">Show:</label>
-                        <select
-                          value={itemsPerPage}
-                          onChange={(e) => {
-                            setItemsPerPage(Number(e.target.value));
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}</span>
+                        <Select
+                          value={itemsPerPage.toString()}
+                          onValueChange={(value) => {
+                            setItemsPerPage(Number(value));
                             setCurrentPage(1);
                           }}
-                          className="text-sm border border-gray-300 rounded px-2 py-1"
                         >
-                          <option value={10}>10</option>
-                          <option value={20}>20</option>
-                          <option value={50}>50</option>
-                        </select>
-                        <span className="text-sm text-muted-foreground ml-4">
-                          Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredRows.length)} of {filteredRows.length}
-                        </span>
+                          <SelectTrigger className="w-[70px] h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span>per page</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                        >
-                          Previous
-                        </Button>
-                        <div className="flex gap-1">
-                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            let pageNum;
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            />
+                          </PaginationItem>
 
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={pageNum === currentPage ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setCurrentPage(pageNum)}
-                                className="min-w-[2.5rem]"
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          disabled={currentPage === totalPages}
-                        >
-                          Next
-                        </Button>
-                      </div>
+                          {generatePaginationItems().map((item, index) => (
+                            <PaginationItem key={index}>
+                              {item === 'ellipsis' ? (
+                                <PaginationEllipsis />
+                              ) : (
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(item as number)}
+                                  isActive={currentPage === item}
+                                  className="cursor-pointer"
+                                >
+                                  {item}
+                                </PaginationLink>
+                              )}
+                            </PaginationItem>
+                          ))}
+
+                          <PaginationItem>
+                            <PaginationNext
+                              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
                     </div>
                   )}
                 </>
