@@ -18,6 +18,10 @@ import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import VerificationSentPage from "@/pages/VerificationSentPage";
 import ResendVerificationPage from "@/pages/ResendVerificationPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import SubscriptionSuccessPage from "@/pages/SubscriptionSuccessPage";
+import SubscriptionCanceledPage from "@/pages/SubscriptionCanceledPage";
+import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+import PaymentCanceledPage from "@/pages/PaymentCanceledPage";
 import { useEffect } from "react";
 
 function DashboardRedirect() {
@@ -68,6 +72,14 @@ function Router() {
 
       {/* Password reset routes - accessible without authentication */}
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
+
+      {/* Subscription payment routes - accessible without authentication for Stripe redirects */}
+      <Route path="/subscription/success" component={SubscriptionSuccessPage} />
+      <Route path="/subscription/canceled" component={SubscriptionCanceledPage} />
+
+      {/* Credit purchase payment routes - accessible without authentication for Stripe redirects */}
+      <Route path="/payment/success" component={PaymentSuccessPage} />
+      <Route path="/payment/canceled" component={PaymentCanceledPage} />
 
       {/* Enhanced invitation routes - accessible without full auth checks */}
       <Route path="/invite/accept" component={InviteAccept} />

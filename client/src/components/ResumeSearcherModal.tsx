@@ -144,7 +144,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           jobId: result.jobId,
           fileCount: 1,
           message: result.message,
-          status: result.status
+          status: result.status,
+          creditBalance: result.creditBalance
         };
       } else {
         // Bulk processing
@@ -183,7 +184,8 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           jobId: result.jobId,
           fileCount: result.fileCount,
           message: result.message,
-          status: result.status
+          status: result.status,
+          creditBalance: result.creditBalance
         };
       }
     },
@@ -193,8 +195,13 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background. Please refresh the page manually to see new profiles once processing is complete.`,
       });
 
-      // Refresh credit balance after processing starts
-      queryClient.invalidateQueries({ queryKey: ['/api/organizations/current/credits'] });
+      // Update credit balance immediately if returned in response
+      if (result.creditBalance) {
+        queryClient.setQueryData(['/api/organizations/current/credits'], result.creditBalance);
+      } else {
+        // Fallback: Refresh credit balance if not in response
+        queryClient.invalidateQueries({ queryKey: ['/api/organizations/current/credits'] });
+      }
 
       clearAllFiles();
       setActiveTab('results');

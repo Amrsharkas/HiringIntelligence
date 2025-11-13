@@ -4916,6 +4916,25 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         }
       }
 
+      // Check and validate credits for bulk processing
+      const resumeProcessingCost = await creditService.getActionCost('resume_processing');
+      const totalCreditsRequired = files.length * resumeProcessingCost;
+
+      const hasCredits = await creditService.checkCredits(
+        organization.id,
+        totalCreditsRequired
+      );
+
+      if (!hasCredits) {
+        const currentBalance = await creditService.getCreditBalance(organization.id);
+        return res.status(402).json({
+          message: `Insufficient credits. Processing ${files.length} resume${files.length !== 1 ? 's' : ''} requires ${totalCreditsRequired} credit${totalCreditsRequired !== 1 ? 's' : ''}, but you only have ${currentBalance?.remainingCredits || 0} credits available. Please contact admin to add more credits.`,
+          requiredCredits: totalCreditsRequired,
+          availableCredits: currentBalance?.remainingCredits || 0,
+          creditBalance: currentBalance
+        });
+      }
+
       // Create background job for bulk processing
       const { addBulkResumeProcessingJob } = await import('./jobProducers');
 
@@ -4933,12 +4952,25 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       console.log(`📋 Created background bulk resume processing job ${job.id} for user ${userId}, ${files.length} files`);
 
+      // Deduct credits for bulk processing
+      await creditService.deductCredits(
+        organization.id,
+        totalCreditsRequired,
+        'resume_processing',
+        `Bulk resume processing: ${files.length} file${files.length !== 1 ? 's' : ''}`,
+        jobId
+      );
+
+      // Get updated credit balance
+      const updatedBalance = await creditService.getCreditBalance(organization.id);
+
       res.json({
         success: true,
         jobId: job.id,
         fileCount: files.length,
         message: "Bulk resume processing started in background",
-        status: "processing"
+        status: "processing",
+        creditBalance: updatedBalance
       });
     } catch (error) {
       console.error("Error creating bulk resume processing job:", error);
