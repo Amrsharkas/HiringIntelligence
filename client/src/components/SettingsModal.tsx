@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Users, Key, Mail, Shield, Crown, User } from "lucide-react";
+import { z } from "zod";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -178,6 +179,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleOrgUpdate = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate URL format
+    try {
+      const urlSchema = z.string().url("Please enter a valid URL (e.g., https://example.com)");
+      urlSchema.parse(orgData.url.trim());
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     updateOrganizationMutation.mutate(orgData);
   };
 

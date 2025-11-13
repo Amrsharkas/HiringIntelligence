@@ -23,6 +23,7 @@ const createOrgSchema = z.object({
     .string()
     .trim()
     .min(1, "Organization URL is required")
+    .url("Please enter a valid URL (e.g., https://example.com)")
     .max(255, "URL must be 255 characters or less"),
   industry: z.string().min(1, "Industry is required"),
   companySize: z.string().min(1, "Company size is required"),
