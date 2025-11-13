@@ -894,16 +894,6 @@ export default function ResumeProfiles() {
                     </Table>
                   </div>
 
-                  {/* Debug Info - Show what API returns */}
-                  <div className="px-6 py-2 bg-yellow-50 text-yellow-800 text-xs">
-                    <div>API Response Debug:</div>
-                    <div>Profiles count: {profiles.length}</div>
-                    <div>Display rows count: {displayRows.length}</div>
-                    <div>Total items from server: {totalItems}</div>
-                    <div>JobScores per profile: {profiles.map((p: any, i) => `Profile ${i+1}: ${p.jobScores?.length || 0} scores`).join(', ')}</div>
-                    <div>Server pagination: {JSON.stringify(serverPagination)}</div>
-                  </div>
-
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
