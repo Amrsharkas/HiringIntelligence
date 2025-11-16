@@ -553,7 +553,7 @@ export default function EmployerDashboard() {
           className="grid gap-4 sm:gap-6"
         >
           {/* Top Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <InteractiveCard
               index={0}
               onClick={() => setIsJobModalOpen(true)}
@@ -572,32 +572,48 @@ export default function EmployerDashboard() {
 
             <InteractiveCard
               index={1}
-              onClick={() => setIsShortlistedApplicantsModalOpen(true)}
-              className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
+              onClick={() => setIsApplicantsModalOpen(true)}
+              className="bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-transparent"
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Shortlisted Applicants</h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View your favorites</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">View Applicants</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Review applications</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
-                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/20 dark:bg-orange-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
                 </div>
               </div>
             </InteractiveCard>
 
             <InteractiveCard
               index={2}
-              onClick={() => setIsAnalyticsModalOpen(true)}
-              className="bg-gradient-to-br from-purple-500/10 via-purple-400/5 to-transparent"
+              onClick={() => setIsResumeSearchModalOpen(true)}
+              className="bg-gradient-to-br from-teal-500/10 via-teal-400/5 to-transparent"
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Analytics</h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View hiring insights</p>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Search Resumes</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Find perfect matches</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
-                  <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-teal-500/20 dark:bg-teal-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                  <Target className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600 dark:text-teal-400" />
+                </div>
+              </div>
+            </InteractiveCard>
+
+            <InteractiveCard
+              index={3}
+              onClick={() => setIsShortlistedApplicantsModalOpen(true)}
+              className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
+            >
+              <div className="p-4 sm:p-6 h-full flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Shortlisted</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View your favorites</p>
+                </div>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </InteractiveCard>
