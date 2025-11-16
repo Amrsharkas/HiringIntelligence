@@ -18,6 +18,9 @@ import { CreditHistoryModal } from "./CreditHistoryModal";
 import { CreditPurchaseModal } from "./CreditPurchaseModal";
 
 interface CreditBalance {
+  cvProcessingCredits: number;
+  interviewCredits: number;
+  // Legacy fields for backward compatibility
   currentCredits: number;
   creditLimit: number;
   remainingCredits: number;
@@ -73,9 +76,13 @@ const CreditBalanceDisplay = memo(({
     );
   }
 
-  const creditPercentage = (creditBalance.remainingCredits / creditBalance.creditLimit) * 100;
-  const isLowCredits = creditBalance.remainingCredits <= 100;
-  const isVeryLowCredits = creditBalance.remainingCredits <= 5;
+  const cvCredits = creditBalance.cvProcessingCredits || 0;
+  const interviewCredits = creditBalance.interviewCredits || 0;
+  const isLowCvCredits = cvCredits <= 100;
+  const isVeryLowCvCredits = cvCredits <= 5;
+  const isLowInterviewCredits = interviewCredits <= 50;
+  const isVeryLowInterviewCredits = interviewCredits <= 5;
+  const isLowCredits = isLowCvCredits || isLowInterviewCredits;
 
   return (
     <div className="p-4 sm:p-6 h-full flex flex-col justify-between">
@@ -86,43 +93,62 @@ const CreditBalanceDisplay = memo(({
         <div className="text-right">
           {isLowCredits && (
             <Badge
-              variant={isVeryLowCredits ? "destructive" : "secondary"}
+              variant={(isVeryLowCvCredits || isVeryLowInterviewCredits) ? "destructive" : "secondary"}
               className="text-xs mb-1"
             >
-              {isVeryLowCredits ? "Very Low" : "Low"} Credits
+              {(isVeryLowCvCredits || isVeryLowInterviewCredits) ? "Very Low" : "Low"} Credits
             </Badge>
           )}
-          <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
-            {creditBalance.remainingCredits}
-          </div>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-            Available Credits
-          </p>
-          <div className="flex items-center gap-1">
-            <TrendingDown className="w-3 h-3 text-slate-500" />
-            <span className="text-xs text-slate-500">
-              {creditPercentage.toFixed(0)}%
-            </span>
+      <div className="space-y-3">
+        {/* CV Processing Credits */}
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              CV Processing
+            </p>
+            <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
+              {cvCredits.toLocaleString()}
+            </div>
+          </div>
+          <div className="w-full bg-emerald-200 dark:bg-emerald-700 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                isVeryLowCvCredits
+                  ? 'bg-red-500'
+                  : isLowCvCredits
+                    ? 'bg-yellow-500'
+                    : 'bg-emerald-500'
+              }`}
+              style={{ width: `${Math.max(Math.min((cvCredits / 1000) * 100, 100), 5)}%` }}
+            />
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-          <div
-            className={`h-2 rounded-full transition-all duration-300 ${
-              isVeryLowCredits
-                ? 'bg-red-500'
-                : isLowCredits
-                  ? 'bg-yellow-500'
-                  : 'bg-green-500'
-            }`}
-            style={{ width: `${Math.max(creditPercentage, 5)}%` }}
-          />
+        {/* Interview Credits */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
+              Interviews
+            </p>
+            <div className="text-xl font-bold text-blue-700 dark:text-blue-300">
+              {interviewCredits.toLocaleString()}
+            </div>
+          </div>
+          <div className="w-full bg-blue-200 dark:bg-blue-700 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                isVeryLowInterviewCredits
+                  ? 'bg-red-500'
+                  : isLowInterviewCredits
+                    ? 'bg-yellow-500'
+                    : 'bg-blue-500'
+              }`}
+              style={{ width: `${Math.max(Math.min((interviewCredits / 500) * 100, 100), 5)}%` }}
+            />
+          </div>
         </div>
 
         {isLowCredits && (
@@ -133,18 +159,15 @@ const CreditBalanceDisplay = memo(({
           >
             <AlertTriangle className="w-3 h-3 flex-shrink-0" />
             <span>
-              {isVeryLowCredits
-                ? "Very low credits! Resume processing requires 1 credit each."
-                : "Low credits. Consider adding more credits."
+              {isVeryLowCvCredits || isVeryLowInterviewCredits
+                ? "Very low credits! Consider purchasing more."
+                : "Low credits. Top up to continue using all features."
               }
             </span>
           </motion.div>
         )}
 
         <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-slate-500">
-            Limit: {creditBalance.creditLimit}
-          </span>
           <div className="flex items-center gap-1">
             {isLowCredits && onTopUp && (
               <Button

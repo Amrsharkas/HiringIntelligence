@@ -21,6 +21,7 @@ interface CreditPackage {
   id: string;
   name: string;
   description: string | null;
+  creditType: 'cv_processing' | 'interview';
   creditAmount: number;
   price: number;
   currency: string;
@@ -110,21 +111,25 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
     );
   }
 
-  const sortedPackages = packages.sort((a, b) => a.sortOrder - b.sortOrder);
+  const sortedPackages = packages.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+  const cvPackages = sortedPackages.filter((pkg: any) => pkg.creditType === 'cv_processing');
+  const interviewPackages = sortedPackages.filter((pkg: any) => pkg.creditType === 'interview');
 
   return (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Additional Credit Packs
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400">
-          Purchase additional credits as needed to scale your hiring efforts beyond your subscription
-        </p>
-      </div>
+    <div className="space-y-8">
+      {/* CV Processing Packages */}
+      <div>
+        <div className="text-center mb-6">
+          <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-300 mb-2">
+            CV Processing Credits
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400 text-sm">
+            Process more resumes with AI-powered analysis
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-        {sortedPackages.map((pkg, index) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {cvPackages.map((pkg: any, index: number) => {
           const isSelected = selectedPackageId === pkg.id;
           const pricePerCredit = pkg.price / pkg.creditAmount; // in cents
           const baseRate = 9000; // 90 EGP per credit in cents
@@ -231,6 +236,126 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
             </motion.div>
           );
         })}
+        </div>
+      </div>
+
+      {/* Interview Packages */}
+      <div>
+        <div className="text-center mb-6">
+          <h3 className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-2">
+            Interview Credits
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400 text-sm">
+            Schedule and manage more interviews with candidates
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {interviewPackages.map((pkg: any, index: number) => {
+          const isSelected = selectedPackageId === pkg.id;
+          const pricePerCredit = pkg.price / pkg.creditAmount; // in cents
+          const baseRate = 9000; // 90 EGP per credit in cents
+          const savings = baseRate > 0 ? Math.round((1 - pricePerCredit / baseRate) * 100) : 0;
+
+          return (
+            <motion.div
+              key={pkg.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card
+                className={`cursor-pointer transition-all duration-200 ${
+                  isSelected
+                    ? 'ring-2 ring-blue-500 border-blue-500'
+                    : 'hover:border-blue-300 dark:hover:border-blue-700'
+                }`}
+                onClick={() => onPackageSelect(pkg.id)}
+              >
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`p-3 rounded-lg bg-gradient-to-br ${getPackageColor(pkg.creditAmount)}`}
+                      >
+                        {getPackageIcon(pkg.creditAmount)}
+                      </div>
+                      {savings > 0 && (
+                        <Badge variant="default" className="bg-blue-500">
+                          Save {savings}%
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                        {pkg.name}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                        {pkg.description}
+                      </p>
+                    </div>
+
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+                        {pkg.creditAmount.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-slate-600 dark:text-slate-400">
+                        Interview Credits
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                      <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                        {formatPrice(pkg.price)} EGP
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        One-time payment
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {(pricePerCredit / 100).toFixed(0)} EGP per credit
+                      </span>
+                      {pkg.creditAmount >= 500 && (
+                        <Badge variant="secondary" className="text-xs">
+                          Best Value
+                        </Badge>
+                      )}
+                    </div>
+
+                    <Button
+                      className={`w-full mt-4 ${
+                        isSelected
+                          ? 'bg-blue-600 hover:bg-blue-700'
+                          : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPurchase(pkg.id);
+                      }}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          {isSelected ? 'Purchase Selected' : 'Select Package'}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+        </div>
       </div>
 
       <div className="text-center mt-8 text-sm text-slate-600 dark:text-slate-400">

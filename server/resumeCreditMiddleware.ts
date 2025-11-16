@@ -55,18 +55,19 @@ export const requireResumeProcessingCredits = async (req: Request, res: Response
       });
     }
 
-    // Check if organization has sufficient credits
+    // Check if organization has sufficient CV processing credits
     const hasCredits = await creditService.checkCredits(
       organization.id,
-      resumeProcessingCost
+      resumeProcessingCost,
+      'cv_processing'
     );
 
     if (!hasCredits) {
       const currentBalance = await creditService.getCreditBalance(organization.id);
       return res.status(402).json({
-        message: `Insufficient credits. Resume processing requires ${resumeProcessingCost} credit${resumeProcessingCost !== 1 ? 's' : ''}, but you only have ${currentBalance?.remainingCredits || 0} credits available. Please contact admin to add more credits.`,
+        message: `Insufficient CV processing credits. Resume processing requires ${resumeProcessingCost} credit${resumeProcessingCost !== 1 ? 's' : ''}, but you only have ${currentBalance?.cvProcessingCredits || 0} CV processing credits available. Please purchase more credits.`,
         requiredCredits: resumeProcessingCost,
-        availableCredits: currentBalance?.remainingCredits || 0,
+        availableCredits: currentBalance?.cvProcessingCredits || 0,
         creditBalance: currentBalance
       });
     }
@@ -108,9 +109,11 @@ export const deductResumeProcessingCredits = async (req: Request, res: Response,
     await creditService.deductCredits(
       organization.id,
       creditInfo.requiredCredits,
-      creditInfo.operationType,
+      'cv_processing',
+      'cv_processing',
       creditInfo.description,
-      creditInfo.relatedId
+      creditInfo.relatedId,
+      'resume_processing'
     );
 
     // Update response with new credit balance

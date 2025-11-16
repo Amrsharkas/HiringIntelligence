@@ -78,14 +78,19 @@ export async function setupSubscriptionSystem() {
     console.log('   4. Subscribe to a plan via the dashboard');
     console.log('   5. Verify credits are allocated after payment\n');
     console.log('💡 Subscription Plans Available:');
-    console.log('   - Starter: 14,500 EGP/month (200 credits)');
-    console.log('   - Growth: 39,000 EGP/month (700 credits)');
-    console.log('   - Pro: 95,000 EGP/month (1,900 credits)');
-    console.log('   - Enterprise: 155,000 EGP/month (3,500 credits)\n');
+    console.log('   - Starter: 29,000 EGP/month (200 CV + 100 Interview credits)');
+    console.log('   - Growth: 39,000 EGP/month (500 CV + 200 Interview credits)');
+    console.log('   - Pro: 49,000 EGP/month (700 CV + 300 Interview credits)');
+    console.log('   - Enterprise: Custom pricing (2,500 CV + 1,000 Interview credits)\n');
     console.log('💡 Additional Credit Packs:');
-    console.log('   - 100 Credits: 9,000 EGP');
-    console.log('   - 300 Credits: 24,000 EGP');
-    console.log('   - 1,000 Credits: 70,000 EGP');
+    console.log('   CV Processing:');
+    console.log('   - 100 CV Credits: 9,000 EGP');
+    console.log('   - 300 CV Credits: 24,000 EGP');
+    console.log('   - 1,000 CV Credits: 70,000 EGP');
+    console.log('   Interview:');
+    console.log('   - 50 Interview Credits: 4,500 EGP');
+    console.log('   - 100 Interview Credits: 8,000 EGP');
+    console.log('   - 500 Interview Credits: 35,000 EGP');
     console.log('═══════════════════════════════════════════════════════════\n');
 
   } catch (error) {

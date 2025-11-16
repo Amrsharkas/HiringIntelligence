@@ -261,14 +261,18 @@ export class StripeService {
 
       console.log(`💾 Created payment transaction: ${transaction.id}`);
 
-      // Add credits to organization
+      // Add credits to organization based on package credit type
+      const creditType = creditPackage.creditType as 'cv_processing' | 'interview';
       await creditService.addCredits(
         organizationId,
         creditAmount,
-        `Purchased ${creditAmount} credits - ${creditPackage.name}`
+        creditType,
+        `Purchased ${creditAmount} ${creditType} credits - ${creditPackage.name}`,
+        'purchase',
+        creditType === 'cv_processing' ? 'resume_processing' : 'interview_scheduling'
       );
 
-      console.log(`💰 Added ${creditAmount} credits to organization ${organizationId}`);
+      console.log(`💰 Added ${creditAmount} ${creditType} credits to organization ${organizationId}`);
 
       // Update payment attempt
       await db

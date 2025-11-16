@@ -18,43 +18,79 @@ async function setupCreditPackages() {
     // Create default credit packages in database (without Stripe integration)
     console.log('💳 Initializing credit packages in database...');
 
-    const defaultPackages = [
+    // CV Processing credit packages
+    const cvPackages = [
       {
-        name: 'Starter Pack',
-        description: 'Perfect for getting started',
+        name: '50 CV Credits',
+        description: 'Process 50 resumes',
+        creditType: 'cv_processing',
         creditAmount: 50,
-        price: 500, // $5.00
+        price: 450000, // 4,500 EGP (90 EGP per credit)
         sortOrder: 1,
       },
       {
-        name: 'Professional Pack',
-        description: 'Great for regular users',
+        name: '100 CV Credits',
+        description: 'Process 100 resumes',
+        creditType: 'cv_processing',
         creditAmount: 100,
-        price: 1000, // $10.00
+        price: 900000, // 9,000 EGP (90 EGP per credit)
         sortOrder: 2,
       },
       {
-        name: 'Business Pack',
-        description: 'Ideal for growing businesses',
-        creditAmount: 250,
-        price: 2500, // $25.00
+        name: '300 CV Credits',
+        description: 'Process 300 resumes',
+        creditType: 'cv_processing',
+        creditAmount: 300,
+        price: 2400000, // 24,000 EGP (80 EGP per credit - bulk discount)
         sortOrder: 3,
       },
       {
-        name: 'Enterprise Pack',
-        description: 'Best value for large organizations',
-        creditAmount: 500,
-        price: 5000, // $50.00
+        name: '1000 CV Credits',
+        description: 'Process 1000 resumes',
+        creditType: 'cv_processing',
+        creditAmount: 1000,
+        price: 7000000, // 70,000 EGP (70 EGP per credit - bulk discount)
         sortOrder: 4,
       },
+    ];
+
+    // Interview credit packages
+    const interviewPackages = [
       {
-        name: 'Corporate Pack',
-        description: 'Maximum value for enterprises',
-        creditAmount: 1000,
-        price: 10000, // $100.00
+        name: '25 Interview Credits',
+        description: 'Schedule 25 interviews',
+        creditType: 'interview',
+        creditAmount: 25,
+        price: 225000, // 2,250 EGP (90 EGP per credit)
         sortOrder: 5,
       },
+      {
+        name: '50 Interview Credits',
+        description: 'Schedule 50 interviews',
+        creditType: 'interview',
+        creditAmount: 50,
+        price: 450000, // 4,500 EGP (90 EGP per credit)
+        sortOrder: 6,
+      },
+      {
+        name: '100 Interview Credits',
+        description: 'Schedule 100 interviews',
+        creditType: 'interview',
+        creditAmount: 100,
+        price: 800000, // 8,000 EGP (80 EGP per credit - bulk discount)
+        sortOrder: 7,
+      },
+      {
+        name: '500 Interview Credits',
+        description: 'Schedule 500 interviews',
+        creditType: 'interview',
+        creditAmount: 500,
+        price: 3500000, // 35,000 EGP (70 EGP per credit - bulk discount)
+        sortOrder: 8,
+      },
     ];
+
+    const defaultPackages = [...cvPackages, ...interviewPackages];
 
     for (const packageData of defaultPackages) {
       // Check if package already exists
@@ -67,13 +103,13 @@ async function setupCreditPackages() {
         await db.insert(creditPackages).values({
           id: crypto.randomUUID(),
           ...packageData,
-          currency: 'USD',
+          currency: 'EGP',
           isActive: true,
           stripePriceId: null, // Will be set when Stripe is configured
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-        console.log(`✅ Created package: ${packageData.name} - ${packageData.creditAmount} credits for $${(packageData.price / 100).toFixed(2)}`);
+        console.log(`✅ Created package: ${packageData.name} - ${packageData.creditAmount} ${packageData.creditType} credits for ${(packageData.price / 100).toFixed(0)} EGP`);
       } else {
         console.log(`ℹ️  Package already exists: ${packageData.name}`);
       }
@@ -84,8 +120,8 @@ async function setupCreditPackages() {
     // Display created packages
     console.log('\n📦 Available credit packages:');
     const packages = await db.select().from(creditPackages).where(eq(creditPackages.isActive, true)).orderBy(creditPackages.sortOrder);
-    packages.forEach(pkg => {
-      console.log(`  - ${pkg.name}: ${pkg.creditAmount} credits for $${(pkg.price / 100).toFixed(2)}`);
+    packages.forEach((pkg: any) => {
+      console.log(`  - ${pkg.name}: ${pkg.creditAmount} ${pkg.creditType} credits for ${(pkg.price / 100).toFixed(0)} EGP`);
     });
 
   } catch (error) {

@@ -165,20 +165,24 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
                         <div className="text-lg font-semibold capitalize">{subscription.billingCycle}</div>
                       </div>
                       <div className="bg-white/50 dark:bg-slate-900/50 rounded-lg p-4">
-                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Monthly Credits</div>
-                        <div className="text-lg font-semibold">{subscription.plan.monthlyCredits}</div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">CV Credits/Month</div>
+                        <div className="text-lg font-semibold">{subscription.plan.monthlyCvCredits || subscription.plan.monthlyCredits}</div>
                       </div>
                       <div className="bg-white/50 dark:bg-slate-900/50 rounded-lg p-4">
-                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Next Billing</div>
-                        <div className="text-lg font-semibold">
-                          {format(new Date(subscription.currentPeriodEnd), 'MMM dd, yyyy')}
-                        </div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Interview Credits/Month</div>
+                        <div className="text-lg font-semibold">{subscription.plan.monthlyInterviewCredits || 0}</div>
                       </div>
                       <div className="bg-white/50 dark:bg-slate-900/50 rounded-lg p-4">
                         <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Job Posts</div>
                         <div className="text-lg font-semibold">
-                          {subscription.plan.jobPostsLimit === null ? 'Unlimited' : 
+                          {subscription.plan.jobPostsLimit === null ? 'Unlimited' :
                             `${organization?.jobPostsUsed || 0} / ${subscription.plan.jobPostsLimit}`}
+                        </div>
+                      </div>
+                      <div className="bg-white/50 dark:bg-slate-900/50 rounded-lg p-4 col-span-2">
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Next Billing</div>
+                        <div className="text-lg font-semibold">
+                          {format(new Date(subscription.currentPeriodEnd), 'MMM dd, yyyy')}
                         </div>
                       </div>
                     </div>
@@ -238,12 +242,25 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
                   <Sparkles className="w-5 h-5 text-emerald-600" />
                   Current Balance
                 </h3>
-                <div className="text-4xl font-bold text-emerald-700 dark:text-emerald-300">
-                  {(organization?.currentCredits || 0).toLocaleString()} <span className="text-lg font-normal">credits</span>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-white/50 dark:bg-slate-900/50 rounded-lg p-4">
+                    <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">CV Processing</div>
+                    <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+                      {(organization?.cvProcessingCredits || 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">credits</div>
+                  </div>
+                  <div className="bg-white/50 dark:bg-slate-900/50 rounded-lg p-4">
+                    <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Interviews</div>
+                    <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+                      {(organization?.interviewCredits || 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">credits</div>
+                  </div>
                 </div>
                 <Button
                   onClick={() => setActiveTab('credits')}
-                  className="mt-4 bg-emerald-600 hover:bg-emerald-700"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Purchase Additional Credits

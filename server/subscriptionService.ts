@@ -39,32 +39,38 @@ export class SubscriptionService {
       const plans = [
         {
           name: 'Starter',
-          description: '200 AI Credits/month (~40 engaged candidates/month)',
+          description: '200 CV + 100 Interview Credits/month',
           monthlyPrice: 2900000,
           yearlyPrice: Math.round(2900000 * (1-0.18) * 12),
-          monthlyCredits: 300,
+          monthlyCvCredits: 200,
+          monthlyInterviewCredits: 100,
+          monthlyCredits: 300, // Total for backward compatibility
           jobPostsLimit: 5,
           supportLevel: 'standard',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            creditsPerMonth: 300,
+            cvCreditsPerMonth: 200,
+            interviewCreditsPerMonth: 100,
             jobPosts: 5,
           },
           sortOrder: 1,
         },
         {
           name: 'Growth',
-          description: '700 AI Credits/month (~140 engaged candidates/month)',
+          description: '500 CV + 200 Interview Credits/month',
           monthlyPrice: 3900000,
           yearlyPrice: Math.round(3900000 * (1-0.18) * 12),
-          monthlyCredits: 600,
-          jobPostsLimit: 20,
+          monthlyCvCredits: 500,
+          monthlyInterviewCredits: 200,
+          monthlyCredits: 700, // Total for backward compatibility
+          jobPostsLimit: 15,
           supportLevel: 'priority',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            creditsPerMonth: 600,
+            cvCreditsPerMonth: 500,
+            interviewCreditsPerMonth: 200,
             jobPosts: 15,
             prioritySupport: true,
           },
@@ -72,16 +78,19 @@ export class SubscriptionService {
         },
         {
           name: 'Pro',
-          description: '1,900 AI Credits/month (~380 engaged candidates/month)',
+          description: '700 CV + 300 Interview Credits/month',
           monthlyPrice: 4900000,
           yearlyPrice: Math.round(4900000 * (1-0.18) * 12),
-          monthlyCredits: 1000,
+          monthlyCvCredits: 700,
+          monthlyInterviewCredits: 300,
+          monthlyCredits: 1000, // Total for backward compatibility
           jobPostsLimit: null, // Unlimited
           supportLevel: 'priority',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            creditsPerMonth: 1000,
+            cvCreditsPerMonth: 700,
+            interviewCreditsPerMonth: 300,
             jobPosts: 'unlimited',
             prioritySupport: true,
           },
@@ -89,16 +98,19 @@ export class SubscriptionService {
         },
         {
           name: 'Enterprise',
-          description: 'Custom',
+          description: '2500 CV + 1000 Interview Credits/month (Custom)',
           monthlyPrice: 0,
           yearlyPrice: 0,
-          monthlyCredits: 3500,
+          monthlyCvCredits: 2500,
+          monthlyInterviewCredits: 1000,
+          monthlyCredits: 3500, // Total for backward compatibility
           jobPostsLimit: null,
           supportLevel: 'dedicated',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            creditsPerMonth: 3500,
+            cvCreditsPerMonth: 2500,
+            interviewCreditsPerMonth: 1000,
             jobPosts: 'unlimited',
             dedicatedManager: true,
           },
@@ -380,7 +392,7 @@ export class SubscriptionService {
       const now = new Date();
 
       // Add credits to organization using transaction
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: any) => {
         // Get current organization
         const [org] = await tx
           .select()
@@ -391,35 +403,67 @@ export class SubscriptionService {
           throw new Error('Organization not found');
         }
 
-        // Update organization credits
+        // Update organization credits for both types
         await tx
           .update(organizations)
           .set({
+            cvProcessingCredits: (org.cvProcessingCredits || 0) + plan.monthlyCvCredits,
+            interviewCredits: (org.interviewCredits || 0) + plan.monthlyInterviewCredits,
+            // Legacy field for backward compatibility
             currentCredits: (org.currentCredits || 0) + plan.monthlyCredits,
             updatedAt: now,
           })
           .where(eq(organizations.id, subscription.organizationId));
 
-        // Create credit transaction record
+        // Create credit transaction records for CV processing credits
         await tx.insert(creditTransactions).values({
           id: crypto.randomUUID(),
           organizationId: subscription.organizationId,
-          amount: plan.monthlyCredits,
-          type: 'manual_adjustment',
-          description: `Monthly subscription credits - ${plan.name} plan`,
+          amount: plan.monthlyCvCredits,
+          type: 'subscription',
+          actionType: 'resume_processing',
+          description: `Monthly CV processing credits - ${plan.name} plan`,
           relatedId: subscriptionId,
           createdAt: now,
         });
 
-        // Create credit expiration record
+        // Create credit transaction records for interview credits
+        await tx.insert(creditTransactions).values({
+          id: crypto.randomUUID(),
+          organizationId: subscription.organizationId,
+          amount: plan.monthlyInterviewCredits,
+          type: 'subscription',
+          actionType: 'interview_scheduling',
+          description: `Monthly interview credits - ${plan.name} plan`,
+          relatedId: subscriptionId,
+          createdAt: now,
+        });
+
+        // Create credit expiration record for CV processing credits
         await tx.insert(creditExpirations).values({
           id: crypto.randomUUID(),
           organizationId: subscription.organizationId,
-          creditAmount: plan.monthlyCredits,
+          creditType: 'cv_processing',
+          creditAmount: plan.monthlyCvCredits,
           source: 'subscription',
           sourceId: subscriptionId,
           expiresAt,
-          remainingCredits: plan.monthlyCredits,
+          remainingCredits: plan.monthlyCvCredits,
+          isExpired: false,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        // Create credit expiration record for interview credits
+        await tx.insert(creditExpirations).values({
+          id: crypto.randomUUID(),
+          organizationId: subscription.organizationId,
+          creditType: 'interview',
+          creditAmount: plan.monthlyInterviewCredits,
+          source: 'subscription',
+          sourceId: subscriptionId,
+          expiresAt,
+          remainingCredits: plan.monthlyInterviewCredits,
           isExpired: false,
           createdAt: now,
           updatedAt: now,
@@ -442,7 +486,8 @@ export class SubscriptionService {
     amount: number;
     currency: string;
     status: string;
-    creditsAllocated: number;
+    cvCreditsAllocated: number;
+    interviewCreditsAllocated: number;
     invoiceDate?: Date;
     paidAt?: Date;
   }): Promise<void> {
@@ -464,14 +509,16 @@ export class SubscriptionService {
         amount: params.amount,
         currency: params.currency,
         status: params.status,
-        creditsAllocated: params.creditsAllocated,
+        cvCreditsAllocated: params.cvCreditsAllocated,
+        interviewCreditsAllocated: params.interviewCreditsAllocated,
+        creditsAllocated: params.cvCreditsAllocated + params.interviewCreditsAllocated, // Total for backward compatibility
         invoiceDate: params.invoiceDate || new Date(),
         paidAt: params.paidAt,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      console.log(`Created subscription invoice for ${params.stripeInvoiceId}`);
+      console.log(`Created subscription invoice for ${params.stripeInvoiceId}: ${params.cvCreditsAllocated} CV + ${params.interviewCreditsAllocated} interview credits`);
     } catch (error) {
       console.error('Error creating subscription invoice:', error);
       throw new Error('Failed to create subscription invoice');
@@ -499,18 +546,30 @@ export class SubscriptionService {
       for (const expiredCredit of expiredCredits) {
         if (expiredCredit.remainingCredits > 0) {
           // Deduct remaining credits from organization
-          await db.transaction(async (tx) => {
+          await db.transaction(async (tx: any) => {
             const [org] = await tx
               .select()
               .from(organizations)
               .where(eq(organizations.id, expiredCredit.organizationId));
 
             if (org) {
+              // Determine which credit balance to update based on credit type
+              const isCvCredit = expiredCredit.creditType === 'cv_processing';
+              const updateData = isCvCredit
+                ? {
+                    cvProcessingCredits: Math.max(0, (org.cvProcessingCredits || 0) - expiredCredit.remainingCredits),
+                    updatedAt: now,
+                  }
+                : {
+                    interviewCredits: Math.max(0, (org.interviewCredits || 0) - expiredCredit.remainingCredits),
+                    updatedAt: now,
+                  };
+
               await tx
                 .update(organizations)
                 .set({
-                  currentCredits: Math.max(0, (org.currentCredits || 0) - expiredCredit.remainingCredits),
-                  updatedAt: now,
+                  ...updateData,
+                  currentCredits: Math.max(0, (org.currentCredits || 0) - expiredCredit.remainingCredits), // Also update legacy field
                 })
                 .where(eq(organizations.id, expiredCredit.organizationId));
 
@@ -520,7 +579,8 @@ export class SubscriptionService {
                 organizationId: expiredCredit.organizationId,
                 amount: -expiredCredit.remainingCredits,
                 type: 'manual_adjustment',
-                description: 'Credits expired (45 days)',
+                actionType: isCvCredit ? 'resume_processing' : 'interview_scheduling',
+                description: `${expiredCredit.creditType} credits expired (45 days)`,
                 relatedId: expiredCredit.id,
                 createdAt: now,
               });
@@ -537,7 +597,7 @@ export class SubscriptionService {
               .where(eq(creditExpirations.id, expiredCredit.id));
           });
 
-          console.log(`Expired ${expiredCredit.remainingCredits} credits for organization ${expiredCredit.organizationId}`);
+          console.log(`Expired ${expiredCredit.remainingCredits} ${expiredCredit.creditType} credits for organization ${expiredCredit.organizationId}`);
         }
       }
     } catch (error) {

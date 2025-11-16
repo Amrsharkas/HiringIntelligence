@@ -26,7 +26,9 @@ interface SubscriptionPlan {
   description: string;
   monthlyPrice: number;
   yearlyPrice: number;
-  monthlyCredits: number;
+  monthlyCvCredits: number;
+  monthlyInterviewCredits: number;
+  monthlyCredits: number; // Total for backward compatibility
   jobPostsLimit: number | null;
   supportLevel: string;
   features: Record<string, any>;
@@ -245,16 +247,23 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
 
                   <div className="space-y-3 py-4">
                     <div className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      <Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm">
-                        {plan.monthlyCredits} AI Credits/month
+                        {plan.monthlyCvCredits || plan.monthlyCredits} CV Processing Credits/month
                       </span>
                     </div>
-                    
+
+                    <div className="flex items-start gap-2">
+                      <Check className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">
+                        {plan.monthlyInterviewCredits || 0} Interview Credits/month
+                      </span>
+                    </div>
+
                     <div className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm">
-                        ~{Math.floor(plan.monthlyCredits / 5)} engaged candidates/month
+                        ~{Math.floor((plan.monthlyCvCredits || plan.monthlyCredits) / 5)} engaged candidates/month
                       </span>
                     </div>
 

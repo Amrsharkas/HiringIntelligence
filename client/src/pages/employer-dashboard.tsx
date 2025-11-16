@@ -88,21 +88,36 @@ const HeaderCreditsAndPlan = memo(({ onManageClick }: { onManageClick: () => voi
     staleTime: 0,
   });
 
-  const credits = organization?.currentCredits || 0;
+  const cvCredits = organization?.cvProcessingCredits || 0;
+  const interviewCredits = organization?.interviewCredits || 0;
   const planName = subscription?.plan?.name || "No Plan";
 
   return (
     <div className="hidden lg:flex items-center gap-2">
-      {/* Credits Display - Clickable */}
+      {/* CV Credits Display - Clickable */}
       <button
         onClick={onManageClick}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 border border-emerald-200/50 dark:border-emerald-700/50 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all duration-200 hover:scale-105 cursor-pointer"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200/50 dark:border-emerald-700/50 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all duration-200 hover:scale-105 cursor-pointer"
+        title="CV Processing Credits"
       >
         <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-          {credits.toLocaleString()}
+          {cvCredits.toLocaleString()}
         </span>
-        <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">credits</span>
+        <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">CV</span>
+      </button>
+
+      {/* Interview Credits Display - Clickable */}
+      <button
+        onClick={onManageClick}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200/50 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 hover:scale-105 cursor-pointer"
+        title="Interview Credits"
+      >
+        <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+          {interviewCredits.toLocaleString()}
+        </span>
+        <span className="text-xs text-blue-600/70 dark:text-blue-400/70">Interview</span>
       </button>
 
       {/* Plan Display with Manage Button */}

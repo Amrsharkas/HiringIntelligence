@@ -23,6 +23,7 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
 import { resumeProcessingQueue } from "./queues";
+import { setupCreditPackages } from "./setupCreditPackages";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -577,6 +578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Run the complete setup
       await setupSubscriptionSystem();
+
+      await setupCreditPackages()
 
       res.json({
         success: true,
