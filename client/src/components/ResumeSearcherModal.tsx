@@ -5,12 +5,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Upload, File, X, Loader2, FileText, Search, Briefcase } from 'lucide-react';
+import { Upload, File, X, Loader2, FileText, Search, Briefcase, Users } from 'lucide-react';
 import { CreditPurchaseModal } from './CreditPurchaseModal';
-import { useLocation } from 'wouter';
+import { ResumeProfilesList } from './ResumeProfilesList';
 
 
 interface ResumeSearcherModalProps {
@@ -20,7 +21,6 @@ interface ResumeSearcherModalProps {
 
 export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProps) {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [customRules, setCustomRules] = useState<string>('');
@@ -193,7 +193,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     onSuccess: (result) => {
       toast({
         title: "Resume Processing Started",
-        description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background. Redirecting to resume profiles...`,
+        description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background. Check the "View Profiles" tab to see progress.`,
       });
 
       // Update credit balance immediately if returned in response
@@ -205,15 +205,11 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
       }
 
       clearAllFiles();
-      onClose(); // Close the modal
-
-      // Redirect to resume profiles page
-      setLocation('/resume-profiles');
 
       // Refresh profiles list after a delay to allow for processing
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
-      }, 5000);
+      }, 2000);
     },
     onError: (error: Error) => {
       // Check if it's a credit-related error
@@ -243,8 +239,19 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           </DialogTitle>
         </DialogHeader>
 
+        <Tabs defaultValue="upload" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Upload Resumes
+            </TabsTrigger>
+            <TabsTrigger value="profiles" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              View Profiles
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-6">
+          <TabsContent value="upload" className="space-y-6 mt-6">
           {/* Job Selection Section */}
           <Card>
             <CardHeader>
@@ -424,7 +431,12 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
               </div>
             </CardContent>
           </Card>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="profiles" className="mt-6">
+            <ResumeProfilesList />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
 
       {/* Credit Purchase Modal */}
