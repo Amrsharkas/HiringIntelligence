@@ -1846,7 +1846,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const formatBrutallyHonestProfile = (profile: any): string =>  {
     if (!profile) return 'No profile data available';
 
-    // Check if this is the new structured format
+    // Check if this is version 2 format
+    if (profile.version === 2) {
+      return formatBrutallyHonestProfileV2(profile);
+    }
+
+    // Check if this is the new structured format (version 1)
     const isNewFormat = profile.meta && profile.scores;
 
     if (isNewFormat) {
@@ -1854,6 +1859,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       return formatLegacyProfile(profile);
     }
+  };
+
+  const formatBrutallyHonestProfileV2 = (profile: any): string => {
+    let formatted = '';
+
+    // Header
+    formatted += '# 🔍 **BRUTALLY HONEST CANDIDATE ASSESSMENT v2**\n\n';
+
+    // Meta Profile Overview
+    if (profile.meta_profile_overview) {
+      const meta = profile.meta_profile_overview;
+      formatted += `## 📋 **PROFILE OVERVIEW**\n`;
+      if (meta.headline) {
+        formatted += `• **Headline:** ${meta.headline}\n`;
+      }
+      if (meta.one_line_summary) {
+        formatted += `• **Summary:** ${meta.one_line_summary}\n`;
+      }
+      if (meta.key_highlights && Array.isArray(meta.key_highlights)) {
+        formatted += `• **Key Highlights:**\n`;
+        meta.key_highlights.forEach((highlight: string) => {
+          formatted += `  - ${highlight}\n`;
+        });
+      }
+      if (meta.key_watchouts && Array.isArray(meta.key_watchouts)) {
+        formatted += `• **Key Watchouts:**\n`;
+        meta.key_watchouts.forEach((watchout: string) => {
+          formatted += `  - ${watchout}\n`;
+        });
+      }
+      formatted += '\n';
+    }
+
+    // Identity and Background
+    if (profile.identity_and_background) {
+      const identity = profile.identity_and_background;
+      formatted += `## 👤 **IDENTITY & BACKGROUND**\n`;
+      if (identity.full_name) formatted += `• **Name:** ${identity.full_name}\n`;
+      if (identity.city && identity.country) {
+        formatted += `• **Location:** ${identity.city}, ${identity.country}\n`;
+      }
+      if (identity.primary_role) formatted += `• **Primary Role:** ${identity.primary_role}\n`;
+      if (identity.seniority_level) formatted += `• **Seniority Level:** ${identity.seniority_level}\n`;
+      if (identity.years_of_experience) formatted += `• **Years of Experience:** ${identity.years_of_experience}\n`;
+      if (identity.brief_background_summary) {
+        formatted += `• **Background:** ${identity.brief_background_summary}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Career Story
+    if (profile.career_story) {
+      const career = profile.career_story;
+      formatted += `## 📈 **CAREER STORY**\n`;
+      if (career.narrative) {
+        formatted += `• **Career Narrative:** ${career.narrative}\n`;
+      }
+      if (career.key_milestones && Array.isArray(career.key_milestones)) {
+        formatted += `• **Key Milestones:**\n`;
+        career.key_milestones.forEach((milestone: string) => {
+          formatted += `  - ${milestone}\n`;
+        });
+      }
+      if (career.representative_achievements && Array.isArray(career.representative_achievements)) {
+        formatted += `• **Representative Achievements:**\n`;
+        career.representative_achievements.forEach((achievement: string) => {
+          formatted += `  - ${achievement}\n`;
+        });
+      }
+      formatted += '\n';
+    }
+
+    // Skills and Capabilities
+    if (profile.skills_and_capabilities) {
+      const skills = profile.skills_and_capabilities;
+      formatted += `## 🛠️ **SKILLS & CAPABILITIES**\n`;
+      if (skills.core_hard_skills && Array.isArray(skills.core_hard_skills)) {
+        formatted += `• **Core Hard Skills:** ${skills.core_hard_skills.join(', ')}\n`;
+      }
+      if (skills.tools_and_technologies && Array.isArray(skills.tools_and_technologies)) {
+        formatted += `• **Tools & Technologies:** ${skills.tools_and_technologies.join(', ')}\n`;
+      }
+      if (skills.soft_skills_and_behaviors && Array.isArray(skills.soft_skills_and_behaviors)) {
+        formatted += `• **Soft Skills & Behaviors:** ${skills.soft_skills_and_behaviors.join(', ')}\n`;
+      }
+      if (skills.strengths_summary) {
+        formatted += `• **Strengths Summary:** ${skills.strengths_summary}\n`;
+      }
+      if (skills.notable_gaps_or_limits && Array.isArray(skills.notable_gaps_or_limits)) {
+        formatted += `• **Notable Gaps/Limits:**\n`;
+        skills.notable_gaps_or_limits.forEach((gap: string) => {
+          formatted += `  - ${gap}\n`;
+        });
+      }
+      formatted += '\n';
+    }
+
+    // Personality and Values
+    if (profile.personality_and_values) {
+      const personality = profile.personality_and_values;
+      formatted += `## 🧠 **PERSONALITY & VALUES**\n`;
+      if (personality.personality_summary) {
+        formatted += `• **Personality Summary:** ${personality.personality_summary}\n`;
+      }
+      if (personality.values_and_what_matters && Array.isArray(personality.values_and_what_matters)) {
+        formatted += `• **Values & What Matters:**\n`;
+        personality.values_and_what_matters.forEach((value: string) => {
+          formatted += `  - ${value}\n`;
+        });
+      }
+      if (personality.response_to_stress_and_feedback) {
+        formatted += `• **Response to Stress & Feedback:** ${personality.response_to_stress_and_feedback}\n`;
+      }
+      if (personality.decision_making_style) {
+        formatted += `• **Decision Making Style:** ${personality.decision_making_style}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Work Style and Collaboration
+    if (profile.work_style_and_collaboration) {
+      const work = profile.work_style_and_collaboration;
+      formatted += `## 💼 **WORK STYLE & COLLABORATION**\n`;
+      if (work.day_to_day_work_style) {
+        formatted += `• **Day-to-Day Work Style:** ${work.day_to_day_work_style}\n`;
+      }
+      if (work.team_and_collaboration_style) {
+        formatted += `• **Team & Collaboration Style:** ${work.team_and_collaboration_style}\n`;
+      }
+      if (work.communication_style) {
+        formatted += `• **Communication Style:** ${work.communication_style}\n`;
+      }
+      if (work.examples_from_interview && Array.isArray(work.examples_from_interview)) {
+        formatted += `• **Examples from Interview:**\n`;
+        work.examples_from_interview.forEach((example: string) => {
+          formatted += `  - ${example}\n`;
+        });
+      }
+      formatted += '\n';
+    }
+
+    // Technical and Domain Profile
+    if (profile.technical_and_domain_profile) {
+      const tech = profile.technical_and_domain_profile;
+      formatted += `## 🔧 **TECHNICAL & DOMAIN PROFILE**\n`;
+      if (tech.domain_focus && Array.isArray(tech.domain_focus)) {
+        formatted += `• **Domain Focus:** ${tech.domain_focus.join(', ')}\n`;
+      }
+      if (tech.technical_depth_summary) {
+        formatted += `• **Technical Depth:** ${tech.technical_depth_summary}\n`;
+      }
+      if (tech.typical_problems_they_can_solve && Array.isArray(tech.typical_problems_they_can_solve)) {
+        formatted += `• **Typical Problems They Can Solve:**\n`;
+        tech.typical_problems_they_can_solve.forEach((problem: string) => {
+          formatted += `  - ${problem}\n`;
+        });
+      }
+      if (tech.areas_for_further_development && Array.isArray(tech.areas_for_further_development)) {
+        formatted += `• **Areas for Further Development:**\n`;
+        tech.areas_for_further_development.forEach((area: string) => {
+          formatted += `  - ${area}\n`;
+        });
+      }
+      formatted += '\n';
+    }
+
+    // Motivation and Career Direction
+    if (profile.motivation_and_career_direction) {
+      const motivation = profile.motivation_and_career_direction;
+      formatted += `## 🎯 **MOTIVATION & CAREER DIRECTION**\n`;
+      if (motivation.why_they_are_in_this_field) {
+        formatted += `• **Why in This Field:** ${motivation.why_they_are_in_this_field}\n`;
+      }
+      if (motivation.reasons_for_looking_or_leaving) {
+        formatted += `• **Reasons for Looking/Leaving:** ${motivation.reasons_for_looking_or_leaving}\n`;
+      }
+      if (motivation.short_term_goals_1_2_years) {
+        formatted += `• **Short-term Goals (1-2 years):** ${motivation.short_term_goals_1_2_years}\n`;
+      }
+      if (motivation.long_term_direction_3_5_years) {
+        formatted += `• **Long-term Direction (3-5 years):** ${motivation.long_term_direction_3_5_years}\n`;
+      }
+      if (motivation.clarity_and_realism_assessment) {
+        formatted += `• **Clarity & Realism Assessment:** ${motivation.clarity_and_realism_assessment}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Risk and Stability
+    if (profile.risk_and_stability) {
+      const risk = profile.risk_and_stability;
+      formatted += `## ⚠️ **RISK & STABILITY**\n`;
+      if (risk.integrated_risk_view) {
+        formatted += `• **Integrated Risk View:** ${risk.integrated_risk_view}\n`;
+      }
+      if (risk.job_hopping_risk_note) {
+        formatted += `• **Job Hopping Risk:** ${risk.job_hopping_risk_note}\n`;
+      }
+      if (risk.unemployment_gap_risk_note) {
+        formatted += `• **Unemployment Gap Risk:** ${risk.unemployment_gap_risk_note}\n`;
+      }
+      if (risk.stability_overall_assessment) {
+        formatted += `• **Stability Assessment:** ${risk.stability_overall_assessment}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Environment and Culture Fit
+    if (profile.environment_and_culture_fit) {
+      const environment = profile.environment_and_culture_fit;
+      formatted += `## 🏢 **ENVIRONMENT & CULTURE FIT**\n`;
+      if (environment.environments_where_they_thrive && Array.isArray(environment.environments_where_they_thrive)) {
+        formatted += `• **Environments Where They Thrive:**\n`;
+        environment.environments_where_they_thrive.forEach((env: string) => {
+          formatted += `  - ${env}\n`;
+        });
+      }
+      if (environment.environments_where_they_struggle && Array.isArray(environment.environments_where_they_struggle)) {
+        formatted += `• **Environments Where They Struggle:**\n`;
+        environment.environments_where_they_struggle.forEach((env: string) => {
+          formatted += `  - ${env}\n`;
+        });
+      }
+      if (environment.non_negotiables_summary) {
+        formatted += `• **Non-negotiables:** ${environment.non_negotiables_summary}\n`;
+      }
+      if (environment.culture_fit_notes) {
+        formatted += `• **Culture Fit Notes:** ${environment.culture_fit_notes}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Recommended Roles and Pathways
+    if (profile.recommended_roles_and_pathways) {
+      const roles = profile.recommended_roles_and_pathways;
+      formatted += `## 🎯 **RECOMMENDED ROLES & PATHWAYS**\n`;
+      if (roles.recommended_role_types && Array.isArray(roles.recommended_role_types)) {
+        formatted += `• **Recommended Role Types:**\n`;
+        roles.recommended_role_types.forEach((role: string) => {
+          formatted += `  - ${role}\n`;
+        });
+      }
+      if (roles.suitable_team_or_org_contexts && Array.isArray(roles.suitable_team_or_org_contexts)) {
+        formatted += `• **Suitable Team/Org Contexts:**\n`;
+        roles.suitable_team_or_org_contexts.forEach((context: string) => {
+          formatted += `  - ${context}\n`;
+        });
+      }
+      if (roles.leadership_vs_ic_potential) {
+        formatted += `• **Leadership vs IC Potential:** ${roles.leadership_vs_ic_potential}\n`;
+      }
+      if (roles.development_recommendations && Array.isArray(roles.development_recommendations)) {
+        formatted += `• **Development Recommendations:**\n`;
+        roles.development_recommendations.forEach((rec: string) => {
+          formatted += `  - ${rec}\n`;
+        });
+      }
+      formatted += '\n';
+    }
+
+    // Derived Tags
+    if (profile.derived_tags && Array.isArray(profile.derived_tags)) {
+      formatted += `## 🏷️ **DERIVED TAGS**\n`;
+      formatted += `${profile.derived_tags.map((tag: string) => `\`${tag}\``).join(' ')}\n\n`;
+    }
+
+    // Data Quality and Limits
+    if (profile.data_quality_and_limits) {
+      const dataQuality = profile.data_quality_and_limits;
+      formatted += `## 📊 **DATA QUALITY & LIMITS**\n`;
+      if (dataQuality.overall_confidence_0_100 !== undefined) {
+        formatted += `• **Overall Confidence:** ${dataQuality.overall_confidence_0_100}/100\n`;
+      }
+      if (dataQuality.major_gaps_in_information && Array.isArray(dataQuality.major_gaps_in_information)) {
+        formatted += `• **Major Information Gaps:**\n`;
+        dataQuality.major_gaps_in_information.forEach((gap: string) => {
+          formatted += `  - ${gap}\n`;
+        });
+      }
+      if (dataQuality.inconsistencies && Array.isArray(dataQuality.inconsistencies)) {
+        formatted += `• **Inconsistencies:**\n`;
+        dataQuality.inconsistencies.forEach((inconsistency: string) => {
+          formatted += `  - ${inconsistency}\n`;
+        });
+      }
+      if (dataQuality.notes) {
+        formatted += `• **Notes:** ${dataQuality.notes}\n`;
+      }
+      formatted += '\n';
+    }
+
+    // Footer
+    formatted += '---\n';
+    formatted += '*Brutally honest assessment based on AI-powered interview analysis (v2 format)*';
+
+    return formatted.trim();
   };
 
   const formatNewStructuredProfile = (profile: any): string => {
