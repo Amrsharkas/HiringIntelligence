@@ -541,16 +541,19 @@ export default function EmployerDashboard() {
               </button>
             )}
 
-            <button
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
-              style={{
-                transformOrigin: 'center',
-                transform: 'translateZ(0)'
-              }}
-            >
-              <Settings className="w-5 h-5" />
-            </button>
+            {/* Settings Button - Only show for admin or owner */}
+            {isAdminOrOwner && (
+              <button
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
+                style={{
+                  transformOrigin: 'center',
+                  transform: 'translateZ(0)'
+                }}
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
             <button
               className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
               style={{
@@ -870,6 +873,7 @@ export default function EmployerDashboard() {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+        isAdminOrOwner={isAdminOrOwner}
       />
     </div>
   );

@@ -18,6 +18,7 @@ import { z } from "zod";
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isAdminOrOwner?: boolean;
 }
 
 interface OrganizationData {
@@ -26,6 +27,17 @@ interface OrganizationData {
   industry: string;
   description: string;
   companySize: string;
+}
+
+interface UserProfileData {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
+  username: string | null;
+  authProvider: string | null;
+  isVerified: boolean;
 }
 
 interface TeamMember {
@@ -38,9 +50,36 @@ interface TeamMember {
   isActive: boolean;
 }
 
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, isAdminOrOwner = false }: SettingsModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Access control: Only admins and owners can access settings
+  if (isOpen && !isAdminOrOwner) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Shield className="w-5 h-5" />
+              Access Denied
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-6 text-center">
+            <p className="text-gray-600 mb-4">
+              You don't have permission to access organization settings.
+            </p>
+            <p className="text-sm text-gray-500">
+              Only administrators and organization owners can manage settings.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Industry and size options (same as registration)
   const INDUSTRIES = [
@@ -80,6 +119,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     companySize: ''
   });
 
+  const [userProfileData, setUserProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    displayName: ''
+  });
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -89,6 +134,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Queries
   const { data: organization, isLoading: orgLoading } = useQuery<any>({
     queryKey: ["/api/organizations/current"],
+    ...getQueryOptions(30000),
+    enabled: isOpen
+  });
+
+  const { data: userProfile, isLoading: userProfileLoading } = useQuery<UserProfileData>({
+    queryKey: ["/api/user/profile"],
     ...getQueryOptions(30000),
     enabled: isOpen
   });
@@ -164,6 +215,38 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   });
 
+  const updateUserProfileMutation = useMutation({
+    mutationFn: async (data: { firstName: string; lastName: string; displayName?: string }) => {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user profile');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Set organization data when loaded
   useEffect(() => {
     if (organization) {
@@ -176,6 +259,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       });
     }
   }, [organization]);
+
+  // Set user profile data when loaded
+  useEffect(() => {
+    if (userProfile) {
+      setUserProfileData({
+        firstName: userProfile.firstName || '',
+        lastName: userProfile.lastName || '',
+        displayName: userProfile.displayName || ''
+      });
+    }
+  }, [userProfile]);
 
   const handleOrgUpdate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,6 +319,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     });
   };
 
+  const handleUserProfileUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!userProfileData.firstName || !userProfileData.lastName) {
+      toast({
+        title: "Error",
+        description: "First name and last name are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateUserProfileMutation.mutate({
+      firstName: userProfileData.firstName,
+      lastName: userProfileData.lastName,
+      displayName: userProfileData.displayName || undefined
+    });
+  };
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'owner':
@@ -258,10 +371,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </DialogHeader>
 
         <Tabs defaultValue="organization" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="organization" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
               Organization
+            </TabsTrigger>
+            <TabsTrigger value="account" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Account
             </TabsTrigger>
             <TabsTrigger value="password" className="flex items-center gap-2">
               <Key className="w-4 h-4" />
@@ -346,6 +463,76 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       disabled={orgLoading || updateOrganizationMutation.isPending}
                     >
                       {updateOrganizationMutation.isPending ? 'Updating...' : 'Update Organization'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="account" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Account Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleUserProfileUpdate} className="space-y-4">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      value={userProfile?.email || ''}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Email cannot be changed. {userProfile?.authProvider === 'google' && 'This account uses Google authentication.'}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        value={userProfileData.firstName}
+                        onChange={(e) => setUserProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                        placeholder="Enter your first name"
+                        disabled={userProfileLoading || updateUserProfileMutation.isPending}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        value={userProfileData.lastName}
+                        onChange={(e) => setUserProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                        placeholder="Enter your last name"
+                        disabled={userProfileLoading || updateUserProfileMutation.isPending}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="displayName">Display Name (Optional)</Label>
+                    <Input
+                      id="displayName"
+                      value={userProfileData.displayName}
+                      onChange={(e) => setUserProfileData(prev => ({ ...prev, displayName: e.target.value }))}
+                      placeholder="How you'd like to be called"
+                      disabled={userProfileLoading || updateUserProfileMutation.isPending}
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={userProfileLoading || updateUserProfileMutation.isPending}
+                    >
+                      {updateUserProfileMutation.isPending ? 'Updating...' : 'Update Profile'}
                     </Button>
                   </div>
                 </form>

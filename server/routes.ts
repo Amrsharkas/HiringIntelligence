@@ -10,7 +10,7 @@ import { creditService } from "./creditService";
 import { stripeService } from "./stripeService";
 import { subscriptionService } from "./subscriptionService";
 import { setupSubscriptionSystem } from "./setupSubscriptionSystem";
-import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema, type InsertOrganization } from "@shared/schema";
+import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema, type InsertOrganization, users } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
 import { localDatabaseService } from "./localDatabaseService";
@@ -114,6 +114,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(500).json({ message: "Failed to update organization" });
+    }
+  });
+
+  // User profile routes
+  app.get('/api/user/profile', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      console.log("Fetching user profile for user:", userId);
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+        columns: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          displayName: true,
+          username: true,
+          profileImageUrl: true,
+          authProvider: true,
+          isVerified: true,
+          createdAt: true,
+        }
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
+  app.put('/api/user/profile', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { firstName, lastName, displayName } = req.body;
+
+      console.log("Updating user profile for user:", userId);
+      console.log("Update data:", { firstName, lastName, displayName });
+
+      // Validate input
+      if (!firstName || !lastName) {
+        return res.status(400).json({ message: "First name and last name are required" });
+      }
+
+      // Update user profile
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          displayName: displayName ? displayName.trim() : `${firstName} ${lastName}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          displayName: users.displayName,
+          username: users.username,
+          profileImageUrl: users.profileImageUrl,
+          authProvider: users.authProvider,
+          isVerified: users.isVerified,
+          createdAt: users.createdAt,
+        });
+
+      console.log("Updated user profile:", updatedUser);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
     }
   });
 
