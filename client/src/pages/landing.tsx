@@ -96,6 +96,16 @@ export default function Landing() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
 
+  // Check for inviteCode in URL and open signup dialog
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('inviteCode');
+
+    if (inviteCode) {
+      setShowSignUp(true);
+    }
+  }, []);
+
   // Fetch subscription plans
   const { data: plans } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/subscriptions/plans"],

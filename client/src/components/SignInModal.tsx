@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 import { isGoogleAuthError, getGoogleAuthError, clearGoogleAuthError, getGoogleAuthErrorMessage } from "@/lib/authUtils";
-import { X, Lock, User } from "lucide-react";
+import { X, Lock, User, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -21,8 +22,18 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
   const { loginMutation, signInWithGoogle } = useAuth();
   const { toast } = useToast();
+
+  // Check for inviteCode in URL when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('inviteCode');
+      setInviteCode(code);
+    }
+  }, [isOpen]);
 
   // Check for Google auth errors on mount
   React.useEffect(() => {
@@ -87,8 +98,25 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
                 Sign in to your account to access your employer dashboard
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent>
+              {/* Invite Code Tip */}
+              {inviteCode && (
+                <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 mb-6">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertDescription className="text-sm text-blue-800 dark:text-blue-300">
+                    <strong>You've been invited!</strong> Sign in with your existing account to join the team.
+                    If you don't have an account yet, please{" "}
+                    <button
+                      onClick={onSwitchToSignUp}
+                      className="underline font-semibold hover:text-blue-900 dark:hover:text-blue-200"
+                    >
+                      sign up here
+                    </button>.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">

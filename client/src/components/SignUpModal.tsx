@@ -11,7 +11,8 @@ import GoogleSignInButton from "./GoogleSignInButton";
 import { isGoogleAuthError, getGoogleAuthError, clearGoogleAuthError, getGoogleAuthErrorMessage } from "@/lib/authUtils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TERMS_OF_SERVICE_TEXT } from "@shared/terms";
-import { X, Lock, User, Mail } from "lucide-react";
+import { X, Lock, User, Mail, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
   const [termsError, setTermsError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
   const { registerMutation, signInWithGoogle } = useAuth();
   const { toast } = useToast();
 
@@ -51,6 +53,15 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
     resetForm();
     onClose();
   };
+
+  // Check for inviteCode in URL when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('inviteCode');
+      setInviteCode(code);
+    }
+  }, [isOpen]);
 
   // Check for Google auth errors on mount
   React.useEffect(() => {
@@ -192,6 +203,17 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
             </CardHeader>
             
             <CardContent className="space-y-6">
+              {/* Invite Code Tip */}
+              {inviteCode && (
+                <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertDescription className="text-sm text-blue-800 dark:text-blue-300">
+                    <strong>You've been invited!</strong> Complete your registration to join the team.
+                    After signing up, you'll be automatically added to the organization.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 {currentStep === 1 && (
                   <>
