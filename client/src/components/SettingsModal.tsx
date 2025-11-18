@@ -450,16 +450,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             {getRoleIcon(member.role)}
                             {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
                           </Badge>
-
-                          {member.isActive ? (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-gray-500">
-                              Inactive
-                            </Badge>
-                          )}
                         </div>
                       </div>
                     ))}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -89,6 +89,7 @@ export default function ResumeProfiles() {
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const previousHasActiveJobs = useRef<boolean | null>(null);
 
   // Fetch company job postings
   const { data: jobs = [] } = useQuery<any[]>({
@@ -168,13 +169,20 @@ export default function ResumeProfiles() {
   const totalPages = serverPagination?.totalPages || 1;
   const totalItems = serverPagination?.totalItems || 0;
 
-  // Refresh profiles when active jobs complete
+  // Refresh profiles when active jobs complete (only trigger on state change)
   useEffect(() => {
-    if (activeJobsData && !activeJobsData.hasActiveJobs) {
-      // All jobs completed, refresh profiles list
-      queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+    if (activeJobsData) {
+      const currentHasActiveJobs = activeJobsData.hasActiveJobs;
+
+      // Only refresh when transitioning from active to inactive (jobs just completed)
+      if (previousHasActiveJobs.current === true && currentHasActiveJobs === false) {
+        queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
+      }
+
+      // Update ref for next comparison
+      previousHasActiveJobs.current = currentHasActiveJobs;
     }
-  }, [activeJobsData]);
+  }, [activeJobsData?.hasActiveJobs]); // Only depend on the boolean value, not the entire object
 
   // Display all profiles, including those without job scores
   const displayRows = useMemo(() => {

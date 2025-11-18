@@ -131,9 +131,11 @@ class EmailService {
         <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px;">
           
           <div style="text-align: center; margin-bottom: 32px;">
-            <div style="background-color: #2563eb; width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-              <span style="color: white; font-size: 24px;">📅</span>
-            </div>
+            <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 16px; width: 60px; height: 60px; background-color: #2563eb; border-radius: 50%;">
+              <tr>
+                <td style="text-align: center; vertical-align: middle; font-size: 24px; line-height: 60px;">📅</td>
+              </tr>
+            </table>
             <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Interview Details</h2>
           </div>
 
@@ -361,7 +363,7 @@ The Plato Team
         return false;
       }
 
-      const subject = `You're invited to join ${params.organizationName} on Plato Hiring`;
+      const subject = `You've been added to ${params.organizationName} on Plato Hiring`;
 
       const html = this.generateTeamInvitationHTML(params);
       const text = this.generateTeamInvitationText(params);
@@ -418,11 +420,13 @@ The Plato Team
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">👥</span>
-          </div>
-          <h1 style="color: #1f2937; margin: 0; font-size: 28px;">You're Invited!</h1>
-          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Join the team at ${params.organizationName}</p>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">👥</td>
+            </tr>
+          </table>
+          <h1 style="color: #1f2937; margin: 0; font-size: 28px;">You've Been Added to the Team!</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to ${params.organizationName}</p>
         </div>
 
         <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
@@ -430,7 +434,7 @@ The Plato Team
           <div style="text-align: center; margin-bottom: 32px;">
             <h2 style="color: #1f2937; margin: 0; font-size: 24px;">Welcome to ${params.organizationName}!</h2>
             <p style="color: #6b7280; margin: 8px 0 0 0;">
-              ${params.invitedByName} has invited you to join as a <strong style="color: #3b82f6; text-transform: capitalize;">${params.role}</strong>
+              ${params.invitedByName} has added you to the team as a <strong style="color: #3b82f6; text-transform: capitalize;">${params.role}</strong>
             </p>
           </div>
 
@@ -445,17 +449,17 @@ The Plato Team
 
           <div style="text-align: center; margin: 32px 0;">
             <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
-              <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🚀 Join Your Team</h3>
-              <p style="color: #d1fae5; margin: 0 0 24px 0; font-size: 16px;">Click below to accept the invitation and join ${params.organizationName}</p>
+              <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">🚀 Get Started</h3>
+              <p style="color: #d1fae5; margin: 0 0 24px 0; font-size: 16px;">Click below to set up your account and join ${params.organizationName}</p>
               <a href="${params.registrationLink}"
                  style="background: white; color: #059669; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
-                Accept Invitation
+                Set Up Account
               </a>
             </div>
 
             <div style="background-color: #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-              <p style="color: #92400e; margin: 0; font-weight: 600; margin-bottom: 8px;">Invite Code: <span style="font-family: 'Courier New', monospace; font-size: 18px; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid #d97706;">${params.inviteCode}</span></p>
-              <p style="color: #92400e; margin: 0; font-size: 14px;">You can also join using this code on the registration page</p>
+              <p style="color: #92400e; margin: 0; font-weight: 600; margin-bottom: 8px;">Access Code: <span style="font-family: 'Courier New', monospace; font-size: 18px; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid #d97706;">${params.inviteCode}</span></p>
+              <p style="color: #92400e; margin: 0; font-size: 14px;">You can also use this code to set up your account on the registration page</p>
             </div>
 
             <p style="color: #6b7280; margin: 0; font-size: 14px;">
@@ -468,7 +472,7 @@ The Plato Team
 
           <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
             <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.6;">
-              <strong>Important:</strong> This invitation will expire in 7 days. If you need assistance or have questions, please contact ${params.invitedByName} or our support team.
+              <strong>Important:</strong> This link will expire in 7 days. If you need assistance or have questions, please contact ${params.invitedByName} or our support team.
             </p>
           </div>
 
@@ -478,7 +482,7 @@ The Plato Team
           <p style="margin: 0;">
             Best regards,<br>
             The ${params.organizationName} Team<br>
-            <em>Invited by ${params.invitedByName}</em>
+            <em>Added by ${params.invitedByName}</em>
           </p>
         </div>
 
@@ -505,24 +509,24 @@ The Plato Team
     ` : '';
 
     return `
-👥 YOU'RE INVITED TO JOIN ${params.organizationName.toUpperCase()}!
+👥 YOU'VE BEEN ADDED TO ${params.organizationName.toUpperCase()}!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${params.invitedByName} has invited you to join the team as a ${params.role.toUpperCase()}
+${params.invitedByName} has added you to the team as a ${params.role.toUpperCase()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Welcome to ${params.organizationName}! We're excited to have you join our hiring team.
 
 ${messageSection}
 
-🚀 JOIN YOUR TEAM:
+🚀 GET STARTED:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Click here to accept: ${params.registrationLink}
+Click here to set up your account: ${params.registrationLink}
 
-Invite Code: ${params.inviteCode}
+Access Code: ${params.inviteCode}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IMPORTANT: This invitation will expire in 7 days.
+IMPORTANT: This link will expire in 7 days.
 
 If you have any questions or need assistance, please contact ${params.invitedByName}.
 
@@ -530,7 +534,7 @@ We look forward to having you on the team!
 
 Best regards,
 ${params.organizationName} Team
-Invited by ${params.invitedByName}
+Added by ${params.invitedByName}
     `.trim();
   }
 
@@ -606,9 +610,11 @@ Invited by ${params.invitedByName}
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">✉️</span>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">✉️</td>
+            </tr>
+          </table>
           <h1 style="color: #1f2937; margin: 0; font-size: 28px;">Verify Your Email</h1>
           <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to Plato Hiring!</p>
         </div>
@@ -713,9 +719,11 @@ The Plato Hiring Team
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">✅</span>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">✅</td>
+            </tr>
+          </table>
           <h1 style="color: #1f2937; margin: 0; font-size: 28px;">Email Verified!</h1>
           <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Welcome to Plato Hiring</p>
         </div>
@@ -873,9 +881,11 @@ The Plato Hiring Team
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">🔐</span>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">🔐</td>
+            </tr>
+          </table>
           <h1 style="color: #1f2937; font-size: 28px; font-weight: 700; margin-bottom: 10px;">Reset Your Password</h1>
           <p style="color: #6b7280; font-size: 16px;">Hi ${data.firstName || 'there'}, we received a request to reset your password</p>
         </div>
@@ -965,9 +975,11 @@ The Plato Hiring Team
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">✅</span>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">✅</td>
+            </tr>
+          </table>
           <h1 style="color: #1f2937; font-size: 28px; font-weight: 700; margin-bottom: 10px;">Password Reset Successfully!</h1>
           <p style="color: #6b7280; font-size: 16px;">Hi ${data.firstName || 'there'}, your password has been reset</p>
         </div>
@@ -1142,9 +1154,11 @@ The Plato Hiring Team
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">🎉</span>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">🎉</td>
+            </tr>
+          </table>
           <h1 style="color: #059669; margin: 0; font-size: 28px;">Congratulations!</h1>
           <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Your application has been accepted</p>
         </div>
@@ -1275,9 +1289,11 @@ ${data.companyName} Hiring Team
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">📧</span>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">📧</td>
+            </tr>
+          </table>
           <h1 style="color: #4b5563; margin: 0; font-size: 28px;">Application Update</h1>
           <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Thank you for your interest</p>
         </div>
@@ -1412,9 +1428,11 @@ ${data.companyName} Hiring Team
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <div style="text-align: center; margin-bottom: 40px;">
-          <div style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-            <span style="color: white; font-size: 32px;">📋</span>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 20px; width: 80px; height: 80px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); border-radius: 50%;">
+            <tr>
+              <td style="text-align: center; vertical-align: middle; font-size: 32px; line-height: 80px;">📋</td>
+            </tr>
+          </table>
           <h1 style="color: #2563eb; margin: 0; font-size: 28px;">You've Been Shortlisted!</h1>
           <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 16px;">Great news about your application</p>
         </div>
