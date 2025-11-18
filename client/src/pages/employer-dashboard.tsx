@@ -607,7 +607,7 @@ export default function EmployerDashboard() {
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">View Applicants</h3>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Applicants</h3>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Review applications</p>
                 </div>
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/20 dark:bg-orange-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
@@ -623,7 +623,7 @@ export default function EmployerDashboard() {
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Search Resumes</h3>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Source Candidates</h3>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Find perfect matches</p>
                 </div>
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-teal-500/20 dark:bg-teal-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
@@ -661,14 +661,14 @@ export default function EmployerDashboard() {
                 onClick: () => setIsActiveJobsModalOpen(true)
               },
               { 
-                label: "Applicants", 
+                label: "Candidantes", 
                 component: <LiveApplicantsCount />,
                 icon: Users, 
                 color: "green",
                 onClick: () => setIsApplicantsModalOpen(true)
               },
               { 
-                label: "Resume Searcher", 
+                label: "Scan Resume", 
                 component: <LiveCandidatesCount />,
                 icon: Target, 
                 color: "purple",
@@ -731,7 +731,7 @@ export default function EmployerDashboard() {
                   onClick={() => setIsCandidatesModalOpen(true)}
                 >
                   <Eye className="w-4 h-4 text-green-600 dark:text-green-400 mr-3" />
-                  Resume Searcher
+                  Scan Resumes
                 </Button>
                 <Button
                   variant="ghost"

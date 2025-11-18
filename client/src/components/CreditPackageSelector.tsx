@@ -307,7 +307,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
 
                     <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
                       <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {formatPrice(pkg.price)} EGP
+                        {(pkg.price / 100).toLocaleString('en-US')} EGP
                       </div>
                       <div className="text-xs text-slate-500 mt-1">
                         One-time payment

@@ -159,7 +159,7 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
             <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-6 rounded-t-2xl z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Search Resumes</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Source Candidates</h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                     Find the best candidates using AI-powered semantic search
                   </p>

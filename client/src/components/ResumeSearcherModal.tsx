@@ -235,7 +235,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Resume Searcher
+            Scan Resume
           </DialogTitle>
         </DialogHeader>
 
