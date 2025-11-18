@@ -1,12 +1,13 @@
 import Stripe from 'stripe';
 import { db } from './db';
-import { 
-  creditPackages, 
-  paymentTransactions, 
-  paymentAttempts, 
+import {
+  creditPackages,
+  paymentTransactions,
+  paymentAttempts,
   organizations,
   subscriptionPlans,
-  organizationSubscriptions
+  organizationSubscriptions,
+  subscriptionInvoices
 } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { creditService } from './creditService';
@@ -738,6 +739,17 @@ export class StripeService {
         }
       }
 
+      // Check if invoice already processed (prevent duplicate credit allocation)
+      const [existingInvoice] = await db
+        .select()
+        .from(subscriptionInvoices)
+        .where(eq(subscriptionInvoices.stripeInvoiceId, invoice.id));
+
+      if (existingInvoice) {
+        console.log(`⚠️ Invoice already processed: ${invoice.id}, skipping credit allocation`);
+        return;
+      }
+
       // Allocate monthly credits
       await subscriptionService.allocateMonthlyCredits(subscription.id);
 
@@ -749,7 +761,8 @@ export class StripeService {
         amount: invoice.amount_paid,
         currency: invoice.currency.toUpperCase(),
         status: 'paid',
-        creditsAllocated: plan?.monthlyCredits || 0,
+        cvCreditsAllocated: plan?.monthlyCvCredits || 0,
+        interviewCreditsAllocated: plan?.monthlyInterviewCredits || 0,
         invoiceDate: new Date(invoice.created * 1000),
         paidAt: new Date(),
       });

@@ -248,8 +248,8 @@ export class SubscriptionService {
         })
         .where(eq(organizations.id, params.organizationId));
 
-      // Allocate initial credits
-      await this.allocateMonthlyCredits(subscription.id);
+      // Don't allocate credits here - they will be allocated when invoice.paid webhook is received
+      // This prevents duplicate credit allocation from both subscription.created and invoice.paid webhooks
 
       console.log(`Subscribed organization ${params.organizationId} to ${plan.name} (${params.billingCycle})`);
       return subscription;
