@@ -128,6 +128,11 @@ export default function ResumeProfiles() {
   const { data: profilesResponse, isLoading: profilesLoading } = useQuery<{
     data: ProfileWithScores[];
     pagination: any;
+    stats?: {
+      totalProfiles: number;
+      qualifiedCount: number;
+      disqualifiedCount: number;
+    };
   }>({
     queryKey: ['/api/resume-profiles', currentPage, itemsPerPage, searchTerm, selectedJobFilter, selectedStatusFilter],
     queryFn: async () => {
@@ -163,6 +168,7 @@ export default function ResumeProfiles() {
 
   const profiles = profilesResponse?.data || [];
   const serverPagination = profilesResponse?.pagination;
+  const stats = profilesResponse?.stats;
 
   // For server-side pagination, we don't need client-side flattening logic
   // The API should return the data in the format we need
@@ -822,14 +828,14 @@ export default function ResumeProfiles() {
               {/* Stats & Actions */}
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <div className="flex gap-4 text-sm text-muted-foreground">
-                  <span>Total Profiles: {totalItems}</span>
+                  <span>Total Profiles: {stats?.totalProfiles || totalItems}</span>
                   <span>•</span>
                   <span className="text-green-600">
-                    Qualified: {displayRows.filter(row => !row.disqualified).length}
+                    Qualified: {stats?.qualifiedCount || 0}
                   </span>
                   <span>•</span>
                   <span className="text-red-600">
-                    Disqualified: {displayRows.filter(row => row.disqualified).length}
+                    Disqualified: {stats?.disqualifiedCount || 0}
                   </span>
                 </div>
 

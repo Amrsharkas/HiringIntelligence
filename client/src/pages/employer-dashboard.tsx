@@ -201,7 +201,7 @@ const LiveApplicantsCount = memo(() => {
 const LiveCandidatesCount = memo(() => {
   const { toast } = useToast();
   const { data: candidatesCount = { count: 0 } } = useQuery<any>({
-    queryKey: ["/api/candidates/count"],
+    queryKey: ["/api/resume-profiles/count"],
     ...getQueryOptions(30000), // 30 seconds in production, disabled in development
     staleTime: 0,
     refetchOnWindowFocus: false,

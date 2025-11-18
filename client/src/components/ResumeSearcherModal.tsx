@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Upload, File, X, Loader2, FileText, Search, Briefcase, Users } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { CreditPurchaseModal } from './CreditPurchaseModal';
-import { ResumeProfilesList } from './ResumeProfilesList';
 
 
 interface ResumeSearcherModalProps {
@@ -21,6 +21,7 @@ interface ResumeSearcherModalProps {
 
 export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processingJobId, setProcessingJobId] = useState<string>('all');
   const [customRules, setCustomRules] = useState<string>('');
@@ -72,6 +73,13 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     setSelectedFiles([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    if (value === 'profiles') {
+      onClose();
+      setLocation('/resume-profiles');
     }
   };
 
@@ -239,7 +247,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="upload" className="w-full">
+        <Tabs defaultValue="upload" className="w-full" onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
@@ -431,10 +439,6 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
               </div>
             </CardContent>
           </Card>
-          </TabsContent>
-
-          <TabsContent value="profiles" className="mt-6">
-            <ResumeProfilesList />
           </TabsContent>
         </Tabs>
       </DialogContent>

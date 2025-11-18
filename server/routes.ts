@@ -5021,6 +5021,24 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Get count of resume profiles for organization
+  app.get('/api/resume-profiles/count', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.json({ count: 0 });
+      }
+
+      const count = await storage.getResumeProfilesCountByOrganization(organization.id);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error counting resume profiles:", error);
+      res.json({ count: 0 });
+    }
+  });
+
   // Search resumes using RAG based on job requirements
   app.get('/api/resume-profiles/search', requireAuth, async (req: any, res) => {
     try {
@@ -5309,15 +5327,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       const hasCredits = await creditService.checkCredits(
         organization.id,
-        totalCreditsRequired
+        totalCreditsRequired,
+        'cv_processing'
       );
 
       if (!hasCredits) {
         const currentBalance = await creditService.getCreditBalance(organization.id);
         return res.status(402).json({
-          message: `Insufficient credits. Processing ${files.length} resume${files.length !== 1 ? 's' : ''} requires ${totalCreditsRequired} credit${totalCreditsRequired !== 1 ? 's' : ''}, but you only have ${currentBalance?.remainingCredits || 0} credits available. Please contact admin to add more credits.`,
+          message: `Insufficient credits. Processing ${files.length} resume${files.length !== 1 ? 's' : ''} requires ${totalCreditsRequired} credit${totalCreditsRequired !== 1 ? 's' : ''}, but you only have ${currentBalance?.cvProcessingCredits || 0} CV processing credits available. Please contact admin to add more credits.`,
           requiredCredits: totalCreditsRequired,
-          availableCredits: currentBalance?.remainingCredits || 0,
+          availableCredits: currentBalance?.cvProcessingCredits || 0,
           creditBalance: currentBalance
         });
       }
@@ -5343,9 +5362,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       await creditService.deductCredits(
         organization.id,
         totalCreditsRequired,
-        'resume_processing',
+        'cv_processing',
+        'cv_processing',
         `Bulk resume processing: ${files.length} file${files.length !== 1 ? 's' : ''}`,
-        jobId
+        jobId,
+        'resume_processing'
       );
 
       // Get updated credit balance

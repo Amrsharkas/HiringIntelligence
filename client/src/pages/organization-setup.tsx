@@ -4,6 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +71,7 @@ export default function OrganizationSetup() {
   const { toast } = useToast();
   const { logoutMutation } = useAuth();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("create");
   const [urlStatus, setUrlStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle');
   const [urlFeedback, setUrlFeedback] = useState<string>("");
@@ -117,14 +119,17 @@ export default function OrganizationSetup() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Success",
         description: "Organization created successfully! Welcome to your new workspace.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
-      // This will trigger a redirect to the dashboard
-      window.location.href = "/dashboard";
+      // Invalidate and refetch the organization query
+      await queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
+      // Wait a moment to ensure the query has refetched
+      await queryClient.refetchQueries({ queryKey: ["/api/organizations/current"] });
+      // Use React Router navigation instead of hard redirect
+      setLocation("/dashboard");
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -153,20 +158,23 @@ export default function OrganizationSetup() {
   const joinOrgMutation = useMutation({
     mutationFn: async (data: JoinOrgData) => {
       // Both organizationId and inviteCode are now required
-      const response = await apiRequest("POST", "/api/invitations/accept-code", { 
+      const response = await apiRequest("POST", "/api/invitations/accept-code", {
         orgId: data.organizationId,
         inviteCode: data.inviteCode
       });
       return response.json();
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast({
         title: "Welcome to the team!",
         description: response.message || "Successfully joined the organization!",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
-      // This will trigger a redirect to the dashboard
-      window.location.href = "/dashboard";
+      // Invalidate and refetch the organization query
+      await queryClient.invalidateQueries({ queryKey: ["/api/organizations/current"] });
+      // Wait a moment to ensure the query has refetched
+      await queryClient.refetchQueries({ queryKey: ["/api/organizations/current"] });
+      // Use React Router navigation instead of hard redirect
+      setLocation("/dashboard");
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
