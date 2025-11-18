@@ -5004,6 +5004,23 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         };
       }));
 
+      // Calculate stats for ALL profiles in organization (not just current page)
+      // Get all profiles to calculate total stats
+      const allProfiles = await storage.getResumeProfilesByOrganization(organization.id, 1, totalCount, sortBy);
+      let qualifiedCount = 0;
+      let disqualifiedCount = 0;
+
+      await Promise.all(allProfiles.map(async (profile) => {
+        const jobScores = await storage.getJobScoresByProfile(profile.id);
+        jobScores.forEach(jobScore => {
+          if (jobScore.disqualified) {
+            disqualifiedCount++;
+          } else {
+            qualifiedCount++;
+          }
+        });
+      }));
+
       res.json({
         data: profilesWithScores,
         pagination: {
@@ -5013,6 +5030,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           itemsPerPage: validLimit,
           hasNextPage: validPage < totalPages,
           hasPrevPage: validPage > 1
+        },
+        stats: {
+          totalProfiles: totalCount,
+          qualifiedCount,
+          disqualifiedCount
         }
       });
     } catch (error) {
