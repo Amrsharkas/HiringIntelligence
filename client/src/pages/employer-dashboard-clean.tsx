@@ -17,7 +17,6 @@ import {
   Rocket,
   BarChart3,
   Settings,
-  Bell,
   Building2,
   Calendar
 } from "lucide-react";

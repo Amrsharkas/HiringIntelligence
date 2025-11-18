@@ -555,15 +555,6 @@ export default function EmployerDashboard() {
               </button>
             )}
             <button
-              className="p-2 rounded-xl bg-slate-100/60 dark:bg-slate-800/60 hover:bg-blue-100/60 dark:hover:bg-blue-900/60 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 will-change-transform hover:scale-110"
-              style={{
-                transformOrigin: 'center',
-                transform: 'translateZ(0)'
-              }}
-            >
-              <Bell className="w-5 h-5" />
-            </button>
-            <button
               onClick={handleLogout}
               className="px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium cursor-pointer transition-all duration-200 will-change-transform hover:scale-105"
               style={{
