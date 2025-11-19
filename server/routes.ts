@@ -1179,6 +1179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const offset = (page - 1) * limit;
+      const statusFilter = req.query.status || 'active'; // 'active', 'denied', or 'all'
 
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
@@ -1201,6 +1202,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
         applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
       }
+
+      // Apply status filtering
+      if (statusFilter === 'active') {
+        // Show only active applicants (not denied, not shortlisted, not accepted)
+        applicants = applicants.filter(app =>
+          app.status?.toLowerCase() !== 'denied' &&
+          app.status?.toLowerCase() !== 'shortlisted' &&
+          app.status?.toLowerCase() !== 'accepted'
+        );
+      } else if (statusFilter === 'denied') {
+        // Show only denied applicants
+        applicants = applicants.filter(app => app.status?.toLowerCase() === 'denied');
+      }
+      // If statusFilter === 'all', don't filter by status
 
       // DYNAMIC AI SCORING SYSTEM - ALWAYS FRESH ANALYSIS
       if (applicants.length > 0) {
@@ -5061,8 +5076,19 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         const jobScoresWithInvitationStatus = await Promise.all(
           filteredJobScores.map(async (score) => {
             const { localDatabaseService } = await import('./localDatabaseService');
-            const jobMatches = await localDatabaseService.getJobMatchesByJob(score.jobId.toString());
+            const jobIdString = String(score.jobId);
+            const jobMatches = await localDatabaseService.getJobMatchesByJob(jobIdString);
             const existingMatch = jobMatches.find(match => match.userId === profile.id);
+
+            // Debug logging for invitation status
+            if (jobMatches.length > 0) {
+              console.log(`🔍 Found ${jobMatches.length} job matches for jobId ${jobIdString}`);
+              console.log(`   Looking for match with userId: ${profile.id}`);
+              console.log(`   Match found: ${existingMatch ? 'YES' : 'NO'}`);
+              if (existingMatch) {
+                console.log(`   Match status: ${existingMatch.status}`);
+              }
+            }
 
             return {
               ...score,
@@ -5638,8 +5664,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       // Check if already invited
       const { localDatabaseService } = await import('./localDatabaseService');
-      const existingMatches = await localDatabaseService.getJobMatchesByJob(jobId.toString());
+      const jobIdString = String(jobId);
+      const existingMatches = await localDatabaseService.getJobMatchesByJob(jobIdString);
       const existingMatch = existingMatches.find(match => match.userId === profileId);
+
+      console.log(`🔍 Checking existing invitation: profileId=${profileId}, jobId=${jobIdString}`);
+      console.log(`   Found ${existingMatches.length} existing matches for this job`);
+      console.log(`   Already invited: ${existingMatch && existingMatch.status === 'invited'}`);
 
       if (existingMatch && existingMatch.status === 'invited') {
         return res.status(400).json({ message: "Applicant already invited" });
@@ -5684,10 +5715,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       // Create job match record to track the interview invitation
       try {
+        // Ensure jobId is stored as string for consistency with varchar column
+        const jobIdString = String(jobId);
         console.log(`📝 Creating job match and interview invitation for ${processedResume.email} using local database`);
+        console.log(`   Profile ID: ${profileId}, Job ID: ${jobIdString}`);
         await localDatabaseService.createJobMatch({
           userId: profileId,
-          jobId: jobId,
+          jobId: jobIdString,
           name: processedResume.name || processedResume.email,
           jobTitle: job.title,
           jobDescription: job.description,

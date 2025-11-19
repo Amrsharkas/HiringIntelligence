@@ -70,6 +70,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'denied' | 'all'>('active');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -85,11 +86,11 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     if (!isOpen) return;
 
     const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit, statusFilter] });
     }, 10000); // 10 seconds
 
     return () => clearInterval(interval);
-  }, [isOpen, queryClient, currentPage, limit]);
+  }, [isOpen, queryClient, currentPage, limit, statusFilter]);
 
   // Fetch paginated applicants for this organization
   const { data: response, isLoading } = useQuery<{
@@ -103,11 +104,12 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
       hasPrevPage: boolean;
     };
   }>({
-    queryKey: ["/api/real-applicants", currentPage, limit],
+    queryKey: ["/api/real-applicants", currentPage, limit, statusFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: limit.toString(),
+        status: statusFilter,
       });
       const response = await fetch(`/api/real-applicants?${params}`);
       if (!response.ok) {
@@ -139,7 +141,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         title: "📧 Applicant Declined and Notified",
         description: "The applicant has been declined and will receive a notification email.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit, statusFilter] });
     },
     onError: (error) => {
       toast({
@@ -161,11 +163,11 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         description: "The candidate has been shortlisted and will receive a notification email.",
       });
       // Invalidate all related queries immediately to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
+      queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit, statusFilter] });
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/applicants/count"] });
       // Force refetch immediately for both endpoints
-      queryClient.refetchQueries({ queryKey: ["/api/real-applicants", currentPage, limit] });
+      queryClient.refetchQueries({ queryKey: ["/api/real-applicants", currentPage, limit, statusFilter] });
       queryClient.refetchQueries({ queryKey: ["/api/shortlisted-applicants"] });
     },
     onError: (error: any) => {
@@ -323,22 +325,34 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     setCurrentPage(1);
   };
 
-  // Show only non-shortlisted applicants (pending or no status)
-  const availableApplicants = applicants.filter(app =>
-    app.status?.toLowerCase() !== 'shortlisted' &&
-    app.status?.toLowerCase() !== 'accepted' &&
-    app.status?.toLowerCase() !== 'denied'
-  );
+  // Backend now handles filtering, so use all returned applicants
+  const availableApplicants = applicants;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 flex flex-col">
         <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
               Job Applicants ({pagination.totalCount})
             </DialogTitle>
             {availableApplicants.length > 0 && exportAllApplicants()}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-600 dark:text-slate-400">Filter:</span>
+            <Select value={statusFilter} onValueChange={(value: 'active' | 'denied' | 'all') => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger className="w-40 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active Applicants</SelectItem>
+                <SelectItem value="denied">Denied Applicants</SelectItem>
+                <SelectItem value="all">All Applicants</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </DialogHeader>
 
