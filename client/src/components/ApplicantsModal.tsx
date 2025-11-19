@@ -287,6 +287,13 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     }
   };
 
+  const formatStatus = (status: string) => {
+    // Remove underscores and replace with spaces
+    const formatted = status.replace(/_/g, ' ');
+    // Capitalize first character
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1).toLowerCase();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
@@ -365,7 +372,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                             {applicant.name}
                           </h3>
                           <Badge className={`${getStatusColor(applicant.status || 'pending')} border-0 text-xs flex-shrink-0`}>
-                            {applicant.status || 'pending'}
+                            {formatStatus(applicant.status || 'pending')}
                           </Badge>
                         </div>
                         <p className="text-sm text-slate-600 dark:text-slate-400 truncate mb-2">
