@@ -958,13 +958,13 @@ export default function ResumeProfiles() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1 flex-wrap">
-                                {row.invitationStatus !== 'invited' && !row.disqualified && (
+                                {row.invitationStatus !== 'invited' && !row.disqualified && row.jobId && (
                                   <Button
                                     variant="default"
                                     size="sm"
                                     onClick={() => inviteApplicantMutation.mutate({
                                       profileId: row.profileId,
-                                      jobId: row.jobId.toString()
+                                      jobId: String(row.jobId)
                                     })}
                                     disabled={inviteApplicantMutation.isPending}
                                     className="h-8 px-2 text-xs"
@@ -1199,13 +1199,13 @@ export default function ResumeProfiles() {
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
-                                  {jobScore.invitationStatus !== 'invited' && !jobScore.disqualified && (
+                                  {jobScore.invitationStatus !== 'invited' && !jobScore.disqualified && jobScore.jobId && (
                                     <Button
                                       variant="default"
                                       size="sm"
                                       onClick={() => inviteApplicantMutation.mutate({
                                         profileId: selectedProfile.id,
-                                        jobId: jobScore.jobId.toString()
+                                        jobId: String(jobScore.jobId)
                                       })}
                                       disabled={inviteApplicantMutation.isPending}
                                       className="flex items-center gap-2"
