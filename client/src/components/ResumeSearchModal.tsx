@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,13 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [selectedResume, setSelectedResume] = useState<ResumeMatch | null>(null);
+
+  // Update selectedJobId when preSelectedJobId changes
+  useEffect(() => {
+    if (preSelectedJobId) {
+      setSelectedJobId(preSelectedJobId.toString());
+    }
+  }, [preSelectedJobId]);
 
   // Fetch available jobs
   const { data: jobs = [], isLoading: isLoadingJobs } = useQuery<any[]>({
@@ -191,7 +198,7 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
                     <Select
                       value={selectedJobId}
                       onValueChange={setSelectedJobId}
-                      disabled={!!preSelectedJobId || isLoadingJobs}
+                      disabled={isLoadingJobs}
                     >
                       <SelectTrigger className="w-full bg-white dark:bg-slate-800">
                         <SelectValue placeholder="Select a job position..." />
