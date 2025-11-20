@@ -1,18 +1,39 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, Video, Phone, MapPin, Edit, Plus, Trash2, ExternalLink } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Calendar,
+  Clock,
+  Video,
+  Phone,
+  MapPin,
+  Edit,
+  Plus,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { format, parseISO, isAfter, isBefore, startOfDay } from "date-fns";
 
 interface Interview {
   id: string;
@@ -31,6 +52,15 @@ interface Interview {
   organizationId: string;
   createdAt: string;
   updatedAt?: string;
+  // Joined candidate information from users table
+  candidate?: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    displayName: string | null;
+    profileImageUrl: string | null;
+  };
 }
 
 interface InterviewManagementModalProps {
@@ -38,44 +68,57 @@ interface InterviewManagementModalProps {
   onClose: () => void;
 }
 
-export function InterviewManagementModal({ isOpen, onClose }: InterviewManagementModalProps) {
-  const [activeTab, setActiveTab] = useState('upcoming');
-  const [editingInterview, setEditingInterview] = useState<Interview | null>(null);
+export function InterviewManagementModal({
+  isOpen,
+  onClose,
+}: InterviewManagementModalProps) {
+  const [activeTab, setActiveTab] = useState("upcoming");
+  const [editingInterview, setEditingInterview] = useState<Interview | null>(
+    null,
+  );
   const [showCreateForm, setShowCreateForm] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Fetch all interviews
   const { data: interviews = [], isLoading } = useQuery<Interview[]>({
-    queryKey: ['/api/interviews'],
+    queryKey: ["/api/interviews"],
     enabled: isOpen,
   });
 
   // Create/Update interview mutation
   const interviewMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('🚀 Interview mutation called with data:', data);
-      console.log('✏️ Editing interview:', editingInterview);
+      console.log("🚀 Interview mutation called with data:", data);
+      console.log("✏️ Editing interview:", editingInterview);
       if (editingInterview) {
-        console.log(`📤 Making PATCH request to /api/interviews/${editingInterview.id}`);
-        return apiRequest('PATCH', `/api/interviews/${editingInterview.id}`, data);
+        console.log(
+          `📤 Making PATCH request to /api/interviews/${editingInterview.id}`,
+        );
+        return apiRequest(
+          "PATCH",
+          `/api/interviews/${editingInterview.id}`,
+          data,
+        );
       } else {
-        console.log('📤 Making POST request to /api/interviews');
-        return apiRequest('POST', '/api/interviews', data);
+        console.log("📤 Making POST request to /api/interviews");
+        return apiRequest("POST", "/api/interviews", data);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/interviews'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews"] });
       setEditingInterview(null);
       setShowCreateForm(false);
       toast({
         title: "Success",
-        description: editingInterview ? "Interview updated successfully" : "Interview scheduled successfully",
+        description: editingInterview
+          ? "Interview updated successfully"
+          : "Interview scheduled successfully",
       });
     },
     onError: (error: any) => {
-      console.error('❌ Interview mutation error:', error);
-      console.error('❌ Error details:', error.message);
+      console.error("❌ Interview mutation error:", error);
+      console.error("❌ Error details:", error.message);
       toast({
         title: "Error",
         description: error.message || "Failed to save interview",
@@ -89,24 +132,27 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
     mutationFn: async (interviewId: string) => {
       console.log(`Attempting to delete interview with ID: ${interviewId}`);
       try {
-        const result = await apiRequest('DELETE', `/api/interviews/${interviewId}`);
-        console.log('Delete response:', result);
+        const result = await apiRequest(
+          "DELETE",
+          `/api/interviews/${interviewId}`,
+        );
+        console.log("Delete response:", result);
         return result;
       } catch (error) {
-        console.error('Delete error:', error);
+        console.error("Delete error:", error);
         throw error;
       }
     },
     onSuccess: () => {
-      console.log('Interview deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['/api/interviews'] });
+      console.log("Interview deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews"] });
       toast({
         title: "Success",
         description: "Interview deleted successfully",
       });
     },
     onError: (error: any) => {
-      console.error('Delete mutation error:', error);
+      console.error("Delete mutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete interview",
@@ -117,17 +163,21 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
   // Filter interviews by status
   const now = new Date();
-  const upcomingInterviews = interviews.filter(interview => {
-    const interviewDateTime = new Date(`${interview.scheduledDate} ${interview.scheduledTime}`);
-    return isAfter(interviewDateTime, now) && interview.status === 'scheduled';
+  const upcomingInterviews = interviews.filter((interview) => {
+    const interviewDateTime = new Date(
+      `${interview.scheduledDate} ${interview.scheduledTime}`,
+    );
+    return isAfter(interviewDateTime, now) && interview.status === "scheduled";
   });
 
-  const pastInterviews = interviews.filter(interview => {
-    const interviewDateTime = new Date(`${interview.scheduledDate} ${interview.scheduledTime}`);
-    return isBefore(interviewDateTime, now) || interview.status === 'completed';
+  const pastInterviews = interviews.filter((interview) => {
+    const interviewDateTime = new Date(
+      `${interview.scheduledDate} ${interview.scheduledTime}`,
+    );
+    return isBefore(interviewDateTime, now) || interview.status === "completed";
   });
 
-  const todayInterviews = interviews.filter(interview => {
+  const todayInterviews = interviews.filter((interview) => {
     const interviewDate = startOfDay(new Date(interview.scheduledDate));
     const today = startOfDay(now);
     return interviewDate.getTime() === today.getTime();
@@ -135,139 +185,175 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'rescheduled': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "scheduled":
+        return "bg-blue-100 text-blue-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      case "rescheduled":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const InterviewCard = ({ interview }: { interview: Interview }) => (
-    <Card className="mb-4">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{interview.candidateName}</CardTitle>
-            <p className="text-sm text-gray-600">{interview.jobTitle}</p>
-            {interview.candidateEmail && (
-              <p className="text-xs text-gray-500">{interview.candidateEmail}</p>
-            )}
-          </div>
-          <Badge className={getStatusColor(interview.status)}>
-            {interview.status}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2 text-sm">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <span>{interview.scheduledDate}</span>
-            <Clock className="h-4 w-4 text-gray-500 ml-2" />
-            <span>{interview.scheduledTime}</span>
-            {interview.timeZone && (
-              <span className="text-xs text-gray-400 ml-1">({interview.timeZone})</span>
-            )}
-          </div>
-          
-          <div className="flex items-center space-x-2 text-sm">
-            {interview.interviewType === 'video' ? (
-              <Video className="h-4 w-4 text-gray-500" />
-            ) : interview.interviewType === 'phone' ? (
-              <Phone className="h-4 w-4 text-gray-500" />
-            ) : (
-              <MapPin className="h-4 w-4 text-gray-500" />
-            )}
-            <span className="capitalize">{interview.interviewType}</span>
-            {interview.meetingLink && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const url = interview.meetingLink.startsWith('http://') || interview.meetingLink.startsWith('https://') 
-                    ? interview.meetingLink 
-                    : `https://${interview.meetingLink}`;
-                  window.open(url, '_blank');
-                }}
-                className="h-6 px-2"
-              >
-                <ExternalLink className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
+  const InterviewCard = ({ interview }: { interview: Interview }) => {
+    // Use candidate data from join if available, otherwise fall back to stored values
+    const candidateDisplayName =
+      interview.candidate?.displayName ||
+      (interview.candidate?.firstName && interview.candidate?.lastName
+        ? `${interview.candidate.firstName} ${interview.candidate.lastName}`
+        : null) ||
+      interview.candidateName;
 
-          {interview.notes && (
-            <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-              {interview.notes}
+    const candidateEmail =
+      interview.candidate?.email || interview.candidateEmail;
+
+    return (
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              {interview.candidate?.profileImageUrl && (
+                <img
+                  src={interview.candidate.profileImageUrl}
+                  alt={candidateDisplayName}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              )}
+              <div>
+                <CardTitle className="text-lg">
+                  {candidateDisplayName}
+                </CardTitle>
+                <p className="text-sm text-gray-600">{interview.jobTitle}</p>
+                {candidateEmail && (
+                  <p className="text-xs text-gray-500">{candidateEmail}</p>
+                )}
+              </div>
             </div>
-          )}
-
-          <div className="flex space-x-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditingInterview(interview)}
-            >
-              <Edit className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => deleteMutation.mutate(interview.id)}
-              className="text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="h-3 w-3 mr-1" />
-              Delete
-            </Button>
+            <Badge className={getStatusColor(interview.status)}>
+              {interview.status}
+            </Badge>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2 text-sm">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <span>{interview.scheduledDate}</span>
+              <Clock className="h-4 w-4 text-gray-500 ml-2" />
+              <span>{interview.scheduledTime}</span>
+              {interview.timeZone && (
+                <span className="text-xs text-gray-400 ml-1">
+                  ({interview.timeZone})
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2 text-sm">
+              {interview.interviewType === "video" ? (
+                <Video className="h-4 w-4 text-gray-500" />
+              ) : interview.interviewType === "phone" ? (
+                <Phone className="h-4 w-4 text-gray-500" />
+              ) : (
+                <MapPin className="h-4 w-4 text-gray-500" />
+              )}
+              <span className="capitalize">{interview.interviewType}</span>
+              {interview.meetingLink && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const url =
+                      interview.meetingLink.startsWith("http://") ||
+                      interview.meetingLink.startsWith("https://")
+                        ? interview.meetingLink
+                        : `https://${interview.meetingLink}`;
+                    window.open(url, "_blank");
+                  }}
+                  className="h-6 px-2"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            {interview.notes && (
+              <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                {interview.notes}
+              </div>
+            )}
+
+            <div className="flex space-x-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditingInterview(interview)}
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => deleteMutation.mutate(interview.id)}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const InterviewForm = ({ interview }: { interview?: Interview }) => {
-    const [selectedJob, setSelectedJob] = useState(interview?.jobId || '');
-    const [selectedApplicant, setSelectedApplicant] = useState(interview?.candidateId || '');
+    const [selectedJob, setSelectedJob] = useState(interview?.jobId || "");
+    const [selectedApplicant, setSelectedApplicant] = useState(
+      interview?.candidateId || "",
+    );
     const [formData, setFormData] = useState({
-      candidateName: interview?.candidateName || '',
-      candidateEmail: interview?.candidateEmail || '',
-      candidateId: interview?.candidateId || '',
-      jobId: interview?.jobId || '',
-      jobTitle: interview?.jobTitle || '',
-      scheduledDate: interview?.scheduledDate || '',
-      scheduledTime: interview?.scheduledTime || '',
-      timeZone: interview?.timeZone || 'UTC',
-      interviewType: interview?.interviewType || 'video',
-      meetingLink: interview?.meetingLink || '',
-      notes: interview?.notes || '',
+      candidateName: interview?.candidateName || "",
+      candidateEmail: interview?.candidateEmail || "",
+      candidateId: interview?.candidateId || "",
+      jobId: interview?.jobId || "",
+      jobTitle: interview?.jobTitle || "",
+      scheduledDate: interview?.scheduledDate || "",
+      scheduledTime: interview?.scheduledTime || "",
+      timeZone: interview?.timeZone || "UTC",
+      interviewType: interview?.interviewType || "video",
+      meetingLink: interview?.meetingLink || "",
+      notes: interview?.notes || "",
     });
 
     // Fetch active jobs
     const { data: jobs = [] } = useQuery({
-      queryKey: ['/api/job-postings'],
+      queryKey: ["/api/job-postings"],
       enabled: isOpen,
     });
 
     // Fetch accepted applicants for the selected job from platojobmatches table
-    const { data: acceptedApplicants = [], isLoading: isLoadingApplicants } = useQuery({
-      queryKey: ['/api/accepted-applicants', selectedJob],
-      queryFn: async () => {
-        const res = await fetch(`/api/accepted-applicants/${selectedJob}`);
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        const data = await res.json();
-        return Array.isArray(data) ? data : [];
-      },
-      enabled: isOpen && !!selectedJob && !interview, // Only for new interviews, not editing
-      retry: false,
-    });
+    const { data: acceptedApplicants = [], isLoading: isLoadingApplicants } =
+      useQuery({
+        queryKey: ["/api/accepted-applicants", selectedJob],
+        queryFn: async () => {
+          const res = await fetch(`/api/accepted-applicants/${selectedJob}`);
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const data = await res.json();
+          return Array.isArray(data) ? data : [];
+        },
+        enabled: isOpen && !!selectedJob && !interview, // Only for new interviews, not editing
+        retry: false,
+      });
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      
+
       // For new interviews, validate dropdowns and get candidate data
       if (!interview) {
         if (!selectedJob || !selectedApplicant) {
@@ -279,10 +365,12 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
           return;
         }
 
-        const applicant = acceptedApplicants.find(app => app.id === selectedApplicant);
+        const applicant = acceptedApplicants.find(
+          (app) => app.id === selectedApplicant,
+        );
         if (!applicant) {
           toast({
-            title: "Error", 
+            title: "Error",
             description: "Selected candidate not found",
             variant: "destructive",
           });
@@ -293,16 +381,16 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
         const updatedData = {
           ...formData,
           candidateName: applicant.name,
-          candidateEmail: applicant.email || '',
+          candidateEmail: applicant.email || "",
           candidateId: applicant.userId,
           jobId: applicant.jobId,
           jobTitle: applicant.jobTitle,
         };
-        console.log('🔄 Submitting new interview:', updatedData);
+        console.log("🔄 Submitting new interview:", updatedData);
         interviewMutation.mutate(updatedData);
       } else {
         // For editing existing interviews, use form data as-is
-        console.log('🔄 Submitting interview update:', formData);
+        console.log("🔄 Submitting interview update:", formData);
         interviewMutation.mutate(formData);
       }
     };
@@ -314,11 +402,19 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Candidate Name</Label>
-              <Input value={formData.candidateName} disabled className="bg-gray-50" />
+              <Input
+                value={formData.candidateName}
+                disabled
+                className="bg-gray-50"
+              />
             </div>
             <div>
               <Label>Job Title</Label>
-              <Input value={formData.jobTitle} disabled className="bg-gray-50" />
+              <Input
+                value={formData.jobTitle}
+                disabled
+                className="bg-gray-50"
+              />
             </div>
           </div>
         ) : (
@@ -342,30 +438,39 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
             {selectedJob && (
               <div>
-                <Label htmlFor="candidateSelect">Select Accepted Candidate *</Label>
-                <Select value={selectedApplicant} onValueChange={setSelectedApplicant}>
+                <Label htmlFor="candidateSelect">
+                  Select Accepted Candidate *
+                </Label>
+                <Select
+                  value={selectedApplicant}
+                  onValueChange={setSelectedApplicant}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose an accepted candidate..." />
                   </SelectTrigger>
                   <SelectContent>
                     {acceptedApplicants.map((applicant: any) => (
                       <SelectItem key={applicant.id} value={applicant.id}>
-                        {applicant.name} - {applicant.jobTitle} {applicant.email ? `(${applicant.email})` : ''}
+                        {applicant.name} - {applicant.jobTitle}{" "}
+                        {applicant.email ? `(${applicant.email})` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {isLoadingApplicants && (
-                  <p className="text-sm text-gray-500 mt-1">Loading accepted candidates...</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Loading accepted candidates...
+                  </p>
                 )}
                 {!isLoadingApplicants && acceptedApplicants.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-1">No accepted candidates found for this job.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    No accepted candidates found for this job.
+                  </p>
                 )}
               </div>
             )}
           </>
         )}
-
         {/* Only show interview details if editing existing interview OR if new interview with candidate selected */}
         {(interview || selectedApplicant) && (
           <>
@@ -376,7 +481,9 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
                   id="scheduledDate"
                   type="date"
                   value={formData.scheduledDate}
-                  onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, scheduledDate: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -386,7 +493,9 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
                   id="scheduledTime"
                   type="time"
                   value={formData.scheduledTime}
-                  onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, scheduledTime: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -394,26 +503,44 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
                 <Label htmlFor="timeZone">Time Zone *</Label>
                 <Select
                   value={formData.timeZone}
-                  onValueChange={(value) => setFormData({ ...formData, timeZone: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, timeZone: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UTC">UTC</SelectItem>
-                    <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                    <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                    <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                    <SelectItem value="America/New_York">
+                      Eastern Time (ET)
+                    </SelectItem>
+                    <SelectItem value="America/Chicago">
+                      Central Time (CT)
+                    </SelectItem>
+                    <SelectItem value="America/Denver">
+                      Mountain Time (MT)
+                    </SelectItem>
+                    <SelectItem value="America/Los_Angeles">
+                      Pacific Time (PT)
+                    </SelectItem>
                     <SelectItem value="Europe/London">London (GMT)</SelectItem>
                     <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
                     <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
                     <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                    <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                    <SelectItem value="Asia/Shanghai">
+                      Shanghai (CST)
+                    </SelectItem>
                     <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
-                    <SelectItem value="Australia/Sydney">Sydney (AEST)</SelectItem>
-                    <SelectItem value="America/Toronto">Toronto (ET)</SelectItem>
-                    <SelectItem value="America/Vancouver">Vancouver (PT)</SelectItem>
+                    <SelectItem value="Australia/Sydney">
+                      Sydney (AEST)
+                    </SelectItem>
+                    <SelectItem value="America/Toronto">
+                      Toronto (ET)
+                    </SelectItem>
+                    <SelectItem value="America/Vancouver">
+                      Vancouver (PT)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -424,7 +551,9 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
                 <Label htmlFor="interviewType">Interview Type *</Label>
                 <Select
                   value={formData.interviewType}
-                  onValueChange={(value) => setFormData({ ...formData, interviewType: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, interviewType: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -442,7 +571,9 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
                   id="meetingLink"
                   type="url"
                   value={formData.meetingLink}
-                  onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, meetingLink: e.target.value })
+                  }
                   placeholder="https://zoom.us/j/..."
                 />
               </div>
@@ -453,18 +584,27 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 rows={3}
                 placeholder="Additional notes or instructions..."
               />
             </div>
 
             <div className="flex space-x-2">
-              <Button 
-                type="submit" 
-                disabled={interviewMutation.isPending || (!interview && (!selectedJob || !selectedApplicant))}
+              <Button
+                type="submit"
+                disabled={
+                  interviewMutation.isPending ||
+                  (!interview && (!selectedJob || !selectedApplicant))
+                }
               >
-                {interviewMutation.isPending ? 'Saving...' : (interview ? 'Update Interview' : 'Schedule Interview')}
+                {interviewMutation.isPending
+                  ? "Saving..."
+                  : interview
+                    ? "Update Interview"
+                    : "Schedule Interview"}
               </Button>
               <Button
                 type="button"
@@ -478,7 +618,8 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
               </Button>
             </div>
           </>
-        )}  {/* End of conditional interview details section */}
+        )}{" "}
+        {/* End of conditional interview details section */}
       </form>
     );
   };
@@ -514,19 +655,29 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="today">Today ({todayInterviews.length})</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming ({upcomingInterviews.length})</TabsTrigger>
-            <TabsTrigger value="past">Past ({pastInterviews.length})</TabsTrigger>
+            <TabsTrigger value="today">
+              Today ({todayInterviews.length})
+            </TabsTrigger>
+            <TabsTrigger value="upcoming">
+              Upcoming ({upcomingInterviews.length})
+            </TabsTrigger>
+            <TabsTrigger value="past">
+              Past ({pastInterviews.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="today" className="mt-6">
             <div className="space-y-4">
               {isLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading interviews...</div>
+                <div className="text-center py-8 text-gray-500">
+                  Loading interviews...
+                </div>
               ) : todayInterviews.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">No interviews scheduled for today</div>
+                <div className="text-center py-8 text-gray-500">
+                  No interviews scheduled for today
+                </div>
               ) : (
-                todayInterviews.map(interview => (
+                todayInterviews.map((interview) => (
                   <InterviewCard key={interview.id} interview={interview} />
                 ))
               )}
@@ -536,13 +687,25 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
           <TabsContent value="upcoming" className="mt-6">
             <div className="space-y-4">
               {isLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading interviews...</div>
+                <div className="text-center py-8 text-gray-500">
+                  Loading interviews...
+                </div>
               ) : upcomingInterviews.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">No upcoming interviews scheduled</div>
+                <div className="text-center py-8 text-gray-500">
+                  No upcoming interviews scheduled
+                </div>
               ) : (
                 upcomingInterviews
-                  .sort((a, b) => new Date(`${a.scheduledDate} ${a.scheduledTime}`).getTime() - new Date(`${b.scheduledDate} ${b.scheduledTime}`).getTime())
-                  .map(interview => (
+                  .sort(
+                    (a, b) =>
+                      new Date(
+                        `${a.scheduledDate} ${a.scheduledTime}`,
+                      ).getTime() -
+                      new Date(
+                        `${b.scheduledDate} ${b.scheduledTime}`,
+                      ).getTime(),
+                  )
+                  .map((interview) => (
                     <InterviewCard key={interview.id} interview={interview} />
                   ))
               )}
@@ -552,13 +715,25 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
           <TabsContent value="past" className="mt-6">
             <div className="space-y-4">
               {isLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading interviews...</div>
+                <div className="text-center py-8 text-gray-500">
+                  Loading interviews...
+                </div>
               ) : pastInterviews.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">No past interviews found</div>
+                <div className="text-center py-8 text-gray-500">
+                  No past interviews found
+                </div>
               ) : (
                 pastInterviews
-                  .sort((a, b) => new Date(`${b.scheduledDate} ${b.scheduledTime}`).getTime() - new Date(`${a.scheduledDate} ${a.scheduledTime}`).getTime())
-                  .map(interview => (
+                  .sort(
+                    (a, b) =>
+                      new Date(
+                        `${b.scheduledDate} ${b.scheduledTime}`,
+                      ).getTime() -
+                      new Date(
+                        `${a.scheduledDate} ${a.scheduledTime}`,
+                      ).getTime(),
+                  )
+                  .map((interview) => (
                     <InterviewCard key={interview.id} interview={interview} />
                   ))
               )}
@@ -568,7 +743,7 @@ export function InterviewManagementModal({ isOpen, onClose }: InterviewManagemen
 
         {/* Floating Schedule New Interview button */}
         <div className="relative">
-          <Button 
+          <Button
             onClick={() => setShowCreateForm(true)}
             className="absolute bottom-4 right-4 z-50 shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
             size="sm"

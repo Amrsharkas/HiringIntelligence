@@ -3806,7 +3806,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         id: `interview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         candidateName: shortlistedApplicant.applicantName,
         candidateEmail: applicantDetails.name, // Using name as email placeholder
-        candidateId: shortlistedApplicant.applicantId,
+        candidateId: applicantDetails.applicantUserId,
         jobId: shortlistedApplicant.jobId,
         jobTitle: shortlistedApplicant.jobTitle,
         scheduledDate: new Date().toISOString().split('T')[0], // Today's date as placeholder
@@ -3895,7 +3895,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         id: interviewId,
         candidateName: candidateName,
         candidateEmail: applicantDetails.applicantEmail || '',
-        candidateId: shortlistedApplicant.applicantId,
+        candidateId: applicantDetails.applicantUserId,
         jobId: shortlistedApplicant.jobId,
         jobTitle: shortlistedApplicant.jobTitle,
         scheduledDate,
@@ -4034,17 +4034,58 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+      const { candidateId } = req.query; // Optional filter by candidate/applicant user ID
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      const { realInterviews } = await import('@shared/schema');
-      const { eq } = await import('drizzle-orm');
+      const { realInterviews, users } = await import('@shared/schema');
+      const { eq, and } = await import('drizzle-orm');
       const { db } = await import('./db');
-      
-      const userInterviews = await db.select().from(realInterviews).where(eq(realInterviews.organizationId, organization.id.toString()));
-      
+
+      // Build query conditions
+      const conditions = [eq(realInterviews.organizationId, organization.id.toString())];
+
+      // Add candidateId filter if provided
+      if (candidateId) {
+        conditions.push(eq(realInterviews.candidateId, candidateId as string));
+      }
+
+      // Join with users table to get candidate information
+      const userInterviews = await db
+        .select({
+          id: realInterviews.id,
+          candidateName: realInterviews.candidateName,
+          candidateEmail: realInterviews.candidateEmail,
+          candidateId: realInterviews.candidateId,
+          jobId: realInterviews.jobId,
+          jobTitle: realInterviews.jobTitle,
+          scheduledDate: realInterviews.scheduledDate,
+          scheduledTime: realInterviews.scheduledTime,
+          timeZone: realInterviews.timeZone,
+          interviewType: realInterviews.interviewType,
+          meetingLink: realInterviews.meetingLink,
+          interviewer: realInterviews.interviewer,
+          status: realInterviews.status,
+          notes: realInterviews.notes,
+          organizationId: realInterviews.organizationId,
+          createdAt: realInterviews.createdAt,
+          updatedAt: realInterviews.updatedAt,
+          // User information from joined table
+          candidate: {
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            displayName: users.displayName,
+            profileImageUrl: users.profileImageUrl,
+          },
+        })
+        .from(realInterviews)
+        .leftJoin(users, eq(realInterviews.candidateId, users.id))
+        .where(conditions.length > 1 ? and(...conditions) : conditions[0]);
+
       res.json(userInterviews);
     } catch (error) {
       console.error("Error fetching interviews:", error);
@@ -4067,19 +4108,19 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
 
       const { candidateName, candidateEmail, candidateId, jobId, jobTitle, scheduledDate, scheduledTime, timeZone, interviewType, meetingLink, notes } = req.body;
-      
+
       const { realInterviews } = await import('@shared/schema');
       const { nanoid } = await import('nanoid');
       const { db } = await import('./db');
-      
+
       const interviewId = nanoid();
       const interviewer = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || 'Unknown';
-      
+
       const [interview] = await db.insert(realInterviews).values({
         id: interviewId,
         candidateName,
         candidateEmail: candidateEmail || '',
-        candidateId,
+        candidateId, // candidateId should be the applicant's user ID from the client
         jobId,
         jobTitle,
         scheduledDate,
@@ -5040,7 +5081,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { jobId, page = 1, limit = 10, sortBy = 'score' } = req.query;
+      const { jobId, page = 1, limit = 10, sortBy = 'score', search, status } = req.query;
       const organization = await storage.getOrganizationByUser(userId);
 
       if (!organization) {
@@ -5104,6 +5145,53 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         };
       }));
 
+      // Apply server-side filtering
+      let filteredProfiles = profilesWithScores;
+
+      // Apply search filter
+      if (search) {
+        const searchTerm = search.toLowerCase().trim();
+        filteredProfiles = filteredProfiles.filter(profile => {
+          // Search in name, email, skills, experience, summary
+          const matchesName = profile.name.toLowerCase().includes(searchTerm);
+          const matchesEmail = profile.email?.toLowerCase().includes(searchTerm) || false;
+          const matchesSummary = profile.summary?.toLowerCase().includes(searchTerm);
+          const matchesSkills = profile.skills?.some((skill: string) =>
+            skill.toLowerCase().includes(searchTerm)
+          );
+          const matchesExperience = profile.experience?.some((exp: string) =>
+            exp.toLowerCase().includes(searchTerm)
+          );
+
+          return matchesName || matchesEmail || matchesSummary || matchesSkills || matchesExperience;
+        });
+      }
+
+      // Apply status filter
+      if (status && status !== 'all') {
+        filteredProfiles = filteredProfiles.filter(profile => {
+          if (status === 'qualified') {
+            return profile.jobScores.some(score => !score.disqualified);
+          } else if (status === 'disqualified') {
+            return profile.jobScores.some(score => score.disqualified);
+          } else if (status === 'invited') {
+            return profile.jobScores.some(score => score.invitationStatus === 'invited');
+          } else if (status === 'not-invited') {
+            return profile.jobScores.some(score =>
+              !score.disqualified && score.invitationStatus !== 'invited'
+            );
+          }
+          return true;
+        });
+      }
+
+      // Apply job filter (already partially implemented but let's ensure it filters out profiles without matching job scores)
+      if (jobId) {
+        filteredProfiles = filteredProfiles.filter(profile =>
+          profile.jobScores.some(score => score.jobId === jobId)
+        );
+      }
+
       // Calculate stats for ALL profiles in organization (not just current page)
       // Get all profiles to calculate total stats
       const allProfiles = await storage.getResumeProfilesByOrganization(organization.id, 1, totalCount, sortBy);
@@ -5121,18 +5209,25 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         });
       }));
 
+      // Apply pagination to filtered results
+      const filteredTotalCount = filteredProfiles.length;
+      const filteredTotalPages = Math.ceil(filteredTotalCount / validLimit);
+      const startIndex = (validPage - 1) * validLimit;
+      const endIndex = startIndex + validLimit;
+      const paginatedFilteredProfiles = filteredProfiles.slice(startIndex, endIndex);
+
       res.json({
-        data: profilesWithScores,
+        data: paginatedFilteredProfiles,
         pagination: {
           currentPage: validPage,
-          totalPages,
-          totalItems: totalCount,
+          totalPages: filteredTotalPages,
+          totalItems: filteredTotalCount,
           itemsPerPage: validLimit,
-          hasNextPage: validPage < totalPages,
+          hasNextPage: validPage < filteredTotalPages,
           hasPrevPage: validPage > 1
         },
         stats: {
-          totalProfiles: totalCount,
+          totalProfiles: filteredTotalCount,
           qualifiedCount,
           disqualifiedCount
         }
