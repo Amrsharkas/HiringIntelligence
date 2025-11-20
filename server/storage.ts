@@ -81,7 +81,8 @@ export interface IStorage {
   updateOrganization(id: string, updates: Partial<InsertOrganization>): Promise<Organization>;
   getOrganizationMembers(organizationId: number): Promise<OrganizationMember[]>;
   addOrganizationMember(member: { organizationId: number; userId: string; role: string }): Promise<OrganizationMember>;
-  
+  isOrganizationAdmin(userId: string, organizationId: number): Promise<boolean>;
+
   // Organization invitation operations
   createInvitation(invitationData: InsertOrganizationInvitation): Promise<OrganizationInvitation>;
   getInvitationByToken(token: string): Promise<OrganizationInvitation | undefined>;
@@ -457,6 +458,11 @@ export class DatabaseStorage implements IStorage {
         eq(organizationMembers.organizationId, organizationId)
       ));
     return member;
+  }
+
+  async isOrganizationAdmin(userId: string, organizationId: number): Promise<boolean> {
+    const member = await this.getOrganizationMember(userId, organizationId);
+    return member?.role === 'owner';
   }
 
   async addTeamMember(memberData: { organizationId: number; userId: string; role: string; joinedAt: Date }): Promise<OrganizationMember> {

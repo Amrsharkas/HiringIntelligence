@@ -74,6 +74,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No organization found" });
       }
 
+      // Check if user is an admin
+      const isAdmin = await storage.isOrganizationAdmin(userId, parseInt(currentOrganization.id));
+
+      // Check if user is trying to update restricted fields (companyName or url)
+      const isUpdatingRestrictedFields =
+        (orgData.companyName !== undefined && orgData.companyName !== currentOrganization.companyName) ||
+        (orgData.url !== undefined && orgData.url !== currentOrganization.url);
+
+      if (isUpdatingRestrictedFields && !isAdmin) {
+        return res.status(403).json({
+          message: "Only administrators can update organization name and URL settings"
+        });
+      }
+
       // If URL is being updated, check if it's already taken by another organization
       if (orgData.url && orgData.url !== currentOrganization.url) {
         const existingOrg = await storage.getOrganizationByUrl(orgData.url);
