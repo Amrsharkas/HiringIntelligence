@@ -3909,9 +3909,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         organizationId: organization.id.toString(),
       }).returning();
 
-      // Remove from shortlist
-      await storage.removeFromShortlist(shortlistId);
-
       console.log(`✅ SCHEDULE SUCCESS: Interview created for ${candidateName}`);
 
       // Send email notification to the candidate
