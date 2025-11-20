@@ -655,7 +655,7 @@ export default function EmployerDashboard() {
                 onClick: () => setIsActiveJobsModalOpen(true)
               },
               { 
-                label: "Candidantes", 
+                label: "Candidates", 
                 component: <LiveApplicantsCount />,
                 icon: Users, 
                 color: "green",
