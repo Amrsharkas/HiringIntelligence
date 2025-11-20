@@ -349,6 +349,7 @@ export const interviews = pgTable("interviews", {
   meetingLink: text("meeting_link"),
   notes: text("notes"),
   status: varchar("status").default("scheduled"),
+  interviewVideoUrl: text("interview_video_url"), // HLS playlist URL for recorded interviews
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -519,6 +520,7 @@ export const interviewSessions = pgTable("interview_sessions", {
   isCompleted: boolean("is_completed").default(false),
   generatedProfile: jsonb("generated_profile"),
   resumeContext: jsonb("resume_context"),
+  interviewVideoUrl: text("interview_video_url"), // HLS playlist URL for recorded interviews
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
@@ -905,6 +907,7 @@ export const airtableJobApplications = pgTable("airtable_job_applications", {
   status: varchar("status").default("applied"),
   applicationDate: timestamp("application_date").defaultNow(),
   jobDescription: text("job_description"),
+  interviewVideoUrl: text("interview_video_url"), // HLS playlist URL for job-specific interview
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -921,6 +924,8 @@ export const airtableJobMatches = pgTable("airtable_job_matches", {
   interviewTime: varchar("interview_time"),
   interviewLink: text("interview_link"),
   matchScore: integer("match_score"),
+  score: integer("score"), // Interview score 0-100
+  interviewComments: text("interview_comments"), // AI-generated feedback
   status: varchar("status").default("pending"),
   token: varchar("token").unique().notNull(),
   createdAt: timestamp("created_at").defaultNow(),
