@@ -437,8 +437,15 @@ If red flags are present, include:
 }
 ]
 
-Scoring Weight:
-overallScore = (technicalSkillsScore × 0.40) + (experienceScore × 0.40) + (culturalFitScore × 0.20)`
+Scoring Weight Formula:
+The overall score is calculated using the following weighted formula:
+overallScore = (technicalSkillsScore × 0.40) + (experienceScore × 0.40) + (culturalFitScore × 0.20)
+
+Example calculation:
+If technicalSkillsScore = 100%, experienceScore = 50%, and culturalFitScore = 70%
+Then overallScore = 0.4(100) + 0.4(50) + 0.2(70) = 40 + 20 + 14 = 74
+
+This weighted approach reflects that technical skills and experience are equally critical (40% each), while cultural fit plays a supporting but important role (20%).`
             },
             {
               role: "user",
@@ -564,8 +571,15 @@ If red flags are present, include:
 }
 ]
 
-Scoring Weight:
-overallScore = (technicalSkillsScore × 0.40) + (experienceScore × 0.40) + (culturalFitScore × 0.20)`
+Scoring Weight Formula:
+The overall score is calculated using the following weighted formula:
+overallScore = (technicalSkillsScore × 0.40) + (experienceScore × 0.40) + (culturalFitScore × 0.20)
+
+Example calculation:
+If technicalSkillsScore = 100%, experienceScore = 50%, and culturalFitScore = 70%
+Then overallScore = 0.4(100) + 0.4(50) + 0.2(70) = 40 + 20 + 14 = 74
+
+This weighted approach reflects that technical skills and experience are equally critical (40% each), while cultural fit plays a supporting but important role (20%).`
               },
               {
                 role: "user",
@@ -594,7 +608,6 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
               }
             ],
             temperature: 0,
-            max_tokens: 1500,
           }),
           {
             requestType: "resume_job_scoring_retry",
@@ -614,11 +627,26 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
         } catch {
           throw new Error("Invalid JSON returned by model while scoring resume against job (after retry)");
         }
+
+        console.log({
+          result
+        });
+
+        // Extract and normalize individual scores
+        const technicalSkillsScore = Math.max(0, Math.min(100, result.technicalSkillsScore || 5));
+        const experienceScore = Math.max(0, Math.min(100, result.experienceScore || 5));
+        const culturalFitScore = Math.max(0, Math.min(100, result.culturalFitScore || 5));
+
+        // Calculate overall score using weighted formula: 0.4(technical) + 0.4(experience) + 0.2(cultural)
+        const calculatedOverallScore = Math.round(
+          (technicalSkillsScore * 0.4) + (experienceScore * 0.4) + (culturalFitScore * 0.2)
+        );
+
         return {
-          overallScore: Math.max(0, Math.min(100, result.overallScore || 5)),
-          technicalSkillsScore: Math.max(0, Math.min(100, result.technicalSkillsScore || 5)),
-          experienceScore: Math.max(0, Math.min(100, result.experienceScore || 5)),
-          culturalFitScore: Math.max(0, Math.min(100, result.culturalFitScore || 5)),
+          overallScore: calculatedOverallScore,
+          technicalSkillsScore,
+          experienceScore,
+          culturalFitScore,
           matchSummary: result.matchSummary || "No match summary available",
           strengthsHighlights: Array.isArray(result.strengthsHighlights) ? result.strengthsHighlights : [],
           improvementAreas: Array.isArray(result.improvementAreas) ? result.improvementAreas : [],
@@ -640,12 +668,22 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
           throw new Error("Invalid JSON returned by model while scoring resume against job");
         }
       }
-      
+
+      // Extract and normalize individual scores
+      const technicalSkillsScore = Math.max(0, Math.min(100, result.technicalSkillsScore || 5));
+      const experienceScore = Math.max(0, Math.min(100, result.experienceScore || 5));
+      const culturalFitScore = Math.max(0, Math.min(100, result.culturalFitScore || 5));
+
+      // Calculate overall score using weighted formula: 0.4(technical) + 0.4(experience) + 0.2(cultural)
+      const calculatedOverallScore = Math.round(
+        (technicalSkillsScore * 0.4) + (experienceScore * 0.4) + (culturalFitScore * 0.2)
+      );
+
       return {
-        overallScore: Math.max(0, Math.min(100, result.overallScore || 5)),
-        technicalSkillsScore: Math.max(0, Math.min(100, result.technicalSkillsScore || 5)),
-        experienceScore: Math.max(0, Math.min(100, result.experienceScore || 5)),
-        culturalFitScore: Math.max(0, Math.min(100, result.culturalFitScore || 5)),
+        overallScore: calculatedOverallScore,
+        technicalSkillsScore,
+        experienceScore,
+        culturalFitScore,
         matchSummary: result.matchSummary || "No match summary available",
         strengthsHighlights: Array.isArray(result.strengthsHighlights) ? result.strengthsHighlights : [],
         improvementAreas: Array.isArray(result.improvementAreas) ? result.improvementAreas : [],
