@@ -20,7 +20,7 @@ import { emailService } from "./emailService";
 import { ragIndexingService } from "./ragIndexingService";
 import { resumeRagService } from "./resumeRagService";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
 import { resumeProcessingQueue } from "./queues";
 import { setupCreditPackages } from "./setupCreditPackages";
@@ -2729,6 +2729,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const profileData = userProfile.aiProfile?.brutallyHonestProfile || {};
 
+      // Get interview video URL from job applications -> interview sessions
+      let interviewVideoUrl = null;
+      try {
+        const { airtableJobApplications, interviewSessions } = await import('@shared/schema');
+
+        // Get the most recent application for this user
+        const [application] = await db.select()
+          .from(airtableJobApplications)
+          .where(eq(airtableJobApplications.applicantUserId, identifier))
+          .orderBy(desc(airtableJobApplications.applicationDate))
+          .limit(1);
+
+        // If application has sessionId, get the interview video URL
+        if (application?.sessionId) {
+          const [session] = await db.select()
+            .from(interviewSessions)
+            .where(eq(interviewSessions.id, application.sessionId));
+
+          if (session?.interviewVideoUrl) {
+            interviewVideoUrl = session.interviewVideoUrl;
+            console.log('✅ Found interview video URL for user:', identifier);
+          }
+        }
+      } catch (videoError) {
+        console.warn('⚠️  Could not fetch interview video:', videoError);
+        // Continue without video - non-critical failure
+      }
+
       // Format the response
       const profile = {
         name: userProfile.Name || identifier,
@@ -2739,12 +2767,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         culturalFitPercentage: userProfile.aiProfile?.culturalFitPercentage || 0,
         userProfile: formatProfileForDisplay(userProfile.aiProfile),
         userId: userProfile.userId,
+        interviewVideoUrl, // Add video URL to response
         // Include all raw fields for debugging
         rawFields: userProfile
       };
 
       res.json(profile);
-      
+
     } catch (error) {
       console.error('❌ PUBLIC: Error fetching public profile:', error);
       res.status(500).json({ error: "Failed to fetch profile", details: error.message });

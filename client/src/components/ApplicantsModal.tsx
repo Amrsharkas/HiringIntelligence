@@ -39,6 +39,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BlobProvider } from '@react-pdf/renderer';
 import ApplicantsPDF from './ApplicantsPDF';
+import { HLSVideoPlayer } from './HLSVideoPlayer';
 
 interface Applicant {
   id: string;
@@ -709,10 +710,28 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                   </div>
                 </div>
 
+                {/* Interview Video Section */}
+                {selectedUserProfile?.interviewVideoUrl && (
+                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+                      📹 Interview Video Recording
+                    </h3>
+                    <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
+                      <HLSVideoPlayer
+                        src={selectedUserProfile.interviewVideoUrl}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      📼 Interview recording from candidate's application session
+                    </p>
+                  </div>
+                )}
+
                 {/* Detailed User Profile from Airtable */}
                 <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
                   <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">Complete Profile</h3>
-                  
+
                   {selectedUserProfile ? (
                     <div className="space-y-6">
                     
