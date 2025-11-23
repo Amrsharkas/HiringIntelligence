@@ -70,7 +70,7 @@ export function ResumeProfilesList() {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(1);
 
   // Fetch company job postings
   const { data: jobs = [] } = useQuery<any[]>({

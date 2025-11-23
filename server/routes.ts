@@ -5137,15 +5137,15 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const validPage = pageNum > 0 ? pageNum : 1;
       const validLimit = limitNum > 0 && limitNum <= 100 ? limitNum : 10; // Cap at 100 for performance
 
-      const profiles = await storage.getResumeProfilesByOrganization(organization.id, validPage, validLimit, sortBy);
+      // Fetch ALL profiles first (without pagination) to apply filters correctly
       const totalCount = await storage.getResumeProfilesCountByOrganization(organization.id);
-      const totalPages = Math.ceil(totalCount / validLimit);
+      const allProfiles = await storage.getResumeProfilesByOrganization(organization.id, 1, totalCount, sortBy);
 
       // Get all organization jobs for scoring
       const jobs = await storage.getJobsByOrganization(organization.id);
 
       // Add job scores to each profile
-      const profilesWithScores = await Promise.all(profiles.map(async (profile) => {
+      const profilesWithScores = await Promise.all(allProfiles.map(async (profile) => {
         const jobScores = await storage.getJobScoresByProfile(profile.id);
 
         // Filter job scores by specific jobId if provided
@@ -5160,16 +5160,6 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             const jobIdString = String(score.jobId);
             const jobMatches = await localDatabaseService.getJobMatchesByJob(jobIdString);
             const existingMatch = jobMatches.find(match => match.userId === profile.id);
-
-            // Debug logging for invitation status
-            if (jobMatches.length > 0) {
-              console.log(`🔍 Found ${jobMatches.length} job matches for jobId ${jobIdString}`);
-              console.log(`   Looking for match with userId: ${profile.id}`);
-              console.log(`   Match found: ${existingMatch ? 'YES' : 'NO'}`);
-              if (existingMatch) {
-                console.log(`   Match status: ${existingMatch.status}`);
-              }
-            }
 
             return {
               ...score,
@@ -5235,22 +5225,19 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         );
       }
 
-      // Calculate stats for ALL profiles in organization (not just current page)
-      // Get all profiles to calculate total stats
-      const allProfiles = await storage.getResumeProfilesByOrganization(organization.id, 1, totalCount, sortBy);
+      // Calculate stats for filtered profiles
       let qualifiedCount = 0;
       let disqualifiedCount = 0;
 
-      await Promise.all(allProfiles.map(async (profile) => {
-        const jobScores = await storage.getJobScoresByProfile(profile.id);
-        jobScores.forEach(jobScore => {
+      filteredProfiles.forEach(profile => {
+        profile.jobScores.forEach(jobScore => {
           if (jobScore.disqualified) {
             disqualifiedCount++;
           } else {
             qualifiedCount++;
           }
         });
-      }));
+      });
 
       // Apply pagination to filtered results
       const filteredTotalCount = filteredProfiles.length;
