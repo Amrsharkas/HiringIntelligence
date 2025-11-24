@@ -18,50 +18,50 @@ async function setupCreditPackages() {
     // Create default credit packages in database (without Stripe integration)
     console.log('💳 Initializing credit packages in database...');
 
-    // CV Processing credit packages
+    // CV Scanning credit packages (add-ons)
     const cvPackages = [
       {
-        name: '50 CV Credits',
-        description: 'Process 50 resumes',
+        name: '500 Scanning Credits',
+        description: 'Process 500 resumes',
         creditType: 'cv_processing',
-        creditAmount: 50,
-        price: 450000, // 4,500 EGP (90 EGP per credit)
+        creditAmount: 500,
+        price: 1250000, // 12,500 EGP
         sortOrder: 1,
       },
       {
-        name: '100 CV Credits',
-        description: 'Process 100 resumes',
-        creditType: 'cv_processing',
-        creditAmount: 100,
-        price: 900000, // 9,000 EGP (90 EGP per credit)
-        sortOrder: 2,
-      },
-      {
-        name: '300 CV Credits',
-        description: 'Process 300 resumes',
-        creditType: 'cv_processing',
-        creditAmount: 300,
-        price: 2400000, // 24,000 EGP (80 EGP per credit - bulk discount)
-        sortOrder: 3,
-      },
-      {
-        name: '1000 CV Credits',
+        name: '1000 Scanning Credits',
         description: 'Process 1000 resumes',
         creditType: 'cv_processing',
         creditAmount: 1000,
-        price: 7000000, // 70,000 EGP (70 EGP per credit - bulk discount)
-        sortOrder: 4,
+        price: 1500000, // 15,000 EGP
+        sortOrder: 2,
+      },
+      {
+        name: '2500 Scanning Credits',
+        description: 'Process 2500 resumes',
+        creditType: 'cv_processing',
+        creditAmount: 2500,
+        price: 2670000, // 26,700 EGP
+        sortOrder: 3,
       },
     ];
 
-    // Interview credit packages
+    // Interview credit packages (add-ons)
     const interviewPackages = [
+      {
+        name: '10 Interview Credits',
+        description: 'Schedule 10 interviews',
+        creditType: 'interview',
+        creditAmount: 10,
+        price: 400000, // 4,000 EGP
+        sortOrder: 4,
+      },
       {
         name: '25 Interview Credits',
         description: 'Schedule 25 interviews',
         creditType: 'interview',
         creditAmount: 25,
-        price: 225000, // 2,250 EGP (90 EGP per credit)
+        price: 900000, // 9,000 EGP
         sortOrder: 5,
       },
       {
@@ -69,24 +69,8 @@ async function setupCreditPackages() {
         description: 'Schedule 50 interviews',
         creditType: 'interview',
         creditAmount: 50,
-        price: 450000, // 4,500 EGP (90 EGP per credit)
+        price: 1500000, // 15,000 EGP
         sortOrder: 6,
-      },
-      {
-        name: '100 Interview Credits',
-        description: 'Schedule 100 interviews',
-        creditType: 'interview',
-        creditAmount: 100,
-        price: 800000, // 8,000 EGP (80 EGP per credit - bulk discount)
-        sortOrder: 7,
-      },
-      {
-        name: '500 Interview Credits',
-        description: 'Schedule 500 interviews',
-        creditType: 'interview',
-        creditAmount: 500,
-        price: 3500000, // 35,000 EGP (70 EGP per credit - bulk discount)
-        sortOrder: 8,
       },
     ];
 

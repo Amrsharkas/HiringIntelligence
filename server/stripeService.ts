@@ -371,6 +371,15 @@ export class StripeService {
         },
       });
 
+      // Get credit package to determine credit type
+      const [creditPackage] = await db
+        .select()
+        .from(creditPackages)
+        .where(eq(creditPackages.id, transaction.creditPackageId));
+
+      const creditType = (creditPackage?.creditType as 'cv_processing' | 'interview') || 'cv_processing';
+      const actionType = creditType === 'cv_processing' ? 'resume_processing' : 'interview_scheduling';
+
       // Update transaction record
       await db
         .update(paymentTransactions)
@@ -385,8 +394,11 @@ export class StripeService {
       await creditService.deductCredits(
         transaction.organizationId,
         transaction.creditsPurchased,
+        creditType,
         'manual_adjustment',
-        `Refunded ${transaction.creditsPurchased} credits - ${reason || 'Customer requested refund'}`
+        `Refunded ${transaction.creditsPurchased} credits - ${reason || 'Customer requested refund'}`,
+        paymentTransactionId,
+        actionType
       );
 
       console.log(`Successfully refunded payment ${paymentTransactionId}: ${refund.amount} cents, ${transaction.creditsPurchased} credits`);
@@ -420,29 +432,61 @@ export class StripeService {
   async initializeDefaultCreditPackages(): Promise<void> {
     try {
       const defaultPackages = [
+        // CV Scanning Add-ons
         {
-          name: '100 Credits Pack',
-          description: 'Additional credits for your hiring needs',
-          creditAmount: 100,
-          price: 900000, // 9,000 EGP in cents (90 EGP per credit)
+          name: '500 Scanning Credits Pack',
+          description: 'Additional scanning credits for CV processing',
+          creditType: 'cv_processing',
+          creditAmount: 500,
+          price: 1250000, // 12,500 EGP in cents
           currency: 'EGP',
           sortOrder: 1,
         },
         {
-          name: '300 Credits Pack',
-          description: 'Best value for regular hiring',
-          creditAmount: 300,
-          price: 2400000, // 24,000 EGP in cents (80 EGP per credit)
+          name: '1000 Scanning Credits Pack',
+          description: 'Value pack for high-volume CV scanning',
+          creditType: 'cv_processing',
+          creditAmount: 1000,
+          price: 1500000, // 15,000 EGP in cents
           currency: 'EGP',
           sortOrder: 2,
         },
         {
-          name: '1,000 Credits Pack',
-          description: 'Maximum value for high-volume hiring',
-          creditAmount: 1000,
-          price: 7000000, // 70,000 EGP in cents (70 EGP per credit)
+          name: '2500 Scanning Credits Pack',
+          description: 'Best value for enterprise-scale CV scanning',
+          creditType: 'cv_processing',
+          creditAmount: 2500,
+          price: 2670000, // 26,700 EGP in cents
           currency: 'EGP',
           sortOrder: 3,
+        },
+        // Interview Add-ons
+        {
+          name: '10 Interview Credits Pack',
+          description: 'Additional interview scheduling credits',
+          creditType: 'interview',
+          creditAmount: 10,
+          price: 400000, // 4,000 EGP in cents
+          currency: 'EGP',
+          sortOrder: 4,
+        },
+        {
+          name: '25 Interview Credits Pack',
+          description: 'Value pack for interview scheduling',
+          creditType: 'interview',
+          creditAmount: 25,
+          price: 900000, // 9,000 EGP in cents
+          currency: 'EGP',
+          sortOrder: 5,
+        },
+        {
+          name: '50 Interview Credits Pack',
+          description: 'Best value for high-volume interview scheduling',
+          creditType: 'interview',
+          creditAmount: 50,
+          price: 1500000, // 15,000 EGP in cents
+          currency: 'EGP',
+          sortOrder: 6,
         },
       ];
 
@@ -641,8 +685,8 @@ export class StripeService {
         subscription.id,
         subscription.status,
         {
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
           canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
         }

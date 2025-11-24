@@ -39,58 +39,58 @@ export class SubscriptionService {
       const plans = [
         {
           name: 'Starter',
-          description: '200 CV + 100 Interview Credits/month',
-          monthlyPrice: 2900000,
-          yearlyPrice: Math.round(2900000 * (1-0.18) * 12),
-          monthlyCvCredits: 200,
-          monthlyInterviewCredits: 100,
-          monthlyCredits: 300, // Total for backward compatibility
+          description: '1250 Scanning + 25 Interview Credits/month',
+          monthlyPrice: 2900000, // 29,000 EGP
+          yearlyPrice: Math.round(2900000 * (1-0.18) * 12), // 18% discount for yearly
+          monthlyCvCredits: 1250,
+          monthlyInterviewCredits: 25,
+          monthlyCredits: 1275, // Total for backward compatibility
           jobPostsLimit: 5,
           supportLevel: 'standard',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            cvCreditsPerMonth: 200,
-            interviewCreditsPerMonth: 100,
+            cvCreditsPerMonth: 1250,
+            interviewCreditsPerMonth: 25,
             jobPosts: 5,
           },
           sortOrder: 1,
         },
         {
           name: 'Growth',
-          description: '500 CV + 200 Interview Credits/month',
-          monthlyPrice: 3900000,
-          yearlyPrice: Math.round(3900000 * (1-0.18) * 12),
-          monthlyCvCredits: 500,
-          monthlyInterviewCredits: 200,
-          monthlyCredits: 700, // Total for backward compatibility
-          jobPostsLimit: 15,
+          description: '2500 Scanning + 50 Interview Credits/month',
+          monthlyPrice: 3900000, // 39,000 EGP
+          yearlyPrice: Math.round(3900000 * (1-0.18) * 12), // 18% discount for yearly
+          monthlyCvCredits: 2500,
+          monthlyInterviewCredits: 50,
+          monthlyCredits: 2550, // Total for backward compatibility
+          jobPostsLimit: 10,
           supportLevel: 'priority',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            cvCreditsPerMonth: 500,
-            interviewCreditsPerMonth: 200,
-            jobPosts: 15,
+            cvCreditsPerMonth: 2500,
+            interviewCreditsPerMonth: 50,
+            jobPosts: 10,
             prioritySupport: true,
           },
           sortOrder: 2,
         },
         {
           name: 'Pro',
-          description: '700 CV + 300 Interview Credits/month',
-          monthlyPrice: 4900000,
-          yearlyPrice: Math.round(4900000 * (1-0.18) * 12),
-          monthlyCvCredits: 700,
-          monthlyInterviewCredits: 300,
-          monthlyCredits: 1000, // Total for backward compatibility
+          description: '5000 Scanning + 80 Interview Credits/month',
+          monthlyPrice: 4900000, // 49,000 EGP
+          yearlyPrice: Math.round(4900000 * (1-0.18) * 12), // 18% discount for yearly
+          monthlyCvCredits: 5000,
+          monthlyInterviewCredits: 80,
+          monthlyCredits: 5080, // Total for backward compatibility
           jobPostsLimit: null, // Unlimited
           supportLevel: 'priority',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            cvCreditsPerMonth: 700,
-            interviewCreditsPerMonth: 300,
+            cvCreditsPerMonth: 5000,
+            interviewCreditsPerMonth: 80,
             jobPosts: 'unlimited',
             prioritySupport: true,
           },
@@ -98,19 +98,19 @@ export class SubscriptionService {
         },
         {
           name: 'Enterprise',
-          description: '2500 CV + 1000 Interview Credits/month (Custom)',
-          monthlyPrice: 0,
+          description: 'Custom Scanning + Interview Credits/month (Contact Sales)',
+          monthlyPrice: 0, // Custom pricing
           yearlyPrice: 0,
-          monthlyCvCredits: 2500,
-          monthlyInterviewCredits: 1000,
-          monthlyCredits: 3500, // Total for backward compatibility
+          monthlyCvCredits: 10000,
+          monthlyInterviewCredits: 200,
+          monthlyCredits: 10200, // Total for backward compatibility
           jobPostsLimit: null,
           supportLevel: 'dedicated',
           features: {
             aiCvAnalysis: true,
             aiInterviewPackage: true,
-            cvCreditsPerMonth: 2500,
-            interviewCreditsPerMonth: 1000,
+            cvCreditsPerMonth: 10000,
+            interviewCreditsPerMonth: 200,
             jobPosts: 'unlimited',
             dedicatedManager: true,
           },

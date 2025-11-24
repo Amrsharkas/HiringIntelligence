@@ -33,10 +33,20 @@ export async function setupSubscriptionSystem() {
     console.log('📦 Step 2: Deactivating old credit packages...');
     const oldPackageNames = [
       'Starter Pack',
-      'Professional Pack', 
+      'Professional Pack',
       'Business Pack',
       'Enterprise Pack',
-      'Corporate Pack'
+      'Corporate Pack',
+      '50 CV Credits',
+      '100 CV Credits',
+      '100 Credits Pack',
+      '300 CV Credits',
+      '300 Credits Pack',
+      '1000 CV Credits',
+      '1,000 Credits Pack',
+      '25 Interview Credits',
+      '100 Interview Credits',
+      '500 Interview Credits'
     ];
 
     let deactivatedCount = 0;
@@ -56,7 +66,7 @@ export async function setupSubscriptionSystem() {
     // Step 3: Create new credit packages
     console.log('💳 Step 3: Creating new credit packages...');
     await stripeService.initializeDefaultCreditPackages();
-    console.log('✅ Created new credit packages (100, 300, 1000)\n');
+    console.log('✅ Created new credit packages (Scanning: 500, 1000, 2500 | Interview: 10, 25, 50)\n');
 
     // Step 4: Create Stripe products (optional - requires Stripe API)
     console.log('🔵 Step 4: Creating Stripe subscription products...');
@@ -78,19 +88,19 @@ export async function setupSubscriptionSystem() {
     console.log('   4. Subscribe to a plan via the dashboard');
     console.log('   5. Verify credits are allocated after payment\n');
     console.log('💡 Subscription Plans Available:');
-    console.log('   - Starter: 29,000 EGP/month (200 CV + 100 Interview credits)');
-    console.log('   - Growth: 39,000 EGP/month (500 CV + 200 Interview credits)');
-    console.log('   - Pro: 49,000 EGP/month (700 CV + 300 Interview credits)');
-    console.log('   - Enterprise: Custom pricing (2,500 CV + 1,000 Interview credits)\n');
+    console.log('   - Starter: 29,000 EGP/month (1,250 Scanning + 25 Interview credits, 5 job posts)');
+    console.log('   - Growth: 39,000 EGP/month (2,500 Scanning + 50 Interview credits, 10 job posts)');
+    console.log('   - Pro: 49,000 EGP/month (5,000 Scanning + 80 Interview credits, unlimited job posts)');
+    console.log('   - Enterprise: Custom pricing (10,000 Scanning + 200 Interview credits, unlimited job posts)\n');
     console.log('💡 Additional Credit Packs:');
-    console.log('   CV Processing:');
-    console.log('   - 100 CV Credits: 9,000 EGP');
-    console.log('   - 300 CV Credits: 24,000 EGP');
-    console.log('   - 1,000 CV Credits: 70,000 EGP');
-    console.log('   Interview:');
-    console.log('   - 50 Interview Credits: 4,500 EGP');
-    console.log('   - 100 Interview Credits: 8,000 EGP');
-    console.log('   - 500 Interview Credits: 35,000 EGP');
+    console.log('   CV Scanning Add-ons:');
+    console.log('   - 500 Scanning Credits: 12,500 EGP');
+    console.log('   - 1,000 Scanning Credits: 15,000 EGP');
+    console.log('   - 2,500 Scanning Credits: 26,700 EGP');
+    console.log('   Interview Add-ons:');
+    console.log('   - 10 Interview Credits: 4,000 EGP');
+    console.log('   - 25 Interview Credits: 9,000 EGP');
+    console.log('   - 50 Interview Credits: 15,000 EGP');
     console.log('═══════════════════════════════════════════════════════════\n');
 
   } catch (error) {
