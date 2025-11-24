@@ -301,7 +301,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     switch (status.toLowerCase()) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
       case 'accepted': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'denied': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'declined': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'denied': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'; // Support both for backwards compatibility
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
   };
@@ -310,7 +311,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     switch (status.toLowerCase()) {
       case 'pending': return 'Pending Review';
       case 'accepted': return 'Application Accepted';
-      case 'denied': return 'Application Denied';
+      case 'declined': return 'Application Declined';
+      case 'denied': return 'Application Declined'; // Support both for backwards compatibility
       case 'interview_completed': return 'Interview Completed';
       default: return 'Unknown Status';
     }

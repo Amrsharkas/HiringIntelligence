@@ -1219,15 +1219,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Apply status filtering
       if (statusFilter === 'active') {
-        // Show only active applicants (not denied, not shortlisted, not accepted)
+        // Show only active applicants (not declined, not shortlisted, not accepted)
         applicants = applicants.filter(app =>
-          app.status?.toLowerCase() !== 'denied' &&
+          app.status?.toLowerCase() !== 'declined' &&
           app.status?.toLowerCase() !== 'shortlisted' &&
           app.status?.toLowerCase() !== 'accepted'
         );
       } else if (statusFilter === 'denied') {
-        // Show only denied applicants
-        applicants = applicants.filter(app => app.status?.toLowerCase() === 'denied');
+        // Show only declined applicants
+        applicants = applicants.filter(app => app.status?.toLowerCase() === 'declined');
       }
       // If statusFilter === 'all', don't filter by status
 
