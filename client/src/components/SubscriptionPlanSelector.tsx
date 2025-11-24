@@ -356,12 +356,12 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
           AI Credit Usage Per Candidate
         </h3>
         <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-          <p>• AI CV Analysis (Scan + AI Report + Match Score): 1 credit</p>
-          <p>• AI Interview Package (Persona + Technical + AI Report): 4 credits</p>
-          <p className="font-semibold">Total per engaged candidate: 5 credits</p>
+          <p>• AI CV Analysis (Scan + AI Report + Match Score): <span className="font-semibold">1 CV Analysis credit</span></p>
+          <p>• AI Interview Package (Persona + Technical + AI Report): <span className="font-semibold">1 Interview credit</span></p>
+          <p className="font-bold text-slate-900 dark:text-white">Total per engaged candidate: 5 credits</p>
         </div>
         <p className="text-xs text-slate-500 mt-4">
-          Credits expire after 45 days to ensure optimal usage.
+          Credits expire after 30 days to ensure optimal usage.
         </p>
       </div>
     </div>
