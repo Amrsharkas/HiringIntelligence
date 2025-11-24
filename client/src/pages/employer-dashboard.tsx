@@ -511,7 +511,7 @@ export default function EmployerDashboard() {
               <img 
                 src={logo} 
                 alt="Plato Logo" 
-                className="h-8 sm:h-10 w-auto p-2"
+                className="h-8 sm:h-10 w-auto"
               />
             </motion.button>
             
