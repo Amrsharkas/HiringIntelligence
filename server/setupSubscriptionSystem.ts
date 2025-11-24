@@ -91,7 +91,7 @@ export async function setupSubscriptionSystem() {
     console.log('   - Starter: 29,000 EGP/month (1,250 Scanning + 25 Interview credits, 5 job posts)');
     console.log('   - Growth: 39,000 EGP/month (2,500 Scanning + 50 Interview credits, 10 job posts)');
     console.log('   - Pro: 49,000 EGP/month (5,000 Scanning + 80 Interview credits, unlimited job posts)');
-    console.log('   - Enterprise: Custom pricing (10,000 Scanning + 200 Interview credits, unlimited job posts)\n');
+    console.log('   - Enterprise: Contact us for custom pricing and solutions\n');
     console.log('💡 Additional Credit Packs:');
     console.log('   CV Scanning Add-ons:');
     console.log('   - 500 Scanning Credits: 12,500 EGP');

@@ -245,49 +245,80 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                     {plan.description}
                   </p>
 
-                  <div className="space-y-3 py-4">
-                    <div className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">
-                        {plan.monthlyCvCredits || plan.monthlyCredits} CV Processing Credits/month
-                      </span>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">
-                        {plan.monthlyInterviewCredits || 0} Interview Credits/month
-                      </span>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">
-                        ~{Math.floor((plan.monthlyCvCredits || plan.monthlyCredits) / 5)} engaged candidates/month
-                      </span>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">
-                        {plan.jobPostsLimit === null ? 'Unlimited' : plan.jobPostsLimit} Job Posts
-                      </span>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm capitalize">
-                        {plan.supportLevel} Support
-                      </span>
-                    </div>
-
-                    {plan.features?.dedicatedManager && (
+                  {plan.name === 'Enterprise' ? (
+                    // Enterprise plan - show custom features only
+                    <div className="space-y-3 py-4">
                       <div className="flex items-start gap-2">
                         <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">Dedicated Manager</span>
+                        <span className="text-sm">Custom credit allocation</span>
                       </div>
-                    )}
-                  </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Unlimited job posts</span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Dedicated account manager</span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Priority support</span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Custom integrations</span>
+                      </div>
+                    </div>
+                  ) : (
+                    // Standard plans - show detailed credits
+                    <div className="space-y-3 py-4">
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">
+                          {plan.monthlyCvCredits || plan.monthlyCredits} CV Processing Credits/month
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">
+                          {plan.monthlyInterviewCredits || 0} Interview Credits/month
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">
+                          ~{Math.floor((plan.monthlyCvCredits || plan.monthlyCredits) / 5)} engaged candidates/month
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">
+                          {plan.jobPostsLimit === null ? 'Unlimited' : plan.jobPostsLimit} Job Posts
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm capitalize">
+                          {plan.supportLevel} Support
+                        </span>
+                      </div>
+
+                      {plan.features?.dedicatedManager && (
+                        <div className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm">Dedicated Manager</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <Button
                     className={`w-full ${

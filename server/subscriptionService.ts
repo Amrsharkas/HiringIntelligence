@@ -98,21 +98,18 @@ export class SubscriptionService {
         },
         {
           name: 'Enterprise',
-          description: 'Custom Scanning + Interview Credits/month (Contact Sales)',
+          description: 'Custom solution tailored to your needs. Contact us for pricing.',
           monthlyPrice: 0, // Custom pricing
           yearlyPrice: 0,
-          monthlyCvCredits: 10000,
-          monthlyInterviewCredits: 200,
-          monthlyCredits: 10200, // Total for backward compatibility
+          monthlyCvCredits: 0, // Hide credits - custom
+          monthlyInterviewCredits: 0, // Hide credits - custom
+          monthlyCredits: 0, // Total for backward compatibility
           jobPostsLimit: null,
           supportLevel: 'dedicated',
           features: {
-            aiCvAnalysis: true,
-            aiInterviewPackage: true,
-            cvCreditsPerMonth: 10000,
-            interviewCreditsPerMonth: 200,
-            jobPosts: 'unlimited',
+            customSolution: true,
             dedicatedManager: true,
+            customCredits: true,
           },
           sortOrder: 4,
         },

@@ -26,12 +26,12 @@ The platform now uses a subscription-based model where organizations must subscr
 
 | Plan | Monthly Price | Yearly Price | Credits/Month | Job Posts | Support |
 |------|---------------|--------------|---------------|-----------|---------|
-| **Starter** | 14,500 EGP | 11,890 EGP | 200 | 5 | Standard |
-| **Growth** | 39,000 EGP | 31,980 EGP | 700 | 20 | Priority |
-| **Pro** | 95,000 EGP | 77,900 EGP | 1,900 | Unlimited | Priority |
-| **Enterprise** | 155,000 EGP | 127,100 EGP | 3,500 | Unlimited | Dedicated |
+| **Starter** | 29,000 EGP | 23,780 EGP | 1,250 CV + 25 Interview | 5 | Standard |
+| **Growth** | 39,000 EGP | 31,980 EGP | 2,500 CV + 50 Interview | 10 | Priority |
+| **Pro** | 49,000 EGP | 40,180 EGP | 5,000 CV + 80 Interview | Unlimited | Priority |
+| **Enterprise** | Contact Us | Contact Us | Custom | Unlimited | Dedicated |
 
-*Note: Yearly plans include an 18% discount*
+*Note: Yearly plans include an 18% discount. Enterprise plan requires contacting sales for custom pricing and solutions.*
 
 ## Additional Credit Packs
 

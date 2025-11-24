@@ -92,10 +92,10 @@ GET    /api/credit-packages                        - List credit packs
 
 ### Subscription Plans Created:
 ```
-✅ Starter     - 14,500 EGP/month | 200 credits | 5 job posts
-✅ Growth      - 39,000 EGP/month | 700 credits | 20 job posts
-✅ Professional - 95,000 EGP/month | 1,900 credits | Unlimited jobs
-✅ Enterprise  - 155,000 EGP/month | 3,500 credits | Unlimited jobs
+✅ Starter     - 29,000 EGP/month | 1,250 CV + 25 Interview credits | 5 job posts
+✅ Growth      - 39,000 EGP/month | 2,500 CV + 50 Interview credits | 10 job posts
+✅ Pro         - 49,000 EGP/month | 5,000 CV + 80 Interview credits | Unlimited jobs
+✅ Enterprise  - Contact Sales | Custom credits | Unlimited jobs | Dedicated support
 ```
 
 ### Credit Packs Created:
@@ -257,11 +257,11 @@ client/src/pages/employer-dashboard.tsx          - Added subscription UI
 3. **Additional Credit Packs** (9,000 - 70,000 EGP)
 
 ### Credit Economics:
-- **Cost per candidate:** 5 credits
-- **Starter plan:** 200 credits = ~40 candidates/month
-- **Growth plan:** 700 credits = ~140 candidates/month
-- **Pro plan:** 1,900 credits = ~380 candidates/month
-- **Enterprise plan:** 3,500 credits = ~700 candidates/month
+- **Cost per candidate:** 5 credits (1 CV analysis + 4 interview credits)
+- **Starter plan:** 1,250 CV + 25 Interview credits = ~25 fully processed candidates/month
+- **Growth plan:** 2,500 CV + 50 Interview credits = ~50 fully processed candidates/month
+- **Pro plan:** 5,000 CV + 80 Interview credits = ~80 fully processed candidates/month
+- **Enterprise plan:** Custom allocation based on business needs
 
 ---
 
