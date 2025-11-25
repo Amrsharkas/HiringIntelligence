@@ -69,6 +69,7 @@ export function ResumeProfilesList() {
   const [selectedJobFilter, setSelectedJobFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
+  const [selectedJobScore, setSelectedJobScore] = useState<JobScoring | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -741,7 +742,7 @@ export function ResumeProfilesList() {
               <SelectContent>
                 <SelectItem value="all">All Jobs</SelectItem>
                 {jobs.map((job: any) => (
-                  <SelectItem key={job.id} value={job.id}>
+                  <SelectItem key={job.id} value={String(job.id)}>
                     {job.title}
                   </SelectItem>
                 ))}
@@ -927,7 +928,10 @@ export function ResumeProfilesList() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedProfile(row.profile)}
+                              onClick={() => {
+                                setSelectedProfile(row.profile);
+                                setSelectedJobScore(row.jobScore);
+                              }}
                               className="h-8 px-2 text-xs"
                             >
                               View
@@ -1034,7 +1038,10 @@ export function ResumeProfilesList() {
 
       {/* Profile Detail Modal */}
       {selectedProfile && (
-        <Dialog open={!!selectedProfile} onOpenChange={() => setSelectedProfile(null)}>
+        <Dialog open={!!selectedProfile} onOpenChange={() => {
+          setSelectedProfile(null);
+          setSelectedJobScore(null);
+        }}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-6">
             <DialogHeader>
               <div className="flex items-center justify-between">
@@ -1104,8 +1111,8 @@ export function ResumeProfilesList() {
                 <div>
                   <h4 className="font-semibold mb-4 text-lg">Job Match Analysis</h4>
                   <div className="space-y-4">
-                    {selectedProfile.jobScores.map((jobScore) => {
-                      const job = jobs.find((j: any) => j.id === jobScore.jobId);
+                    {(selectedJobScore ? [selectedJobScore] : selectedProfile.jobScores).map((jobScore) => {
+                      const job = jobs.find((j: any) => String(j.id) === String(jobScore.jobId));
                       return (
                         <Card key={jobScore.jobId} className={jobScore.disqualified ? 'border-red-200 bg-red-50/30' : ''}>
                           <CardContent className="p-6">

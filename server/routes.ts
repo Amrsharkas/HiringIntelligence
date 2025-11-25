@@ -5148,9 +5148,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const profilesWithScores = await Promise.all(allProfiles.map(async (profile) => {
         const jobScores = await storage.getJobScoresByProfile(profile.id);
 
-        // Filter job scores by specific jobId if provided
+        // Filter job scores by specific jobId if provided (convert to string for comparison)
         const filteredJobScores = jobId
-          ? jobScores.filter(score => score.jobId === jobId)
+          ? jobScores.filter(score => String(score.jobId) === String(jobId))
           : jobScores;
 
         // Get invitation status for each job score
@@ -5221,7 +5221,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Apply job filter (already partially implemented but let's ensure it filters out profiles without matching job scores)
       if (jobId) {
         filteredProfiles = filteredProfiles.filter(profile =>
-          profile.jobScores.some(score => score.jobId === jobId)
+          profile.jobScores.some(score => String(score.jobId) === String(jobId))
         );
       }
 
