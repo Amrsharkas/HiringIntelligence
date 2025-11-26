@@ -54,6 +54,7 @@ interface Applicant {
   experience: string;
   skills: string[];
   userId: string;
+  applicantUserId?: string;
   matchScore?: number;
   technicalScore?: number;
   experienceScore?: number;
@@ -93,6 +94,13 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
     return () => clearInterval(interval);
   }, [isOpen, queryClient, currentPage, limit, statusFilter]);
 
+  // Refetch when filter changes
+  useEffect(() => {
+    if (isOpen) {
+      queryClient.refetchQueries({ queryKey: ["/api/real-applicants", currentPage, limit, statusFilter] });
+    }
+  }, [statusFilter, isOpen, queryClient, currentPage, limit]);
+
   // Fetch paginated applicants for this organization
   const { data: response, isLoading } = useQuery<{
     data: Applicant[];
@@ -119,6 +127,8 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
       return response.json();
     },
     enabled: isOpen,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const applicants = response?.data || [];
@@ -142,9 +152,13 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
         title: "📧 Applicant Declined and Notified",
         description: "The applicant has been declined and will receive a notification email.",
       });
+      // Invalidate all related queries immediately to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/real-applicants", currentPage, limit, statusFilter] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants/count"] });
+      // Force refetch immediately to update UI
+      queryClient.refetchQueries({ queryKey: ["/api/real-applicants", currentPage, limit, statusFilter] });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to decline applicant",
@@ -194,7 +208,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
     return (
       <BlobProvider document={<ApplicantsPDF applicants={availableApplicants} includeScores={true} />}>
-        {({ blob, url, loading, error }) => {
+        {({ blob, loading, error }) => {
           if (loading) {
             return (
               <Button variant="outline" disabled>
