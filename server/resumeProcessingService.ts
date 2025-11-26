@@ -639,7 +639,7 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
 
         // Calculate overall score using weighted formula: 0.4(technical) + 0.4(experience) + 0.2(cultural)
         const calculatedOverallScore = Math.round(
-          (technicalSkillsScore * 0.4) + (experienceScore * 0.4) + (culturalFitScore * 0.2)
+          (technicalSkillsScore * 0.75) + (experienceScore * 0.225) + (culturalFitScore * 0.25)
         );
 
         return {
@@ -676,7 +676,7 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
 
       // Calculate overall score using weighted formula: 0.4(technical) + 0.4(experience) + 0.2(cultural)
       const calculatedOverallScore = Math.round(
-        (technicalSkillsScore * 0.4) + (experienceScore * 0.4) + (culturalFitScore * 0.2)
+        (technicalSkillsScore * 0.75) + (experienceScore * 0.225) + (culturalFitScore * 0.25)
       );
 
       return {
