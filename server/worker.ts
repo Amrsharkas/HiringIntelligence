@@ -59,8 +59,9 @@ const resumeProcessingWorker = new Worker(
         job.updateProgress(10);
 
         // Process resume with AI
-        console.log(`🔄 Processing resume with AI, file type: ${fileType}, custom rules: ${customRules ? 'provided' : 'none'}`);
-        const processedResume = await resumeProcessingService.processResume(fileContent, fileType, customRules);
+        const fileSize = fileContent?.length || 0;
+        console.log(`🔄 Processing resume with AI, file type: ${fileType}, file size: ${fileSize}, custom rules: ${customRules ? 'provided' : 'none'}`);
+        const processedResume = await resumeProcessingService.processResume(fileContent, fileType, customRules, fileSize);
         console.log(`✅ Resume processed successfully:`, { name: processedResume.name, email: processedResume.email });
 
         job.updateProgress(30);
@@ -135,7 +136,9 @@ const resumeProcessingWorker = new Worker(
               jobItem.title,
               jobItem.description,
               jobItem.requirements || jobItem.description,
-              customRules
+              customRules,
+              jobItem.id,
+              fileContent
             );
 
             await storage.createJobScore({
@@ -271,7 +274,8 @@ const resumeProcessingWorker = new Worker(
             job.updateProgress(baseProgress + 5);
 
             // Process resume with AI
-            const processedResume = await resumeProcessingService.processResume(file.content, file.type, customRules);
+            const bulkFileSize = file.content?.length || 0;
+            const processedResume = await resumeProcessingService.processResume(file.content, file.type, customRules, bulkFileSize);
             console.log(`✅ Processed resume: ${processedResume.name} (${processedResume.email})`);
 
             job.updateProgress(baseProgress + 15);
@@ -339,7 +343,9 @@ const resumeProcessingWorker = new Worker(
                   jobItem.title,
                   jobItem.description,
                   jobItem.requirements || jobItem.description,
-                  customRules
+                  customRules,
+                  jobItem.id,
+                  file.content
                 );
 
                 await storage.createJobScore({

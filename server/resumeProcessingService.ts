@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { toFile } from "openai/uploads";
 import { wrapOpenAIRequest } from "./openaiTracker";
+import { cacheService } from "./cacheService";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -180,14 +181,25 @@ export class ResumeProcessingService {
     return { text: '' };
   }
 
-  async processResume(resumeText: string, fileType?: string, customRules?: string): Promise<ProcessedResume> {
+  async processResume(resumeText: string, fileType?: string, customRules?: string, fileSize?: number): Promise<ProcessedResume> {
     try {
+      // Check cache for parsed resume (based on file size)
+      if (fileSize) {
+        const cacheKey = cacheService.resumeParseKey(fileSize);
+        const cachedResult = await cacheService.get<ProcessedResume>(cacheKey);
+        if (cachedResult) {
+          console.log(`✅ Cache hit for resume parsing (fileSize: ${fileSize})`);
+          return cachedResult;
+        }
+        console.log(`📝 Cache miss for resume parsing (fileSize: ${fileSize}), processing...`);
+      }
+
       // Extract text from file if needed
       console.log(`🔄 Starting resume processing. File type: ${fileType}, text length: ${resumeText?.length}`);
       const extraction = fileType ? await this.extractTextFromFile(resumeText, fileType) : { text: resumeText };
       const extractedText = extraction.text;
       console.log(`📄 Text extraction complete. Extracted length: ${extractedText?.length}`);
-      
+
       const baseMessages = [
           {
             role: "system",
@@ -303,8 +315,8 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
           throw new Error("Invalid JSON returned by model while processing resume (after retry)");
         }
       }
-      
-      return {
+
+      const processedResume: ProcessedResume = {
         name: result.name || "Unknown",
         email: result.email || "",
         phone: result.phone || "",
@@ -316,6 +328,17 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
         languages: Array.isArray(result.languages) ? result.languages : [],
         fileId: extraction.fileId,
       };
+
+      // Store in cache (without fileId since it's specific to this upload)
+      if (fileSize) {
+        const cacheKey = cacheService.resumeParseKey(fileSize);
+        const cacheValue: ProcessedResume = { ...processedResume };
+        delete cacheValue.fileId;
+        await cacheService.set(cacheKey, cacheValue);
+        console.log(`💾 Cached resume parsing result (fileSize: ${fileSize})`);
+      }
+
+      return processedResume;
     } catch (error) {
       console.error("Error processing resume:", error);
       console.error("Error details:", error instanceof Error ? error.message : error);
@@ -350,9 +373,22 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
     jobTitle: string,
     jobDescription: string,
     jobRequirements: string,
-    customRules?: string
+    customRules?: string,
+    jobId?: number,
+    fileContent?: string
   ): Promise<JobMatchScore> {
     try {
+      // Check cache for job scoring result (based on file hash + jobId)
+      if (jobId && fileContent) {
+        const cacheKey = cacheService.jobScoringKey(fileContent, jobId);
+        const cachedResult = await cacheService.get<JobMatchScore>(cacheKey);
+        if (cachedResult) {
+          console.log(`✅ Cache hit for job scoring (jobId: ${jobId})`);
+          return cachedResult;
+        }
+        console.log(`📝 Cache miss for job scoring, calling OpenAI...`);
+      }
+
       const response = await wrapOpenAIRequest(
         () => openai.chat.completions.create({
           model: process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o",
@@ -642,7 +678,7 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
           (technicalSkillsScore * 0.75) + (experienceScore * 0.225) + (culturalFitScore * 0.25)
         );
 
-        return {
+        const retryScoringResult: JobMatchScore = {
           overallScore: calculatedOverallScore,
           technicalSkillsScore,
           experienceScore,
@@ -656,6 +692,15 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
           redFlags: Array.isArray(result.redFlags) ? result.redFlags : undefined,
           fullResponse: result
         };
+
+        // Store in cache (retry path)
+        if (jobId && fileContent) {
+          const cacheKey = cacheService.jobScoringKey(fileContent, jobId);
+          await cacheService.set(cacheKey, retryScoringResult);
+          console.log(`💾 Cached job scoring result (jobId: ${jobId})`);
+        }
+
+        return retryScoringResult;
       }
       let result: any;
       try {
@@ -679,7 +724,7 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
         (technicalSkillsScore * 0.75) + (experienceScore * 0.225) + (culturalFitScore * 0.25)
       );
 
-      return {
+      const scoringResult: JobMatchScore = {
         overallScore: calculatedOverallScore,
         technicalSkillsScore,
         experienceScore,
@@ -693,6 +738,15 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
         redFlags: Array.isArray(result.redFlags) ? result.redFlags : undefined,
         fullResponse: result
       };
+
+      // Store in cache
+      if (jobId && fileContent) {
+        const cacheKey = cacheService.jobScoringKey(fileContent, jobId);
+        await cacheService.set(cacheKey, scoringResult);
+        console.log(`💾 Cached job scoring result (jobId: ${jobId})`);
+      }
+
+      return scoringResult;
     } catch (error) {
       console.error("Error scoring resume against job:", error);
       throw new Error("Failed to score resume against job");
