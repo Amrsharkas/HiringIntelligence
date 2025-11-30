@@ -657,6 +657,120 @@ export function ResumeProfilesList() {
           </div>
         )}
 
+        {/* Quick Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 bg-green-50 rounded-lg border border-green-200 text-center">
+            <div className="text-2xl font-bold text-green-700">
+              {fullResponse.strengthsHighlights?.length || 0}
+            </div>
+            <div className="text-xs text-green-600">Strengths Found</div>
+          </div>
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200 text-center">
+            <div className="text-2xl font-bold text-red-700">
+              {fullResponse.improvementAreas?.length || 0}
+            </div>
+            <div className="text-xs text-red-600">Gaps Identified</div>
+          </div>
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-center">
+            <div className="text-2xl font-bold text-amber-700">
+              {fullResponse.skillAnalysis?.matchedSkills?.length || 0}
+            </div>
+            <div className="text-xs text-amber-600">Skills Matched</div>
+          </div>
+          <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-center">
+            <div className="text-2xl font-bold text-purple-700">
+              {fullResponse.skillAnalysis?.missingSkills?.length || 0}
+            </div>
+            <div className="text-xs text-purple-600">Skills Missing</div>
+          </div>
+        </div>
+
+        {/* Strengths & Gaps Comparison */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Strengths Column */}
+          <div className="p-3 bg-gradient-to-b from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800">
+              <CheckCircle className="h-4 w-4" />
+              Strengths ({fullResponse.strengthsHighlights?.length || 0})
+            </h5>
+            {fullResponse.strengthsHighlights && fullResponse.strengthsHighlights.length > 0 ? (
+              <div className="space-y-2">
+                {fullResponse.strengthsHighlights.map((item: any, i: number) => (
+                  <div key={i} className="p-2 bg-white rounded border border-green-100">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-green-800">{item.strength || (typeof item === 'string' ? item : 'Strength identified')}</div>
+                        {item.evidence && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">Evidence:</span> {item.evidence}
+                          </div>
+                        )}
+                      </div>
+                      {item.impact && (
+                        <Badge variant="outline" className={`text-xs ml-2 ${
+                          item.impact === 'HIGH' ? 'bg-green-100 text-green-700 border-green-300' :
+                          item.impact === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
+                          'bg-gray-100 text-gray-600 border-gray-300'
+                        }`}>
+                          {item.impact}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 italic">No significant strengths identified</div>
+            )}
+          </div>
+
+          {/* Gaps Column */}
+          <div className="p-3 bg-gradient-to-b from-red-50 to-orange-50 rounded-lg border border-red-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800">
+              <AlertTriangle className="h-4 w-4" />
+              Gaps & Areas for Concern ({fullResponse.improvementAreas?.length || 0})
+            </h5>
+            {fullResponse.improvementAreas && fullResponse.improvementAreas.length > 0 ? (
+              <div className="space-y-2">
+                {fullResponse.improvementAreas.map((item: any, i: number) => (
+                  <div key={i} className={`p-2 bg-white rounded border ${
+                    item.severity === 'CRITICAL' ? 'border-red-300' :
+                    item.severity === 'MAJOR' ? 'border-orange-300' :
+                    'border-yellow-300'
+                  }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-red-800">{item.gap || (typeof item === 'string' ? item : 'Gap identified')}</div>
+                        {item.jdRequirement && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">JD Required:</span> {item.jdRequirement}
+                          </div>
+                        )}
+                        {item.impact && (
+                          <div className="text-xs text-red-600 mt-1">
+                            <span className="font-medium">Impact:</span> {item.impact}
+                          </div>
+                        )}
+                      </div>
+                      {item.severity && (
+                        <Badge variant="outline" className={`text-xs ml-2 ${
+                          item.severity === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-300' :
+                          item.severity === 'MAJOR' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                          'bg-yellow-100 text-yellow-700 border-yellow-300'
+                        }`}>
+                          {item.severity}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 italic">No significant gaps identified</div>
+            )}
+          </div>
+        </div>
+
         {/* Domain Analysis */}
         {fullResponse.domainAnalysis && (
           <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
@@ -931,17 +1045,20 @@ export function ResumeProfilesList() {
           </div>
         )}
 
-        {/* Section A: Hard Skills */}
+        {/* Section A: Skills & Competency */}
         {detailedBreakdown.sectionA && (
           <div>
             <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
-              Section A: Hard Skills & Keywords ({fullResponse.sectionA ?? 0}/30 pts)
+              Section A: Skills & Competency ({fullResponse.sectionA ?? 0}/30 pts)
             </h5>
             <div className="space-y-2">
-              {renderSubsectionItem('A1: Core Tech Stack Match', detailedBreakdown.sectionA.A1_coreTechStackMatch, 10)}
-              {renderSubsectionItem('A2: Skill Recency', detailedBreakdown.sectionA.A2_skillRecency, 10)}
-              {renderSubsectionItem('A3: Required Tool Volume', detailedBreakdown.sectionA.A3_requiredToolVolume, 10)}
+              {detailedBreakdown.sectionA.A1_skillsMatch && renderSubsectionItem('A1: Skills Match', detailedBreakdown.sectionA.A1_skillsMatch, 15)}
+              {detailedBreakdown.sectionA.A1_coreTechStackMatch && renderSubsectionItem('A1: Core Skills Match', detailedBreakdown.sectionA.A1_coreTechStackMatch, 15)}
+              {detailedBreakdown.sectionA.A2_skillDepth && renderSubsectionItem('A2: Skill Depth & Recency', detailedBreakdown.sectionA.A2_skillDepth, 10)}
+              {detailedBreakdown.sectionA.A2_skillRecency && renderSubsectionItem('A2: Skill Recency', detailedBreakdown.sectionA.A2_skillRecency, 10)}
+              {detailedBreakdown.sectionA.A3_toolsMatch && renderSubsectionItem('A3: Tools/Systems Match', detailedBreakdown.sectionA.A3_toolsMatch, 5)}
+              {detailedBreakdown.sectionA.A3_requiredToolVolume && renderSubsectionItem('A3: Required Tools', detailedBreakdown.sectionA.A3_requiredToolVolume, 5)}
             </div>
           </div>
         )}
@@ -951,40 +1068,45 @@ export function ResumeProfilesList() {
           <div>
             <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
               <User className="h-4 w-4" />
-              Section B: Experience & Trajectory ({fullResponse.sectionB ?? 0}/25 pts)
+              Section B: Experience Alignment ({fullResponse.sectionB ?? 0}/25 pts)
             </h5>
             <div className="space-y-2">
-              {renderSubsectionItem('B1: Qualified Years', detailedBreakdown.sectionB.B1_qualifiedYears, 10)}
-              {renderSubsectionItem('B2: Seniority Validation', detailedBreakdown.sectionB.B2_seniorityValidation, 10)}
-              {renderSubsectionItem('B3: Job Stability', detailedBreakdown.sectionB.B3_jobStability, 5)}
+              {detailedBreakdown.sectionB.B1_yearsExperience && renderSubsectionItem('B1: Years of Experience', detailedBreakdown.sectionB.B1_yearsExperience, 10)}
+              {detailedBreakdown.sectionB.B1_qualifiedYears && renderSubsectionItem('B1: Qualified Years', detailedBreakdown.sectionB.B1_qualifiedYears, 10)}
+              {detailedBreakdown.sectionB.B2_seniorityMatch && renderSubsectionItem('B2: Seniority Match', detailedBreakdown.sectionB.B2_seniorityMatch, 10)}
+              {detailedBreakdown.sectionB.B2_seniorityValidation && renderSubsectionItem('B2: Seniority Validation', detailedBreakdown.sectionB.B2_seniorityValidation, 10)}
+              {detailedBreakdown.sectionB.B3_stability && renderSubsectionItem('B3: Career Stability', detailedBreakdown.sectionB.B3_stability, 5)}
+              {detailedBreakdown.sectionB.B3_jobStability && renderSubsectionItem('B3: Job Stability', detailedBreakdown.sectionB.B3_jobStability, 5)}
             </div>
           </div>
         )}
 
-        {/* Section C: Soft Skills */}
+        {/* Section C: Impact & Achievements */}
         {detailedBreakdown.sectionC && (
           <div>
             <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Section C: Impact & Soft Skills ({fullResponse.sectionC ?? 0}/20 pts)
+              Section C: Impact & Achievements ({fullResponse.sectionC ?? 0}/20 pts)
             </h5>
             <div className="space-y-2">
-              {renderSubsectionItem('C1: Scope & Complexity', detailedBreakdown.sectionC.C1_scopeComplexity, 10)}
-              {renderSubsectionItem('C2: Soft Skill Match', detailedBreakdown.sectionC.C2_softSkillMatch, 10)}
+              {detailedBreakdown.sectionC.C1_quantifiedResults && renderSubsectionItem('C1: Quantified Results', detailedBreakdown.sectionC.C1_quantifiedResults, 12)}
+              {detailedBreakdown.sectionC.C1_scopeComplexity && renderSubsectionItem('C1: Scope & Complexity', detailedBreakdown.sectionC.C1_scopeComplexity, 12)}
+              {detailedBreakdown.sectionC.C2_softSkills && renderSubsectionItem('C2: Soft Skills Evidence', detailedBreakdown.sectionC.C2_softSkills, 8)}
+              {detailedBreakdown.sectionC.C2_softSkillMatch && renderSubsectionItem('C2: Soft Skill Match', detailedBreakdown.sectionC.C2_softSkillMatch, 8)}
             </div>
           </div>
         )}
 
-        {/* Section D: Education */}
+        {/* Section D: Qualifications */}
         {detailedBreakdown.sectionD && (
           <div>
             <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
               <Star className="h-4 w-4" />
-              Section D: Education & Credentials ({fullResponse.sectionD ?? 0}/5 pts)
+              Section D: Qualifications ({fullResponse.sectionD ?? 0}/10 pts)
             </h5>
             <div className="space-y-2">
-              {renderSubsectionItem('D1: Certifications', detailedBreakdown.sectionD.D1_certifications, 2)}
-              {renderSubsectionItem('D2: Degree Check', detailedBreakdown.sectionD.D2_degreeCheck, 3)}
+              {renderSubsectionItem('D1: Education', detailedBreakdown.sectionD.D1_education, 5)}
+              {renderSubsectionItem('D2: Certifications', detailedBreakdown.sectionD.D2_certifications, 5)}
             </div>
           </div>
         )}
@@ -994,26 +1116,31 @@ export function ResumeProfilesList() {
           <div>
             <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Section E: Communication & Logistics ({fullResponse.sectionE ?? 0}/10 pts)
+              Section E: Logistics & Compatibility ({fullResponse.sectionE ?? 0}/10 pts)
             </h5>
             <div className="space-y-2">
-              {renderSubsectionItem('E1: Language Match', detailedBreakdown.sectionE.E1_languageMatch, 5)}
-              {renderSubsectionItem('E2: Location Match', detailedBreakdown.sectionE.E2_locationMatch, 3)}
-              {renderSubsectionItem('E3: Contactability & Format', detailedBreakdown.sectionE.E3_contactability, 2)}
+              {detailedBreakdown.sectionE.E1_location && renderSubsectionItem('E1: Location Match', detailedBreakdown.sectionE.E1_location, 4)}
+              {detailedBreakdown.sectionE.E1_languageMatch && renderSubsectionItem('E1: Language Match', detailedBreakdown.sectionE.E1_languageMatch, 4)}
+              {detailedBreakdown.sectionE.E2_language && renderSubsectionItem('E2: Language', detailedBreakdown.sectionE.E2_language, 3)}
+              {detailedBreakdown.sectionE.E2_locationMatch && renderSubsectionItem('E2: Location', detailedBreakdown.sectionE.E2_locationMatch, 3)}
+              {detailedBreakdown.sectionE.E3_contactQuality && renderSubsectionItem('E3: Contact & Resume Quality', detailedBreakdown.sectionE.E3_contactQuality, 3)}
+              {detailedBreakdown.sectionE.E3_contactability && renderSubsectionItem('E3: Contactability', detailedBreakdown.sectionE.E3_contactability, 3)}
             </div>
           </div>
         )}
 
-        {/* Section F: Custom Rules */}
+        {/* Section F: Bonus & Penalties */}
         {detailedBreakdown.sectionF && (
           <div>
             <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              Section F: Custom Parsing Rules ({fullResponse.sectionF ?? 0}/10 pts bonus)
+              Section F: Bonus & Penalties ({fullResponse.sectionF ?? 0} pts)
             </h5>
             <div className="space-y-2">
-              {renderSubsectionItem('F1: Disqualification', detailedBreakdown.sectionF.F1_disqualification, undefined)}
-              {renderSubsectionItem('F2: Bonus Points', detailedBreakdown.sectionF.F2_bonusPoints, 10)}
+              {detailedBreakdown.sectionF.bonusPoints && renderSubsectionItem('Bonus Points', detailedBreakdown.sectionF.bonusPoints, 5)}
+              {detailedBreakdown.sectionF.penalties && renderSubsectionItem('Penalties', detailedBreakdown.sectionF.penalties, undefined)}
+              {detailedBreakdown.sectionF.F1_disqualification && renderSubsectionItem('Disqualification Check', detailedBreakdown.sectionF.F1_disqualification, undefined)}
+              {detailedBreakdown.sectionF.F2_bonusPoints && renderSubsectionItem('Bonus Points', detailedBreakdown.sectionF.F2_bonusPoints, 5)}
             </div>
           </div>
         )}
