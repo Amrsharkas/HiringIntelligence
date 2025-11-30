@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -17,7 +17,6 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Search, User, Briefcase, Star, Download, Trash2, Loader2, MailCheck, Mail, AlertTriangle, CheckCircle, FileText, Users, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { BlobProvider } from '@react-pdf/renderer';
-import ProfilePDF from '@/components/ProfilePDF';
 import ProfilesPDF from '@/components/ProfilesPDF';
 
 interface ResumeProfile {
@@ -318,59 +317,6 @@ export function ResumeProfilesList() {
     },
   });
 
-  // Export single profile as PDF
-  const exportSingleProfile = (profile: ProfileWithScores) => {
-    const fileName = `resume_${profile.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-
-    return (
-      <BlobProvider document={<ProfilePDF profile={profile} jobs={jobs} />}>
-        {({ blob, loading, error }) => {
-          if (loading) {
-            return (
-              <Button variant="outline" size="sm" disabled>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                PDF...
-              </Button>
-            );
-          }
-
-          if (error) {
-            return (
-              <Button variant="outline" size="sm" disabled>
-                Error
-              </Button>
-            );
-          }
-
-          const handleDownload = () => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = fileName;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
-
-              toast({
-                title: "PDF Exported",
-                description: `${profile.name}'s profile has been exported successfully`,
-              });
-            }
-          };
-
-          return (
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-3 w-3 mr-1" />
-              PDF
-            </Button>
-          );
-        }}
-      </BlobProvider>
-    );
-  };
-
   // Export all filtered profiles as PDF
   const exportAllProfiles = () => {
     // Get unique profiles from display rows
@@ -624,9 +570,210 @@ export function ResumeProfilesList() {
       }
     };
 
+    // Helper for verdict decision colors
+    const getVerdictColor = (decision: string) => {
+      switch (decision?.toUpperCase()) {
+        case 'INTERVIEW': return 'bg-green-500 text-white border-green-600';
+        case 'CONSIDER': return 'bg-blue-500 text-white border-blue-600';
+        case 'REVIEW': return 'bg-yellow-500 text-white border-yellow-600';
+        case 'PASS': return 'bg-red-500 text-white border-red-600';
+        default: return 'bg-gray-500 text-white border-gray-600';
+      }
+    };
+
+    // Helper for recommendation colors
+    const getRecommendationColor = (rec: string) => {
+      switch (rec?.toUpperCase()) {
+        case 'STRONG_YES': return 'bg-green-100 text-green-800 border-green-300';
+        case 'YES': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+        case 'MAYBE': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        case 'NO': return 'bg-orange-100 text-orange-800 border-orange-300';
+        case 'STRONG_NO': return 'bg-red-100 text-red-800 border-red-300';
+        default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      }
+    };
+
     // Render new 100-point matrix format
     const renderNewFormat = () => (
       <div className="p-4 space-y-4 bg-white">
+        {/* Executive Summary - Quick Scan Section */}
+        {fullResponse.executiveSummary && (
+          <div className="p-3 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold">{fullResponse.executiveSummary.oneLiner || 'Candidate Analysis'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {fullResponse.executiveSummary.fitScore && (
+                  <Badge className={`text-xs ${
+                    fullResponse.executiveSummary.fitScore === 'EXCELLENT' ? 'bg-green-500' :
+                    fullResponse.executiveSummary.fitScore === 'GOOD' ? 'bg-blue-500' :
+                    fullResponse.executiveSummary.fitScore === 'FAIR' ? 'bg-yellow-500' :
+                    fullResponse.executiveSummary.fitScore === 'POOR' ? 'bg-orange-500' :
+                    'bg-red-500'
+                  }`}>
+                    {fullResponse.executiveSummary.fitScore} FIT
+                  </Badge>
+                )}
+                {fullResponse.executiveSummary.hiringUrgency && (
+                  <Badge className={`text-xs ${
+                    fullResponse.executiveSummary.hiringUrgency === 'EXPEDITE' ? 'bg-green-600' :
+                    fullResponse.executiveSummary.hiringUrgency === 'STANDARD' ? 'bg-blue-600' :
+                    fullResponse.executiveSummary.hiringUrgency === 'LOW_PRIORITY' ? 'bg-gray-600' :
+                    'bg-red-600'
+                  }`}>
+                    {fullResponse.executiveSummary.hiringUrgency.replace('_', ' ')}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            {fullResponse.executiveSummary.competitivePosition && (
+              <p className="text-xs text-slate-300 mt-2">{fullResponse.executiveSummary.competitivePosition}</p>
+            )}
+          </div>
+        )}
+
+        {/* Verdict & Recommendation - Most Important Section */}
+        {fullResponse.verdict && (
+          <div className="p-4 rounded-lg border-2 border-gray-300 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(fullResponse.verdict.decision)}`}>
+                  {fullResponse.verdict.decision === 'INTERVIEW' ? '✓ INTERVIEW' :
+                   fullResponse.verdict.decision === 'CONSIDER' ? '? CONSIDER' :
+                   fullResponse.verdict.decision === 'REVIEW' ? '⚠ REVIEW' :
+                   '✗ PASS'}
+                </Badge>
+                {fullResponse.verdict.confidence && (
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${
+                    fullResponse.verdict.confidence === 'HIGH' ? 'bg-green-100 text-green-700' :
+                    fullResponse.verdict.confidence === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {fullResponse.verdict.confidence} Confidence
+                  </span>
+                )}
+                {fullResponse.verdict.riskLevel && (
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${
+                    fullResponse.verdict.riskLevel === 'LOW' ? 'bg-green-100 text-green-700' :
+                    fullResponse.verdict.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                    fullResponse.verdict.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {fullResponse.verdict.riskLevel} Risk
+                  </span>
+                )}
+              </div>
+              {fullResponse.recommendation && (
+                <Badge className={`px-3 py-1 ${getRecommendationColor(fullResponse.recommendation)}`}>
+                  {fullResponse.recommendation.replace('_', ' ')}
+                </Badge>
+              )}
+            </div>
+
+            {fullResponse.verdict.summary && (
+              <p className="text-base font-medium text-gray-800 mb-3">
+                {fullResponse.verdict.summary}
+              </p>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              {fullResponse.verdict.topStrength && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-xs font-semibold text-green-600 mb-1 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" /> TOP STRENGTH
+                  </div>
+                  <div className="text-sm text-green-800">{fullResponse.verdict.topStrength}</div>
+                </div>
+              )}
+              {fullResponse.verdict.topConcern && fullResponse.verdict.topConcern !== 'None significant' && fullResponse.verdict.topConcern !== 'None' && fullResponse.verdict.topConcern !== 'None identified' && (
+                <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <div className="text-xs font-semibold text-orange-600 mb-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> TOP CONCERN
+                  </div>
+                  <div className="text-sm text-orange-800">{fullResponse.verdict.topConcern}</div>
+                </div>
+              )}
+              {fullResponse.verdict.topConcern && (fullResponse.verdict.topConcern === 'None significant' || fullResponse.verdict.topConcern === 'None' || fullResponse.verdict.topConcern === 'None identified') && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" /> TOP CONCERN
+                  </div>
+                  <div className="text-sm text-gray-600 italic">No significant concerns</div>
+                </div>
+              )}
+            </div>
+
+            {/* Dealbreakers if any */}
+            {fullResponse.verdict.dealbreakers && fullResponse.verdict.dealbreakers.length > 0 && (
+              <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                <div className="text-xs font-semibold text-red-600 mb-1">DEALBREAKERS</div>
+                <ul className="text-sm text-red-800">
+                  {fullResponse.verdict.dealbreakers.map((item: string, i: number) => (
+                    <li key={i} className="flex items-start gap-1">
+                      <span className="text-red-500">✗</span> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {fullResponse.recommendationReason && (
+              <p className="text-sm text-gray-600 mt-3 italic border-t pt-3">
+                {fullResponse.recommendationReason}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Competitive Intel */}
+        {fullResponse.competitiveIntel && (
+          <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-purple-800">
+              <Briefcase className="h-4 w-4" />
+              Competitive Intelligence
+            </h5>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              {fullResponse.competitiveIntel.marketPosition && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500">Market Position</div>
+                  <div className="font-medium text-purple-700">{fullResponse.competitiveIntel.marketPosition}</div>
+                </div>
+              )}
+              {fullResponse.competitiveIntel.salaryExpectation && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500">Salary Expectation</div>
+                  <div className="font-medium text-purple-700">{fullResponse.competitiveIntel.salaryExpectation}</div>
+                </div>
+              )}
+              {fullResponse.competitiveIntel.flightRisk && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500">Flight Risk</div>
+                  <Badge className={`text-xs ${
+                    fullResponse.competitiveIntel.flightRisk === 'LOW' ? 'bg-green-100 text-green-700' :
+                    fullResponse.competitiveIntel.flightRisk === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {fullResponse.competitiveIntel.flightRisk}
+                  </Badge>
+                </div>
+              )}
+              {fullResponse.competitiveIntel.counterofferRisk && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500">Counteroffer Risk</div>
+                  <Badge className={`text-xs ${
+                    fullResponse.competitiveIntel.counterofferRisk === 'LOW' ? 'bg-green-100 text-green-700' :
+                    fullResponse.competitiveIntel.counterofferRisk === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {fullResponse.competitiveIntel.counterofferRisk}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Section Scores Summary */}
         {(fullResponse.sectionA !== undefined || fullResponse.sectionB !== undefined) && (
           <div className="grid grid-cols-6 gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -1027,21 +1174,96 @@ export function ResumeProfilesList() {
           </div>
         )}
 
-        {/* Interview Recommendations */}
-        {fullResponse.interviewRecommendations && fullResponse.interviewRecommendations.length > 0 && (
+        {/* Interview Recommendations - supports both old array and new structured format */}
+        {fullResponse.interviewRecommendations && (
           <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800">
               <Users className="h-4 w-4" />
-              Interview Recommendations
+              Interview Preparation Guide
             </h5>
-            <ul className="space-y-1">
-              {fullResponse.interviewRecommendations.map((rec: string, i: number) => (
-                <li key={i} className="text-sm flex items-start gap-2">
-                  <span className="text-teal-500 mt-1">•</span>
-                  <span>{rec}</span>
-                </li>
-              ))}
-            </ul>
+
+            {/* New structured format */}
+            {typeof fullResponse.interviewRecommendations === 'object' && !Array.isArray(fullResponse.interviewRecommendations) && (
+              <div className="space-y-3">
+                {fullResponse.interviewRecommendations.mustExplore && fullResponse.interviewRecommendations.mustExplore.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-teal-700 mb-1">Must Explore</div>
+                    <ul className="space-y-1">
+                      {fullResponse.interviewRecommendations.mustExplore.map((item: string, i: number) => (
+                        <li key={i} className="text-sm flex items-start gap-2">
+                          <span className="text-teal-600 font-bold">→</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {fullResponse.interviewRecommendations.redFlagQuestions && fullResponse.interviewRecommendations.redFlagQuestions.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-orange-700 mb-1">Red Flag Questions</div>
+                    <ul className="space-y-1">
+                      {fullResponse.interviewRecommendations.redFlagQuestions.map((item: string, i: number) => (
+                        <li key={i} className="text-sm flex items-start gap-2">
+                          <span className="text-orange-500">⚠</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {fullResponse.interviewRecommendations.technicalValidation && fullResponse.interviewRecommendations.technicalValidation.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-blue-700 mb-1">Technical Validation</div>
+                    <ul className="space-y-1">
+                      {fullResponse.interviewRecommendations.technicalValidation.map((item: string, i: number) => (
+                        <li key={i} className="text-sm flex items-start gap-2">
+                          <span className="text-blue-500">✓</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {fullResponse.interviewRecommendations.culturalFitTopics && fullResponse.interviewRecommendations.culturalFitTopics.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-purple-700 mb-1">Cultural Fit Topics</div>
+                    <ul className="space-y-1">
+                      {fullResponse.interviewRecommendations.culturalFitTopics.map((item: string, i: number) => (
+                        <li key={i} className="text-sm flex items-start gap-2">
+                          <span className="text-purple-500">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {fullResponse.interviewRecommendations.referenceCheckFocus && fullResponse.interviewRecommendations.referenceCheckFocus.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-gray-700 mb-1">Reference Check Focus</div>
+                    <ul className="space-y-1">
+                      {fullResponse.interviewRecommendations.referenceCheckFocus.map((item: string, i: number) => (
+                        <li key={i} className="text-sm flex items-start gap-2">
+                          <span className="text-gray-500">◆</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Legacy array format */}
+            {Array.isArray(fullResponse.interviewRecommendations) && fullResponse.interviewRecommendations.length > 0 && (
+              <ul className="space-y-1">
+                {fullResponse.interviewRecommendations.map((rec: string, i: number) => (
+                  <li key={i} className="text-sm flex items-start gap-2">
+                    <span className="text-teal-500 mt-1">•</span>
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -1581,9 +1803,23 @@ export function ResumeProfilesList() {
                                 DISQUALIFIED
                               </Badge>
                             ) : (
-                              <Badge variant={getScoreBadgeVariant(row.overallScore)} className="w-fit">
-                                {row.overallScore}% Match
-                              </Badge>
+                              <>
+                                <Badge variant={getScoreBadgeVariant(row.overallScore)} className="w-fit">
+                                  {row.overallScore}% Match
+                                </Badge>
+                                {row.jobScore?.fullResponse?.verdict?.decision && (
+                                  <Badge
+                                    className={`w-fit text-xs ${
+                                      row.jobScore.fullResponse.verdict.decision === 'INTERVIEW' ? 'bg-green-500 text-white' :
+                                      row.jobScore.fullResponse.verdict.decision === 'CONSIDER' ? 'bg-blue-500 text-white' :
+                                      row.jobScore.fullResponse.verdict.decision === 'REVIEW' ? 'bg-yellow-500 text-white' :
+                                      'bg-red-500 text-white'
+                                    }`}
+                                  >
+                                    {row.jobScore.fullResponse.verdict.decision}
+                                  </Badge>
+                                )}
+                              </>
                             )}
                             {row.invitationStatus === 'invited' && (
                               <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 w-fit">
