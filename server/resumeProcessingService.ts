@@ -735,22 +735,22 @@ PASS (Score <50 OR HIGH red flags OR missing critical MUST-HAVEs):
   },
 
   "domainAnalysis": {
-    "jdDomain": "Industry/Field from JD",
+    "jobDescriptionDomain": "Industry/Field from Job Description",
     "candidateDomain": "Industry/Field from Resume",
     "domainMatchLevel": "EXACT|ADJACENT|TRANSFERABLE|PIVOT_REQUIRED|MISMATCH",
     "domainMatchScore": 0-100,
-    "domainPenalty": 0.0-0.85,
+    "domainPenaltyPercent": 0-85,
     "transferabilityNotes": "Specific skills that transfer or don't"
   },
 
   "matchSummary": "3-4 sentence brutally honest assessment written for the hiring manager",
 
   "strengthsHighlights": [
-    {"strength": "Specific strength", "evidence": "Direct quote or specific data from resume", "impact": "HIGH|MEDIUM|LOW", "relevanceToJD": "How this maps to job requirements"}
+    {"strength": "Specific strength", "evidence": "Direct quote or specific data from resume", "impact": "HIGH|MEDIUM|LOW", "relevanceToJob": "How this maps to job requirements"}
   ],
 
   "improvementAreas": [
-    {"gap": "What's missing", "severity": "CRITICAL|MAJOR|MINOR", "jdRequirement": "Exact requirement from JD", "impact": "Business impact of this gap", "trainable": true|false}
+    {"gap": "What's missing", "severity": "CRITICAL|MAJOR|MINOR", "jobRequirement": "Exact requirement from Job Description", "impact": "Business impact of this gap", "trainable": true|false}
   ],
 
   "skillAnalysis": {
@@ -758,7 +758,7 @@ PASS (Score <50 OR HIGH red flags OR missing critical MUST-HAVEs):
       {"skill": "Skill name", "matchType": "EXACT|PARTIAL|RELATED", "depth": "EXPERT|PROFICIENT|FAMILIAR|LISTED", "evidence": "Specific proof", "yearsUsed": null, "recency": "CURRENT|RECENT|DATED"}
     ],
     "partialMatches": [
-      {"required": "JD skill", "found": "Resume skill", "similarity": 0.0-1.0, "note": "Why partial", "trainable": true|false}
+      {"required": "Job Description skill", "found": "Resume skill", "similarityPercent": 0-100, "note": "Why partial", "trainable": true|false}
     ],
     "missingSkills": [
       {"skill": "Missing skill", "importance": "MUST_HAVE|IMPORTANT|NICE_TO_HAVE", "severity": "CRITICAL|MAJOR|MINOR", "trainable": true|false, "timeToAcquire": "Estimated learning time"}
@@ -774,7 +774,7 @@ PASS (Score <50 OR HIGH red flags OR missing critical MUST-HAVEs):
     "careerProgression": "ASCENDING|STABLE|MIXED|DESCENDING",
     "velocityAssessment": "Fast-tracker|Normal progression|Slow progression|Stagnant",
     "seniorityMatch": {
-      "jdLevel": "Level from JD",
+      "jobRequiredLevel": "Level from Job Description",
       "candidateLevel": "Level from resume",
       "match": "EXACT|OVERQUALIFIED|UNDERQUALIFIED|MISMATCH",
       "gapSize": 0,
@@ -797,27 +797,27 @@ PASS (Score <50 OR HIGH red flags OR missing critical MUST-HAVEs):
 
   "detailedBreakdown": {
     "sectionA": {
-      "A1_skillsMatch": {"score": 0-15, "matched": [], "missing": [], "calculation": "Show math"},
-      "A2_skillDepth": {"score": 0-10, "analysis": "Evidence"},
-      "A3_toolsMatch": {"score": 0-5, "matched": [], "missing": [], "equivalents": []}
+      "A1_skillsMatch": {"score": 0-15, "scorePercent": 0-100, "matched": [], "missing": [], "calculation": "Show math"},
+      "A2_skillDepth": {"score": 0-10, "scorePercent": 0-100, "analysis": "Evidence"},
+      "A3_toolsMatch": {"score": 0-5, "scorePercent": 0-100, "matched": [], "missing": [], "equivalents": []}
     },
     "sectionB": {
-      "B1_yearsExperience": {"score": 0-10, "required": 0, "candidate": 0, "relevant": 0, "calculation": "Show math"},
-      "B2_seniorityMatch": {"score": 0-10, "jdLevel": "", "candidateLevel": "", "evidence": "", "gapAnalysis": ""},
-      "B3_stability": {"score": 0-5, "avgTenure": 0, "progression": "", "concerns": []}
+      "B1_yearsExperience": {"score": 0-10, "scorePercent": 0-100, "required": 0, "candidate": 0, "relevant": 0, "calculation": "Show math"},
+      "B2_seniorityMatch": {"score": 0-10, "scorePercent": 0-100, "jobRequiredLevel": "", "candidateLevel": "", "evidence": "", "gapAnalysis": ""},
+      "B3_stability": {"score": 0-5, "scorePercent": 0-100, "avgTenure": 0, "progression": "", "concerns": []}
     },
     "sectionC": {
-      "C1_quantifiedResults": {"score": 0-12, "achievements": [], "vagueCount": 0, "impactLevel": ""},
-      "C2_softSkills": {"score": 0-8, "matched": [], "missing": [], "evidenceQuality": "STRONG|MODERATE|WEAK"}
+      "C1_quantifiedResults": {"score": 0-12, "scorePercent": 0-100, "achievements": [], "vagueCount": 0, "impactLevel": ""},
+      "C2_softSkills": {"score": 0-8, "scorePercent": 0-100, "matched": [], "missing": [], "evidenceQuality": "STRONG|MODERATE|WEAK"}
     },
     "sectionD": {
-      "D1_education": {"score": 0-5, "required": "", "candidate": "", "match": "", "relevance": ""},
-      "D2_certifications": {"score": 0-5, "required": [], "matched": [], "missing": [], "expired": []}
+      "D1_education": {"score": 0-5, "scorePercent": 0-100, "required": "", "candidate": "", "match": "", "relevance": ""},
+      "D2_certifications": {"score": 0-5, "scorePercent": 0-100, "required": [], "matched": [], "missing": [], "expired": []}
     },
     "sectionE": {
-      "E1_location": {"score": 0-4, "jdLocation": "", "candidateLocation": "", "match": "", "remoteCompatible": true|false},
-      "E2_language": {"score": 0-3, "required": [], "candidate": [], "gaps": []},
-      "E3_contactQuality": {"score": 0-3, "hasEmail": true, "hasPhone": true, "formatQuality": "EXCELLENT|GOOD|FAIR|POOR"}
+      "E1_location": {"score": 0-4, "scorePercent": 0-100, "jobLocation": "", "candidateLocation": "", "match": "", "remoteCompatible": true|false},
+      "E2_language": {"score": 0-3, "scorePercent": 0-100, "required": [], "candidate": [], "gaps": []},
+      "E3_contactQuality": {"score": 0-3, "scorePercent": 0-100, "hasEmail": true, "hasPhone": true, "formatQuality": "EXCELLENT|GOOD|FAIR|POOR"}
     },
     "sectionF": {
       "bonusPoints": {"score": 0-5, "reasons": []},
@@ -955,10 +955,10 @@ OUTPUT JSON:
     "fitScore": "EXCELLENT|GOOD|FAIR|POOR|MISMATCH",
     "hiringUrgency": "EXPEDITE|STANDARD|LOW_PRIORITY|PASS"
   },
-  "domainAnalysis": {"jdDomain": "", "candidateDomain": "", "domainMatchLevel": "EXACT|ADJACENT|TRANSFERABLE|PIVOT_REQUIRED|MISMATCH", "domainPenalty": 0},
+  "domainAnalysis": {"jobDescriptionDomain": "", "candidateDomain": "", "domainMatchLevel": "EXACT|ADJACENT|TRANSFERABLE|PIVOT_REQUIRED|MISMATCH", "domainPenaltyPercent": 0},
   "matchSummary": "3-4 sentence honest assessment for hiring manager",
-  "strengthsHighlights": [{"strength": "", "evidence": "", "impact": "HIGH|MEDIUM|LOW", "relevanceToJD": ""}],
-  "improvementAreas": [{"gap": "", "severity": "CRITICAL|MAJOR|MINOR", "jdRequirement": "", "trainable": true}],
+  "strengthsHighlights": [{"strength": "", "evidence": "", "impact": "HIGH|MEDIUM|LOW", "relevanceToJob": ""}],
+  "improvementAreas": [{"gap": "", "severity": "CRITICAL|MAJOR|MINOR", "jobRequirement": "", "trainable": true}],
   "skillAnalysis": {"matchedSkills": [], "missingSkills": [], "skillGapRisk": "LOW|MEDIUM|HIGH|CRITICAL"},
   "experienceAnalysis": {"totalYears": 0, "relevantYears": 0, "careerProgression": "ASCENDING|STABLE|MIXED|DESCENDING", "velocityAssessment": ""},
   "redFlags": [{"type": "", "severity": "HIGH|MEDIUM|LOW", "issue": "", "evidence": "", "impact": ""}],

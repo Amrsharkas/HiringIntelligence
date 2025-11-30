@@ -776,30 +776,41 @@ export function ResumeProfilesList() {
 
         {/* Section Scores Summary */}
         {(fullResponse.sectionA !== undefined || fullResponse.sectionB !== undefined) && (
-          <div className="grid grid-cols-6 gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}</div>
-              <div className="text-xs text-blue-600">A: Skills (30)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}</div>
-              <div className="text-xs text-blue-600">B: Exp (25)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}</div>
-              <div className="text-xs text-blue-600">C: Impact (20)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}</div>
-              <div className="text-xs text-blue-600">D: Qual (10)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}</div>
-              <div className="text-xs text-blue-600">E: Log (10)</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fullResponse.sectionF ?? '-'}</div>
-              <div className="text-xs text-gray-600">F: +/- (5)</div>
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <h5 className="font-medium text-sm mb-3 text-blue-800">Score Breakdown by Section</h5>
+            <div className="grid grid-cols-6 gap-2">
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></div>
+                <div className="text-xs text-blue-600 font-medium">Skills</div>
+                <div className="text-xs text-gray-500">{fullResponse.sectionA !== undefined ? Math.round((fullResponse.sectionA / 30) * 100) : 0}%</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></div>
+                <div className="text-xs text-blue-600 font-medium">Experience</div>
+                <div className="text-xs text-gray-500">{fullResponse.sectionB !== undefined ? Math.round((fullResponse.sectionB / 25) * 100) : 0}%</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></div>
+                <div className="text-xs text-blue-600 font-medium">Impact</div>
+                <div className="text-xs text-gray-500">{fullResponse.sectionC !== undefined ? Math.round((fullResponse.sectionC / 20) * 100) : 0}%</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
+                <div className="text-xs text-blue-600 font-medium">Qualifications</div>
+                <div className="text-xs text-gray-500">{fullResponse.sectionD !== undefined ? Math.round((fullResponse.sectionD / 10) * 100) : 0}%</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
+                <div className="text-xs text-blue-600 font-medium">Logistics</div>
+                <div className="text-xs text-gray-500">{fullResponse.sectionE !== undefined ? Math.round((fullResponse.sectionE / 10) * 100) : 0}%</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {(fullResponse.sectionF ?? 0) >= 0 ? '+' : ''}{fullResponse.sectionF ?? '0'}
+                </div>
+                <div className="text-xs text-gray-600 font-medium">Modifiers</div>
+                <div className="text-xs text-gray-500">Bonus/Penalty</div>
+              </div>
             </div>
           </div>
         )}
@@ -852,6 +863,11 @@ export function ResumeProfilesList() {
                             <span className="font-medium">Evidence:</span> {item.evidence}
                           </div>
                         )}
+                        {(item.relevanceToJob || item.relevanceToJD) && (
+                          <div className="text-xs text-green-600 mt-1">
+                            <span className="font-medium">Job Relevance:</span> {item.relevanceToJob || item.relevanceToJD}
+                          </div>
+                        )}
                       </div>
                       {item.impact && (
                         <Badge variant="outline" className={`text-xs ml-2 ${
@@ -859,7 +875,7 @@ export function ResumeProfilesList() {
                           item.impact === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
                           'bg-gray-100 text-gray-600 border-gray-300'
                         }`}>
-                          {item.impact}
+                          {item.impact} Impact
                         </Badge>
                       )}
                     </div>
@@ -888,9 +904,9 @@ export function ResumeProfilesList() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="text-sm font-medium text-red-800">{item.gap || (typeof item === 'string' ? item : 'Gap identified')}</div>
-                        {item.jdRequirement && (
+                        {(item.jobRequirement || item.jdRequirement) && (
                           <div className="text-xs text-gray-600 mt-1">
-                            <span className="font-medium">JD Required:</span> {item.jdRequirement}
+                            <span className="font-medium">Job Requirement:</span> {item.jobRequirement || item.jdRequirement}
                           </div>
                         )}
                         {item.impact && (
@@ -899,15 +915,22 @@ export function ResumeProfilesList() {
                           </div>
                         )}
                       </div>
-                      {item.severity && (
-                        <Badge variant="outline" className={`text-xs ml-2 ${
-                          item.severity === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-300' :
-                          item.severity === 'MAJOR' ? 'bg-orange-100 text-orange-700 border-orange-300' :
-                          'bg-yellow-100 text-yellow-700 border-yellow-300'
-                        }`}>
-                          {item.severity}
-                        </Badge>
-                      )}
+                      <div className="flex flex-col items-end gap-1">
+                        {item.severity && (
+                          <Badge variant="outline" className={`text-xs ${
+                            item.severity === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-300' :
+                            item.severity === 'MAJOR' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                            'bg-yellow-100 text-yellow-700 border-yellow-300'
+                          }`}>
+                            {item.severity}
+                          </Badge>
+                        )}
+                        {item.trainable !== undefined && (
+                          <span className={`text-xs ${item.trainable ? 'text-green-600' : 'text-gray-500'}`}>
+                            {item.trainable ? '✓ Trainable' : '✗ Not Trainable'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -927,8 +950,8 @@ export function ResumeProfilesList() {
             </h5>
             <div className="grid grid-cols-2 gap-3 mb-2">
               <div>
-                <span className="text-xs text-gray-500">JD Domain:</span>
-                <div className="text-sm font-medium">{fullResponse.domainAnalysis.jdDomain || 'N/A'}</div>
+                <span className="text-xs text-gray-500">Job Description Domain:</span>
+                <div className="text-sm font-medium">{fullResponse.domainAnalysis.jobDescriptionDomain || fullResponse.domainAnalysis.jdDomain || 'N/A'}</div>
               </div>
               <div>
                 <span className="text-xs text-gray-500">Candidate Domain:</span>
@@ -941,17 +964,17 @@ export function ResumeProfilesList() {
               </Badge>
               {fullResponse.domainAnalysis.domainMatchScore !== undefined && (
                 <span className="text-sm font-bold text-indigo-700">
-                  {fullResponse.domainAnalysis.domainMatchScore}% match
+                  {fullResponse.domainAnalysis.domainMatchScore}% Match Score
                 </span>
               )}
-              {fullResponse.domainAnalysis.domainPenalty > 0 && (
-                <span className="text-xs text-red-600 font-medium">
-                  -{(fullResponse.domainAnalysis.domainPenalty * 100).toFixed(0)}% penalty
+              {(fullResponse.domainAnalysis.domainPenaltyPercent > 0 || fullResponse.domainAnalysis.domainPenalty > 0) && (
+                <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
+                  -{fullResponse.domainAnalysis.domainPenaltyPercent || Math.round((fullResponse.domainAnalysis.domainPenalty || 0) * 100)}% Penalty Applied
                 </span>
               )}
             </div>
-            {fullResponse.domainAnalysis.domainNotes && (
-              <p className="text-xs text-gray-600 mt-2">{fullResponse.domainAnalysis.domainNotes}</p>
+            {(fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes) && (
+              <p className="text-xs text-gray-600 mt-2">{fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes}</p>
             )}
           </div>
         )}
