@@ -441,7 +441,7 @@ export function ResumeProfilesList() {
     return 'destructive';
   };
 
-  // Detailed Analysis Component
+  // Detailed Analysis Component - supports both new 100-point matrix and legacy format
   const DetailedAnalysis = ({ jobScore }: { jobScore: JobScoring }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const fullResponse = jobScore.fullResponse;
@@ -452,11 +452,718 @@ export function ResumeProfilesList() {
 
     const { detailedBreakdown } = fullResponse;
 
+    // Detect if using new 100-point matrix format (has sectionA) or legacy format (has technicalSkills array)
+    const isNewFormat = detailedBreakdown.sectionA !== undefined;
+
     const getEvidenceIcon = (present: boolean | 'partial') => {
       if (present === true) return <CheckCircle className="h-4 w-4 text-green-500" />;
       if (present === 'partial') return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
       return <X className="h-4 w-4 text-red-500" />;
     };
+
+    const getScoreColor = (score: number, maxScore: number) => {
+      const percentage = (score / maxScore) * 100;
+      if (percentage >= 80) return 'text-green-600 bg-green-50';
+      if (percentage >= 60) return 'text-yellow-600 bg-yellow-50';
+      return 'text-red-600 bg-red-50';
+    };
+
+    // Render a subsection item for new format
+    const renderSubsectionItem = (label: string, data: any, maxScore?: number) => {
+      if (!data) return null;
+      const score = data.score;
+      const hasScore = score !== undefined && maxScore !== undefined;
+
+      return (
+        <div className="p-3 bg-gray-50 rounded border border-gray-200">
+          <div className="flex items-start justify-between mb-2">
+            <span className="text-sm font-medium flex-1">{label}</span>
+            {hasScore && (
+              <span className={`text-xs font-bold px-2 py-1 rounded ${getScoreColor(score, maxScore)}`}>
+                {score}/{maxScore} pts
+              </span>
+            )}
+          </div>
+          {data.evidence && (
+            <div className="text-xs text-gray-600 mb-1">{data.evidence}</div>
+          )}
+          {data.matchedSkills && data.matchedSkills.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {data.matchedSkills.map((skill: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {data.matchedTools && data.matchedTools.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {data.matchedTools.map((tool: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                  {tool}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {data.matchedKeywords && data.matchedKeywords.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {data.matchedKeywords.map((keyword: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                  {keyword}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {data.matchedSoftSkills && data.matchedSoftSkills.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {data.matchedSoftSkills.map((skill: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {data.matchedCerts && data.matchedCerts.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {data.matchedCerts.map((cert: string, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                  {cert}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {data.candidateYears !== undefined && data.requiredYears !== undefined && (
+            <div className="text-xs text-gray-500 mt-1">
+              Candidate: {data.candidateYears} years / Required: {data.requiredYears} years
+            </div>
+          )}
+          {data.averageTenure !== undefined && (
+            <div className="text-xs text-gray-500 mt-1">
+              Average tenure: {data.averageTenure} years
+            </div>
+          )}
+          {data.jdLevel && (
+            <div className="text-xs text-gray-500 mt-1">
+              JD Level: {data.jdLevel}
+            </div>
+          )}
+          {data.candidateDegree && (
+            <div className="text-xs text-gray-500 mt-1">
+              Degree: {data.candidateDegree} {data.requiredDegree && `(Required: ${data.requiredDegree})`}
+            </div>
+          )}
+          {data.candidateLocation && (
+            <div className="text-xs text-gray-500 mt-1">
+              Location: {data.candidateLocation} {data.jdLocation && `→ ${data.jdLocation}`}
+            </div>
+          )}
+          {(data.hasEmail !== undefined || data.hasPhone !== undefined) && (
+            <div className="text-xs text-gray-500 mt-1 flex gap-2">
+              {data.hasEmail && <span className="text-green-600">✓ Email</span>}
+              {data.hasPhone && <span className="text-green-600">✓ Phone</span>}
+              {data.cleanFormat && <span className="text-green-600">✓ Clean Format</span>}
+            </div>
+          )}
+          {data.triggered !== undefined && (
+            <div className={`text-xs mt-1 ${data.triggered ? 'text-red-600' : 'text-green-600'}`}>
+              {data.triggered ? `Triggered: ${data.reason}` : 'Not triggered'}
+            </div>
+          )}
+          {data.appliedBonuses && data.appliedBonuses.length > 0 && (
+            <div className="mt-1">
+              {data.appliedBonuses.map((bonus: any, i: number) => (
+                <div key={i} className="text-xs text-green-600">+ {bonus.condition}: {bonus.points} pts</div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Helper for domain match level colors
+    const getDomainMatchColor = (level: string) => {
+      switch (level?.toUpperCase()) {
+        case 'EXACT': return 'bg-green-100 text-green-800 border-green-200';
+        case 'RELATED': return 'bg-blue-100 text-blue-800 border-blue-200';
+        case 'ADJACENT': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'DIFFERENT': return 'bg-orange-100 text-orange-800 border-orange-200';
+        case 'UNRELATED': return 'bg-red-100 text-red-800 border-red-200';
+        default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      }
+    };
+
+    // Helper for skill depth colors
+    const getSkillDepthColor = (depth: string) => {
+      switch (depth?.toUpperCase()) {
+        case 'EXPERT': return 'bg-green-100 text-green-700 border-green-300';
+        case 'PROFICIENT': return 'bg-blue-100 text-blue-700 border-blue-300';
+        case 'FAMILIAR': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+        case 'LISTED_ONLY': return 'bg-gray-100 text-gray-600 border-gray-300';
+        default: return 'bg-gray-100 text-gray-600 border-gray-300';
+      }
+    };
+
+    // Helper for career progression colors
+    const getProgressionColor = (progression: string) => {
+      switch (progression?.toUpperCase()) {
+        case 'ASCENDING': return 'bg-green-100 text-green-700';
+        case 'STABLE': return 'bg-blue-100 text-blue-700';
+        case 'MIXED': return 'bg-yellow-100 text-yellow-700';
+        case 'DESCENDING': return 'bg-red-100 text-red-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    };
+
+    // Helper for red flag severity colors
+    const getSeverityColor = (severity: string) => {
+      switch (severity?.toUpperCase()) {
+        case 'HIGH': return 'bg-red-100 text-red-800 border-red-300';
+        case 'MEDIUM': return 'bg-orange-100 text-orange-800 border-orange-300';
+        case 'LOW': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      }
+    };
+
+    // Render new 100-point matrix format
+    const renderNewFormat = () => (
+      <div className="p-4 space-y-4 bg-white">
+        {/* Section Scores Summary */}
+        {(fullResponse.sectionA !== undefined || fullResponse.sectionB !== undefined) && (
+          <div className="grid grid-cols-6 gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}</div>
+              <div className="text-xs text-blue-600">A: Skills (30)</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}</div>
+              <div className="text-xs text-blue-600">B: Exp (25)</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}</div>
+              <div className="text-xs text-blue-600">C: Impact (20)</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}</div>
+              <div className="text-xs text-blue-600">D: Qual (10)</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}</div>
+              <div className="text-xs text-blue-600">E: Log (10)</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fullResponse.sectionF ?? '-'}</div>
+              <div className="text-xs text-gray-600">F: +/- (5)</div>
+            </div>
+          </div>
+        )}
+
+        {/* Domain Analysis */}
+        {fullResponse.domainAnalysis && (
+          <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800">
+              <Briefcase className="h-4 w-4" />
+              Domain Match Analysis
+            </h5>
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <div>
+                <span className="text-xs text-gray-500">JD Domain:</span>
+                <div className="text-sm font-medium">{fullResponse.domainAnalysis.jdDomain || 'N/A'}</div>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">Candidate Domain:</span>
+                <div className="text-sm font-medium">{fullResponse.domainAnalysis.candidateDomain || 'N/A'}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-2">
+              <Badge className={`${getDomainMatchColor(fullResponse.domainAnalysis.domainMatchLevel)}`}>
+                {fullResponse.domainAnalysis.domainMatchLevel || 'UNKNOWN'}
+              </Badge>
+              {fullResponse.domainAnalysis.domainMatchScore !== undefined && (
+                <span className="text-sm font-bold text-indigo-700">
+                  {fullResponse.domainAnalysis.domainMatchScore}% match
+                </span>
+              )}
+              {fullResponse.domainAnalysis.domainPenalty > 0 && (
+                <span className="text-xs text-red-600 font-medium">
+                  -{(fullResponse.domainAnalysis.domainPenalty * 100).toFixed(0)}% penalty
+                </span>
+              )}
+            </div>
+            {fullResponse.domainAnalysis.domainNotes && (
+              <p className="text-xs text-gray-600 mt-2">{fullResponse.domainAnalysis.domainNotes}</p>
+            )}
+          </div>
+        )}
+
+        {/* Skill Analysis Summary */}
+        {fullResponse.skillAnalysis && (
+          <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800">
+              <Star className="h-4 w-4" />
+              Skill Depth Analysis
+            </h5>
+
+            {/* Skill Depth Summary */}
+            {fullResponse.skillAnalysis.skillDepthSummary && (
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="text-center p-2 bg-green-100 rounded">
+                  <div className="text-lg font-bold text-green-700">{fullResponse.skillAnalysis.skillDepthSummary.expert || 0}</div>
+                  <div className="text-xs text-green-600">Expert</div>
+                </div>
+                <div className="text-center p-2 bg-blue-100 rounded">
+                  <div className="text-lg font-bold text-blue-700">{fullResponse.skillAnalysis.skillDepthSummary.proficient || 0}</div>
+                  <div className="text-xs text-blue-600">Proficient</div>
+                </div>
+                <div className="text-center p-2 bg-yellow-100 rounded">
+                  <div className="text-lg font-bold text-yellow-700">{fullResponse.skillAnalysis.skillDepthSummary.familiar || 0}</div>
+                  <div className="text-xs text-yellow-600">Familiar</div>
+                </div>
+                <div className="text-center p-2 bg-gray-100 rounded">
+                  <div className="text-lg font-bold text-gray-600">{fullResponse.skillAnalysis.skillDepthSummary.listedOnly || 0}</div>
+                  <div className="text-xs text-gray-500">Listed Only</div>
+                </div>
+              </div>
+            )}
+
+            {/* Matched Skills */}
+            {fullResponse.skillAnalysis.matchedSkills && fullResponse.skillAnalysis.matchedSkills.length > 0 && (
+              <div className="mb-2">
+                <span className="text-xs font-medium text-green-700">Matched Skills:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullResponse.skillAnalysis.matchedSkills.map((s: any, i: number) => (
+                    <Badge key={i} variant="outline" className={`text-xs ${getSkillDepthColor(s.depth)}`}>
+                      {s.skill} <span className="opacity-70 ml-1">{s.depth}</span>
+                      {s.yearsUsed && <span className="opacity-50 ml-1">({s.yearsUsed}y)</span>}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Missing Skills */}
+            {fullResponse.skillAnalysis.missingSkills && fullResponse.skillAnalysis.missingSkills.length > 0 && (
+              <div className="mt-2">
+                <span className="text-xs font-medium text-red-700">Missing Skills:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullResponse.skillAnalysis.missingSkills.map((s: any, i: number) => (
+                    <Badge key={i} variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                      {s.skill || s}
+                      {s.importance && <span className="opacity-70 ml-1">({s.importance})</span>}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Partial Matches */}
+            {fullResponse.skillAnalysis.partialMatches && fullResponse.skillAnalysis.partialMatches.length > 0 && (
+              <div className="mt-2">
+                <span className="text-xs font-medium text-yellow-700">Partial Matches:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullResponse.skillAnalysis.partialMatches.map((s: any, i: number) => (
+                    <Badge key={i} variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                      {s.required} → {s.found} ({Math.round((s.similarity || 0) * 100)}%)
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Experience Analysis */}
+        {fullResponse.experienceAnalysis && (
+          <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800">
+              <User className="h-4 w-4" />
+              Experience & Career Analysis
+            </h5>
+
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-blue-700">{fullResponse.experienceAnalysis.totalYears || 0}</div>
+                <div className="text-xs text-gray-500">Total Years</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-green-700">{fullResponse.experienceAnalysis.relevantYears || 0}</div>
+                <div className="text-xs text-gray-500">Relevant</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <div className="text-lg font-bold text-purple-700">{fullResponse.experienceAnalysis.domainYears || 0}</div>
+                <div className="text-xs text-gray-500">Domain</div>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <Badge className={`${getProgressionColor(fullResponse.experienceAnalysis.careerProgression)} text-xs`}>
+                  {fullResponse.experienceAnalysis.careerProgression || 'N/A'}
+                </Badge>
+                <div className="text-xs text-gray-500 mt-1">Progression</div>
+              </div>
+            </div>
+
+            {/* Seniority Match */}
+            {fullResponse.experienceAnalysis.seniorityMatch && (
+              <div className="p-2 bg-white rounded border mb-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-500">Seniority:</span>
+                  <span className="font-medium">{fullResponse.experienceAnalysis.seniorityMatch.candidateLevel}</span>
+                  <span className="text-gray-400">→</span>
+                  <span className="font-medium">{fullResponse.experienceAnalysis.seniorityMatch.jdLevel}</span>
+                  <Badge variant="outline" className={`text-xs ${
+                    fullResponse.experienceAnalysis.seniorityMatch.match === 'EXACT' ? 'bg-green-50 text-green-700' :
+                    fullResponse.experienceAnalysis.seniorityMatch.match === 'PARTIAL' ? 'bg-yellow-50 text-yellow-700' :
+                    'bg-red-50 text-red-700'
+                  }`}>
+                    {fullResponse.experienceAnalysis.seniorityMatch.match}
+                  </Badge>
+                </div>
+              </div>
+            )}
+
+            {/* Role Timeline */}
+            {fullResponse.experienceAnalysis.roleTimeline && fullResponse.experienceAnalysis.roleTimeline.length > 0 && (
+              <div className="mt-2">
+                <span className="text-xs font-medium text-blue-700">Role Timeline:</span>
+                <div className="space-y-1 mt-1">
+                  {fullResponse.experienceAnalysis.roleTimeline.slice(0, 3).map((role: any, i: number) => (
+                    <div key={i} className="text-xs p-2 bg-white rounded border flex items-center justify-between">
+                      <span className="font-medium">{role.title} @ {role.company}</span>
+                      <span className="text-gray-500">{role.duration}</span>
+                      {role.relevance && (
+                        <Badge variant="outline" className={`text-xs ${
+                          role.relevance === 'HIGH' ? 'bg-green-50 text-green-700' :
+                          role.relevance === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700' :
+                          'bg-gray-50 text-gray-600'
+                        }`}>
+                          {role.relevance}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Quantified Achievements */}
+        {fullResponse.quantifiedAchievements && fullResponse.quantifiedAchievements.length > 0 && (
+          <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800">
+              <Star className="h-4 w-4" />
+              Quantified Achievements ({fullResponse.quantifiedAchievements.length})
+            </h5>
+            <div className="space-y-2">
+              {fullResponse.quantifiedAchievements.map((achievement: any, i: number) => (
+                <div key={i} className="p-2 bg-white rounded border flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm">{achievement.achievement}</div>
+                    {achievement.metric && (
+                      <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded mt-1 inline-block">
+                        {achievement.metric}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {achievement.category && (
+                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
+                        {achievement.category}
+                      </Badge>
+                    )}
+                    {achievement.verified && (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Red Flags */}
+        {fullResponse.redFlags && fullResponse.redFlags.length > 0 && (
+          <div className="p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800">
+              <AlertTriangle className="h-4 w-4" />
+              Red Flags ({fullResponse.redFlags.length})
+            </h5>
+            <div className="space-y-2">
+              {fullResponse.redFlags.map((flag: any, i: number) => (
+                <div key={i} className={`p-2 rounded border ${getSeverityColor(flag.severity)}`}>
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">{flag.type || 'FLAG'}</Badge>
+                      <Badge variant="outline" className={`text-xs ${getSeverityColor(flag.severity)}`}>
+                        {flag.severity || 'MEDIUM'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="text-sm font-medium">{flag.issue}</div>
+                  {flag.evidence && (
+                    <div className="text-xs text-gray-600 mt-1">Evidence: {flag.evidence}</div>
+                  )}
+                  {flag.dates && (
+                    <div className="text-xs text-gray-500 mt-1">Dates: {flag.dates}</div>
+                  )}
+                  {flag.impact && (
+                    <div className="text-xs text-red-600 mt-1">Impact: {flag.impact}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Interview Recommendations */}
+        {fullResponse.interviewRecommendations && fullResponse.interviewRecommendations.length > 0 && (
+          <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800">
+              <Users className="h-4 w-4" />
+              Interview Recommendations
+            </h5>
+            <ul className="space-y-1">
+              {fullResponse.interviewRecommendations.map((rec: string, i: number) => (
+                <li key={i} className="text-sm flex items-start gap-2">
+                  <span className="text-teal-500 mt-1">•</span>
+                  <span>{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Section A: Hard Skills */}
+        {detailedBreakdown.sectionA && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Section A: Hard Skills & Keywords ({fullResponse.sectionA ?? 0}/30 pts)
+            </h5>
+            <div className="space-y-2">
+              {renderSubsectionItem('A1: Core Tech Stack Match', detailedBreakdown.sectionA.A1_coreTechStackMatch, 10)}
+              {renderSubsectionItem('A2: Skill Recency', detailedBreakdown.sectionA.A2_skillRecency, 10)}
+              {renderSubsectionItem('A3: Required Tool Volume', detailedBreakdown.sectionA.A3_requiredToolVolume, 10)}
+            </div>
+          </div>
+        )}
+
+        {/* Section B: Experience */}
+        {detailedBreakdown.sectionB && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Section B: Experience & Trajectory ({fullResponse.sectionB ?? 0}/25 pts)
+            </h5>
+            <div className="space-y-2">
+              {renderSubsectionItem('B1: Qualified Years', detailedBreakdown.sectionB.B1_qualifiedYears, 10)}
+              {renderSubsectionItem('B2: Seniority Validation', detailedBreakdown.sectionB.B2_seniorityValidation, 10)}
+              {renderSubsectionItem('B3: Job Stability', detailedBreakdown.sectionB.B3_jobStability, 5)}
+            </div>
+          </div>
+        )}
+
+        {/* Section C: Soft Skills */}
+        {detailedBreakdown.sectionC && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Section C: Impact & Soft Skills ({fullResponse.sectionC ?? 0}/20 pts)
+            </h5>
+            <div className="space-y-2">
+              {renderSubsectionItem('C1: Scope & Complexity', detailedBreakdown.sectionC.C1_scopeComplexity, 10)}
+              {renderSubsectionItem('C2: Soft Skill Match', detailedBreakdown.sectionC.C2_softSkillMatch, 10)}
+            </div>
+          </div>
+        )}
+
+        {/* Section D: Education */}
+        {detailedBreakdown.sectionD && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              Section D: Education & Credentials ({fullResponse.sectionD ?? 0}/5 pts)
+            </h5>
+            <div className="space-y-2">
+              {renderSubsectionItem('D1: Certifications', detailedBreakdown.sectionD.D1_certifications, 2)}
+              {renderSubsectionItem('D2: Degree Check', detailedBreakdown.sectionD.D2_degreeCheck, 3)}
+            </div>
+          </div>
+        )}
+
+        {/* Section E: Logistics */}
+        {detailedBreakdown.sectionE && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Section E: Communication & Logistics ({fullResponse.sectionE ?? 0}/10 pts)
+            </h5>
+            <div className="space-y-2">
+              {renderSubsectionItem('E1: Language Match', detailedBreakdown.sectionE.E1_languageMatch, 5)}
+              {renderSubsectionItem('E2: Location Match', detailedBreakdown.sectionE.E2_locationMatch, 3)}
+              {renderSubsectionItem('E3: Contactability & Format', detailedBreakdown.sectionE.E3_contactability, 2)}
+            </div>
+          </div>
+        )}
+
+        {/* Section F: Custom Rules */}
+        {detailedBreakdown.sectionF && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Section F: Custom Parsing Rules ({fullResponse.sectionF ?? 0}/10 pts bonus)
+            </h5>
+            <div className="space-y-2">
+              {renderSubsectionItem('F1: Disqualification', detailedBreakdown.sectionF.F1_disqualification, undefined)}
+              {renderSubsectionItem('F2: Bonus Points', detailedBreakdown.sectionF.F2_bonusPoints, 10)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    // Render legacy format
+    const renderLegacyFormat = () => (
+      <div className="p-4 space-y-4 bg-white">
+        {/* Technical Skills Breakdown */}
+        {detailedBreakdown.technicalSkills && detailedBreakdown.technicalSkills.length > 0 && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Technical Skills
+            </h5>
+            <div className="space-y-2">
+              {detailedBreakdown.technicalSkills.map((skill: any, index: number) => (
+                <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                  <div className="flex items-start justify-between mb-1">
+                    <span className="text-sm font-medium flex-1">{skill.requirement}</span>
+                    <div className="flex items-center gap-2">
+                      {skill.gapPercentage !== undefined && (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                          {skill.gapPercentage}% Gap
+                        </span>
+                      )}
+                      {getEvidenceIcon(skill.present)}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-600 mb-1">
+                    {skill.evidence}
+                  </div>
+                  {skill.missingDetail && (
+                    <div className="text-xs text-blue-600">
+                      {skill.missingDetail}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Experience Breakdown */}
+        {detailedBreakdown.experience && detailedBreakdown.experience.length > 0 && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Experience
+            </h5>
+            <div className="space-y-2">
+              {detailedBreakdown.experience.map((exp: any, index: number) => (
+                <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                  <div className="flex items-start justify-between mb-1">
+                    <span className="text-sm font-medium flex-1">{exp.requirement}</span>
+                    <div className="flex items-center gap-2">
+                      {exp.gapPercentage !== undefined && (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                          {exp.gapPercentage}% Gap
+                        </span>
+                      )}
+                      {getEvidenceIcon(exp.present)}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-600 mb-1">
+                    {exp.evidence}
+                  </div>
+                  {exp.missingDetail && (
+                    <div className="text-xs text-blue-600">
+                      {exp.missingDetail}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Education & Certifications Breakdown */}
+        {detailedBreakdown.educationAndCertifications && detailedBreakdown.educationAndCertifications.length > 0 && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              Education & Certifications
+            </h5>
+            <div className="space-y-2">
+              {detailedBreakdown.educationAndCertifications.map((edu: any, index: number) => (
+                <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                  <div className="flex items-start justify-between mb-1">
+                    <span className="text-sm font-medium flex-1">{edu.requirement}</span>
+                    <div className="flex items-center gap-2">
+                      {edu.gapPercentage !== undefined && (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                          {edu.gapPercentage}% Gap
+                        </span>
+                      )}
+                      {getEvidenceIcon(edu.present)}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-600 mb-1">
+                    {edu.evidence}
+                  </div>
+                  {edu.missingDetail && (
+                    <div className="text-xs text-blue-600">
+                      {edu.missingDetail}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Cultural Fit & Soft Skills Breakdown */}
+        {detailedBreakdown.culturalFitAndSoftSkills && detailedBreakdown.culturalFitAndSoftSkills.length > 0 && (
+          <div>
+            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Cultural Fit & Soft Skills
+            </h5>
+            <div className="space-y-2">
+              {detailedBreakdown.culturalFitAndSoftSkills.map((skill: any, index: number) => (
+                <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
+                  <div className="flex items-start justify-between mb-1">
+                    <span className="text-sm font-medium flex-1">{skill.requirement}</span>
+                    <div className="flex items-center gap-2">
+                      {skill.gapPercentage !== undefined && (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                          {skill.gapPercentage}% Gap
+                        </span>
+                      )}
+                      {getEvidenceIcon(skill.present)}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-600 mb-1">
+                    {skill.evidence}
+                  </div>
+                  {skill.missingDetail && (
+                    <div className="text-xs text-blue-600">
+                      {skill.missingDetail}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
 
     return (
       <div className="mt-4 border border-gray-200 rounded-lg">
@@ -466,7 +1173,7 @@ export function ResumeProfilesList() {
         >
           <span className="font-medium text-sm flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Detailed Analysis
+            Detailed Analysis {isNewFormat && <Badge variant="outline" className="text-xs">100-Point Matrix</Badge>}
           </span>
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
@@ -475,149 +1182,7 @@ export function ResumeProfilesList() {
           )}
         </button>
 
-        {isExpanded && (
-          <div className="p-4 space-y-4 bg-white">
-            {/* Technical Skills Breakdown */}
-            {detailedBreakdown.technicalSkills && detailedBreakdown.technicalSkills.length > 0 && (
-              <div>
-                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  Technical Skills
-                </h5>
-                <div className="space-y-2">
-                  {detailedBreakdown.technicalSkills.map((skill: any, index: number) => (
-                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="text-sm font-medium flex-1">{skill.requirement}</span>
-                        <div className="flex items-center gap-2">
-                          {skill.gapPercentage !== undefined && (
-                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
-                              {skill.gapPercentage}% Gap
-                            </span>
-                          )}
-                          {getEvidenceIcon(skill.present)}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-600 mb-1">
-                        {skill.evidence}
-                      </div>
-                      {skill.missingDetail && (
-                        <div className="text-xs text-blue-600">
-                          {skill.missingDetail}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Experience Breakdown */}
-            {detailedBreakdown.experience && detailedBreakdown.experience.length > 0 && (
-              <div>
-                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Experience
-                </h5>
-                <div className="space-y-2">
-                  {detailedBreakdown.experience.map((exp: any, index: number) => (
-                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="text-sm font-medium flex-1">{exp.requirement}</span>
-                        <div className="flex items-center gap-2">
-                          {exp.gapPercentage !== undefined && (
-                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
-                              {exp.gapPercentage}% Gap
-                            </span>
-                          )}
-                          {getEvidenceIcon(exp.present)}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-600 mb-1">
-                        {exp.evidence}
-                      </div>
-                      {exp.missingDetail && (
-                        <div className="text-xs text-blue-600">
-                          {exp.missingDetail}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Education & Certifications Breakdown */}
-            {detailedBreakdown.educationAndCertifications && detailedBreakdown.educationAndCertifications.length > 0 && (
-              <div>
-                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  Education & Certifications
-                </h5>
-                <div className="space-y-2">
-                  {detailedBreakdown.educationAndCertifications.map((edu: any, index: number) => (
-                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="text-sm font-medium flex-1">{edu.requirement}</span>
-                        <div className="flex items-center gap-2">
-                          {edu.gapPercentage !== undefined && (
-                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
-                              {edu.gapPercentage}% Gap
-                            </span>
-                          )}
-                          {getEvidenceIcon(edu.present)}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-600 mb-1">
-                        {edu.evidence}
-                      </div>
-                      {edu.missingDetail && (
-                        <div className="text-xs text-blue-600">
-                          {edu.missingDetail}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Cultural Fit & Soft Skills Breakdown */}
-            {detailedBreakdown.culturalFitAndSoftSkills && detailedBreakdown.culturalFitAndSoftSkills.length > 0 && (
-              <div>
-                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Cultural Fit & Soft Skills
-                </h5>
-                <div className="space-y-2">
-                  {detailedBreakdown.culturalFitAndSoftSkills.map((skill: any, index: number) => (
-                    <div key={index} className="p-2 bg-gray-50 rounded border border-gray-200">
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="text-sm font-medium flex-1">{skill.requirement}</span>
-                        <div className="flex items-center gap-2">
-                          {skill.gapPercentage !== undefined && (
-                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
-                              {skill.gapPercentage}% Gap
-                            </span>
-                          )}
-                          {getEvidenceIcon(skill.present)}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-600 mb-1">
-                        {skill.evidence}
-                      </div>
-                      {skill.missingDetail && (
-                        <div className="text-xs text-blue-600">
-                          {skill.missingDetail}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {isExpanded && (isNewFormat ? renderNewFormat() : renderLegacyFormat())}
       </div>
     );
   };
