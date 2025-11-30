@@ -1616,7 +1616,6 @@ export function ResumeProfilesList() {
                                 )}
                               </Button>
                             )}
-                            {exportSingleProfile(row.profile)}
                             <Button
                               variant="outline"
                               size="sm"
@@ -1742,7 +1741,6 @@ export function ResumeProfilesList() {
                   {selectedProfile.name} - Full Profile
                 </DialogTitle>
                 <div className="flex gap-2">
-                  {exportSingleProfile(selectedProfile)}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
