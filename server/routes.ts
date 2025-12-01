@@ -2757,6 +2757,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue without video - non-critical failure
       }
 
+      // Extract structured profile data (v3) from brutallyHonestProfile
+      const brutallyHonestProfile = userProfile.aiProfile?.brutallyHonestProfile || {};
+      const profileVersion = brutallyHonestProfile.version || 1;
+
+      // Build structured profile for v3+ profiles
+      const structuredProfile = profileVersion >= 3 ? {
+        version: profileVersion,
+        executiveSummary: brutallyHonestProfile.executive_summary || null,
+        verdict: brutallyHonestProfile.verdict || null,
+        detailedBreakdown: brutallyHonestProfile.detailed_breakdown || null,
+        crossReferenceAnalysis: brutallyHonestProfile.cross_reference_analysis || null,
+        redFlags: brutallyHonestProfile.red_flags || [],
+        competitiveIntel: brutallyHonestProfile.competitive_intel || null,
+        // Interview analysis section
+        interviewAnalysis: brutallyHonestProfile.interview_analysis || null,
+        // Enhanced job match section
+        jobMatch: brutallyHonestProfile.job_match || null,
+        // Identity and background
+        identityAndBackground: brutallyHonestProfile.identity_and_background || null,
+        metaProfileOverview: brutallyHonestProfile.meta_profile_overview || null,
+        skillsAndCapabilities: brutallyHonestProfile.skills_and_capabilities || null,
+        careerStory: brutallyHonestProfile.career_story || null,
+        personalityAndValues: brutallyHonestProfile.personality_and_values || null,
+        workStyleAndCollaboration: brutallyHonestProfile.work_style_and_collaboration || null,
+        technicalAndDomainProfile: brutallyHonestProfile.technical_and_domain_profile || null,
+        motivationAndCareerDirection: brutallyHonestProfile.motivation_and_career_direction || null,
+        riskAndStability: brutallyHonestProfile.risk_and_stability || null,
+        environmentAndCultureFit: brutallyHonestProfile.environment_and_culture_fit || null,
+        recommendedRolesAndPathways: brutallyHonestProfile.recommended_roles_and_pathways || null,
+        derivedTags: brutallyHonestProfile.derived_tags || [],
+        dataQualityAndLimits: brutallyHonestProfile.data_quality_and_limits || null
+      } : null;
+
       // Format the response
       const profile = {
         name: userProfile.Name || identifier,
@@ -2765,6 +2798,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         experiencePercentage: userProfile.aiProfile?.experiencePercentage || 0,
         techSkillsPercentage: userProfile.aiProfile?.techSkillsPercentage || 0,
         culturalFitPercentage: userProfile.aiProfile?.culturalFitPercentage || 0,
+        // NEW: Include profile version and structured data
+        profileVersion,
+        structuredProfile,
+        // Keep userProfile markdown for backward compatibility
         userProfile: formatProfileForDisplay(userProfile.aiProfile),
         userId: userProfile.userId,
         interviewVideoUrl, // Add video URL to response
