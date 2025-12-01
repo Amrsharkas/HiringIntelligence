@@ -1250,9 +1250,59 @@ export function ResumeProfilesList() {
 
             {/* Match Rationale - Step by step reasoning */}
             {fullResponse.domainAnalysis.matchRationale && (
-              <div className="mt-3 p-2 bg-white/60 rounded border border-indigo-100">
-                <span className="text-xs font-medium text-indigo-700">Match Rationale:</span>
-                <p className="text-xs text-gray-700 mt-1 whitespace-pre-line">{fullResponse.domainAnalysis.matchRationale}</p>
+              <div className="mt-3 p-3 bg-white/80 rounded border border-indigo-200">
+                <span className="text-xs font-semibold text-indigo-800 mb-2 block">Match Rationale</span>
+                {typeof fullResponse.domainAnalysis.matchRationale === 'string' ? (
+                  <p className="text-xs text-gray-700 whitespace-pre-line">{fullResponse.domainAnalysis.matchRationale}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {fullResponse.domainAnalysis.matchRationale.step1_jobDomain && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded shrink-0">1</span>
+                        <div>
+                          <span className="text-xs font-medium text-gray-700">Job Domain: </span>
+                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step1_jobDomain}</span>
+                        </div>
+                      </div>
+                    )}
+                    {fullResponse.domainAnalysis.matchRationale.step2_candidateDomain && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded shrink-0">2</span>
+                        <div>
+                          <span className="text-xs font-medium text-gray-700">Candidate Domain: </span>
+                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step2_candidateDomain}</span>
+                        </div>
+                      </div>
+                    )}
+                    {fullResponse.domainAnalysis.matchRationale.step3_overlaps && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded shrink-0">3</span>
+                        <div>
+                          <span className="text-xs font-medium text-gray-700">Overlaps: </span>
+                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step3_overlaps}</span>
+                        </div>
+                      </div>
+                    )}
+                    {fullResponse.domainAnalysis.matchRationale.step4_gaps && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded shrink-0">4</span>
+                        <div>
+                          <span className="text-xs font-medium text-gray-700">Gaps: </span>
+                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step4_gaps}</span>
+                        </div>
+                      </div>
+                    )}
+                    {fullResponse.domainAnalysis.matchRationale.step5_verdict && (
+                      <div className="flex items-start gap-2 mt-2 pt-2 border-t border-indigo-100">
+                        <span className="text-xs font-bold text-indigo-700 bg-indigo-200 px-1.5 py-0.5 rounded shrink-0">!</span>
+                        <div>
+                          <span className="text-xs font-semibold text-indigo-800">Verdict: </span>
+                          <span className="text-xs text-gray-700">{fullResponse.domainAnalysis.matchRationale.step5_verdict}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

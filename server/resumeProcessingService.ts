@@ -815,7 +815,13 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
     "domainPenaltyPercent": 0-85,
     "transferabilityNotes": "Specific skills that transfer or don't",
     "domainMatchExplanation": "Detailed explanation of why this match level was assigned and what it means for this role",
-    "matchRationale": "Step-by-step reasoning for the domain match assessment: 1) What domain does the JD require? 2) What domain is the candidate from? 3) What are the overlaps? 4) What are the gaps? 5) Final verdict",
+    "matchRationale": {
+      "step1_jobDomain": "What domain/industry does this job require? Be specific (e.g., 'B2B SaaS', 'Healthcare IT', 'E-commerce')",
+      "step2_candidateDomain": "What domain/industry is the candidate from? Based on their work history",
+      "step3_overlaps": "What specific overlaps exist between candidate's experience and job requirements?",
+      "step4_gaps": "What domain-specific gaps exist that could impact performance?",
+      "step5_verdict": "Final assessment: Can this candidate succeed in this domain? Why or why not?"
+    },
     "crossoverSkills": ["List of skills from candidate's domain that directly apply to the job domain"],
     "domainGaps": [
       {"gap": "Specific domain knowledge gap", "reason": "Why this gap exists and how it was identified", "importance": "CRITICAL|IMPORTANT|MINOR", "canBeLearnedOnJob": true|false, "estimatedRampUpTime": "Time estimate to close this gap"}
