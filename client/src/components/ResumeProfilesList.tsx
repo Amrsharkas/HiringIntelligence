@@ -643,7 +643,7 @@ export function ResumeProfilesList() {
                   {fullResponse.verdict.decision === 'INTERVIEW' ? '✓ INTERVIEW' :
                    fullResponse.verdict.decision === 'CONSIDER' ? '? CONSIDER' :
                    fullResponse.verdict.decision === 'REVIEW' ? '⚠ REVIEW' :
-                   '✗ PASS'}
+                   '✗ NOT SUITABLE'}
                 </Badge>
                 {fullResponse.verdict.confidence && (
                   <span className={`text-xs font-medium px-2 py-1 rounded ${
