@@ -729,12 +729,14 @@ export function ResumeProfilesList() {
 
         {/* Competitive Intel */}
         {fullResponse.competitiveIntel && (
-          <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
-            <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-purple-800">
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-purple-800">
               <Briefcase className="h-4 w-4" />
               Competitive Intelligence
             </h5>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+
+            {/* Top Row - Key Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3">
               {fullResponse.competitiveIntel.marketPosition && (
                 <div className="p-2 bg-white rounded border">
                   <div className="text-gray-500">Market Position</div>
@@ -747,6 +749,40 @@ export function ResumeProfilesList() {
                   <div className="font-medium text-purple-700">{fullResponse.competitiveIntel.salaryExpectation}</div>
                 </div>
               )}
+              {fullResponse.competitiveIntel.urgencyToHire && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500">Urgency to Hire</div>
+                  <Badge className={`text-xs ${
+                    fullResponse.competitiveIntel.urgencyToHire === 'HIGH' ? 'bg-red-100 text-red-700' :
+                    fullResponse.competitiveIntel.urgencyToHire === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {fullResponse.competitiveIntel.urgencyToHire}
+                  </Badge>
+                  {fullResponse.competitiveIntel.urgencyReason && (
+                    <div className="text-xs text-gray-500 mt-1">{fullResponse.competitiveIntel.urgencyReason}</div>
+                  )}
+                </div>
+              )}
+              {fullResponse.competitiveIntel.growthPotential && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500">Growth Potential</div>
+                  <Badge className={`text-xs ${
+                    fullResponse.competitiveIntel.growthPotential === 'HIGH' ? 'bg-green-100 text-green-700' :
+                    fullResponse.competitiveIntel.growthPotential === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {fullResponse.competitiveIntel.growthPotential}
+                  </Badge>
+                  {fullResponse.competitiveIntel.growthPotentialReason && (
+                    <div className="text-xs text-gray-500 mt-1">{fullResponse.competitiveIntel.growthPotentialReason}</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Risk Assessment Row */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs mb-3">
               {fullResponse.competitiveIntel.flightRisk && (
                 <div className="p-2 bg-white rounded border">
                   <div className="text-gray-500">Flight Risk</div>
@@ -757,6 +793,9 @@ export function ResumeProfilesList() {
                   }`}>
                     {fullResponse.competitiveIntel.flightRisk}
                   </Badge>
+                  {fullResponse.competitiveIntel.flightRiskReason && (
+                    <div className="text-xs text-gray-500 mt-1">{fullResponse.competitiveIntel.flightRiskReason}</div>
+                  )}
                 </div>
               )}
               {fullResponse.competitiveIntel.counterofferRisk && (
@@ -769,9 +808,54 @@ export function ResumeProfilesList() {
                   }`}>
                     {fullResponse.competitiveIntel.counterofferRisk}
                   </Badge>
+                  {fullResponse.competitiveIntel.counterofferRiskReason && (
+                    <div className="text-xs text-gray-500 mt-1">{fullResponse.competitiveIntel.counterofferRiskReason}</div>
+                  )}
+                </div>
+              )}
+              {fullResponse.competitiveIntel.competitorRisk && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500">Competitor Risk</div>
+                  <Badge className={`text-xs ${
+                    fullResponse.competitiveIntel.competitorRisk === 'LOW' ? 'bg-green-100 text-green-700' :
+                    fullResponse.competitiveIntel.competitorRisk === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {fullResponse.competitiveIntel.competitorRisk}
+                  </Badge>
                 </div>
               )}
             </div>
+
+            {/* Strategy Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              {fullResponse.competitiveIntel.negotiationLeverage && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500 font-medium mb-1">Negotiation Leverage</div>
+                  <div className="text-purple-700">{fullResponse.competitiveIntel.negotiationLeverage}</div>
+                </div>
+              )}
+              {fullResponse.competitiveIntel.timingConsiderations && (
+                <div className="p-2 bg-white rounded border">
+                  <div className="text-gray-500 font-medium mb-1">Timing Considerations</div>
+                  <div className="text-purple-700">{fullResponse.competitiveIntel.timingConsiderations}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Retention Factors */}
+            {fullResponse.competitiveIntel.retentionFactors && fullResponse.competitiveIntel.retentionFactors.length > 0 && (
+              <div className="mt-3 p-2 bg-white rounded border">
+                <div className="text-gray-500 font-medium mb-2 text-xs">Retention Factors</div>
+                <div className="flex flex-wrap gap-1">
+                  {fullResponse.competitiveIntel.retentionFactors.map((factor: string, i: number) => (
+                    <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      {factor}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1281,6 +1365,74 @@ export function ResumeProfilesList() {
                 </div>
               </div>
             )}
+
+            {/* Domain Hiring Recommendation */}
+            {fullResponse.domainAnalysis.domainHiringRecommendation && (
+              <div className="mt-3 p-3 bg-white/80 rounded border border-indigo-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-indigo-800">Domain Hiring Recommendation</span>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`text-xs ${
+                      fullResponse.domainAnalysis.domainHiringRecommendation === 'PROCEED' ? 'bg-green-100 text-green-700 border-green-300' :
+                      fullResponse.domainAnalysis.domainHiringRecommendation === 'PROCEED_WITH_CAUTION' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
+                      fullResponse.domainAnalysis.domainHiringRecommendation === 'ADDITIONAL_SCREENING' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                      'bg-red-100 text-red-700 border-red-300'
+                    }`}>
+                      {fullResponse.domainAnalysis.domainHiringRecommendation.replace(/_/g, ' ')}
+                    </Badge>
+                    {fullResponse.domainAnalysis.domainTransitionSuccess && (
+                      <Badge variant="outline" className={`text-xs ${
+                        fullResponse.domainAnalysis.domainTransitionSuccess === 'HIGH' ? 'bg-green-50 text-green-700 border-green-300' :
+                        fullResponse.domainAnalysis.domainTransitionSuccess === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
+                        'bg-red-50 text-red-700 border-red-300'
+                      }`}>
+                        {fullResponse.domainAnalysis.domainTransitionSuccess} Transition Success
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                {fullResponse.domainAnalysis.domainHiringRationale && (
+                  <p className="text-xs text-gray-700">{fullResponse.domainAnalysis.domainHiringRationale}</p>
+                )}
+              </div>
+            )}
+
+            {/* Competitive Advantage from Domain */}
+            {fullResponse.domainAnalysis.competitiveAdvantage && (
+              <div className="mt-2 p-2 bg-green-50/50 rounded border border-green-200">
+                <span className="text-xs font-medium text-green-700">Unique Domain Perspective:</span>
+                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.competitiveAdvantage}</p>
+              </div>
+            )}
+
+            {/* Domain Interview Questions */}
+            {fullResponse.domainAnalysis.domainInterviewQuestions && fullResponse.domainAnalysis.domainInterviewQuestions.length > 0 && (
+              <div className="mt-2 p-2 bg-blue-50/50 rounded border border-blue-200">
+                <span className="text-xs font-medium text-blue-700">Domain Interview Questions:</span>
+                <ul className="mt-1 space-y-1">
+                  {fullResponse.domainAnalysis.domainInterviewQuestions.map((q: string, i: number) => (
+                    <li key={i} className="text-xs text-gray-700 flex items-start gap-1">
+                      <span className="text-blue-500">•</span>
+                      <span>{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Domain Onboarding Needs */}
+            {fullResponse.domainAnalysis.domainOnboardingNeeds && fullResponse.domainAnalysis.domainOnboardingNeeds.length > 0 && (
+              <div className="mt-2 p-2 bg-purple-50/50 rounded border border-purple-200">
+                <span className="text-xs font-medium text-purple-700">Domain Onboarding Needs:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullResponse.domainAnalysis.domainOnboardingNeeds.map((need: string, i: number) => (
+                    <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      {need}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1496,11 +1648,20 @@ export function ResumeProfilesList() {
             {fullResponse.experienceAnalysis.roleTimeline && fullResponse.experienceAnalysis.roleTimeline.length > 0 && (
               <div className="mt-2">
                 <span className="text-xs font-medium text-blue-700">Role Timeline:</span>
-                <div className="space-y-1 mt-1">
+                <div className="space-y-2 mt-1">
                   {fullResponse.experienceAnalysis.roleTimeline.slice(0, 5).map((role: any, i: number) => (
-                    <div key={i} className="text-xs p-2 bg-white rounded border">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium">{role.title} @ {role.company}</span>
+                    <div key={i} className="text-xs p-3 bg-white rounded border">
+                      {/* Header Row */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <span className="font-medium text-sm">{role.title}</span>
+                          <span className="text-gray-500"> @ {role.company}</span>
+                          {role.companyType && role.companyType !== 'UNKNOWN' && (
+                            <Badge variant="outline" className="ml-2 text-xs bg-gray-50 text-gray-600">
+                              {role.companyType}
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className="text-gray-500">{role.duration}</span>
                           {role.relevance && (
@@ -1514,22 +1675,74 @@ export function ResumeProfilesList() {
                           )}
                         </div>
                       </div>
-                      {(role.startDate || role.endDate) && (
-                        <div className="text-gray-500">{role.startDate} - {role.endDate}</div>
+
+                      {/* Date and Context Row */}
+                      <div className="flex items-center gap-3 text-gray-500 mb-2">
+                        {(role.startDate || role.endDate) && (
+                          <span>{role.startDate} - {role.endDate}</span>
+                        )}
+                        {role.promotionIndicator && role.promotionIndicator !== 'UNKNOWN' && (
+                          <Badge variant="outline" className={`text-xs ${
+                            role.promotionIndicator === 'PROMOTED' ? 'bg-green-50 text-green-700 border-green-200' :
+                            role.promotionIndicator === 'RECRUITED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            'bg-gray-50 text-gray-600'
+                          }`}>
+                            {role.promotionIndicator}
+                          </Badge>
+                        )}
+                        {role.impactScope && role.impactScope !== 'INDIVIDUAL' && (
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            {role.impactScope} Impact
+                          </Badge>
+                        )}
+                        {role.industryDomain && (
+                          <span className="text-xs text-indigo-600">{role.industryDomain}</span>
+                        )}
+                      </div>
+
+                      {/* Role Progression */}
+                      {role.roleProgression && (
+                        <p className="text-gray-600 mb-2 italic">{role.roleProgression}</p>
                       )}
+
+                      {/* Relevance Reason */}
                       {role.relevanceReason && (
-                        <p className="text-gray-600 mt-1">{role.relevanceReason}</p>
-                      )}
-                      {role.keyAchievement && (
-                        <p className="text-blue-600 mt-1"><span className="font-medium">Key:</span> {role.keyAchievement}</p>
-                      )}
-                      {role.skillsUsed && role.skillsUsed.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {role.skillsUsed.map((skill: string, si: number) => (
-                            <span key={si} className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{skill}</span>
-                          ))}
+                        <div className="p-2 bg-blue-50/50 rounded mb-2">
+                          <span className="font-medium text-blue-700">Why Relevant:</span>
+                          <p className="text-gray-700 mt-0.5">{role.relevanceReason}</p>
                         </div>
                       )}
+
+                      {/* Responsibilities */}
+                      {role.responsibilities && (
+                        <p className="text-gray-600 mb-2">
+                          <span className="font-medium">Responsibilities:</span> {role.responsibilities}
+                        </p>
+                      )}
+
+                      {/* Team Context */}
+                      {role.teamContext && (
+                        <p className="text-gray-500 mb-2">
+                          <span className="font-medium">Team:</span> {role.teamContext}
+                        </p>
+                      )}
+
+                      {/* Key Achievement */}
+                      {role.keyAchievement && (
+                        <p className="text-green-700 mb-2">
+                          <span className="font-medium">Key Achievement:</span> {role.keyAchievement}
+                        </p>
+                      )}
+
+                      {/* Skills & Technologies */}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {role.skillsUsed && role.skillsUsed.map((skill: string, si: number) => (
+                          <span key={`skill-${si}`} className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{skill}</span>
+                        ))}
+                        {role.technologiesUsed && role.technologiesUsed.map((tech: string, ti: number) => (
+                          <span key={`tech-${ti}`} className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">{tech}</span>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

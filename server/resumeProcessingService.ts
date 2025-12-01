@@ -824,7 +824,13 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
     "domainRiskLevel": "LOW|MEDIUM|HIGH|CRITICAL",
     "domainRiskExplanation": "Explanation of the risk level - what could go wrong if domain mismatch is ignored, and what mitigates the risk",
     "rampUpEstimate": "Estimated time for candidate to become fully effective in this domain (e.g., '1-2 months', '3-6 months', '6+ months')",
-    "previousDomainTransitions": "Evidence from resume of successful domain/industry transitions in the past, if any"
+    "previousDomainTransitions": "Evidence from resume of successful domain/industry transitions in the past, if any",
+    "domainHiringRecommendation": "PROCEED|PROCEED_WITH_CAUTION|ADDITIONAL_SCREENING|NOT_RECOMMENDED - Hiring recommendation based on domain fit",
+    "domainHiringRationale": "Why this hiring recommendation was made based on domain analysis",
+    "domainInterviewQuestions": ["Specific interview questions to probe domain knowledge gaps"],
+    "domainOnboardingNeeds": ["What specific domain training/onboarding would this candidate need"],
+    "competitiveAdvantage": "What unique domain perspective could this candidate bring from their background",
+    "domainTransitionSuccess": "LOW|MEDIUM|HIGH - Likelihood of successful domain transition based on evidence"
   },
 
   "matchSummary": "3-4 sentence brutally honest assessment written for the hiring manager",
@@ -875,7 +881,27 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
       "evidence": ["Specific evidence items"]
     },
     "roleTimeline": [
-      {"company": "Name", "title": "Title", "startDate": "Month Year", "endDate": "Month Year or Present", "durationYears": 0, "durationMonths": 0, "duration": "X years Y months", "relevance": "HIGH|MEDIUM|LOW", "relevanceReason": "Why this role is relevant or not to the job", "keyAchievement": "Best result from this role", "skillsUsed": ["Key skills used in this role"]}
+      {
+        "company": "Name",
+        "title": "Title",
+        "startDate": "Month Year",
+        "endDate": "Month Year or Present",
+        "durationYears": 0,
+        "durationMonths": 0,
+        "duration": "X years Y months",
+        "relevance": "HIGH|MEDIUM|LOW",
+        "relevanceReason": "Why this role is relevant or not to the job - be specific about skills/responsibilities that transfer",
+        "keyAchievement": "Best quantified result from this role",
+        "skillsUsed": ["Key skills used in this role"],
+        "responsibilities": "Brief summary of main responsibilities",
+        "teamContext": "Team size, direct reports, or individual contributor context if mentioned",
+        "promotionIndicator": "PROMOTED|LATERAL|RECRUITED|UNKNOWN - How did they get this role?",
+        "impactScope": "INDIVIDUAL|TEAM|DEPARTMENT|COMPANY|INDUSTRY - What was their sphere of influence?",
+        "technologiesUsed": ["Specific technologies/tools used in this role"],
+        "industryDomain": "Industry/domain of this company",
+        "companyType": "STARTUP|SCALEUP|ENTERPRISE|AGENCY|CONSULTANCY|UNKNOWN",
+        "roleProgression": "How this role represents growth from previous role"
+      }
     ],
     "employmentGaps": [
       {"gapStart": "Month Year", "gapEnd": "Month Year", "durationMonths": 0, "severity": "MINOR|MODERATE|SIGNIFICANT", "possibleReason": "Potential explanation if apparent from resume context"}
@@ -945,7 +971,17 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
     "marketPosition": "How competitive is this candidate in current market",
     "salaryExpectation": "Likely expectations based on experience level",
     "flightRisk": "LOW|MEDIUM|HIGH",
-    "counterofferRisk": "LOW|MEDIUM|HIGH"
+    "flightRiskReason": "Why they might leave their current role",
+    "counterofferRisk": "LOW|MEDIUM|HIGH",
+    "counterofferRiskReason": "Why current employer might counter",
+    "urgencyToHire": "LOW|MEDIUM|HIGH - How quickly you should move on this candidate",
+    "urgencyReason": "Why you should/shouldn't rush",
+    "competitorRisk": "LOW|MEDIUM|HIGH - Risk of losing to other companies",
+    "retentionFactors": ["What would keep this candidate engaged long-term"],
+    "negotiationLeverage": "What leverage you have in negotiations",
+    "timingConsiderations": "Best time to approach, notice period expectations",
+    "growthPotential": "LOW|MEDIUM|HIGH - Long-term value and advancement potential",
+    "growthPotentialReason": "Why they have/lack growth potential"
   }
 }
 
