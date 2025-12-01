@@ -2509,7 +2509,7 @@ export function ResumeProfilesList() {
                                         {jobScore.improvementAreas.map((gap, index) => (
                                           <li key={index} className="text-sm text-orange-700 flex items-start gap-2">
                                             <span className="text-orange-500 mt-1">•</span>
-                                            <span>{gap}</span>
+                                            <span>{typeof gap === 'string' ? gap : (gap as any).gap || 'Gap identified'}</span>
                                           </li>
                                         ))}
                                       </ul>
