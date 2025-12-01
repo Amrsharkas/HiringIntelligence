@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -774,44 +775,205 @@ export function ResumeProfilesList() {
           </div>
         )}
 
-        {/* Section Scores Summary */}
+        {/* Section Scores Summary with Accordion */}
         {(fullResponse.sectionA !== undefined || fullResponse.sectionB !== undefined) && (
           <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <h5 className="font-medium text-sm mb-3 text-blue-800">Score Breakdown by Section</h5>
-            <div className="grid grid-cols-6 gap-2">
-              <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></div>
-                <div className="text-xs text-blue-600 font-medium">Skills</div>
-                <div className="text-xs text-gray-500">{fullResponse.sectionA !== undefined ? Math.round((fullResponse.sectionA / 30) * 100) : 0}%</div>
-              </div>
-              <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></div>
-                <div className="text-xs text-blue-600 font-medium">Experience</div>
-                <div className="text-xs text-gray-500">{fullResponse.sectionB !== undefined ? Math.round((fullResponse.sectionB / 25) * 100) : 0}%</div>
-              </div>
-              <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></div>
-                <div className="text-xs text-blue-600 font-medium">Impact</div>
-                <div className="text-xs text-gray-500">{fullResponse.sectionC !== undefined ? Math.round((fullResponse.sectionC / 20) * 100) : 0}%</div>
-              </div>
-              <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
-                <div className="text-xs text-blue-600 font-medium">Qualifications</div>
-                <div className="text-xs text-gray-500">{fullResponse.sectionD !== undefined ? Math.round((fullResponse.sectionD / 10) * 100) : 0}%</div>
-              </div>
-              <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
-                <div className="text-xs text-blue-600 font-medium">Logistics</div>
-                <div className="text-xs text-gray-500">{fullResponse.sectionE !== undefined ? Math.round((fullResponse.sectionE / 10) * 100) : 0}%</div>
-              </div>
-              <div className="text-center p-2 bg-white rounded border">
-                <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {(fullResponse.sectionF ?? 0) >= 0 ? '+' : ''}{fullResponse.sectionF ?? '0'}
+            <h5 className="font-medium text-sm mb-3 text-blue-800">Score Breakdown by Section (Click to expand details)</h5>
+            <Accordion type="multiple" className="space-y-2">
+              {/* Section A: Skills */}
+              {fullResponse.detailedBreakdown?.sectionA && (
+                <AccordionItem value="sectionA" className="bg-white rounded border overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">Section A: Skills & Competency</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></span>
+                        <span className="text-xs text-gray-500">({fullResponse.sectionA !== undefined ? Math.round((fullResponse.sectionA / 30) * 100) : 0}%)</span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3">
+                    <div className="space-y-2 pt-2 border-t">
+                      {fullResponse.detailedBreakdown.sectionA.A1_skillsMatch && renderSubsectionItem('A1: Skills Match', fullResponse.detailedBreakdown.sectionA.A1_skillsMatch, 15)}
+                      {fullResponse.detailedBreakdown.sectionA.A1_coreTechStackMatch && renderSubsectionItem('A1: Core Skills Match', fullResponse.detailedBreakdown.sectionA.A1_coreTechStackMatch, 15)}
+                      {fullResponse.detailedBreakdown.sectionA.A2_skillDepth && renderSubsectionItem('A2: Skill Depth & Recency', fullResponse.detailedBreakdown.sectionA.A2_skillDepth, 10)}
+                      {fullResponse.detailedBreakdown.sectionA.A2_skillRecency && renderSubsectionItem('A2: Skill Recency', fullResponse.detailedBreakdown.sectionA.A2_skillRecency, 10)}
+                      {fullResponse.detailedBreakdown.sectionA.A3_toolsMatch && renderSubsectionItem('A3: Tools/Systems Match', fullResponse.detailedBreakdown.sectionA.A3_toolsMatch, 5)}
+                      {fullResponse.detailedBreakdown.sectionA.A3_requiredToolVolume && renderSubsectionItem('A3: Required Tools', fullResponse.detailedBreakdown.sectionA.A3_requiredToolVolume, 5)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Section B: Experience */}
+              {fullResponse.detailedBreakdown?.sectionB && (
+                <AccordionItem value="sectionB" className="bg-white rounded border overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">Section B: Experience Alignment</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></span>
+                        <span className="text-xs text-gray-500">({fullResponse.sectionB !== undefined ? Math.round((fullResponse.sectionB / 25) * 100) : 0}%)</span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3">
+                    <div className="space-y-2 pt-2 border-t">
+                      {fullResponse.detailedBreakdown.sectionB.B1_yearsExperience && renderSubsectionItem('B1: Years of Experience', fullResponse.detailedBreakdown.sectionB.B1_yearsExperience, 10)}
+                      {fullResponse.detailedBreakdown.sectionB.B1_qualifiedYears && renderSubsectionItem('B1: Qualified Years', fullResponse.detailedBreakdown.sectionB.B1_qualifiedYears, 10)}
+                      {fullResponse.detailedBreakdown.sectionB.B2_seniorityMatch && renderSubsectionItem('B2: Seniority Match', fullResponse.detailedBreakdown.sectionB.B2_seniorityMatch, 10)}
+                      {fullResponse.detailedBreakdown.sectionB.B2_seniorityValidation && renderSubsectionItem('B2: Seniority Validation', fullResponse.detailedBreakdown.sectionB.B2_seniorityValidation, 10)}
+                      {fullResponse.detailedBreakdown.sectionB.B3_stability && renderSubsectionItem('B3: Career Stability', fullResponse.detailedBreakdown.sectionB.B3_stability, 5)}
+                      {fullResponse.detailedBreakdown.sectionB.B3_jobStability && renderSubsectionItem('B3: Job Stability', fullResponse.detailedBreakdown.sectionB.B3_jobStability, 5)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Section C: Impact */}
+              {fullResponse.detailedBreakdown?.sectionC && (
+                <AccordionItem value="sectionC" className="bg-white rounded border overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">Section C: Impact & Achievements</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></span>
+                        <span className="text-xs text-gray-500">({fullResponse.sectionC !== undefined ? Math.round((fullResponse.sectionC / 20) * 100) : 0}%)</span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3">
+                    <div className="space-y-2 pt-2 border-t">
+                      {fullResponse.detailedBreakdown.sectionC.C1_quantifiedResults && renderSubsectionItem('C1: Quantified Results', fullResponse.detailedBreakdown.sectionC.C1_quantifiedResults, 12)}
+                      {fullResponse.detailedBreakdown.sectionC.C1_scopeComplexity && renderSubsectionItem('C1: Scope & Complexity', fullResponse.detailedBreakdown.sectionC.C1_scopeComplexity, 12)}
+                      {fullResponse.detailedBreakdown.sectionC.C2_softSkills && renderSubsectionItem('C2: Soft Skills Evidence', fullResponse.detailedBreakdown.sectionC.C2_softSkills, 8)}
+                      {fullResponse.detailedBreakdown.sectionC.C2_softSkillMatch && renderSubsectionItem('C2: Soft Skill Match', fullResponse.detailedBreakdown.sectionC.C2_softSkillMatch, 8)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Section D: Qualifications */}
+              {fullResponse.detailedBreakdown?.sectionD && (
+                <AccordionItem value="sectionD" className="bg-white rounded border overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">Section D: Qualifications</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></span>
+                        <span className="text-xs text-gray-500">({fullResponse.sectionD !== undefined ? Math.round((fullResponse.sectionD / 10) * 100) : 0}%)</span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3">
+                    <div className="space-y-2 pt-2 border-t">
+                      {fullResponse.detailedBreakdown.sectionD.D1_education && renderSubsectionItem('D1: Education', fullResponse.detailedBreakdown.sectionD.D1_education, 5)}
+                      {fullResponse.detailedBreakdown.sectionD.D2_certifications && renderSubsectionItem('D2: Certifications', fullResponse.detailedBreakdown.sectionD.D2_certifications, 5)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Section E: Logistics */}
+              {fullResponse.detailedBreakdown?.sectionE && (
+                <AccordionItem value="sectionE" className="bg-white rounded border overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">Section E: Logistics & Compatibility</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></span>
+                        <span className="text-xs text-gray-500">({fullResponse.sectionE !== undefined ? Math.round((fullResponse.sectionE / 10) * 100) : 0}%)</span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3">
+                    <div className="space-y-2 pt-2 border-t">
+                      {fullResponse.detailedBreakdown.sectionE.E1_location && renderSubsectionItem('E1: Location Match', fullResponse.detailedBreakdown.sectionE.E1_location, 4)}
+                      {fullResponse.detailedBreakdown.sectionE.E1_languageMatch && renderSubsectionItem('E1: Language Match', fullResponse.detailedBreakdown.sectionE.E1_languageMatch, 4)}
+                      {fullResponse.detailedBreakdown.sectionE.E2_language && renderSubsectionItem('E2: Language', fullResponse.detailedBreakdown.sectionE.E2_language, 3)}
+                      {fullResponse.detailedBreakdown.sectionE.E2_locationMatch && renderSubsectionItem('E2: Location', fullResponse.detailedBreakdown.sectionE.E2_locationMatch, 3)}
+                      {fullResponse.detailedBreakdown.sectionE.E3_contactQuality && renderSubsectionItem('E3: Contact & Resume Quality', fullResponse.detailedBreakdown.sectionE.E3_contactQuality, 3)}
+                      {fullResponse.detailedBreakdown.sectionE.E3_contactability && renderSubsectionItem('E3: Contactability', fullResponse.detailedBreakdown.sectionE.E3_contactability, 3)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Section F: Modifiers */}
+              {fullResponse.detailedBreakdown?.sectionF && (
+                <AccordionItem value="sectionF" className="bg-white rounded border overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">Section F: Bonus & Penalties</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          {(fullResponse.sectionF ?? 0) >= 0 ? '+' : ''}{fullResponse.sectionF ?? '0'}
+                        </span>
+                        <span className="text-xs text-gray-500">pts</span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3">
+                    <div className="space-y-2 pt-2 border-t">
+                      {fullResponse.detailedBreakdown.sectionF.bonusPoints && renderSubsectionItem('Bonus Points', fullResponse.detailedBreakdown.sectionF.bonusPoints, 5)}
+                      {fullResponse.detailedBreakdown.sectionF.penalties && renderSubsectionItem('Penalties', fullResponse.detailedBreakdown.sectionF.penalties, undefined)}
+                      {fullResponse.detailedBreakdown.sectionF.F1_disqualification && renderSubsectionItem('Disqualification Check', fullResponse.detailedBreakdown.sectionF.F1_disqualification, undefined)}
+                      {fullResponse.detailedBreakdown.sectionF.F2_bonusPoints && renderSubsectionItem('Bonus Points', fullResponse.detailedBreakdown.sectionF.F2_bonusPoints, 5)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+            </Accordion>
+
+            {/* Fallback summary row if no detailed breakdown available */}
+            {!fullResponse.detailedBreakdown && (
+              <div className="grid grid-cols-6 gap-2 mt-2">
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></div>
+                  <div className="text-xs text-blue-600 font-medium">Skills</div>
                 </div>
-                <div className="text-xs text-gray-600 font-medium">Modifiers</div>
-                <div className="text-xs text-gray-500">Bonus/Penalty</div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></div>
+                  <div className="text-xs text-blue-600 font-medium">Experience</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></div>
+                  <div className="text-xs text-blue-600 font-medium">Impact</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
+                  <div className="text-xs text-blue-600 font-medium">Qualifications</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
+                  <div className="text-xs text-blue-600 font-medium">Logistics</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    {(fullResponse.sectionF ?? 0) >= 0 ? '+' : ''}{fullResponse.sectionF ?? '0'}
+                  </div>
+                  <div className="text-xs text-gray-600 font-medium">Modifiers</div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -914,6 +1076,21 @@ export function ResumeProfilesList() {
                             <span className="font-medium">Impact:</span> {item.impact}
                           </div>
                         )}
+                        {item.evidenceFromResume && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">Evidence:</span> {item.evidenceFromResume}
+                          </div>
+                        )}
+                        {item.recommendation && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            <span className="font-medium">Recommendation:</span> {item.recommendation}
+                          </div>
+                        )}
+                        {item.workaround && (
+                          <div className="text-xs text-purple-600 mt-1">
+                            <span className="font-medium">Workaround:</span> {item.workaround}
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         {item.severity && (
@@ -924,6 +1101,11 @@ export function ResumeProfilesList() {
                           }`}>
                             {item.severity}
                           </Badge>
+                        )}
+                        {item.timeToAddress && (
+                          <span className="text-xs text-gray-500">
+                            {item.timeToAddress}
+                          </span>
                         )}
                         {item.trainable !== undefined && (
                           <span className={`text-xs ${item.trainable ? 'text-green-600' : 'text-gray-500'}`}>
@@ -975,6 +1157,50 @@ export function ResumeProfilesList() {
             </div>
             {(fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes) && (
               <p className="text-xs text-gray-600 mt-2">{fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes}</p>
+            )}
+
+            {/* Domain Match Explanation */}
+            {fullResponse.domainAnalysis.domainMatchExplanation && (
+              <div className="mt-3 p-2 bg-white/60 rounded border border-indigo-100">
+                <span className="text-xs font-medium text-indigo-700">Match Explanation:</span>
+                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.domainMatchExplanation}</p>
+              </div>
+            )}
+
+            {/* Industry Context */}
+            {fullResponse.domainAnalysis.industryContext && (
+              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
+                <span className="text-xs font-medium text-indigo-700">Industry Context:</span>
+                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.industryContext}</p>
+              </div>
+            )}
+
+            {/* Crossover Skills */}
+            {fullResponse.domainAnalysis.crossoverSkills && fullResponse.domainAnalysis.crossoverSkills.length > 0 && (
+              <div className="mt-2">
+                <span className="text-xs font-medium text-green-700">Crossover Skills:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullResponse.domainAnalysis.crossoverSkills.map((skill: string, i: number) => (
+                    <Badge key={i} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Domain Gaps */}
+            {fullResponse.domainAnalysis.domainGaps && fullResponse.domainAnalysis.domainGaps.length > 0 && (
+              <div className="mt-2">
+                <span className="text-xs font-medium text-red-700">Domain-Specific Gaps:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullResponse.domainAnalysis.domainGaps.map((gap: string, i: number) => (
+                    <Badge key={i} variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                      {gap}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -1063,17 +1289,33 @@ export function ResumeProfilesList() {
               Experience & Career Analysis
             </h5>
 
+            {/* Experience Summary */}
+            {fullResponse.experienceAnalysis.experienceSummary && (
+              <p className="text-xs text-gray-700 mb-3 p-2 bg-white/60 rounded border border-blue-100">
+                {fullResponse.experienceAnalysis.experienceSummary}
+              </p>
+            )}
+
             <div className="grid grid-cols-4 gap-2 mb-3">
               <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-blue-700">{fullResponse.experienceAnalysis.totalYears || 0}</div>
-                <div className="text-xs text-gray-500">Total Years</div>
+                <div className="text-lg font-bold text-blue-700">
+                  {fullResponse.experienceAnalysis.totalExperienceFormatted ||
+                   `${fullResponse.experienceAnalysis.totalYears || 0}y ${fullResponse.experienceAnalysis.totalMonths || 0}m`}
+                </div>
+                <div className="text-xs text-gray-500">Total Experience</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-green-700">{fullResponse.experienceAnalysis.relevantYears || 0}</div>
+                <div className="text-lg font-bold text-green-700">
+                  {fullResponse.experienceAnalysis.relevantExperienceFormatted ||
+                   `${fullResponse.experienceAnalysis.relevantYears || 0}y ${fullResponse.experienceAnalysis.relevantMonths || 0}m`}
+                </div>
                 <div className="text-xs text-gray-500">Relevant</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-purple-700">{fullResponse.experienceAnalysis.domainYears || 0}</div>
+                <div className="text-lg font-bold text-purple-700">
+                  {fullResponse.experienceAnalysis.domainExperienceFormatted ||
+                   `${fullResponse.experienceAnalysis.domainYears || 0}y ${fullResponse.experienceAnalysis.domainMonths || 0}m`}
+                </div>
                 <div className="text-xs text-gray-500">Domain</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
@@ -1084,6 +1326,22 @@ export function ResumeProfilesList() {
               </div>
             </div>
 
+            {/* Progression & Velocity Explanation */}
+            {(fullResponse.experienceAnalysis.progressionExplanation || fullResponse.experienceAnalysis.velocityExplanation) && (
+              <div className="p-2 bg-white/60 rounded border border-blue-100 mb-2">
+                {fullResponse.experienceAnalysis.progressionExplanation && (
+                  <div className="text-xs text-gray-700 mb-1">
+                    <span className="font-medium text-blue-700">Progression:</span> {fullResponse.experienceAnalysis.progressionExplanation}
+                  </div>
+                )}
+                {fullResponse.experienceAnalysis.velocityExplanation && (
+                  <div className="text-xs text-gray-700">
+                    <span className="font-medium text-blue-700">Career Velocity:</span> {fullResponse.experienceAnalysis.velocityExplanation}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Seniority Match */}
             {fullResponse.experienceAnalysis.seniorityMatch && (
               <div className="p-2 bg-white rounded border mb-2">
@@ -1091,14 +1349,66 @@ export function ResumeProfilesList() {
                   <span className="text-gray-500">Seniority:</span>
                   <span className="font-medium">{fullResponse.experienceAnalysis.seniorityMatch.candidateLevel}</span>
                   <span className="text-gray-400">→</span>
-                  <span className="font-medium">{fullResponse.experienceAnalysis.seniorityMatch.jdLevel}</span>
+                  <span className="font-medium">{fullResponse.experienceAnalysis.seniorityMatch.jobRequiredLevel || fullResponse.experienceAnalysis.seniorityMatch.jdLevel}</span>
                   <Badge variant="outline" className={`text-xs ${
                     fullResponse.experienceAnalysis.seniorityMatch.match === 'EXACT' ? 'bg-green-50 text-green-700' :
-                    fullResponse.experienceAnalysis.seniorityMatch.match === 'PARTIAL' ? 'bg-yellow-50 text-yellow-700' :
+                    fullResponse.experienceAnalysis.seniorityMatch.match === 'OVERQUALIFIED' ? 'bg-blue-50 text-blue-700' :
+                    fullResponse.experienceAnalysis.seniorityMatch.match === 'UNDERQUALIFIED' ? 'bg-yellow-50 text-yellow-700' :
                     'bg-red-50 text-red-700'
                   }`}>
                     {fullResponse.experienceAnalysis.seniorityMatch.match}
                   </Badge>
+                </div>
+                {fullResponse.experienceAnalysis.seniorityMatch.gapExplanation && (
+                  <p className="text-xs text-gray-600 mt-1">{fullResponse.experienceAnalysis.seniorityMatch.gapExplanation}</p>
+                )}
+              </div>
+            )}
+
+            {/* Industry Experience */}
+            {fullResponse.experienceAnalysis.industryExperience && fullResponse.experienceAnalysis.industryExperience.length > 0 && (
+              <div className="mb-2">
+                <span className="text-xs font-medium text-blue-700">Industry Experience:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullResponse.experienceAnalysis.industryExperience.map((ind: any, i: number) => (
+                    <Badge key={i} variant="outline" className={`text-xs ${
+                      ind.relevance === 'HIGH' ? 'bg-green-50 text-green-700 border-green-200' :
+                      ind.relevance === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                      'bg-gray-50 text-gray-600 border-gray-200'
+                    }`}>
+                      {ind.industry}: {ind.formatted || `${ind.years}y ${ind.months}m`}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Employment Gaps */}
+            {fullResponse.experienceAnalysis.employmentGaps && fullResponse.experienceAnalysis.employmentGaps.length > 0 && (
+              <div className="mb-2">
+                <span className="text-xs font-medium text-orange-700">Employment Gaps:</span>
+                <div className="space-y-1 mt-1">
+                  {fullResponse.experienceAnalysis.employmentGaps.map((gap: any, i: number) => (
+                    <div key={i} className={`text-xs p-2 bg-white rounded border ${
+                      gap.severity === 'SIGNIFICANT' ? 'border-red-200' :
+                      gap.severity === 'MODERATE' ? 'border-orange-200' :
+                      'border-yellow-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span>{gap.gapStart} - {gap.gapEnd}</span>
+                        <Badge variant="outline" className={`text-xs ${
+                          gap.severity === 'SIGNIFICANT' ? 'bg-red-50 text-red-700' :
+                          gap.severity === 'MODERATE' ? 'bg-orange-50 text-orange-700' :
+                          'bg-yellow-50 text-yellow-700'
+                        }`}>
+                          {gap.durationMonths} months - {gap.severity}
+                        </Badge>
+                      </div>
+                      {gap.possibleReason && (
+                        <p className="text-gray-600 mt-1">{gap.possibleReason}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -1108,22 +1418,77 @@ export function ResumeProfilesList() {
               <div className="mt-2">
                 <span className="text-xs font-medium text-blue-700">Role Timeline:</span>
                 <div className="space-y-1 mt-1">
-                  {fullResponse.experienceAnalysis.roleTimeline.slice(0, 3).map((role: any, i: number) => (
-                    <div key={i} className="text-xs p-2 bg-white rounded border flex items-center justify-between">
-                      <span className="font-medium">{role.title} @ {role.company}</span>
-                      <span className="text-gray-500">{role.duration}</span>
-                      {role.relevance && (
-                        <Badge variant="outline" className={`text-xs ${
-                          role.relevance === 'HIGH' ? 'bg-green-50 text-green-700' :
-                          role.relevance === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700' :
-                          'bg-gray-50 text-gray-600'
-                        }`}>
-                          {role.relevance}
-                        </Badge>
+                  {fullResponse.experienceAnalysis.roleTimeline.slice(0, 5).map((role: any, i: number) => (
+                    <div key={i} className="text-xs p-2 bg-white rounded border">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">{role.title} @ {role.company}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">{role.duration}</span>
+                          {role.relevance && (
+                            <Badge variant="outline" className={`text-xs ${
+                              role.relevance === 'HIGH' ? 'bg-green-50 text-green-700' :
+                              role.relevance === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700' :
+                              'bg-gray-50 text-gray-600'
+                            }`}>
+                              {role.relevance}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {(role.startDate || role.endDate) && (
+                        <div className="text-gray-500">{role.startDate} - {role.endDate}</div>
+                      )}
+                      {role.relevanceReason && (
+                        <p className="text-gray-600 mt-1">{role.relevanceReason}</p>
+                      )}
+                      {role.keyAchievement && (
+                        <p className="text-blue-600 mt-1"><span className="font-medium">Key:</span> {role.keyAchievement}</p>
+                      )}
+                      {role.skillsUsed && role.skillsUsed.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {role.skillsUsed.map((skill: string, si: number) => (
+                            <span key={si} className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{skill}</span>
+                          ))}
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Tenure Analysis */}
+            {fullResponse.experienceAnalysis.tenureAnalysis && (
+              <div className="mt-2 p-2 bg-white/60 rounded border border-blue-100">
+                <span className="text-xs font-medium text-blue-700">Tenure Analysis:</span>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  <div className="text-center">
+                    <div className="text-sm font-medium">{fullResponse.experienceAnalysis.tenureAnalysis.averageTenureFormatted || `${fullResponse.experienceAnalysis.tenureAnalysis.averageTenure || 0}y`}</div>
+                    <div className="text-xs text-gray-500">Avg Tenure</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-medium">{fullResponse.experienceAnalysis.tenureAnalysis.longestTenureFormatted || `${fullResponse.experienceAnalysis.tenureAnalysis.longestTenure || 0}y`}</div>
+                    <div className="text-xs text-gray-500">Longest</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-medium">{fullResponse.experienceAnalysis.tenureAnalysis.shortestTenureFormatted || `${fullResponse.experienceAnalysis.tenureAnalysis.shortestTenure || 0}y`}</div>
+                    <div className="text-xs text-gray-500">Shortest</div>
+                  </div>
+                </div>
+                {fullResponse.experienceAnalysis.tenureAnalysis.pattern && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className={`text-xs ${
+                      fullResponse.experienceAnalysis.tenureAnalysis.pattern === 'STABLE' ? 'bg-green-50 text-green-700' :
+                      fullResponse.experienceAnalysis.tenureAnalysis.pattern === 'MIXED' ? 'bg-yellow-50 text-yellow-700' :
+                      'bg-red-50 text-red-700'
+                    }`}>
+                      {fullResponse.experienceAnalysis.tenureAnalysis.pattern}
+                    </Badge>
+                    {fullResponse.experienceAnalysis.tenureAnalysis.patternExplanation && (
+                      <span className="text-xs text-gray-600">{fullResponse.experienceAnalysis.tenureAnalysis.patternExplanation}</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1290,105 +1655,6 @@ export function ResumeProfilesList() {
           </div>
         )}
 
-        {/* Section A: Skills & Competency */}
-        {detailedBreakdown.sectionA && (
-          <div>
-            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
-              Section A: Skills & Competency ({fullResponse.sectionA ?? 0}/30 pts)
-            </h5>
-            <div className="space-y-2">
-              {detailedBreakdown.sectionA.A1_skillsMatch && renderSubsectionItem('A1: Skills Match', detailedBreakdown.sectionA.A1_skillsMatch, 15)}
-              {detailedBreakdown.sectionA.A1_coreTechStackMatch && renderSubsectionItem('A1: Core Skills Match', detailedBreakdown.sectionA.A1_coreTechStackMatch, 15)}
-              {detailedBreakdown.sectionA.A2_skillDepth && renderSubsectionItem('A2: Skill Depth & Recency', detailedBreakdown.sectionA.A2_skillDepth, 10)}
-              {detailedBreakdown.sectionA.A2_skillRecency && renderSubsectionItem('A2: Skill Recency', detailedBreakdown.sectionA.A2_skillRecency, 10)}
-              {detailedBreakdown.sectionA.A3_toolsMatch && renderSubsectionItem('A3: Tools/Systems Match', detailedBreakdown.sectionA.A3_toolsMatch, 5)}
-              {detailedBreakdown.sectionA.A3_requiredToolVolume && renderSubsectionItem('A3: Required Tools', detailedBreakdown.sectionA.A3_requiredToolVolume, 5)}
-            </div>
-          </div>
-        )}
-
-        {/* Section B: Experience */}
-        {detailedBreakdown.sectionB && (
-          <div>
-            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Section B: Experience Alignment ({fullResponse.sectionB ?? 0}/25 pts)
-            </h5>
-            <div className="space-y-2">
-              {detailedBreakdown.sectionB.B1_yearsExperience && renderSubsectionItem('B1: Years of Experience', detailedBreakdown.sectionB.B1_yearsExperience, 10)}
-              {detailedBreakdown.sectionB.B1_qualifiedYears && renderSubsectionItem('B1: Qualified Years', detailedBreakdown.sectionB.B1_qualifiedYears, 10)}
-              {detailedBreakdown.sectionB.B2_seniorityMatch && renderSubsectionItem('B2: Seniority Match', detailedBreakdown.sectionB.B2_seniorityMatch, 10)}
-              {detailedBreakdown.sectionB.B2_seniorityValidation && renderSubsectionItem('B2: Seniority Validation', detailedBreakdown.sectionB.B2_seniorityValidation, 10)}
-              {detailedBreakdown.sectionB.B3_stability && renderSubsectionItem('B3: Career Stability', detailedBreakdown.sectionB.B3_stability, 5)}
-              {detailedBreakdown.sectionB.B3_jobStability && renderSubsectionItem('B3: Job Stability', detailedBreakdown.sectionB.B3_jobStability, 5)}
-            </div>
-          </div>
-        )}
-
-        {/* Section C: Impact & Achievements */}
-        {detailedBreakdown.sectionC && (
-          <div>
-            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Section C: Impact & Achievements ({fullResponse.sectionC ?? 0}/20 pts)
-            </h5>
-            <div className="space-y-2">
-              {detailedBreakdown.sectionC.C1_quantifiedResults && renderSubsectionItem('C1: Quantified Results', detailedBreakdown.sectionC.C1_quantifiedResults, 12)}
-              {detailedBreakdown.sectionC.C1_scopeComplexity && renderSubsectionItem('C1: Scope & Complexity', detailedBreakdown.sectionC.C1_scopeComplexity, 12)}
-              {detailedBreakdown.sectionC.C2_softSkills && renderSubsectionItem('C2: Soft Skills Evidence', detailedBreakdown.sectionC.C2_softSkills, 8)}
-              {detailedBreakdown.sectionC.C2_softSkillMatch && renderSubsectionItem('C2: Soft Skill Match', detailedBreakdown.sectionC.C2_softSkillMatch, 8)}
-            </div>
-          </div>
-        )}
-
-        {/* Section D: Qualifications */}
-        {detailedBreakdown.sectionD && (
-          <div>
-            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              Section D: Qualifications ({fullResponse.sectionD ?? 0}/10 pts)
-            </h5>
-            <div className="space-y-2">
-              {renderSubsectionItem('D1: Education', detailedBreakdown.sectionD.D1_education, 5)}
-              {renderSubsectionItem('D2: Certifications', detailedBreakdown.sectionD.D2_certifications, 5)}
-            </div>
-          </div>
-        )}
-
-        {/* Section E: Logistics */}
-        {detailedBreakdown.sectionE && (
-          <div>
-            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Section E: Logistics & Compatibility ({fullResponse.sectionE ?? 0}/10 pts)
-            </h5>
-            <div className="space-y-2">
-              {detailedBreakdown.sectionE.E1_location && renderSubsectionItem('E1: Location Match', detailedBreakdown.sectionE.E1_location, 4)}
-              {detailedBreakdown.sectionE.E1_languageMatch && renderSubsectionItem('E1: Language Match', detailedBreakdown.sectionE.E1_languageMatch, 4)}
-              {detailedBreakdown.sectionE.E2_language && renderSubsectionItem('E2: Language', detailedBreakdown.sectionE.E2_language, 3)}
-              {detailedBreakdown.sectionE.E2_locationMatch && renderSubsectionItem('E2: Location', detailedBreakdown.sectionE.E2_locationMatch, 3)}
-              {detailedBreakdown.sectionE.E3_contactQuality && renderSubsectionItem('E3: Contact & Resume Quality', detailedBreakdown.sectionE.E3_contactQuality, 3)}
-              {detailedBreakdown.sectionE.E3_contactability && renderSubsectionItem('E3: Contactability', detailedBreakdown.sectionE.E3_contactability, 3)}
-            </div>
-          </div>
-        )}
-
-        {/* Section F: Bonus & Penalties */}
-        {detailedBreakdown.sectionF && (
-          <div>
-            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Section F: Bonus & Penalties ({fullResponse.sectionF ?? 0} pts)
-            </h5>
-            <div className="space-y-2">
-              {detailedBreakdown.sectionF.bonusPoints && renderSubsectionItem('Bonus Points', detailedBreakdown.sectionF.bonusPoints, 5)}
-              {detailedBreakdown.sectionF.penalties && renderSubsectionItem('Penalties', detailedBreakdown.sectionF.penalties, undefined)}
-              {detailedBreakdown.sectionF.F1_disqualification && renderSubsectionItem('Disqualification Check', detailedBreakdown.sectionF.F1_disqualification, undefined)}
-              {detailedBreakdown.sectionF.F2_bonusPoints && renderSubsectionItem('Bonus Points', detailedBreakdown.sectionF.F2_bonusPoints, 5)}
-            </div>
-          </div>
-        )}
       </div>
     );
 

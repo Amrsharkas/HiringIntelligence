@@ -813,7 +813,11 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
     "domainMatchLevel": "EXACT|ADJACENT|TRANSFERABLE|PIVOT_REQUIRED|MISMATCH",
     "domainMatchScore": 0-100,
     "domainPenaltyPercent": 0-85,
-    "transferabilityNotes": "Specific skills that transfer or don't"
+    "transferabilityNotes": "Specific skills that transfer or don't",
+    "domainMatchExplanation": "Detailed explanation of why this match level was assigned and what it means for this role",
+    "crossoverSkills": ["List of skills from candidate's domain that directly apply to the job domain"],
+    "domainGaps": ["List of domain-specific knowledge/skills the candidate lacks due to coming from a different industry"],
+    "industryContext": "Explanation of the candidate's industry background and how it relates to the target role"
   },
 
   "matchSummary": "3-4 sentence brutally honest assessment written for the hiring manager",
@@ -823,7 +827,7 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
   ],
 
   "improvementAreas": [
-    {"gap": "What's missing", "severity": "CRITICAL|MAJOR|MINOR", "jobRequirement": "Exact requirement from Job Description", "impact": "Business impact of this gap", "trainable": true|false}
+    {"gap": "What's missing", "severity": "CRITICAL|MAJOR|MINOR", "jobRequirement": "Exact requirement from Job Description", "impact": "Business impact of this gap", "trainable": true|false, "recommendation": "Specific actionable suggestion to address this gap", "timeToAddress": "Estimated time to acquire this skill/close this gap (e.g., '2-3 months', '6+ months')", "evidenceFromResume": "Quote or reference from resume that indicates this gap exists", "workaround": "Potential alternative approach if the gap cannot be directly addressed"}
   ],
 
   "skillAnalysis": {
@@ -842,25 +846,45 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
 
   "experienceAnalysis": {
     "totalYears": 0,
+    "totalMonths": 0,
+    "totalExperienceFormatted": "X years Y months",
     "relevantYears": 0,
+    "relevantMonths": 0,
+    "relevantExperienceFormatted": "X years Y months",
     "domainYears": 0,
+    "domainMonths": 0,
+    "domainExperienceFormatted": "X years Y months",
+    "experienceSummary": "2-3 sentence summary of the candidate's career trajectory and experience highlights",
     "careerProgression": "ASCENDING|STABLE|MIXED|DESCENDING",
+    "progressionExplanation": "Detailed explanation of career progression pattern with specific examples from resume",
     "velocityAssessment": "Fast-tracker|Normal progression|Slow progression|Stagnant",
+    "velocityExplanation": "Explanation of how quickly the candidate has advanced in their career",
     "seniorityMatch": {
       "jobRequiredLevel": "Level from Job Description",
       "candidateLevel": "Level from resume",
       "match": "EXACT|OVERQUALIFIED|UNDERQUALIFIED|MISMATCH",
       "gapSize": 0,
+      "gapExplanation": "Detailed explanation of the seniority gap and its implications",
       "evidence": ["Specific evidence items"]
     },
     "roleTimeline": [
-      {"company": "Name", "title": "Title", "duration": "X years", "relevance": "HIGH|MEDIUM|LOW", "keyAchievement": "Best result from this role"}
+      {"company": "Name", "title": "Title", "startDate": "Month Year", "endDate": "Month Year or Present", "durationYears": 0, "durationMonths": 0, "duration": "X years Y months", "relevance": "HIGH|MEDIUM|LOW", "relevanceReason": "Why this role is relevant or not to the job", "keyAchievement": "Best result from this role", "skillsUsed": ["Key skills used in this role"]}
+    ],
+    "employmentGaps": [
+      {"gapStart": "Month Year", "gapEnd": "Month Year", "durationMonths": 0, "severity": "MINOR|MODERATE|SIGNIFICANT", "possibleReason": "Potential explanation if apparent from resume context"}
+    ],
+    "industryExperience": [
+      {"industry": "Industry name", "years": 0, "months": 0, "formatted": "X years Y months", "relevance": "HIGH|MEDIUM|LOW"}
     ],
     "tenureAnalysis": {
       "averageTenure": 0,
+      "averageTenureFormatted": "X years Y months",
       "longestTenure": 0,
+      "longestTenureFormatted": "X years Y months",
       "shortestTenure": 0,
-      "pattern": "STABLE|MIXED|CONCERNING"
+      "shortestTenureFormatted": "X years Y months",
+      "pattern": "STABLE|MIXED|CONCERNING",
+      "patternExplanation": "Explanation of tenure pattern and what it indicates about the candidate"
     }
   },
 
