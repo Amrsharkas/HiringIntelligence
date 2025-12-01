@@ -1071,6 +1071,11 @@ export function ResumeProfilesList() {
                             <span className="font-medium">Job Requirement:</span> {item.jobRequirement || item.jdRequirement}
                           </div>
                         )}
+                        {item.reason && (
+                          <div className="text-xs text-gray-700 mt-1">
+                            <span className="font-medium">Why it's a gap:</span> {item.reason}
+                          </div>
+                        )}
                         {item.impact && (
                           <div className="text-xs text-red-600 mt-1">
                             <span className="font-medium">Impact:</span> {item.impact}
@@ -1159,11 +1164,53 @@ export function ResumeProfilesList() {
               <p className="text-xs text-gray-600 mt-2">{fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes}</p>
             )}
 
+            {/* Match Rationale - Step by step reasoning */}
+            {fullResponse.domainAnalysis.matchRationale && (
+              <div className="mt-3 p-2 bg-white/60 rounded border border-indigo-100">
+                <span className="text-xs font-medium text-indigo-700">Match Rationale:</span>
+                <p className="text-xs text-gray-700 mt-1 whitespace-pre-line">{fullResponse.domainAnalysis.matchRationale}</p>
+              </div>
+            )}
+
             {/* Domain Match Explanation */}
             {fullResponse.domainAnalysis.domainMatchExplanation && (
-              <div className="mt-3 p-2 bg-white/60 rounded border border-indigo-100">
+              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
                 <span className="text-xs font-medium text-indigo-700">Match Explanation:</span>
                 <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.domainMatchExplanation}</p>
+              </div>
+            )}
+
+            {/* Domain Risk Assessment */}
+            {(fullResponse.domainAnalysis.domainRiskLevel || fullResponse.domainAnalysis.rampUpEstimate) && (
+              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
+                <div className="flex items-center gap-2 mb-1">
+                  {fullResponse.domainAnalysis.domainRiskLevel && (
+                    <Badge variant="outline" className={`text-xs ${
+                      fullResponse.domainAnalysis.domainRiskLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-300' :
+                      fullResponse.domainAnalysis.domainRiskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                      fullResponse.domainAnalysis.domainRiskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
+                      'bg-green-100 text-green-700 border-green-300'
+                    }`}>
+                      {fullResponse.domainAnalysis.domainRiskLevel} Risk
+                    </Badge>
+                  )}
+                  {fullResponse.domainAnalysis.rampUpEstimate && (
+                    <span className="text-xs text-gray-600">
+                      <span className="font-medium">Ramp-up:</span> {fullResponse.domainAnalysis.rampUpEstimate}
+                    </span>
+                  )}
+                </div>
+                {fullResponse.domainAnalysis.domainRiskExplanation && (
+                  <p className="text-xs text-gray-700">{fullResponse.domainAnalysis.domainRiskExplanation}</p>
+                )}
+              </div>
+            )}
+
+            {/* Previous Domain Transitions */}
+            {fullResponse.domainAnalysis.previousDomainTransitions && (
+              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
+                <span className="text-xs font-medium text-indigo-700">Previous Domain Transitions:</span>
+                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.previousDomainTransitions}</p>
               </div>
             )}
 
@@ -1193,11 +1240,43 @@ export function ResumeProfilesList() {
             {fullResponse.domainAnalysis.domainGaps && fullResponse.domainAnalysis.domainGaps.length > 0 && (
               <div className="mt-2">
                 <span className="text-xs font-medium text-red-700">Domain-Specific Gaps:</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {fullResponse.domainAnalysis.domainGaps.map((gap: string, i: number) => (
-                    <Badge key={i} variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                      {gap}
-                    </Badge>
+                <div className="space-y-2 mt-1">
+                  {fullResponse.domainAnalysis.domainGaps.map((gap: any, i: number) => (
+                    typeof gap === 'string' ? (
+                      <Badge key={i} variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200 mr-1">
+                        {gap}
+                      </Badge>
+                    ) : (
+                      <div key={i} className="p-2 bg-red-50/50 rounded border border-red-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-red-800">{gap.gap}</span>
+                          {gap.importance && (
+                            <Badge variant="outline" className={`text-xs ${
+                              gap.importance === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-300' :
+                              gap.importance === 'IMPORTANT' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                              'bg-yellow-100 text-yellow-700 border-yellow-300'
+                            }`}>
+                              {gap.importance}
+                            </Badge>
+                          )}
+                        </div>
+                        {gap.reason && (
+                          <p className="text-xs text-gray-600 mt-1">{gap.reason}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1">
+                          {gap.canBeLearnedOnJob !== undefined && (
+                            <span className={`text-xs ${gap.canBeLearnedOnJob ? 'text-green-600' : 'text-gray-500'}`}>
+                              {gap.canBeLearnedOnJob ? '✓ Can learn on job' : '✗ Requires prior experience'}
+                            </span>
+                          )}
+                          {gap.estimatedRampUpTime && (
+                            <span className="text-xs text-gray-500">
+                              Ramp-up: {gap.estimatedRampUpTime}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
                   ))}
                 </div>
               </div>

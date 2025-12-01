@@ -808,16 +808,23 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
   },
 
   "domainAnalysis": {
-    "jobDescriptionDomain": "Industry/Field from Job Description",
-    "candidateDomain": "Industry/Field from Resume",
+    "jobDescriptionDomain": "Industry/Field from Job Description (e.g., 'FinTech', 'Healthcare SaaS', 'E-commerce')",
+    "candidateDomain": "Industry/Field from Resume (e.g., 'Banking Technology', 'EdTech', 'Retail')",
     "domainMatchLevel": "EXACT|ADJACENT|TRANSFERABLE|PIVOT_REQUIRED|MISMATCH",
     "domainMatchScore": 0-100,
     "domainPenaltyPercent": 0-85,
     "transferabilityNotes": "Specific skills that transfer or don't",
     "domainMatchExplanation": "Detailed explanation of why this match level was assigned and what it means for this role",
+    "matchRationale": "Step-by-step reasoning for the domain match assessment: 1) What domain does the JD require? 2) What domain is the candidate from? 3) What are the overlaps? 4) What are the gaps? 5) Final verdict",
     "crossoverSkills": ["List of skills from candidate's domain that directly apply to the job domain"],
-    "domainGaps": ["List of domain-specific knowledge/skills the candidate lacks due to coming from a different industry"],
-    "industryContext": "Explanation of the candidate's industry background and how it relates to the target role"
+    "domainGaps": [
+      {"gap": "Specific domain knowledge gap", "reason": "Why this gap exists and how it was identified", "importance": "CRITICAL|IMPORTANT|MINOR", "canBeLearnedOnJob": true|false, "estimatedRampUpTime": "Time estimate to close this gap"}
+    ],
+    "industryContext": "Explanation of the candidate's industry background and how it relates to the target role",
+    "domainRiskLevel": "LOW|MEDIUM|HIGH|CRITICAL",
+    "domainRiskExplanation": "Explanation of the risk level - what could go wrong if domain mismatch is ignored, and what mitigates the risk",
+    "rampUpEstimate": "Estimated time for candidate to become fully effective in this domain (e.g., '1-2 months', '3-6 months', '6+ months')",
+    "previousDomainTransitions": "Evidence from resume of successful domain/industry transitions in the past, if any"
   },
 
   "matchSummary": "3-4 sentence brutally honest assessment written for the hiring manager",
@@ -827,7 +834,7 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
   ],
 
   "improvementAreas": [
-    {"gap": "What's missing", "severity": "CRITICAL|MAJOR|MINOR", "jobRequirement": "Exact requirement from Job Description", "impact": "Business impact of this gap", "trainable": true|false, "recommendation": "Specific actionable suggestion to address this gap", "timeToAddress": "Estimated time to acquire this skill/close this gap (e.g., '2-3 months', '6+ months')", "evidenceFromResume": "Quote or reference from resume that indicates this gap exists", "workaround": "Potential alternative approach if the gap cannot be directly addressed"}
+    {"gap": "What's missing", "reason": "Detailed explanation of WHY this is considered a gap - connect the job requirement to specific missing evidence, explain how you determined this gap exists based on what the resume shows vs what the job demands", "severity": "CRITICAL|MAJOR|MINOR", "jobRequirement": "Exact requirement from Job Description", "impact": "Business impact of this gap", "trainable": true|false, "recommendation": "Specific actionable suggestion to address this gap", "timeToAddress": "Estimated time to acquire this skill/close this gap (e.g., '2-3 months', '6+ months')", "evidenceFromResume": "Quote or reference from resume that indicates this gap exists", "workaround": "Potential alternative approach if the gap cannot be directly addressed"}
   ],
 
   "skillAnalysis": {
