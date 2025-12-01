@@ -1139,10 +1139,10 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
         const sectionE = Math.max(0, Math.min(10, result.sectionE || 0));
         const sectionF = Math.max(-5, Math.min(5, result.sectionF || 0));
 
-        // Map section scores to backward-compatible dimension scores (0-100)
-        const technicalSkillsScore = sectionA > 0 ? Math.round((sectionA / 30) * 100) : Math.max(0, Math.min(100, result.technicalSkillsScore || 0));
-        const experienceScore = sectionB > 0 ? Math.round((sectionB / 25) * 100) : Math.max(0, Math.min(100, result.experienceScore || 0));
-        const culturalFitScore = sectionC > 0 ? Math.round((sectionC / 20) * 100) : Math.max(0, Math.min(100, result.culturalFitScore || 0));
+        // Use original dimension scores from AI results (0-100)
+        const technicalSkillsScore = Math.max(0, Math.min(100, result.technicalSkillsScore || 0));
+        const experienceScore = Math.max(0, Math.min(100, result.experienceScore || 0));
+        const culturalFitScore = Math.max(0, Math.min(100, result.culturalFitScore || 0));
 
         // Calculate overall score: sum of all sections (A+B+C+D+E+F, max 100)
         const calculatedOverallScore = result.overallScore !== undefined
@@ -1193,10 +1193,10 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
       const sectionE = Math.max(0, Math.min(10, result.sectionE || 0));
       const sectionF = Math.max(-5, Math.min(5, result.sectionF || 0));
 
-      // Map section scores to backward-compatible dimension scores (0-100)
-      const technicalSkillsScore = sectionA > 0 ? Math.round((sectionA / 30) * 100) : Math.max(0, Math.min(100, result.technicalSkillsScore || 0));
-      const experienceScore = sectionB > 0 ? Math.round((sectionB / 25) * 100) : Math.max(0, Math.min(100, result.experienceScore || 0));
-      const culturalFitScore = sectionC > 0 ? Math.round((sectionC / 20) * 100) : Math.max(0, Math.min(100, result.culturalFitScore || 0));
+      // Use original dimension scores from AI results (0-100)
+      const technicalSkillsScore = Math.max(0, Math.min(100, result.technicalSkillsScore || 0));
+      const experienceScore = Math.max(0, Math.min(100, result.experienceScore || 0));
+      const culturalFitScore = Math.max(0, Math.min(100, result.culturalFitScore || 0));
 
       // Calculate overall score: sum of all sections (A+B+C+D+E+F, max 100)
       const calculatedOverallScore = result.overallScore !== undefined
