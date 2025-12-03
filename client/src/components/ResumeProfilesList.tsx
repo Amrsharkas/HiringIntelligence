@@ -2602,7 +2602,7 @@ export function ResumeProfilesList() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {totalItems > 0 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}</span>
