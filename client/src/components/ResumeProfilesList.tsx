@@ -2706,7 +2706,7 @@ export function ResumeProfilesList() {
                                 </div>
                               </div>
                               <div className="flex gap-2">
-                                {jobScore.invitationStatus !== 'invited' && !jobScore.disqualified && (
+                                {jobScore.invitationStatus !== 'invited' &&  (
                                   <Button
                                     variant="default"
                                     size="sm"
