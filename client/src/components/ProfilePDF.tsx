@@ -1047,34 +1047,6 @@ export const ProfilePDF: React.FC<ProfilePDFProps> = ({
                     </View>
                   )}
 
-                  {/* Score Grid */}
-                  <View style={styles.scoreContainer} wrap={false}>
-                    <View style={styles.scoreItem}>
-                      <Text style={styles.scoreLabel}>Technical</Text>
-                      <Text style={[styles.scoreValue, { color: getScoreColor(jobScore.technicalSkillsScore) }]}>
-                        {jobScore.technicalSkillsScore}%
-                      </Text>
-                    </View>
-                    <View style={styles.scoreItem}>
-                      <Text style={styles.scoreLabel}>Experience</Text>
-                      <Text style={[styles.scoreValue, { color: getScoreColor(jobScore.experienceScore) }]}>
-                        {jobScore.experienceScore}%
-                      </Text>
-                    </View>
-                    <View style={styles.scoreItem}>
-                      <Text style={styles.scoreLabel}>Cultural Fit</Text>
-                      <Text style={[styles.scoreValue, { color: getScoreColor(jobScore.culturalFitScore) }]}>
-                        {jobScore.culturalFitScore}%
-                      </Text>
-                    </View>
-                    <View style={styles.scoreItem}>
-                      <Text style={styles.scoreLabel}>Overall</Text>
-                      <Text style={[styles.scoreValue, { color: getScoreColor(jobScore.overallScore) }]}>
-                        {jobScore.overallScore}%
-                      </Text>
-                    </View>
-                  </View>
-
                   {/* Executive Summary */}
                   {fullResponse?.executiveSummary && (
                     <View style={styles.executiveSummary} wrap={false}>
