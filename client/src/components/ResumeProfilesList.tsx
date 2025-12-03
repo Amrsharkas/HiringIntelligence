@@ -118,7 +118,7 @@ export function ResumeProfilesList() {
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
+        limit: itemsPerPage === -1 ? '10000' : itemsPerPage.toString(),
       });
 
       // Add search term if exists
@@ -2269,7 +2269,7 @@ export function ResumeProfilesList() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete All Profiles</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete all {profiles.length} resume profiles?
+                        Are you sure you want to delete all {totalItems} resume profiles?
                         This action cannot be undone and will permanently remove all candidate data.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -2470,11 +2470,11 @@ export function ResumeProfilesList() {
               {totalItems > 0 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}</span>
+                    <span>Showing {itemsPerPage === -1 ? `all ${totalItems}` : `${((currentPage - 1) * itemsPerPage) + 1} - ${Math.min(currentPage * itemsPerPage, totalItems)} of ${totalItems}`}</span>
                     <Select
-                      value={itemsPerPage.toString()}
+                      value={itemsPerPage === -1 ? "all" : itemsPerPage.toString()}
                       onValueChange={(value) => {
-                        setItemsPerPage(Number(value));
+                        setItemsPerPage(value === "all" ? -1 : Number(value));
                         setCurrentPage(1);
                       }}
                     >
@@ -2485,6 +2485,7 @@ export function ResumeProfilesList() {
                         <SelectItem value="10">10</SelectItem>
                         <SelectItem value="20">20</SelectItem>
                         <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="all">All</SelectItem>
                       </SelectContent>
                     </Select>
                     <span>per page</span>
