@@ -2741,22 +2741,6 @@ export function ResumeProfilesList() {
                                     {jobScore.disqualificationReason && (
                                       <p className="text-sm text-red-700 mb-3">{jobScore.disqualificationReason}</p>
                                     )}
-
-                                    {/* Score Display */}
-                                    <div className="grid grid-cols-3 gap-3">
-                                      <div className="text-center p-3 bg-white rounded border">
-                                        <div className="text-2xl font-bold text-red-600">{jobScore.overallScore}%</div>
-                                        <div className="text-xs text-red-600">Overall</div>
-                                      </div>
-                                      <div className="text-center p-3 bg-white rounded border">
-                                        <div className="text-2xl font-bold text-red-600">{jobScore.technicalSkillsScore}%</div>
-                                        <div className="text-xs text-red-600">Technical</div>
-                                      </div>
-                                      <div className="text-center p-3 bg-white rounded border">
-                                        <div className="text-2xl font-bold text-red-600">{jobScore.experienceScore}%</div>
-                                        <div className="text-xs text-red-600">Experience</div>
-                                      </div>
-                                    </div>
                                   </div>
 
                                   {/* Key Skill Gaps */}
@@ -2808,29 +2792,6 @@ export function ResumeProfilesList() {
                             {/* Regular Score Breakdown (for non-disqualified) */}
                             {!jobScore.disqualified && (
                               <>
-                                <div className="grid grid-cols-3 gap-4 mb-4">
-                                  <div>
-                                    <div className="text-xs text-muted-foreground mb-1">Technical Skills</div>
-                                    <div className={`text-lg font-semibold ${getScoreColor(jobScore.technicalSkillsScore)}`}>
-                                      {jobScore.technicalSkillsScore}%
-                                    </div>
-                                    <Progress value={jobScore.technicalSkillsScore} className="h-2 mt-1" />
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-muted-foreground mb-1">Experience</div>
-                                    <div className={`text-lg font-semibold ${getScoreColor(jobScore.experienceScore)}`}>
-                                      {jobScore.experienceScore}%
-                                    </div>
-                                    <Progress value={jobScore.experienceScore} className="h-2 mt-1" />
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-muted-foreground mb-1">Cultural Fit</div>
-                                    <div className={`text-lg font-semibold ${getScoreColor(jobScore.culturalFitScore)}`}>
-                                      {jobScore.culturalFitScore}%
-                                    </div>
-                                    <Progress value={jobScore.culturalFitScore} className="h-2 mt-1" />
-                                  </div>
-                                </div>
                                 {jobScore.matchSummary && (
                                   <p className="text-sm text-muted-foreground mb-4">{jobScore.matchSummary}</p>
                                 )}
