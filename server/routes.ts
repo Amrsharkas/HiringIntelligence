@@ -5519,10 +5519,34 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   // because we need to calculate credits based on number of jobs when processing against all jobs
   app.post('/api/resume-profiles/process', requireAuthOrService, async (req: any, res) => {
     try {
-      // Get user and organization info from middleware
-      const isServiceCall = req.isServiceCall;
-      const organization = req.organization;
-      const userId = isServiceCall ? req.body.userId : req.user.id;
+      // Determine if this is a service call (requireAuthOrService doesn't set this)
+      const serviceApiKey = process.env.SERVICE_API_KEY;
+      const authHeader = req.headers.authorization;
+      const isServiceCall = !!(serviceApiKey && authHeader && authHeader.replace('Bearer ', '').trim() === serviceApiKey);
+
+      // Get user ID based on call type
+      const userId = isServiceCall ? req.body.userId : req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID is required" });
+      }
+
+      // Get organization based on call type
+      let organization;
+      if (isServiceCall) {
+        // For service calls, organizationId should be in the request body
+        const organizationId = req.body.organizationId;
+        if (!organizationId) {
+          return res.status(400).json({ message: "Organization ID is required for service calls" });
+        }
+        organization = { id: organizationId };
+      } else {
+        // For user calls, get organization from user
+        organization = await storage.getOrganizationByUser(userId);
+        if (!organization) {
+          return res.status(404).json({ message: "Organization not found" });
+        }
+      }
+
       const organizationId = organization.id;
 
       console.log(`📋 Resume processing request: ${isServiceCall ? 'Service call' : 'User call'} for org ${organizationId}`);
