@@ -38,6 +38,13 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
     queryKey: ['/api/credits/pricing/resume_processing'],
   });
 
+  // Calculate the number of jobs to process against
+  const activeJobCount = jobs.filter((job: any) => job.is_active !== false).length;
+  const targetJobCount = processingJobId === 'all' ? activeJobCount : 1;
+
+  // Calculate total credit cost: files * jobs * cost per processing
+  const totalCreditCost = selectedFiles.length * targetJobCount * resumeProcessingCost.cost;
+
   
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,11 +154,12 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         const response = await apiRequest('POST', '/api/resume-profiles/process', requestBody);
         const result = await response.json();
 
-        console.log(`📋 Created background job ${result.jobId} for ${file.name}`);
+        console.log(`📋 Created background jobs for ${file.name}: ${result.jobIds?.length || 1} queue jobs`);
 
         return {
-          jobId: result.jobId,
-          fileCount: 1,
+          jobIds: result.jobIds,
+          fileCount: result.fileCount || 1,
+          jobCount: result.jobCount || 1,
           message: result.message,
           status: result.status,
           creditBalance: result.creditBalance
@@ -187,11 +195,13 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
         const response = await apiRequest('POST', '/api/resume-profiles/process-bulk', requestBody);
         const result = await response.json();
 
-        console.log(`📋 Created background bulk job ${result.jobId} for ${result.fileCount} files`);
+        console.log(`📋 Created background bulk jobs: ${result.totalQueueJobs || result.fileCount} queue jobs (${result.fileCount} files x ${result.jobCount || 1} jobs)`);
 
         return {
-          jobId: result.jobId,
+          jobIds: result.jobIds,
           fileCount: result.fileCount,
+          jobCount: result.jobCount || 1,
+          totalQueueJobs: result.totalQueueJobs,
           message: result.message,
           status: result.status,
           creditBalance: result.creditBalance
@@ -199,9 +209,10 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
       }
     },
     onSuccess: (result) => {
+      const jobCount = result.jobCount || 1;
       toast({
         title: "Resume Processing Started",
-        description: `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed in the background. Check the "View Profiles" tab to see progress.`,
+        description: result.message || `${result.fileCount} file${result.fileCount > 1 ? 's' : ''} are being processed against ${jobCount} job${jobCount > 1 ? 's' : ''} in the background. Check the "View Profiles" tab to see progress.`,
       });
 
       // Update credit balance immediately if returned in response
@@ -406,11 +417,11 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                         </span>
                       </div>
                       <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        {selectedFiles.length * resumeProcessingCost.cost} credit{(selectedFiles.length * resumeProcessingCost.cost) !== 1 ? 's' : ''}
+                        {totalCreditCost} credit{totalCreditCost !== 1 ? 's' : ''}
                       </Badge>
                     </div>
                     <p className="text-xs text-blue-700 mt-1">
-                      Each resume processing requires {resumeProcessingCost.cost} credit{resumeProcessingCost.cost !== 1 ? 's' : ''}
+                      {selectedFiles.length} resume{selectedFiles.length !== 1 ? 's' : ''} x {targetJobCount} job{targetJobCount !== 1 ? 's' : ''} x {resumeProcessingCost.cost} credit{resumeProcessingCost.cost !== 1 ? 's' : ''} each
                     </p>
                   </div>
                 )}

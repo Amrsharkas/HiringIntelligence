@@ -5515,7 +5515,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Process single resume (background job)
-  app.post('/api/resume-profiles/process', requireAuthOrService, requireResumeProcessingCredits, async (req: any, res) => {
+  // Note: We handle credit deduction manually here instead of using requireResumeProcessingCredits middleware
+  // because we need to calculate credits based on number of jobs when processing against all jobs
+  app.post('/api/resume-profiles/process', requireAuthOrService, async (req: any, res) => {
     try {
       // Get user and organization info from middleware
       const isServiceCall = req.isServiceCall;
@@ -5538,21 +5540,71 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Create background job for processing
       const { addSingleResumeProcessingJob } = await import('./jobProducers');
 
-      const job = await addSingleResumeProcessingJob({
-        fileContent: resumeText,
-        fileName: fileName || 'resume.txt',
-        fileType: fileType || 'text/plain',
-        userId,
-        organizationId,
-        jobId,
-        customRules
-      });
+      // Determine how many jobs to process against
+      let targetJobs: any[] = [];
+      if (jobId) {
+        // Single job - just need 1 credit
+        const job = await storage.getJob(parseInt(jobId, 10));
+        if (!job || job.organizationId !== organization.id) {
+          return res.status(404).json({ message: "Job not found or doesn't belong to your organization" });
+        }
+        targetJobs = [job];
+      } else {
+        // All jobs - need 1 credit per job
+        targetJobs = await storage.getJobsByOrganization(organization.id);
+        if (targetJobs.length === 0) {
+          return res.status(400).json({ message: "No active jobs found. Please create at least one job posting first." });
+        }
+      }
 
-      console.log(`📋 Created background resume processing job ${job.id} for user ${userId}, file: ${fileName}`);
+      // Calculate and check credits (only for non-service calls)
+      const resumeProcessingCost = await creditService.getActionCost('resume_processing');
+      const totalCreditsRequired = targetJobs.length * resumeProcessingCost;
+
+      if (!isServiceCall) {
+        const hasCredits = await creditService.checkCredits(
+          organizationId,
+          totalCreditsRequired,
+          'cv_processing'
+        );
+
+        if (!hasCredits) {
+          const currentBalance = await creditService.getCreditBalance(organizationId);
+          return res.status(402).json({
+            message: `Insufficient credits. Processing resume against ${targetJobs.length} job${targetJobs.length !== 1 ? 's' : ''} requires ${totalCreditsRequired} credit${totalCreditsRequired !== 1 ? 's' : ''}, but you only have ${currentBalance?.cvProcessingCredits || 0} CV processing credits available.`,
+            requiredCredits: totalCreditsRequired,
+            availableCredits: currentBalance?.cvProcessingCredits || 0,
+            creditBalance: currentBalance
+          });
+        }
+      }
+
+      // Create separate queue jobs for each target job
+      const queueJobs = await Promise.all(
+        targetJobs.map(targetJob => addSingleResumeProcessingJob({
+          fileContent: resumeText,
+          fileName: fileName || 'resume.txt',
+          fileType: fileType || 'text/plain',
+          userId,
+          organizationId,
+          jobId: targetJob.id.toString(), // Always pass the specific jobId
+          customRules
+        }))
+      );
+
+      console.log(`📋 Created ${queueJobs.length} background resume processing job(s) for user ${userId}, file: ${fileName}`);
 
       // Deduct credits after successful job creation (only for non-service calls)
       if (!isServiceCall) {
-        await deductResumeProcessingCredits(req, res, () => {});
+        await creditService.deductCredits(
+          organizationId,
+          totalCreditsRequired,
+          'cv_processing',
+          'cv_processing',
+          `Resume processing: ${fileName} against ${targetJobs.length} job${targetJobs.length !== 1 ? 's' : ''}`,
+          jobId || undefined,
+          'resume_processing'
+        );
       }
 
       // Get updated credit balance for response
@@ -5560,8 +5612,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       res.json({
         success: true,
-        jobId: job.id,
-        message: "Resume processing started in background",
+        jobIds: queueJobs.map(j => j.id),
+        jobCount: targetJobs.length,
+        fileCount: 1,
+        message: `Resume processing started against ${targetJobs.length} job${targetJobs.length !== 1 ? 's' : ''}`,
         status: "processing",
         ...(creditBalance && { creditBalance })
       });
@@ -5605,9 +5659,27 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         }
       }
 
+      // Determine how many jobs to process against
+      let targetJobs: any[] = [];
+      if (jobId) {
+        // Single job - just need 1 credit per file
+        const job = await storage.getJob(parseInt(jobId, 10));
+        if (!job || job.organizationId !== organization.id) {
+          return res.status(404).json({ message: "Job not found or doesn't belong to your organization" });
+        }
+        targetJobs = [job];
+      } else {
+        // All jobs - need 1 credit per file per job
+        targetJobs = await storage.getJobsByOrganization(organization.id);
+        if (targetJobs.length === 0) {
+          return res.status(400).json({ message: "No active jobs found. Please create at least one job posting first." });
+        }
+      }
+
       // Check and validate credits for bulk processing
+      // Credits = files.length * targetJobs.length * cost per processing
       const resumeProcessingCost = await creditService.getActionCost('resume_processing');
-      const totalCreditsRequired = files.length * resumeProcessingCost;
+      const totalCreditsRequired = files.length * targetJobs.length * resumeProcessingCost;
 
       const hasCredits = await creditService.checkCredits(
         organization.id,
@@ -5618,29 +5690,33 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       if (!hasCredits) {
         const currentBalance = await creditService.getCreditBalance(organization.id);
         return res.status(402).json({
-          message: `Insufficient credits. Processing ${files.length} resume${files.length !== 1 ? 's' : ''} requires ${totalCreditsRequired} credit${totalCreditsRequired !== 1 ? 's' : ''}, but you only have ${currentBalance?.cvProcessingCredits || 0} CV processing credits available. Please contact admin to add more credits.`,
+          message: `Insufficient credits. Processing ${files.length} resume${files.length !== 1 ? 's' : ''} against ${targetJobs.length} job${targetJobs.length !== 1 ? 's' : ''} requires ${totalCreditsRequired} credit${totalCreditsRequired !== 1 ? 's' : ''}, but you only have ${currentBalance?.cvProcessingCredits || 0} CV processing credits available.`,
           requiredCredits: totalCreditsRequired,
           availableCredits: currentBalance?.cvProcessingCredits || 0,
           creditBalance: currentBalance
         });
       }
 
-      // Create background job for bulk processing
-      const { addBulkResumeProcessingJob } = await import('./jobProducers');
+      // Create background jobs for each file + job combination
+      const { addSingleResumeProcessingJob } = await import('./jobProducers');
 
-      const job = await addBulkResumeProcessingJob({
-        files: files.map(f => ({
-          name: f.name,
-          content: f.content,
-          type: f.type || 'text/plain'
-        })),
-        userId,
-        organizationId: organization.id,
-        jobId,
-        customRules
-      });
+      const allQueueJobs = [];
+      for (const file of files) {
+        for (const targetJob of targetJobs) {
+          const queueJob = await addSingleResumeProcessingJob({
+            fileContent: file.content,
+            fileName: file.name,
+            fileType: file.type || 'text/plain',
+            userId,
+            organizationId: organization.id,
+            jobId: targetJob.id.toString(), // Always pass the specific jobId
+            customRules
+          });
+          allQueueJobs.push(queueJob);
+        }
+      }
 
-      console.log(`📋 Created background bulk resume processing job ${job.id} for user ${userId}, ${files.length} files`);
+      console.log(`📋 Created ${allQueueJobs.length} background resume processing jobs for user ${userId}: ${files.length} files x ${targetJobs.length} jobs`);
 
       // Deduct credits for bulk processing
       await creditService.deductCredits(
@@ -5648,8 +5724,8 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         totalCreditsRequired,
         'cv_processing',
         'cv_processing',
-        `Bulk resume processing: ${files.length} file${files.length !== 1 ? 's' : ''}`,
-        jobId,
+        `Bulk resume processing: ${files.length} file${files.length !== 1 ? 's' : ''} against ${targetJobs.length} job${targetJobs.length !== 1 ? 's' : ''}`,
+        jobId || undefined,
         'resume_processing'
       );
 
@@ -5658,9 +5734,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       res.json({
         success: true,
-        jobId: job.id,
+        jobIds: allQueueJobs.map(j => j.id),
         fileCount: files.length,
-        message: "Bulk resume processing started in background",
+        jobCount: targetJobs.length,
+        totalQueueJobs: allQueueJobs.length,
+        message: `Bulk processing started: ${files.length} resume${files.length !== 1 ? 's' : ''} against ${targetJobs.length} job${targetJobs.length !== 1 ? 's' : ''}`,
         status: "processing",
         creditBalance: updatedBalance
       });

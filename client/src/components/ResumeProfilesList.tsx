@@ -16,9 +16,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Search, User, Briefcase, Star, Download, Trash2, Loader2, MailCheck, Mail, AlertTriangle, CheckCircle, FileText, Users, ChevronDown, ChevronRight, X } from 'lucide-react';
-import { BlobProvider } from '@react-pdf/renderer';
+import { Search, User, Briefcase, Star, Download, Trash2, Loader2, MailCheck, Mail, AlertTriangle, CheckCircle, FileText, Users, ChevronDown, ChevronRight, X, FileDown } from 'lucide-react';
+import { pdf } from '@react-pdf/renderer';
 import ProfilesPDF from '@/components/ProfilesPDF';
+import { ProfilePDF } from '@/components/ProfilePDF';
 
 interface ResumeProfile {
   id: string;
@@ -72,6 +73,8 @@ export function ResumeProfilesList() {
   const [selectedJobScore, setSelectedJobScore] = useState<JobScoring | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [exportingAll, setExportingAll] = useState(false);
+  const [exportingProfileId, setExportingProfileId] = useState<string | null>(null);
 
   // Fetch company job postings
   const { data: jobs = [] } = useQuery<any[]>({
@@ -318,62 +321,97 @@ export function ResumeProfilesList() {
     },
   });
 
-  // Export all filtered profiles as PDF
-  const exportAllProfiles = () => {
+  // Export all filtered profiles as PDF using async pdf() for better performance
+  const exportAllProfiles = async () => {
     // Get unique profiles from display rows
     const uniqueProfiles = Array.from(
       new Map(displayRows.map(row => [row.profileId, row.profile])).values()
     );
 
+    if (uniqueProfiles.length === 0) {
+      toast({
+        title: "No Profiles",
+        description: "There are no profiles to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setExportingAll(true);
     const fileName = `resume_profiles_export_${new Date().toISOString().split('T')[0]}.pdf`;
 
-    return (
-      <BlobProvider document={<ProfilesPDF profiles={uniqueProfiles} jobs={jobs} />}>
-        {({ blob, loading, error }) => {
-          if (loading) {
-            return (
-              <Button variant="outline" disabled>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
-              </Button>
-            );
-          }
+    try {
+      const blob = await pdf(<ProfilesPDF profiles={uniqueProfiles} jobs={jobs} />).toBlob();
 
-          if (error) {
-            return (
-              <Button variant="outline" disabled>
-                PDF Error
-              </Button>
-            );
-          }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-          const handleDownload = () => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = fileName;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
+      toast({
+        title: "PDF Exported",
+        description: `${uniqueProfiles.length} profiles have been exported successfully`,
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportingAll(false);
+    }
+  };
 
-              toast({
-                title: "PDF Exported",
-                description: `${uniqueProfiles.length} profiles have been exported successfully`,
-              });
-            }
-          };
+  // Export a single profile as PDF
+  const exportSingleProfile = async (profile: ProfileWithScores, jobScore?: JobScoring) => {
+    setExportingProfileId(profile.id);
 
-          return (
-            <Button variant="outline" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              Export All ({uniqueProfiles.length})
-            </Button>
-          );
-        }}
-      </BlobProvider>
-    );
+    // Create a profile with the specific job score if provided
+    const profileToExport = jobScore
+      ? { ...profile, jobScores: [jobScore] }
+      : profile;
+
+    const fileName = `${profile.name.replace(/\s+/g, '_')}_profile_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    try {
+      const blob = await pdf(
+        <ProfilePDF
+          profile={profileToExport}
+          jobs={jobs}
+          includeJobScores={true}
+          selectedJobId={jobScore?.jobId}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "PDF Exported",
+        description: `${profile.name}'s profile has been exported successfully`,
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportingProfileId(null);
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -2330,7 +2368,26 @@ export function ResumeProfilesList() {
             </div>
 
             <div className="flex gap-2">
-              {displayRows.length > 0 && exportAllProfiles()}
+              {displayRows.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportAllProfiles}
+                  disabled={exportingAll}
+                >
+                  {exportingAll ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export All ({Array.from(new Map(displayRows.map(row => [row.profileId, row.profile])).values()).length})
+                    </>
+                  )}
+                </Button>
+              )}
               {profiles.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -2493,6 +2550,20 @@ export function ResumeProfilesList() {
                               className="h-8 px-2 text-xs"
                             >
                               View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => exportSingleProfile(row.profile, row.jobScore)}
+                              disabled={exportingProfileId === row.profileId}
+                              className="h-8 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              title="Export PDF"
+                            >
+                              {exportingProfileId === row.profileId ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <FileDown className="h-3 w-3" />
+                              )}
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>

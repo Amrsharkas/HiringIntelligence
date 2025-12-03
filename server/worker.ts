@@ -109,126 +109,120 @@ const resumeProcessingWorker = new Worker(
 
         job.updateProgress(50);
 
-        // Score against jobs - either specific job or all organization jobs
-        let jobs;
-        if (numericJobId) {
-          // Score against specific job only
-          const job = await storage.getJob(numericJobId);
-          if (!job || job.organizationId !== organization.id) {
-            throw new Error('Job not found or doesn\'t belong to your organization');
-          }
-          jobs = [job];
-          console.log(`🎯 Scoring resume against specific job: ${job.title}`);
-        } else {
-          // Score against all organization jobs
-          jobs = await storage.getJobsByOrganization(organization.id);
-          console.log(`🎯 Scoring resume against all ${jobs.length} jobs`);
+        // Score against the specific job (jobId is now always required)
+        if (!numericJobId) {
+          throw new Error('Job ID is required for resume processing');
         }
+
+        const targetJob = await storage.getJob(numericJobId);
+        if (!targetJob || targetJob.organizationId !== organization.id) {
+          throw new Error('Job not found or doesn\'t belong to your organization');
+        }
+        console.log(`🎯 Scoring resume against job: ${targetJob.title}`);
 
         job.updateProgress(60);
 
-        // Process job scoring and invitations
-        for (let i = 0; i < jobs.length; i++) {
-          const jobItem = jobs[i];
-          try {
-            const jobScore = await resumeProcessingService.scoreResumeAgainstJob(
-              processedResume,
-              jobItem.title,
-              jobItem.description,
-              jobItem.requirements || jobItem.description,
-              customRules,
-              jobItem.id,
-              fileContent
-            );
+        // Process job scoring and invitation for the single job
+        try {
+          const jobScore = await resumeProcessingService.scoreResumeAgainstJob(
+            processedResume,
+            targetJob.title,
+            targetJob.description,
+            targetJob.requirements || targetJob.description,
+            customRules,
+            targetJob.id,
+            fileContent
+          );
 
-            await storage.createJobScore({
-              profileId: savedProfile.id,
-              jobId: jobItem.id,
-              ...jobScore,
-            });
+          await storage.createJobScore({
+            profileId: savedProfile.id,
+            jobId: targetJob.id,
+            ...jobScore,
+          });
 
-            // Auto-invite if score meets threshold
-            const threshold = typeof (jobItem as any).emailInviteThreshold === 'number' ? (jobItem as any).emailInviteThreshold : (typeof (jobItem as any).scoreMatchingThreshold === 'number' ? (jobItem as any).scoreMatchingThreshold : 30);
-            const overall = jobScore.overallScore ?? 0;
-            if (overall >= threshold && processedResume.email) {
-              const { localDatabaseService } = await import('./localDatabaseService');
-              const companyName = organization.companyName || 'Our Company';
+          job.updateProgress(80);
 
-              // Generate unique token and username
-              const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-              const names = (processedResume.name || '').trim().split(/\s+/);
-              const firstName = names[0] || '';
-              const lastName = names.slice(1).join(' ') || '';
+          // Auto-invite if score meets threshold
+          const threshold = typeof (targetJob as any).emailInviteThreshold === 'number' ? (targetJob as any).emailInviteThreshold : (typeof (targetJob as any).scoreMatchingThreshold === 'number' ? (targetJob as any).scoreMatchingThreshold : 30);
+          const overall = jobScore.overallScore ?? 0;
+          if (overall >= threshold && processedResume.email) {
+            const { localDatabaseService } = await import('./localDatabaseService');
+            const companyName = organization.companyName || 'Our Company';
 
-              // Create user profile in local database
-              try {
-                await localDatabaseService.createUserProfile({
-                  userId: savedProfile.id.toString(),
-                  name: processedResume.name || `${firstName} ${lastName}`.trim(),
-                  email: processedResume.email,
-                  phone: '',
-                  professionalSummary: processedResume.summary || '',
-                  experienceLevel: '',
-                  location: '',
-                  fileId: processedResume.fileId,
-                } as any);
-                console.log(`✅ Created user profile in local database`);
-              } catch (userErr) {
-                console.error('Error creating user profile in local database:', userErr);
-              }
+            // Generate unique token and username
+            const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+            const names = (processedResume.name || '').trim().split(/\s+/);
+            const firstName = names[0] || '';
+            const lastName = names.slice(1).join(' ') || '';
 
-              // Create interview invitation
-              try {
-                await localDatabaseService.createJobMatch({
-                  userId: savedProfile.id.toString(),
-                  jobId: jobItem.id.toString(),
-                  name: processedResume.name || processedResume.email,
-                  jobTitle: jobItem.title,
-                  jobDescription: jobItem.description,
-                  companyName: companyName,
-                  matchScore: overall,
-                  status: 'invited',
-                  interviewDate: new Date(),
-                  token: token,
-                } as any);
-                console.log(`✅ Created interview invitation in local database`);
-              } catch (aiErr) {
-                console.error('Error creating AI interview invitation:', aiErr);
-              }
-
-              // Send invitation email
-              const baseUrl = process.env.APPLICANTS_APP_URL || 'https://applicants.platohiring.com';
-              const invitationLink = `${baseUrl.replace(/\/$/, '')}/ai-interview-initation?token=${encodeURIComponent(token)}`;
-
-              const { emailService } = await import('./emailService');
-              emailService.sendInterviewInvitationEmail({
-                applicantName: processedResume.name || processedResume.email,
-                applicantEmail: processedResume.email,
-                jobTitle: jobItem.title,
-                companyName,
-                invitationLink,
-                matchScore: overall,
-                matchSummary: jobScore.matchSummary,
-              }).catch(err => console.warn('📧 Invitation email failed (non-blocking):', err));
+            // Create user profile in local database
+            try {
+              await localDatabaseService.createUserProfile({
+                userId: savedProfile.id.toString(),
+                name: processedResume.name || `${firstName} ${lastName}`.trim(),
+                email: processedResume.email,
+                phone: '',
+                professionalSummary: processedResume.summary || '',
+                experienceLevel: '',
+                location: '',
+                fileId: processedResume.fileId,
+              } as any);
+              console.log(`✅ Created user profile in local database`);
+            } catch (userErr) {
+              console.error('Error creating user profile in local database:', userErr);
             }
 
-            // Update progress based on job completion
-            job.updateProgress(60 + Math.floor((i + 1) / jobs.length * 30));
+            // Create interview invitation
+            try {
+              await localDatabaseService.createJobMatch({
+                userId: savedProfile.id.toString(),
+                jobId: targetJob.id.toString(),
+                name: processedResume.name || processedResume.email,
+                jobTitle: targetJob.title,
+                jobDescription: targetJob.description,
+                companyName: companyName,
+                matchScore: overall,
+                status: 'invited',
+                interviewDate: new Date(),
+                token: token,
+              } as any);
+              console.log(`✅ Created interview invitation in local database`);
+            } catch (aiErr) {
+              console.error('Error creating AI interview invitation:', aiErr);
+            }
 
-          } catch (error) {
-            console.error(`Error scoring resume against job ${jobItem.id}:`, error);
-            // Continue with other jobs even if one fails
+            // Send invitation email
+            const baseUrl = process.env.APPLICANTS_APP_URL || 'https://applicants.platohiring.com';
+            const invitationLink = `${baseUrl.replace(/\/$/, '')}/ai-interview-initation?token=${encodeURIComponent(token)}`;
+
+            const { emailService } = await import('./emailService');
+            emailService.sendInterviewInvitationEmail({
+              applicantName: processedResume.name || processedResume.email,
+              applicantEmail: processedResume.email,
+              jobTitle: targetJob.title,
+              companyName,
+              invitationLink,
+              matchScore: overall,
+              matchSummary: jobScore.matchSummary,
+            }).catch(err => console.warn('📧 Invitation email failed (non-blocking):', err));
           }
+
+          job.updateProgress(90);
+
+        } catch (error) {
+          console.error(`Error scoring resume against job ${targetJob.id}:`, error);
+          throw error; // Fail the job if scoring fails
         }
 
         job.updateProgress(100);
 
-        console.log(`✅ Successfully completed single resume processing for ${fileName}`);
+        console.log(`✅ Successfully completed single resume processing for ${fileName} against job ${targetJob.title}`);
         return {
           success: true,
           profile: savedProfile,
           processedResume,
-          scoresCount: jobs.length,
+          jobId: targetJob.id,
+          jobTitle: targetJob.title,
           message: 'Resume processed successfully'
         };
 

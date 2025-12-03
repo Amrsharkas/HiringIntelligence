@@ -113,6 +113,8 @@ export const scheduleInterviewEmailJob = async (
 };
 
 // Bulk resume processing job producer
+// Note: This is now primarily used for creating multiple queue jobs for files against a SINGLE job
+// For processing against ALL jobs, the routes.ts handles creating jobs for each file+job combination
 export const addBulkResumeProcessingJob = async (data: {
   files: Array<{
     name: string;
@@ -121,7 +123,7 @@ export const addBulkResumeProcessingJob = async (data: {
   }>;
   userId: string;
   organizationId: string;
-  jobId?: string;
+  jobId: string; // Required - must be a specific job ID
   customRules?: string;
 }) => {
   const jobPromises = data.files.map(file =>
@@ -140,13 +142,14 @@ export const addBulkResumeProcessingJob = async (data: {
 };
 
 // Single resume processing job producer (for individual files)
+// Note: jobId is now required - each queue job processes one resume against one specific job
 export const addSingleResumeProcessingJob = async (data: {
   fileContent: string;
   fileName: string;
   fileType: string;
   userId: string;
   organizationId: string;
-  jobId?: string;
+  jobId: string; // Required - each queue job handles exactly one resume + one job
   customRules?: string;
 }) => {
   return await resumeProcessingQueue.add('process-single-resume', data, {
