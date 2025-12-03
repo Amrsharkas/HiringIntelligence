@@ -598,7 +598,10 @@ export const resumeProfiles = pgTable("resume_profiles", {
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_resume_profiles_organization_id").on(table.organizationId),
+  index("idx_resume_profiles_created_at").on(table.createdAt),
+]);
 
 export const resumeJobScores = pgTable("resume_job_scores", {
   id: serial("id").primaryKey(),
@@ -617,7 +620,12 @@ export const resumeJobScores = pgTable("resume_job_scores", {
   fullResponse: jsonb("full_response"),
   scoredAt: timestamp("scored_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_resume_job_scores_profile_id").on(table.profileId),
+  index("idx_resume_job_scores_job_id").on(table.jobId),
+  index("idx_resume_job_scores_overall_score").on(table.overallScore),
+  index("idx_resume_job_scores_profile_job").on(table.profileId, table.jobId),
+]);
 
 export const shortlistedApplicants = pgTable("shortlisted_applicants", {
   id: text("id").primaryKey().notNull(),
@@ -930,7 +938,11 @@ export const airtableJobMatches = pgTable("airtable_job_matches", {
   token: varchar("token").unique().notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_airtable_job_matches_job_id").on(table.jobId),
+  index("idx_airtable_job_matches_user_id").on(table.userId),
+  index("idx_airtable_job_matches_job_user").on(table.jobId, table.userId),
+]);
 
 // Type definitions for Airtable replacement tables
 export type AirtableUserProfile = typeof airtableUserProfiles.$inferSelect;

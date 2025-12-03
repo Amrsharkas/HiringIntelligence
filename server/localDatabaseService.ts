@@ -1,6 +1,6 @@
 import { db } from './db';
 import * as schema from '../shared/schema';
-import { eq, and, or, ilike, desc, asc } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, asc, inArray } from 'drizzle-orm';
 import {
   AirtableUserProfile,
   InsertAirtableUserProfile,
@@ -301,6 +301,22 @@ export class LocalDatabaseService {
         .orderBy(desc(schema.airtableJobMatches.createdAt));
     } catch (error) {
       console.error('Error getting job matches by job:', error);
+      throw error;
+    }
+  }
+
+  async getJobMatchesByJobIds(jobIds: string[]): Promise<AirtableJobMatch[]> {
+    try {
+      if (jobIds.length === 0) {
+        return [];
+      }
+      return await db
+        .select()
+        .from(schema.airtableJobMatches)
+        .where(inArray(schema.airtableJobMatches.jobId, jobIds))
+        .orderBy(desc(schema.airtableJobMatches.createdAt));
+    } catch (error) {
+      console.error('Error getting job matches by job IDs:', error);
       throw error;
     }
   }

@@ -50,7 +50,7 @@ import {
   type InsertCreditPricing,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, count, gt } from "drizzle-orm";
+import { eq, and, desc, sql, count, gt, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (updated for custom auth)
@@ -163,6 +163,7 @@ export interface IStorage {
   // Resume job score operations
   createJobScore(score: InsertResumeJobScore): Promise<ResumeJobScore>;
   getJobScoresByProfile(profileId: string): Promise<ResumeJobScore[]>;
+  getJobScoresByProfileIds(profileIds: string[]): Promise<ResumeJobScore[]>;
   getJobScoresByJob(jobId: string): Promise<ResumeJobScore[]>;
   updateJobScore(id: number, updates: Partial<InsertResumeJobScore>): Promise<ResumeJobScore>;
   deleteJobScore(id: number): Promise<void>;
@@ -949,6 +950,17 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(resumeJobScores)
       .where(eq(resumeJobScores.jobId, parseInt(jobId)))
+      .orderBy(desc(resumeJobScores.overallScore));
+  }
+
+  async getJobScoresByProfileIds(profileIds: string[]): Promise<ResumeJobScore[]> {
+    if (profileIds.length === 0) {
+      return [];
+    }
+    return await db
+      .select()
+      .from(resumeJobScores)
+      .where(inArray(resumeJobScores.profileId, profileIds))
       .orderBy(desc(resumeJobScores.overallScore));
   }
 

@@ -5174,46 +5174,70 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const validPage = pageNum > 0 ? pageNum : 1;
       const validLimit = limitNum > 0 && limitNum <= 100 ? limitNum : 10; // Cap at 100 for performance
 
+      // Import localDatabaseService once outside the loop
+      const { localDatabaseService } = await import('./localDatabaseService');
+
       // Fetch ALL profiles first (without pagination) to apply filters correctly
       const totalCount = await storage.getResumeProfilesCountByOrganization(organization.id);
       const allProfiles = await storage.getResumeProfilesByOrganization(organization.id, 1, totalCount, sortBy);
 
-      // Get all organization jobs for scoring
+      // Get all organization jobs for scoring (for title lookup)
       const jobs = await storage.getJobsByOrganization(organization.id);
+      const jobsMap = new Map(jobs.map(job => [job.id, job]));
 
-      // Add job scores to each profile
-      const profilesWithScores = await Promise.all(allProfiles.map(async (profile) => {
-        const jobScores = await storage.getJobScoresByProfile(profile.id);
+      // OPTIMIZATION: Batch fetch all job scores for all profiles at once
+      const profileIds = allProfiles.map(profile => profile.id);
+      const allJobScores = await storage.getJobScoresByProfileIds(profileIds);
 
-        // Filter job scores by specific jobId if provided (convert to string for comparison)
+      // Group job scores by profile ID for quick lookup
+      const jobScoresByProfile = new Map<string, typeof allJobScores>();
+      for (const score of allJobScores) {
+        if (!score.profileId) continue;
+        const existing = jobScoresByProfile.get(score.profileId) || [];
+        existing.push(score);
+        jobScoresByProfile.set(score.profileId, existing);
+      }
+
+      // OPTIMIZATION: Batch fetch all job matches for all relevant jobs at once
+      const uniqueJobIds = [...new Set(allJobScores.map(score => String(score.jobId)))];
+      const allJobMatches = await localDatabaseService.getJobMatchesByJobIds(uniqueJobIds);
+
+      // Index job matches by jobId + userId for quick lookup
+      const jobMatchesIndex = new Map<string, typeof allJobMatches[0]>();
+      for (const match of allJobMatches) {
+        const key = `${match.jobId}:${match.userId}`;
+        jobMatchesIndex.set(key, match);
+      }
+
+      // Build profiles with scores using batch-fetched data (no more N+1 queries)
+      const profilesWithScores = allProfiles.map(profile => {
+        const profileJobScores = jobScoresByProfile.get(profile.id) || [];
+
+        // Filter job scores by specific jobId if provided
         const filteredJobScores = jobId
-          ? jobScores.filter(score => String(score.jobId) === String(jobId))
-          : jobScores;
+          ? profileJobScores.filter(score => String(score.jobId) === String(jobId))
+          : profileJobScores;
 
-        // Get invitation status for each job score
-        const jobScoresWithInvitationStatus = await Promise.all(
-          filteredJobScores.map(async (score) => {
-            const { localDatabaseService } = await import('./localDatabaseService');
-            const jobIdString = String(score.jobId);
-            const jobMatches = await localDatabaseService.getJobMatchesByJob(jobIdString);
-            const existingMatch = jobMatches.find(match => match.userId === profile.id);
+        // Add invitation status from pre-fetched job matches
+        const jobScoresWithInvitationStatus = filteredJobScores.map(score => {
+          const matchKey = `${score.jobId}:${profile.id}`;
+          const existingMatch = jobMatchesIndex.get(matchKey);
 
-            return {
-              ...score,
-              jobTitle: jobs.find(job => job.id === score.jobId)?.title || 'Unknown Job',
-              invitationStatus: existingMatch ? existingMatch.status : null,
-              interviewDate: existingMatch?.interviewDate || null,
-              interviewTime: existingMatch?.interviewTime || null,
-              interviewLink: existingMatch?.interviewLink || null,
-            };
-          })
-        );
+          return {
+            ...score,
+            jobTitle: jobsMap.get(score.jobId!)?.title || 'Unknown Job',
+            invitationStatus: existingMatch ? existingMatch.status : null,
+            interviewDate: existingMatch?.interviewDate || null,
+            interviewTime: existingMatch?.interviewTime || null,
+            interviewLink: existingMatch?.interviewLink || null,
+          };
+        });
 
         return {
           ...profile,
           jobScores: jobScoresWithInvitationStatus
         };
-      }));
+      });
 
       // Apply server-side filtering
       let filteredProfiles = profilesWithScores;
