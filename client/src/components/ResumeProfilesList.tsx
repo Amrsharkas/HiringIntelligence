@@ -615,7 +615,7 @@ export function ResumeProfilesList() {
         case 'INTERVIEW': return 'bg-green-500 text-white border-green-600';
         case 'CONSIDER': return 'bg-blue-500 text-white border-blue-600';
         case 'REVIEW': return 'bg-yellow-500 text-white border-yellow-600';
-        case 'PASS': return 'bg-red-500 text-white border-red-600';
+        case 'NOT PASS': return 'bg-red-500 text-white border-red-600';
         default: return 'bg-gray-500 text-white border-gray-600';
       }
     };

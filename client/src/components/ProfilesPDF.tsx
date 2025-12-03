@@ -124,12 +124,6 @@ interface ProfilesPDFProps {
 }
 
 // Color utilities
-const getScoreColor = (score: number) => {
-  if (score >= 80) return '#059669';
-  if (score >= 60) return '#d97706';
-  return '#dc2626';
-};
-
 const getVerdictColor = (decision?: string) => {
   switch (decision?.toUpperCase()) {
     case 'INTERVIEW': return { bg: '#059669', text: '#ffffff' };
@@ -177,65 +171,86 @@ const getSkillDepthColor = (depth?: string) => {
 };
 
 const styles = StyleSheet.create({
+  // Page styles
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
-    padding: 40,
+    paddingTop: 40,
+    paddingBottom: 60,
+    paddingHorizontal: 40,
     fontSize: 10,
     lineHeight: 1.4,
     fontFamily: 'Helvetica',
   },
-  tableOfContents: {
+
+  // Table of Contents styles
+  tocContainer: {
     marginBottom: 30,
-    borderBottom: '2px solid #2563eb',
-    paddingBottom: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 20,
-  },
-  profileList: {
-    marginBottom: 20,
-  },
-  profileItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '8 0',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  profileName: {
     fontSize: 11,
-    color: '#334155',
-  },
-  profilePage: {
-    fontSize: 10,
     color: '#64748b',
+    marginBottom: 20,
   },
-  summarySection: {
+  summaryBox: {
     backgroundColor: '#f8fafc',
     padding: 15,
     borderRadius: 5,
-    marginBottom: 30,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderStyle: 'solid',
   },
   summaryTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   summaryText: {
     fontSize: 10,
     color: '#475569',
-    lineHeight: 1.4,
+    marginBottom: 4,
   },
+  tocTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 12,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    borderBottomStyle: 'solid',
+  },
+  tocList: {
+    marginBottom: 20,
+  },
+  tocItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    borderBottomStyle: 'solid',
+  },
+  tocName: {
+    fontSize: 10,
+    color: '#334155',
+    flex: 1,
+  },
+  tocPage: {
+    fontSize: 9,
+    color: '#64748b',
+  },
+
+  // Footer
   footer: {
     position: 'absolute',
     bottom: 30,
@@ -244,17 +259,22 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#94a3b8',
     textAlign: 'center',
-    borderTop: '1px solid #e2e8f0',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    borderTopStyle: 'solid',
     paddingTop: 10,
   },
-  // Profile content styles
+
+  // Profile Header
   header: {
-    marginBottom: 15,
-    borderBottom: '2px solid #2563eb',
+    marginBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: '#2563eb',
+    borderBottomStyle: 'solid',
     paddingBottom: 12,
   },
   name: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1e293b',
     marginBottom: 6,
@@ -262,12 +282,13 @@ const styles = StyleSheet.create({
   contactInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
   },
   contactItem: {
     fontSize: 9,
     color: '#64748b',
   },
+
+  // Section styles
   section: {
     marginBottom: 12,
   },
@@ -276,51 +297,35 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1e293b',
     marginBottom: 6,
-    borderBottom: '1px solid #e2e8f0',
     paddingBottom: 3,
-    minPresenceAhead: 50, // Keep title with content
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    borderBottomStyle: 'solid',
   },
   summary: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#334155',
-    marginBottom: 10,
     lineHeight: 1.5,
   },
   skillsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 3,
-    marginBottom: 8,
   },
   skill: {
     backgroundColor: '#f1f5f9',
-    padding: '2 5',
+    paddingVertical: 2,
+    paddingHorizontal: 5,
     borderRadius: 2,
     fontSize: 7,
     color: '#334155',
   },
-  experienceItem: {
-    marginBottom: 6,
-    minPresenceAhead: 15,
-  },
-  experienceTitle: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 2,
-  },
-  educationItem: {
+  listItem: {
     marginBottom: 5,
+    paddingLeft: 6,
   },
-  educationTitle: {
+  listItemText: {
     fontSize: 9,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 2,
-  },
-  certificationItem: {
-    marginBottom: 3,
-    fontSize: 8,
     color: '#334155',
   },
   languagesContainer: {
@@ -332,88 +337,72 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#334155',
   },
-  // Job score styles
-  jobScoresSection: {
+
+  // Job Match Section
+  jobMatchSection: {
+    marginTop: 12,
+  },
+  jobMatchCard: {
+    marginBottom: 16,
+    padding: 12,
     backgroundColor: '#f8fafc',
-    padding: 10,
     borderRadius: 4,
-    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderStyle: 'solid',
   },
-  jobScoreItem: {
-    marginBottom: 12,
-    padding: 8,
-    backgroundColor: '#ffffff',
-    border: '1px solid #e2e8f0',
-    borderRadius: 3,
-  },
-  jobScoreTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 6,
-    minPresenceAhead: 80, // Keep job title with score content
-  },
-  scoreContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    padding: 6,
-    backgroundColor: '#f8fafc',
-    borderRadius: 3,
-  },
-  scoreItem: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  scoreLabel: {
-    fontSize: 7,
-    color: '#64748b',
-    marginBottom: 1,
-  },
-  scoreValue: {
+  jobTitle: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#1e293b',
+    marginBottom: 10,
   },
-  badge: {
-    padding: '2 6',
-    borderRadius: 2,
-    fontSize: 7,
-    fontWeight: 'bold',
-  },
-  // Executive Summary
-  executiveSummary: {
+
+  // Executive Summary Block
+  executiveSummaryBlock: {
     backgroundColor: '#1e293b',
-    padding: 8,
-    borderRadius: 3,
-    marginBottom: 8,
+    padding: 10,
+    borderRadius: 4,
+    marginBottom: 12,
   },
   executiveSummaryText: {
     fontSize: 10,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  executiveSummaryBadges: {
+  badgeRow: {
     flexDirection: 'row',
     gap: 4,
+    flexWrap: 'wrap',
   },
-  // Verdict
-  verdictSection: {
-    padding: 8,
-    borderRadius: 3,
-    marginBottom: 8,
-    border: '1px solid #e5e7eb',
+  badge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 2,
+    fontSize: 7,
+    fontWeight: 'bold',
+  },
+
+  // Verdict Block
+  verdictBlock: {
+    padding: 10,
+    borderRadius: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: '#e5e7eb',
     backgroundColor: '#f9fafb',
   },
   verdictHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   verdictBadge: {
-    padding: '4 8',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: 3,
     fontSize: 10,
     fontWeight: 'bold',
@@ -425,26 +414,30 @@ const styles = StyleSheet.create({
   verdictSummary: {
     fontSize: 8,
     color: '#374151',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   verdictGrid: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 6,
+    gap: 8,
+    marginBottom: 8,
   },
-  verdictStrength: {
+  verdictStrengthBox: {
     flex: 1,
     padding: 6,
     backgroundColor: '#f0fdf4',
     borderRadius: 3,
-    border: '1px solid #86efac',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderStyle: 'solid',
   },
-  verdictConcern: {
+  verdictConcernBox: {
     flex: 1,
     padding: 6,
     backgroundColor: '#fff7ed',
     borderRadius: 3,
-    border: '1px solid #fdba74',
+    borderWidth: 1,
+    borderColor: '#fdba74',
+    borderStyle: 'solid',
   },
   verdictLabel: {
     fontSize: 6,
@@ -455,43 +448,71 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#374151',
   },
-  // Section Scores
-  sectionScoresGrid: {
+
+  // Section Scores Grid
+  scoresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
-    marginBottom: 8,
-    padding: 6,
+    marginBottom: 12,
+    padding: 8,
     backgroundColor: '#eff6ff',
     borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderStyle: 'solid',
   },
-  sectionScoreBox: {
+  scoreBox: {
     width: '15%',
     textAlign: 'center',
     padding: 4,
     backgroundColor: '#ffffff',
     borderRadius: 2,
   },
-  sectionScoreValue: {
+  scoreValue: {
     fontSize: 10,
     fontWeight: 'bold',
     color: '#1e40af',
   },
-  sectionScoreMax: {
+  scoreMax: {
     fontSize: 6,
     color: '#6b7280',
   },
-  sectionScoreLabel: {
+  scoreLabel: {
     fontSize: 6,
     color: '#3b82f6',
     fontWeight: 'bold',
   },
-  // Domain Analysis
-  domainSection: {
-    padding: 8,
-    backgroundColor: '#eef2ff',
+
+  // Quick Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 12,
+  },
+  statBox: {
+    flex: 1,
+    textAlign: 'center',
+    padding: 6,
     borderRadius: 3,
-    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 6,
+  },
+
+  // Domain Analysis Block
+  domainBlock: {
+    padding: 10,
+    backgroundColor: '#eef2ff',
+    borderRadius: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
+    borderStyle: 'solid',
   },
   domainHeader: {
     flexDirection: 'row',
@@ -511,17 +532,29 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   domainBadge: {
-    padding: '3 6',
+    paddingVertical: 3,
+    paddingHorizontal: 6,
     borderRadius: 2,
     fontSize: 7,
     fontWeight: 'bold',
   },
-  // Competitive Intel
-  competitiveIntelSection: {
-    padding: 8,
+
+  // Block title
+  blockTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+
+  // Competitive Intel Block
+  competitiveBlock: {
+    padding: 10,
     backgroundColor: '#faf5ff',
-    borderRadius: 3,
-    marginBottom: 8,
+    borderRadius: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e9d5ff',
+    borderStyle: 'solid',
   },
   competitiveGrid: {
     flexDirection: 'row',
@@ -529,7 +562,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   competitiveItem: {
-    width: '23%',
+    width: '30%',
     padding: 4,
     backgroundColor: '#ffffff',
     borderRadius: 2,
@@ -543,77 +576,62 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#7c3aed',
   },
-  // Quick Stats
-  quickStatsGrid: {
+
+  // Strengths & Gaps Container
+  strengthsGapsRow: {
     flexDirection: 'row',
-    gap: 4,
-    marginBottom: 8,
-  },
-  quickStatBox: {
-    flex: 1,
-    textAlign: 'center',
-    padding: 6,
-    borderRadius: 3,
-  },
-  quickStatValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  quickStatLabel: {
-    fontSize: 6,
-  },
-  // Strengths & Gaps
-  strengthsGapsContainer: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 12,
   },
   strengthsColumn: {
     flex: 1,
-    padding: 6,
+    padding: 8,
     backgroundColor: '#f0fdf4',
     borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderStyle: 'solid',
   },
   gapsColumn: {
     flex: 1,
-    padding: 6,
+    padding: 8,
     backgroundColor: '#fef2f2',
     borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderStyle: 'solid',
   },
-  strengthItem: {
+  columnTitle: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  itemCard: {
     marginBottom: 4,
     padding: 4,
     backgroundColor: '#ffffff',
     borderRadius: 2,
-    minPresenceAhead: 15,
-  },
-  gapItem: {
-    marginBottom: 4,
-    padding: 4,
-    backgroundColor: '#ffffff',
-    borderRadius: 2,
-    minPresenceAhead: 15,
   },
   itemTitle: {
     fontSize: 8,
     fontWeight: 'bold',
     color: '#1e293b',
   },
-  itemEvidence: {
-    fontSize: 6,
-    color: '#6b7280',
-  },
-  // Skill Analysis
-  skillAnalysisSection: {
-    padding: 8,
+
+  // Skill Analysis Block
+  skillAnalysisBlock: {
+    padding: 10,
     backgroundColor: '#f0fdf4',
-    borderRadius: 3,
-    marginBottom: 8,
+    borderRadius: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderStyle: 'solid',
   },
-  skillDepthSummary: {
+  skillDepthRow: {
     flexDirection: 'row',
     gap: 4,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   skillDepthBox: {
     flex: 1,
@@ -628,28 +646,33 @@ const styles = StyleSheet.create({
   skillDepthLabel: {
     fontSize: 6,
   },
-  skillBadgesContainer: {
+  skillBadgesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 2,
     marginTop: 4,
   },
   skillBadge: {
-    padding: '1 4',
+    paddingVertical: 1,
+    paddingHorizontal: 4,
     borderRadius: 2,
     fontSize: 6,
   },
-  // Experience Analysis
-  experienceAnalysisSection: {
-    padding: 8,
+
+  // Experience Analysis Block
+  experienceBlock: {
+    padding: 10,
     backgroundColor: '#eff6ff',
-    borderRadius: 3,
-    marginBottom: 8,
+    borderRadius: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderStyle: 'solid',
   },
   experienceGrid: {
     flexDirection: 'row',
     gap: 4,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   experienceBox: {
     flex: 1,
@@ -667,19 +690,22 @@ const styles = StyleSheet.create({
     fontSize: 6,
     color: '#6b7280',
   },
-  // Red Flags
-  redFlagsSection: {
-    padding: 8,
+
+  // Red Flags Block
+  redFlagsBlock: {
+    padding: 10,
     backgroundColor: '#fef2f2',
-    borderRadius: 3,
-    marginBottom: 8,
+    borderRadius: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderStyle: 'solid',
   },
-  redFlagItem: {
-    marginBottom: 4,
-    padding: 4,
+  redFlagCard: {
+    marginBottom: 6,
+    padding: 6,
     backgroundColor: '#ffffff',
     borderRadius: 2,
-    minPresenceAhead: 20,
   },
   redFlagHeader: {
     flexDirection: 'row',
@@ -689,7 +715,8 @@ const styles = StyleSheet.create({
   redFlagType: {
     fontSize: 6,
     fontWeight: 'bold',
-    padding: '1 3',
+    paddingVertical: 1,
+    paddingHorizontal: 3,
     borderRadius: 1,
     backgroundColor: '#fee2e2',
     color: '#991b1b',
@@ -697,7 +724,8 @@ const styles = StyleSheet.create({
   redFlagSeverity: {
     fontSize: 6,
     fontWeight: 'bold',
-    padding: '1 3',
+    paddingVertical: 1,
+    paddingHorizontal: 3,
     borderRadius: 1,
   },
   redFlagIssue: {
@@ -709,16 +737,19 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: '#6b7280',
   },
-  // Interview Recommendations
-  interviewSection: {
-    padding: 8,
+
+  // Interview Section
+  interviewBlock: {
+    padding: 10,
     backgroundColor: '#f0fdfa',
-    borderRadius: 3,
-    marginBottom: 8,
+    borderRadius: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#5eead4',
+    borderStyle: 'solid',
   },
   interviewCategory: {
-    marginBottom: 6,
-    minPresenceAhead: 30, // Keep category with its questions
+    marginBottom: 8,
   },
   interviewCategoryTitle: {
     fontSize: 8,
@@ -731,8 +762,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     paddingLeft: 8,
   },
+
   // Match Summary
-  matchSummary: {
+  matchSummaryBox: {
     fontSize: 8,
     color: '#475569',
     marginTop: 6,
@@ -741,22 +773,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 2,
   },
+
   // Status Badge
   statusBadge: {
-    marginTop: 6,
-    padding: '4 8',
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: 3,
     textAlign: 'center',
     fontSize: 8,
     fontWeight: 'bold',
   },
+
   // Disqualified
-  disqualifiedSection: {
+  disqualifiedBlock: {
     backgroundColor: '#fef2f2',
-    border: '1px solid #ef4444',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    borderStyle: 'solid',
     borderRadius: 3,
     padding: 8,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   disqualifiedTitle: {
     fontSize: 11,
@@ -774,7 +811,7 @@ const styles = StyleSheet.create({
 
 const TableOfContents: React.FC<{ profiles: ProfilesPDFProps['profiles'] }> = ({ profiles }) => {
   return (
-    <View style={styles.tableOfContents}>
+    <View style={styles.tocContainer}>
       <Text style={styles.title}>Resume Profiles Export</Text>
       <Text style={styles.subtitle}>
         Generated on {new Date().toLocaleDateString('en-US', {
@@ -784,22 +821,18 @@ const TableOfContents: React.FC<{ profiles: ProfilesPDFProps['profiles'] }> = ({
         })}
       </Text>
 
-      <Text style={styles.summaryTitle}>Export Summary</Text>
-      <View style={styles.summarySection}>
-        <Text style={styles.summaryText}>
-          Total Profiles: {profiles.length}
-        </Text>
-        <Text style={styles.summaryText}>
-          Export Date: {new Date().toLocaleDateString()}
-        </Text>
+      <View style={styles.summaryBox}>
+        <Text style={styles.summaryTitle}>Export Summary</Text>
+        <Text style={styles.summaryText}>Total Profiles: {profiles.length}</Text>
+        <Text style={styles.summaryText}>Export Date: {new Date().toLocaleDateString()}</Text>
       </View>
 
-      <Text style={styles.summaryTitle}>Table of Contents</Text>
-      <View style={styles.profileList}>
+      <Text style={styles.tocTitle}>Table of Contents</Text>
+      <View style={styles.tocList}>
         {profiles.map((profile, index) => (
-          <View key={profile.id} style={styles.profileItem}>
-            <Text style={styles.profileName}>{index + 1}. {profile.name}</Text>
-            <Text style={styles.profilePage}>Page {index + 2}</Text>
+          <View key={profile.id} style={styles.tocItem}>
+            <Text style={styles.tocName}>{index + 1}. {profile.name}</Text>
+            <Text style={styles.tocPage}>Page {index + 2}</Text>
           </View>
         ))}
       </View>
@@ -818,7 +851,7 @@ export const ProfilesPDF: React.FC<ProfilesPDFProps> = ({
       <Document>
         <Page size="A4" style={styles.page}>
           <Text style={styles.title}>No Profiles to Export</Text>
-          <Text style={styles.summaryText}>
+          <Text style={styles.summary}>
             There are no resume profiles available for export.
           </Text>
         </Page>
@@ -831,7 +864,7 @@ export const ProfilesPDF: React.FC<ProfilesPDFProps> = ({
       {/* Table of Contents Page */}
       <Page size="A4" style={styles.page}>
         <TableOfContents profiles={profiles} />
-        <Text style={styles.footer}>
+        <Text style={styles.footer} fixed>
           Resume Profiles Export - Generated on {new Date().toLocaleDateString()}
         </Text>
       </Page>
@@ -854,7 +887,7 @@ export const ProfilesPDF: React.FC<ProfilesPDFProps> = ({
   );
 };
 
-// Enhanced ProfilePDFContent component with full detailed analysis
+// Enhanced ProfilePDFContent component with proper page breaks
 const ProfilePDFContent: React.FC<{
   profile: ResumeProfile & { jobScores: JobScoring[] };
   jobs?: any[];
@@ -874,7 +907,7 @@ const ProfilePDFContent: React.FC<{
 
   return (
     <>
-      {/* Header Section */}
+      {/* Header Section - Never break */}
       <View style={styles.header} wrap={false}>
         <Text style={styles.name}>{profile.name}</Text>
         <View style={styles.contactInfo}>
@@ -883,7 +916,7 @@ const ProfilePDFContent: React.FC<{
         </View>
       </View>
 
-      {/* Professional Summary */}
+      {/* Professional Summary - Keep together */}
       {profile.summary && (
         <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Professional Summary</Text>
@@ -903,14 +936,14 @@ const ProfilePDFContent: React.FC<{
         </View>
       )}
 
-      {/* Languages Section */}
+      {/* Languages Section - Keep together */}
       {profile.languages.length > 0 && (
         <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Languages</Text>
           <View style={styles.languagesContainer}>
             {profile.languages.map((language, index) => (
               <Text key={index} style={styles.language}>
-                {language}{index < profile.languages.length - 1 ? ' • ' : ''}
+                {language}{index < profile.languages.length - 1 ? ' | ' : ''}
               </Text>
             ))}
           </View>
@@ -922,8 +955,8 @@ const ProfilePDFContent: React.FC<{
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Professional Experience</Text>
           {profile.experience.map((exp, index) => (
-            <View key={index} style={styles.experienceItem}>
-              <Text style={styles.experienceTitle}>{exp}</Text>
+            <View key={index} style={styles.listItem} wrap={false}>
+              <Text style={styles.listItemText}>{exp}</Text>
             </View>
           ))}
         </View>
@@ -934,8 +967,8 @@ const ProfilePDFContent: React.FC<{
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Education</Text>
           {profile.education.map((edu, index) => (
-            <View key={index} style={styles.educationItem}>
-              <Text style={styles.educationTitle}>{edu}</Text>
+            <View key={index} style={styles.listItem} wrap={false}>
+              <Text style={styles.listItemText}>{edu}</Text>
             </View>
           ))}
         </View>
@@ -946,24 +979,26 @@ const ProfilePDFContent: React.FC<{
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Certifications</Text>
           {profile.certifications.map((cert, index) => (
-            <Text key={index} style={styles.certificationItem}>• {cert}</Text>
+            <View key={index} style={styles.listItem} wrap={false}>
+              <Text style={styles.listItemText}>* {cert}</Text>
+            </View>
           ))}
         </View>
       )}
 
-      {/* Job Scores Section - Full Detailed Analysis - starts on new page */}
+      {/* Job Scores Section - starts on new page if there are job scores */}
       {includeJobScores && filteredJobScores.length > 0 && (
-        <View style={styles.jobScoresSection} break>
+        <View style={styles.jobMatchSection} break>
           <Text style={styles.sectionTitle}>Job Match Analysis</Text>
           {filteredJobScores.map((jobScore) => {
             const fullResponse = jobScore.fullResponse;
             return (
-              <View key={jobScore.jobId} style={styles.jobScoreItem}>
-                <Text style={styles.jobScoreTitle}>{jobScore.jobTitle}</Text>
+              <View key={jobScore.jobId} style={styles.jobMatchCard}>
+                <Text style={styles.jobTitle}>{jobScore.jobTitle}</Text>
 
                 {/* Disqualified Status */}
                 {jobScore.disqualified && (
-                  <View style={styles.disqualifiedSection} wrap={false}>
+                  <View style={styles.disqualifiedBlock} wrap={false}>
                     <Text style={styles.disqualifiedTitle}>CANDIDATE DISQUALIFIED</Text>
                     {jobScore.disqualificationReason && (
                       <Text style={styles.disqualifiedReason}>{jobScore.disqualificationReason}</Text>
@@ -973,11 +1008,11 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Executive Summary */}
                 {fullResponse?.executiveSummary && (
-                  <View style={styles.executiveSummary} wrap={false}>
+                  <View style={styles.executiveSummaryBlock} wrap={false}>
                     <Text style={styles.executiveSummaryText}>
                       {fullResponse.executiveSummary.oneLiner || 'Candidate Analysis'}
                     </Text>
-                    <View style={styles.executiveSummaryBadges}>
+                    <View style={styles.badgeRow}>
                       {fullResponse.executiveSummary.fitScore && (
                         <Text style={[styles.badge, { backgroundColor: getFitScoreColor(fullResponse.executiveSummary.fitScore), color: '#ffffff' }]}>
                           {fullResponse.executiveSummary.fitScore} FIT
@@ -994,7 +1029,7 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Verdict Section */}
                 {fullResponse?.verdict && (
-                  <View style={styles.verdictSection} wrap={false}>
+                  <View style={styles.verdictBlock} wrap={false}>
                     <View style={styles.verdictHeader}>
                       <Text style={[styles.verdictBadge, {
                         backgroundColor: getVerdictColor(fullResponse.verdict.decision).bg,
@@ -1027,13 +1062,13 @@ const ProfilePDFContent: React.FC<{
                     )}
                     <View style={styles.verdictGrid}>
                       {fullResponse.verdict.topStrength && (
-                        <View style={styles.verdictStrength}>
+                        <View style={styles.verdictStrengthBox}>
                           <Text style={[styles.verdictLabel, { color: '#166534' }]}>TOP STRENGTH</Text>
                           <Text style={styles.verdictValue}>{fullResponse.verdict.topStrength}</Text>
                         </View>
                       )}
                       {fullResponse.verdict.topConcern && fullResponse.verdict.topConcern !== 'None significant' && fullResponse.verdict.topConcern !== 'None' && (
-                        <View style={styles.verdictConcern}>
+                        <View style={styles.verdictConcernBox}>
                           <Text style={[styles.verdictLabel, { color: '#9a3412' }]}>TOP CONCERN</Text>
                           <Text style={styles.verdictValue}>{fullResponse.verdict.topConcern}</Text>
                         </View>
@@ -1042,48 +1077,76 @@ const ProfilePDFContent: React.FC<{
                   </View>
                 )}
 
-                {/* Section Scores (100-point Matrix) */}
+                {/* Section Scores */}
                 {(fullResponse?.sectionA !== undefined || fullResponse?.sectionB !== undefined) && (
-                  <View style={styles.sectionScoresGrid} wrap={false}>
-                    <View style={styles.sectionScoreBox}>
-                      <Text style={styles.sectionScoreValue}>{fullResponse.sectionA ?? '-'}</Text>
-                      <Text style={styles.sectionScoreMax}>/30</Text>
-                      <Text style={styles.sectionScoreLabel}>Skills</Text>
+                  <View style={styles.scoresGrid} wrap={false}>
+                    <View style={styles.scoreBox}>
+                      <Text style={styles.scoreValue}>{fullResponse.sectionA ?? '-'}</Text>
+                      <Text style={styles.scoreMax}>/30</Text>
+                      <Text style={styles.scoreLabel}>Skills</Text>
                     </View>
-                    <View style={styles.sectionScoreBox}>
-                      <Text style={styles.sectionScoreValue}>{fullResponse.sectionB ?? '-'}</Text>
-                      <Text style={styles.sectionScoreMax}>/25</Text>
-                      <Text style={styles.sectionScoreLabel}>Exp</Text>
+                    <View style={styles.scoreBox}>
+                      <Text style={styles.scoreValue}>{fullResponse.sectionB ?? '-'}</Text>
+                      <Text style={styles.scoreMax}>/25</Text>
+                      <Text style={styles.scoreLabel}>Exp</Text>
                     </View>
-                    <View style={styles.sectionScoreBox}>
-                      <Text style={styles.sectionScoreValue}>{fullResponse.sectionC ?? '-'}</Text>
-                      <Text style={styles.sectionScoreMax}>/20</Text>
-                      <Text style={styles.sectionScoreLabel}>Impact</Text>
+                    <View style={styles.scoreBox}>
+                      <Text style={styles.scoreValue}>{fullResponse.sectionC ?? '-'}</Text>
+                      <Text style={styles.scoreMax}>/20</Text>
+                      <Text style={styles.scoreLabel}>Impact</Text>
                     </View>
-                    <View style={styles.sectionScoreBox}>
-                      <Text style={styles.sectionScoreValue}>{fullResponse.sectionD ?? '-'}</Text>
-                      <Text style={styles.sectionScoreMax}>/10</Text>
-                      <Text style={styles.sectionScoreLabel}>Quals</Text>
+                    <View style={styles.scoreBox}>
+                      <Text style={styles.scoreValue}>{fullResponse.sectionD ?? '-'}</Text>
+                      <Text style={styles.scoreMax}>/10</Text>
+                      <Text style={styles.scoreLabel}>Quals</Text>
                     </View>
-                    <View style={styles.sectionScoreBox}>
-                      <Text style={styles.sectionScoreValue}>{fullResponse.sectionE ?? '-'}</Text>
-                      <Text style={styles.sectionScoreMax}>/10</Text>
-                      <Text style={styles.sectionScoreLabel}>Log</Text>
+                    <View style={styles.scoreBox}>
+                      <Text style={styles.scoreValue}>{fullResponse.sectionE ?? '-'}</Text>
+                      <Text style={styles.scoreMax}>/10</Text>
+                      <Text style={styles.scoreLabel}>Log</Text>
                     </View>
-                    <View style={styles.sectionScoreBox}>
-                      <Text style={[styles.sectionScoreValue, { color: (fullResponse.sectionF ?? 0) >= 0 ? '#059669' : '#dc2626' }]}>
+                    <View style={styles.scoreBox}>
+                      <Text style={[styles.scoreValue, { color: (fullResponse.sectionF ?? 0) >= 0 ? '#059669' : '#dc2626' }]}>
                         {(fullResponse.sectionF ?? 0) >= 0 ? '+' : ''}{fullResponse.sectionF ?? 0}
                       </Text>
-                      <Text style={styles.sectionScoreMax}>pts</Text>
-                      <Text style={styles.sectionScoreLabel}>Mod</Text>
+                      <Text style={styles.scoreMax}>pts</Text>
+                      <Text style={styles.scoreLabel}>Mod</Text>
                     </View>
                   </View>
                 )}
 
+                {/* Quick Stats */}
+                <View style={styles.statsGrid} wrap={false}>
+                  <View style={[styles.statBox, { backgroundColor: '#f0fdf4' }]}>
+                    <Text style={[styles.statValue, { color: '#059669' }]}>
+                      {fullResponse?.strengthsHighlights?.length || jobScore.strengthsHighlights?.length || 0}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: '#059669' }]}>Strengths</Text>
+                  </View>
+                  <View style={[styles.statBox, { backgroundColor: '#fef2f2' }]}>
+                    <Text style={[styles.statValue, { color: '#dc2626' }]}>
+                      {fullResponse?.improvementAreas?.length || jobScore.improvementAreas?.length || 0}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: '#dc2626' }]}>Gaps</Text>
+                  </View>
+                  <View style={[styles.statBox, { backgroundColor: '#fffbeb' }]}>
+                    <Text style={[styles.statValue, { color: '#d97706' }]}>
+                      {fullResponse?.skillAnalysis?.matchedSkills?.length || 0}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: '#d97706' }]}>Matched</Text>
+                  </View>
+                  <View style={[styles.statBox, { backgroundColor: '#faf5ff' }]}>
+                    <Text style={[styles.statValue, { color: '#7c3aed' }]}>
+                      {fullResponse?.skillAnalysis?.missingSkills?.length || 0}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: '#7c3aed' }]}>Missing</Text>
+                  </View>
+                </View>
+
                 {/* Domain Analysis */}
                 {fullResponse?.domainAnalysis && (
-                  <View style={styles.domainSection} wrap={false}>
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#4f46e5', marginBottom: 4 }}>Domain Analysis</Text>
+                  <View style={styles.domainBlock} wrap={false}>
+                    <Text style={[styles.blockTitle, { color: '#4f46e5' }]}>Domain Analysis</Text>
                     <View style={styles.domainHeader}>
                       <View style={styles.domainInfo}>
                         <Text style={styles.domainLabel}>Job Domain</Text>
@@ -1107,8 +1170,8 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Competitive Intelligence */}
                 {fullResponse?.competitiveIntel && (
-                  <View style={styles.competitiveIntelSection} wrap={false}>
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#7c3aed', marginBottom: 4 }}>Competitive Intel</Text>
+                  <View style={styles.competitiveBlock} wrap={false}>
+                    <Text style={[styles.blockTitle, { color: '#7c3aed' }]}>Competitive Intel</Text>
                     <View style={styles.competitiveGrid}>
                       {fullResponse.competitiveIntel.marketPosition && (
                         <View style={styles.competitiveItem}>
@@ -1136,42 +1199,14 @@ const ProfilePDFContent: React.FC<{
                   </View>
                 )}
 
-                {/* Quick Stats */}
-                <View style={styles.quickStatsGrid} wrap={false}>
-                  <View style={[styles.quickStatBox, { backgroundColor: '#f0fdf4' }]}>
-                    <Text style={[styles.quickStatValue, { color: '#059669' }]}>
-                      {fullResponse?.strengthsHighlights?.length || jobScore.strengthsHighlights?.length || 0}
-                    </Text>
-                    <Text style={[styles.quickStatLabel, { color: '#059669' }]}>Strengths</Text>
-                  </View>
-                  <View style={[styles.quickStatBox, { backgroundColor: '#fef2f2' }]}>
-                    <Text style={[styles.quickStatValue, { color: '#dc2626' }]}>
-                      {fullResponse?.improvementAreas?.length || jobScore.improvementAreas?.length || 0}
-                    </Text>
-                    <Text style={[styles.quickStatLabel, { color: '#dc2626' }]}>Gaps</Text>
-                  </View>
-                  <View style={[styles.quickStatBox, { backgroundColor: '#fffbeb' }]}>
-                    <Text style={[styles.quickStatValue, { color: '#d97706' }]}>
-                      {fullResponse?.skillAnalysis?.matchedSkills?.length || 0}
-                    </Text>
-                    <Text style={[styles.quickStatLabel, { color: '#d97706' }]}>Matched</Text>
-                  </View>
-                  <View style={[styles.quickStatBox, { backgroundColor: '#faf5ff' }]}>
-                    <Text style={[styles.quickStatValue, { color: '#7c3aed' }]}>
-                      {fullResponse?.skillAnalysis?.missingSkills?.length || 0}
-                    </Text>
-                    <Text style={[styles.quickStatLabel, { color: '#7c3aed' }]}>Missing</Text>
-                  </View>
-                </View>
-
                 {/* Strengths & Gaps */}
-                <View style={styles.strengthsGapsContainer}>
+                <View style={styles.strengthsGapsRow}>
                   <View style={styles.strengthsColumn}>
-                    <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#166534', marginBottom: 4 }}>
+                    <Text style={[styles.columnTitle, { color: '#166534' }]}>
                       Strengths ({fullResponse?.strengthsHighlights?.length || jobScore.strengthsHighlights?.length || 0})
                     </Text>
                     {(fullResponse?.strengthsHighlights || jobScore.strengthsHighlights || []).slice(0, 3).map((item: any, i: number) => (
-                      <View key={i} style={styles.strengthItem}>
+                      <View key={i} style={styles.itemCard} wrap={false}>
                         <Text style={styles.itemTitle}>
                           {typeof item === 'string' ? item : (item.strength || 'Strength')}
                         </Text>
@@ -1179,11 +1214,11 @@ const ProfilePDFContent: React.FC<{
                     ))}
                   </View>
                   <View style={styles.gapsColumn}>
-                    <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#991b1b', marginBottom: 4 }}>
+                    <Text style={[styles.columnTitle, { color: '#991b1b' }]}>
                       Gaps ({fullResponse?.improvementAreas?.length || jobScore.improvementAreas?.length || 0})
                     </Text>
                     {(fullResponse?.improvementAreas || jobScore.improvementAreas || []).slice(0, 3).map((item: any, i: number) => (
-                      <View key={i} style={styles.gapItem}>
+                      <View key={i} style={styles.itemCard} wrap={false}>
                         <Text style={styles.itemTitle}>
                           {typeof item === 'string' ? item : (item.gap || 'Gap')}
                         </Text>
@@ -1194,10 +1229,10 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Skill Analysis */}
                 {fullResponse?.skillAnalysis && (
-                  <View style={styles.skillAnalysisSection} wrap={false}>
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#166534', marginBottom: 4 }}>Skill Analysis</Text>
+                  <View style={styles.skillAnalysisBlock} wrap={false}>
+                    <Text style={[styles.blockTitle, { color: '#166534' }]}>Skill Analysis</Text>
                     {fullResponse.skillAnalysis.skillDepthSummary && (
-                      <View style={styles.skillDepthSummary}>
+                      <View style={styles.skillDepthRow}>
                         <View style={[styles.skillDepthBox, { backgroundColor: '#dcfce7' }]}>
                           <Text style={[styles.skillDepthCount, { color: '#166534' }]}>
                             {fullResponse.skillAnalysis.skillDepthSummary.expert || 0}
@@ -1219,7 +1254,7 @@ const ProfilePDFContent: React.FC<{
                       </View>
                     )}
                     {fullResponse.skillAnalysis.matchedSkills && fullResponse.skillAnalysis.matchedSkills.length > 0 && (
-                      <View style={styles.skillBadgesContainer}>
+                      <View style={styles.skillBadgesRow}>
                         {fullResponse.skillAnalysis.matchedSkills.slice(0, 10).map((s, i) => (
                           <Text key={i} style={[styles.skillBadge, {
                             backgroundColor: getSkillDepthColor(s.depth).bg,
@@ -1235,8 +1270,8 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Experience Analysis */}
                 {fullResponse?.experienceAnalysis && (
-                  <View style={styles.experienceAnalysisSection}>
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#1e40af', marginBottom: 4 }}>Experience Analysis</Text>
+                  <View style={styles.experienceBlock} wrap={false}>
+                    <Text style={[styles.blockTitle, { color: '#1e40af' }]}>Experience Analysis</Text>
                     <View style={styles.experienceGrid}>
                       <View style={styles.experienceBox}>
                         <Text style={styles.experienceValue}>
@@ -1270,12 +1305,12 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Red Flags */}
                 {fullResponse?.redFlags && fullResponse.redFlags.length > 0 && (
-                  <View style={styles.redFlagsSection}>
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#991b1b', marginBottom: 4 }}>
+                  <View style={styles.redFlagsBlock}>
+                    <Text style={[styles.blockTitle, { color: '#991b1b' }]}>
                       Red Flags ({fullResponse.redFlags.length})
                     </Text>
                     {fullResponse.redFlags.slice(0, 3).map((flag, i) => (
-                      <View key={i} style={styles.redFlagItem}>
+                      <View key={i} style={styles.redFlagCard} wrap={false}>
                         <View style={styles.redFlagHeader}>
                           <Text style={styles.redFlagType}>{flag.type || 'FLAG'}</Text>
                           <Text style={[styles.redFlagSeverity, {
@@ -1293,10 +1328,10 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Interview Recommendations */}
                 {fullResponse?.interviewRecommendations && typeof fullResponse.interviewRecommendations === 'object' && !Array.isArray(fullResponse.interviewRecommendations) && (
-                  <View style={styles.interviewSection}>
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#0f766e', marginBottom: 4 }}>Interview Guide</Text>
+                  <View style={styles.interviewBlock}>
+                    <Text style={[styles.blockTitle, { color: '#0f766e' }]}>Interview Guide</Text>
                     {fullResponse.interviewRecommendations.mustExplore && fullResponse.interviewRecommendations.mustExplore.length > 0 && (
-                      <View style={styles.interviewCategory}>
+                      <View style={styles.interviewCategory} wrap={false}>
                         <Text style={[styles.interviewCategoryTitle, { color: '#0f766e' }]}>Must Explore</Text>
                         {fullResponse.interviewRecommendations.mustExplore.slice(0, 3).map((item, i) => (
                           <Text key={i} style={styles.interviewItem}>→ {item}</Text>
@@ -1304,10 +1339,10 @@ const ProfilePDFContent: React.FC<{
                       </View>
                     )}
                     {fullResponse.interviewRecommendations.technicalValidation && fullResponse.interviewRecommendations.technicalValidation.length > 0 && (
-                      <View style={styles.interviewCategory}>
+                      <View style={styles.interviewCategory} wrap={false}>
                         <Text style={[styles.interviewCategoryTitle, { color: '#1e40af' }]}>Technical Validation</Text>
                         {fullResponse.interviewRecommendations.technicalValidation.slice(0, 3).map((item, i) => (
-                          <Text key={i} style={styles.interviewItem}>✓ {item}</Text>
+                          <Text key={i} style={styles.interviewItem}>* {item}</Text>
                         ))}
                       </View>
                     )}
@@ -1316,13 +1351,13 @@ const ProfilePDFContent: React.FC<{
 
                 {/* Match Summary */}
                 {jobScore.matchSummary && (
-                  <Text style={styles.matchSummary}>
+                  <Text style={styles.matchSummaryBox}>
                     {jobScore.matchSummary}
                   </Text>
                 )}
 
                 {/* Status Badge */}
-                <View style={{ marginTop: 6, alignItems: 'center' }}>
+                <View style={{ marginTop: 8, alignItems: 'center' }} wrap={false}>
                   {jobScore.disqualified && (
                     <Text style={[styles.statusBadge, { backgroundColor: '#fef2f2', color: '#dc2626' }]}>
                       NOT QUALIFIED
