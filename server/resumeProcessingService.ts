@@ -803,8 +803,7 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
   "executiveSummary": {
     "oneLiner": "10-word max summary for quick scanning",
     "fitScore": "EXCELLENT|GOOD|FAIR|POOR|MISMATCH",
-    "hiringUrgency": "EXPEDITE|STANDARD|LOW_PRIORITY|PASS",
-    "competitivePosition": "Would likely receive other offers quickly|Standard candidate|May struggle in competitive market"
+    "hiringUrgency": "EXPEDITE|STANDARD|LOW_PRIORITY|PASS"
   },
 
   "domainAnalysis": {
@@ -971,23 +970,6 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
     "technicalValidation": ["Skills to verify through testing"],
     "culturalFitTopics": ["Soft skill and culture questions"],
     "referenceCheckFocus": ["What to verify with references"]
-  },
-
-  "competitiveIntel": {
-    "marketPosition": "How competitive is this candidate in current market",
-    "salaryExpectation": "Likely expectations based on experience level",
-    "flightRisk": "LOW|MEDIUM|HIGH",
-    "flightRiskReason": "Why they might leave their current role",
-    "counterofferRisk": "LOW|MEDIUM|HIGH",
-    "counterofferRiskReason": "Why current employer might counter",
-    "urgencyToHire": "LOW|MEDIUM|HIGH - How quickly you should move on this candidate",
-    "urgencyReason": "Why you should/shouldn't rush",
-    "competitorRisk": "LOW|MEDIUM|HIGH - Risk of losing to other companies",
-    "retentionFactors": ["What would keep this candidate engaged long-term"],
-    "negotiationLeverage": "What leverage you have in negotiations",
-    "timingConsiderations": "Best time to approach, notice period expectations",
-    "growthPotential": "LOW|MEDIUM|HIGH - Long-term value and advancement potential",
-    "growthPotentialReason": "Why they have/lack growth potential"
   }
 }
 
