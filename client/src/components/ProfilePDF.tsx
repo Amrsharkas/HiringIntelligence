@@ -12,11 +12,11 @@ interface FullResponse {
   executiveSummary?: {
     oneLiner?: string;
     fitScore?: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR' | 'MISMATCH';
-    hiringUrgency?: 'EXPEDITE' | 'STANDARD' | 'LOW_PRIORITY' | 'PASS';
+    hiringUrgency?: 'EXPEDITE' | 'STANDARD' | 'LOW_PRIORITY' | 'NOT PASS';
     competitivePosition?: string;
   };
   verdict?: {
-    decision?: 'INTERVIEW' | 'CONSIDER' | 'REVIEW' | 'PASS';
+    decision?: 'INTERVIEW' | 'CONSIDER' | 'REVIEW' | 'NOT PASS';
     confidence?: 'HIGH' | 'MEDIUM' | 'LOW';
     riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
     summary?: string;
@@ -233,7 +233,7 @@ const getVerdictColor = (decision?: string) => {
     case 'INTERVIEW': return { bg: '#059669', text: '#ffffff' };
     case 'CONSIDER': return { bg: '#3b82f6', text: '#ffffff' };
     case 'REVIEW': return { bg: '#eab308', text: '#ffffff' };
-    case 'PASS': return { bg: '#dc2626', text: '#ffffff' };
+    case 'NOT PASS': return { bg: '#dc2626', text: '#ffffff' };
     default: return { bg: '#6b7280', text: '#ffffff' };
   }
 };
