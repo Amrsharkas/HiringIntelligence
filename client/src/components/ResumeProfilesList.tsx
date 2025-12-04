@@ -2411,7 +2411,7 @@ export function ResumeProfilesList() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 flex-wrap">
-                            {row.invitationStatus !== 'invited' && !row.disqualified && (
+                            {row.invitationStatus !== 'invited' && (
                               <Button
                                 variant="default"
                                 size="sm"
