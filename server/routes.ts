@@ -5157,7 +5157,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Get all resume profiles for organization
+  // Get all resume profiles for organization (optimized - slim response with DB-level filtering)
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -5174,20 +5174,36 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const validPage = pageNum > 0 ? pageNum : 1;
       const validLimit = limitNum > 0 && limitNum <= 100 ? limitNum : 10; // Cap at 100 for performance
 
-      // Import localDatabaseService once outside the loop
+      // Import localDatabaseService for job matches lookup
       const { localDatabaseService } = await import('./localDatabaseService');
 
-      // Fetch ALL profiles first (without pagination) to apply filters correctly
-      const totalCount = await storage.getResumeProfilesCountByOrganization(organization.id);
-      const allProfiles = await storage.getResumeProfilesByOrganization(organization.id, 1, totalCount, sortBy);
+      // Get filtered count and slim profiles using database-level filtering
+      // This avoids loading ALL profiles into memory
+      const filteredTotalCount = await storage.getResumeProfilesCountFiltered(
+        organization.id,
+        search,
+        status,
+        jobId
+      );
 
-      // Get all organization jobs for scoring (for title lookup)
+      // Get only the paginated slim profiles (excludes resumeText, experience, skills, etc.)
+      const slimProfiles = await storage.getResumeProfilesSlimWithFilters(
+        organization.id,
+        validPage,
+        validLimit,
+        sortBy,
+        search,
+        status,
+        jobId
+      );
+
+      // Get all organization jobs for title lookup
       const jobs = await storage.getJobsByOrganization(organization.id);
       const jobsMap = new Map(jobs.map(job => [job.id, job]));
 
-      // OPTIMIZATION: Batch fetch all job scores for all profiles at once
-      const profileIds = allProfiles.map(profile => profile.id);
-      const allJobScores = await storage.getJobScoresByProfileIds(profileIds);
+      // Get slim job scores for only the paginated profiles (excludes fullResponse)
+      const profileIds = slimProfiles.map(profile => profile.id);
+      const allJobScores = await storage.getJobScoresSlimByProfileIds(profileIds);
 
       // Group job scores by profile ID for quick lookup
       const jobScoresByProfile = new Map<string, typeof allJobScores>();
@@ -5198,19 +5214,19 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         jobScoresByProfile.set(score.profileId, existing);
       }
 
-      // OPTIMIZATION: Batch fetch all job matches for all relevant jobs at once
+      // Batch fetch job matches for invitation status
       const uniqueJobIds = [...new Set(allJobScores.map(score => String(score.jobId)))];
       const allJobMatches = await localDatabaseService.getJobMatchesByJobIds(uniqueJobIds);
 
-      // Index job matches by jobId + userId for quick lookup
+      // Index job matches by jobId + profileId for quick lookup
       const jobMatchesIndex = new Map<string, typeof allJobMatches[0]>();
       for (const match of allJobMatches) {
         const key = `${match.jobId}:${match.userId}`;
         jobMatchesIndex.set(key, match);
       }
 
-      // Build profiles with scores using batch-fetched data (no more N+1 queries)
-      const profilesWithScores = allProfiles.map(profile => {
+      // Build profiles with scores
+      let profilesWithScores = slimProfiles.map(profile => {
         const profileJobScores = jobScoresByProfile.get(profile.id) || [];
 
         // Filter job scores by specific jobId if provided
@@ -5239,58 +5255,25 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         };
       });
 
-      // Apply server-side filtering
-      let filteredProfiles = profilesWithScores;
-
-      // Apply search filter
-      if (search) {
-        const searchTerm = search.toLowerCase().trim();
-        filteredProfiles = filteredProfiles.filter(profile => {
-          // Search in name, email, skills, experience, summary
-          const matchesName = profile.name.toLowerCase().includes(searchTerm);
-          const matchesEmail = profile.email?.toLowerCase().includes(searchTerm) || false;
-          const matchesSummary = profile.summary?.toLowerCase().includes(searchTerm);
-          const matchesSkills = profile.skills?.some((skill: string) =>
-            skill.toLowerCase().includes(searchTerm)
-          );
-          const matchesExperience = profile.experience?.some((exp: string) =>
-            exp.toLowerCase().includes(searchTerm)
-          );
-
-          return matchesName || matchesEmail || matchesSummary || matchesSkills || matchesExperience;
-        });
-      }
-
-      // Apply status filter
-      if (status && status !== 'all') {
-        filteredProfiles = filteredProfiles.filter(profile => {
-          if (status === 'qualified') {
-            return profile.jobScores.some(score => !score.disqualified);
-          } else if (status === 'disqualified') {
-            return profile.jobScores.some(score => score.disqualified);
-          } else if (status === 'invited') {
-            return profile.jobScores.some(score => score.invitationStatus === 'invited');
-          } else if (status === 'not-invited') {
-            return profile.jobScores.some(score =>
-              !score.disqualified && score.invitationStatus !== 'invited'
-            );
-          }
-          return true;
-        });
-      }
-
-      // Apply job filter (already partially implemented but let's ensure it filters out profiles without matching job scores)
-      if (jobId) {
-        filteredProfiles = filteredProfiles.filter(profile =>
-          profile.jobScores.some(score => String(score.jobId) === String(jobId))
+      // Apply invited/not-invited status filter in-memory (requires job matches data)
+      // Note: qualified/disqualified and search filters are handled at DB level
+      if (status === 'invited') {
+        profilesWithScores = profilesWithScores.filter(profile =>
+          profile.jobScores.some(score => score.invitationStatus === 'invited')
+        );
+      } else if (status === 'not-invited') {
+        profilesWithScores = profilesWithScores.filter(profile =>
+          profile.jobScores.some(score =>
+            !score.disqualified && score.invitationStatus !== 'invited'
+          )
         );
       }
 
-      // Calculate stats for filtered profiles
+      // Calculate stats for response
       let qualifiedCount = 0;
       let disqualifiedCount = 0;
 
-      filteredProfiles.forEach(profile => {
+      profilesWithScores.forEach(profile => {
         profile.jobScores.forEach(jobScore => {
           if (jobScore.disqualified) {
             disqualifiedCount++;
@@ -5300,15 +5283,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         });
       });
 
-      // Apply pagination to filtered results
-      const filteredTotalCount = filteredProfiles.length;
+      // Calculate pagination
       const filteredTotalPages = Math.ceil(filteredTotalCount / validLimit);
-      const startIndex = (validPage - 1) * validLimit;
-      const endIndex = startIndex + validLimit;
-      const paginatedFilteredProfiles = filteredProfiles.slice(startIndex, endIndex);
 
       res.json({
-        data: paginatedFilteredProfiles,
+        data: profilesWithScores,
         pagination: {
           currentPage: validPage,
           totalPages: filteredTotalPages,
@@ -5326,6 +5305,74 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     } catch (error) {
       console.error("Error fetching resume profiles:", error);
       res.status(500).json({ message: "Failed to fetch resume profiles" });
+    }
+  });
+
+  // Get single resume profile with full details (for modal view)
+  app.get('/api/resume-profiles/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const { jobId } = req.query;
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get full profile with all fields
+      const profile = await storage.getResumeProfileById(id);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      // Verify profile belongs to organization
+      if (profile.organizationId !== organization.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get full job scores (including fullResponse)
+      const jobScores = await storage.getJobScoresByProfile(id);
+
+      // Filter by jobId if provided
+      const filteredScores = jobId
+        ? jobScores.filter(s => String(s.jobId) === String(jobId))
+        : jobScores;
+
+      // Get job matches for invitation status
+      const { localDatabaseService } = await import('./localDatabaseService');
+      const jobs = await storage.getJobsByOrganization(organization.id);
+      const jobsMap = new Map(jobs.map(j => [j.id, j]));
+
+      const uniqueJobIds = [...new Set(filteredScores.map(s => String(s.jobId)))];
+      const allJobMatches = await localDatabaseService.getJobMatchesByJobIds(uniqueJobIds);
+      const jobMatchesIndex = new Map<string, typeof allJobMatches[0]>();
+      for (const match of allJobMatches) {
+        const key = `${match.jobId}:${match.userId}`;
+        jobMatchesIndex.set(key, match);
+      }
+
+      // Build response with full data
+      const jobScoresWithDetails = filteredScores.map(score => {
+        const matchKey = `${score.jobId}:${profile.id}`;
+        const existingMatch = jobMatchesIndex.get(matchKey);
+        return {
+          ...score,
+          jobTitle: jobsMap.get(score.jobId!)?.title || 'Unknown Job',
+          invitationStatus: existingMatch?.status || null,
+          interviewDate: existingMatch?.interviewDate || null,
+          interviewTime: existingMatch?.interviewTime || null,
+          interviewLink: existingMatch?.interviewLink || null,
+        };
+      });
+
+      res.json({
+        ...profile,
+        jobScores: jobScoresWithDetails
+      });
+    } catch (error) {
+      console.error("Error fetching resume profile:", error);
+      res.status(500).json({ message: "Failed to fetch resume profile" });
     }
   });
 

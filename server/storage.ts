@@ -904,6 +904,195 @@ export class DatabaseStorage implements IStorage {
     return result?.count || 0;
   }
 
+  // Optimized methods for list view - excludes large fields like resumeText and fullResponse
+  async getResumeProfilesSlimWithFilters(
+    organizationId: string,
+    page: number = 1,
+    limit: number = 10,
+    sortBy: string = 'score',
+    search?: string,
+    status?: string,
+    jobId?: string
+  ): Promise<Array<{
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    createdAt: Date | null;
+  }>> {
+    const offset = (page - 1) * limit;
+
+    // Build WHERE conditions
+    let whereConditions = `rp.organization_id = '${organizationId}'`;
+
+    // Add search filter
+    if (search && search.trim()) {
+      const searchTerm = search.trim().toLowerCase().replace(/'/g, "''");
+      whereConditions += ` AND (
+        LOWER(rp.name) LIKE '%${searchTerm}%' OR
+        LOWER(rp.email) LIKE '%${searchTerm}%' OR
+        LOWER(rp.summary) LIKE '%${searchTerm}%'
+      )`;
+    }
+
+    // Add jobId filter
+    if (jobId) {
+      whereConditions += ` AND EXISTS (
+        SELECT 1 FROM resume_job_scores rjs
+        WHERE rjs.profile_id = rp.id AND rjs.job_id = ${parseInt(jobId)}
+      )`;
+    }
+
+    // Add status filter
+    if (status && status !== 'all') {
+      if (status === 'qualified') {
+        whereConditions += ` AND EXISTS (
+          SELECT 1 FROM resume_job_scores rjs
+          WHERE rjs.profile_id = rp.id AND (rjs.disqualified IS NULL OR rjs.disqualified = false)
+        )`;
+      } else if (status === 'disqualified') {
+        whereConditions += ` AND EXISTS (
+          SELECT 1 FROM resume_job_scores rjs
+          WHERE rjs.profile_id = rp.id AND rjs.disqualified = true
+        )`;
+      }
+      // Note: 'invited' and 'not-invited' status requires checking airtable_job_matches
+      // which is handled in-memory in the routes.ts for now
+    }
+
+    // Build ORDER BY
+    let orderBy = 'rp.created_at DESC';
+    if (sortBy === 'score') {
+      orderBy = 'COALESCE(max_scores.max_score, 0) DESC, rp.created_at DESC';
+    }
+
+    const query = sql.raw(`
+      SELECT
+        rp.id,
+        rp.name,
+        rp.email,
+        rp.phone,
+        rp.created_at
+      FROM resume_profiles rp
+      LEFT JOIN (
+        SELECT
+          profile_id,
+          MAX(overall_score) as max_score
+        FROM resume_job_scores
+        GROUP BY profile_id
+      ) max_scores ON rp.id = max_scores.profile_id
+      WHERE ${whereConditions}
+      ORDER BY ${orderBy}
+      LIMIT ${limit} OFFSET ${offset}
+    `);
+
+    const result = await db.execute(query);
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      createdAt: row.created_at
+    }));
+  }
+
+  async getResumeProfilesCountFiltered(
+    organizationId: string,
+    search?: string,
+    status?: string,
+    jobId?: string
+  ): Promise<number> {
+    // Build WHERE conditions
+    let whereConditions = `rp.organization_id = '${organizationId}'`;
+
+    // Add search filter
+    if (search && search.trim()) {
+      const searchTerm = search.trim().toLowerCase().replace(/'/g, "''");
+      whereConditions += ` AND (
+        LOWER(rp.name) LIKE '%${searchTerm}%' OR
+        LOWER(rp.email) LIKE '%${searchTerm}%' OR
+        LOWER(rp.summary) LIKE '%${searchTerm}%'
+      )`;
+    }
+
+    // Add jobId filter
+    if (jobId) {
+      whereConditions += ` AND EXISTS (
+        SELECT 1 FROM resume_job_scores rjs
+        WHERE rjs.profile_id = rp.id AND rjs.job_id = ${parseInt(jobId)}
+      )`;
+    }
+
+    // Add status filter
+    if (status && status !== 'all') {
+      if (status === 'qualified') {
+        whereConditions += ` AND EXISTS (
+          SELECT 1 FROM resume_job_scores rjs
+          WHERE rjs.profile_id = rp.id AND (rjs.disqualified IS NULL OR rjs.disqualified = false)
+        )`;
+      } else if (status === 'disqualified') {
+        whereConditions += ` AND EXISTS (
+          SELECT 1 FROM resume_job_scores rjs
+          WHERE rjs.profile_id = rp.id AND rjs.disqualified = true
+        )`;
+      }
+    }
+
+    const query = sql.raw(`
+      SELECT COUNT(DISTINCT rp.id) as count
+      FROM resume_profiles rp
+      WHERE ${whereConditions}
+    `);
+
+    const result = await db.execute(query);
+    return parseInt((result.rows[0] as any)?.count || '0', 10);
+  }
+
+  async getJobScoresSlimByProfileIds(profileIds: string[]): Promise<Array<{
+    id: number;
+    profileId: string | null;
+    jobId: number | null;
+    overallScore: number | null;
+    technicalSkillsScore: number | null;
+    experienceScore: number | null;
+    culturalFitScore: number | null;
+    matchSummary: string | null;
+    strengthsHighlights: string[] | null;
+    improvementAreas: string[] | null;
+    disqualified: boolean | null;
+    disqualificationReason: string | null;
+    redFlags: Array<{ issue: string; evidence: string; reason: string }> | null;
+    scoredAt: Date | null;
+    updatedAt: Date | null;
+  }>> {
+    if (profileIds.length === 0) {
+      return [];
+    }
+
+    // Select all columns EXCEPT fullResponse for slim response
+    return await db
+      .select({
+        id: resumeJobScores.id,
+        profileId: resumeJobScores.profileId,
+        jobId: resumeJobScores.jobId,
+        overallScore: resumeJobScores.overallScore,
+        technicalSkillsScore: resumeJobScores.technicalSkillsScore,
+        experienceScore: resumeJobScores.experienceScore,
+        culturalFitScore: resumeJobScores.culturalFitScore,
+        matchSummary: resumeJobScores.matchSummary,
+        strengthsHighlights: resumeJobScores.strengthsHighlights,
+        improvementAreas: resumeJobScores.improvementAreas,
+        disqualified: resumeJobScores.disqualified,
+        disqualificationReason: resumeJobScores.disqualificationReason,
+        redFlags: resumeJobScores.redFlags,
+        scoredAt: resumeJobScores.scoredAt,
+        updatedAt: resumeJobScores.updatedAt,
+      })
+      .from(resumeJobScores)
+      .where(inArray(resumeJobScores.profileId, profileIds))
+      .orderBy(desc(resumeJobScores.overallScore));
+  }
+
   async getResumeProfileById(id: string): Promise<ResumeProfile | undefined> {
     const [profile] = await db
       .select()

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -66,15 +66,29 @@ interface ProfileWithScores extends ResumeProfile {
 
 export function ResumeProfilesList() {
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedJobFilter, setSelectedJobFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
-  const [selectedProfile, setSelectedProfile] = useState<ProfileWithScores | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [selectedJobScore, setSelectedJobScore] = useState<JobScoring | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [exportingAll, setExportingAll] = useState(false);
   const [exportingProfileId, setExportingProfileId] = useState<string | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout>();
+
+  // Debounce search input - waits 400ms after user stops typing
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setCurrentPage(1); // Reset to page 1 on search
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
 
   // Fetch company job postings
   const { data: jobs = [] } = useQuery<any[]>({
@@ -114,16 +128,16 @@ export function ResumeProfilesList() {
     data: ProfileWithScores[];
     pagination: any;
   }>({
-    queryKey: ['/api/resume-profiles', currentPage, itemsPerPage, searchTerm, selectedJobFilter, selectedStatusFilter],
+    queryKey: ['/api/resume-profiles', currentPage, itemsPerPage, debouncedSearch, selectedJobFilter, selectedStatusFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage === -1 ? '10000' : itemsPerPage.toString(),
       });
 
-      // Add search term if exists
-      if (searchTerm) {
-        params.append('search', searchTerm);
+      // Add search term if exists (using debounced value)
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
       }
 
       // Add job filter if selected
@@ -151,6 +165,22 @@ export function ResumeProfilesList() {
 
   const totalPages = serverPagination?.totalPages || 1;
   const totalItems = serverPagination?.totalItems || 0;
+
+  // Fetch full profile details when modal opens (lazy load)
+  const { data: selectedProfile, isLoading: profileDetailLoading } = useQuery<ProfileWithScores>({
+    queryKey: ['/api/resume-profiles', selectedProfileId],
+    queryFn: async () => {
+      if (!selectedProfileId) return null;
+      const response = await fetch(`/api/resume-profiles/${selectedProfileId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile details');
+      }
+      return response.json();
+    },
+    enabled: !!selectedProfileId,
+  });
 
   // Refresh profiles when active jobs complete
   useEffect(() => {
@@ -287,7 +317,7 @@ export function ResumeProfilesList() {
         description: "Resume profile has been deleted successfully",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
-      setSelectedProfile(null);
+      setSelectedProfileId(null);
     },
     onError: (error: Error) => {
       toast({
@@ -310,7 +340,7 @@ export function ResumeProfilesList() {
         description: data.message || "All resume profiles have been deleted successfully",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/resume-profiles'] });
-      setSelectedProfile(null);
+      setSelectedProfileId(null);
     },
     onError: (error: Error) => {
       toast({
@@ -2166,11 +2196,8 @@ export function ResumeProfilesList() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  handleFilterChange();
-                }}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by name, email, or skills..."
                 className="pl-10"
               />
@@ -2409,7 +2436,7 @@ export function ResumeProfilesList() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setSelectedProfile(row.profile);
+                                setSelectedProfileId(row.profileId);
                                 setSelectedJobScore(row.jobScore);
                               }}
                               className="h-8 px-2 text-xs"
@@ -2532,12 +2559,21 @@ export function ResumeProfilesList() {
       </Card>
 
       {/* Profile Detail Modal */}
-      {selectedProfile && (
-        <Dialog open={!!selectedProfile} onOpenChange={() => {
-          setSelectedProfile(null);
+      {selectedProfileId && (
+        <Dialog open={!!selectedProfileId} onOpenChange={() => {
+          setSelectedProfileId(null);
           setSelectedJobScore(null);
         }}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-6">
+            {profileDetailLoading || !selectedProfile ? (
+              <div className="flex items-center justify-center h-[70vh]">
+                <div className="flex flex-col items-center gap-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <p className="text-muted-foreground">Loading profile details...</p>
+                </div>
+              </div>
+            ) : (
+            <>
             <DialogHeader>
               <div className="flex items-center justify-between">
                 <DialogTitle className="flex items-center gap-2">
@@ -2605,7 +2641,14 @@ export function ResumeProfilesList() {
                 <div>
                   <h4 className="font-semibold mb-4 text-lg">Job Match Analysis</h4>
                   <div className="space-y-4">
-                    {(selectedJobScore ? [selectedJobScore] : selectedProfile.jobScores).map((jobScore) => {
+                    {(() => {
+                      // If a specific job was selected, find the full job score from selectedProfile
+                      // (selectedJobScore from list is slim and doesn't have fullResponse)
+                      const jobScoresToShow = selectedJobScore
+                        ? selectedProfile.jobScores.filter(js => String(js.jobId) === String(selectedJobScore.jobId))
+                        : selectedProfile.jobScores;
+                      return jobScoresToShow.length > 0 ? jobScoresToShow : selectedProfile.jobScores;
+                    })().map((jobScore) => {
                       const job = jobs.find((j: any) => String(j.id) === String(jobScore.jobId));
                       return (
                         <Card key={jobScore.jobId} className={jobScore.disqualified ? 'border-red-200 bg-red-50/30' : ''}>
@@ -2804,6 +2847,8 @@ export function ResumeProfilesList() {
                 )}
               </div>
             </ScrollArea>
+            </>
+            )}
           </DialogContent>
         </Dialog>
       )}
