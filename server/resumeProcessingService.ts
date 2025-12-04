@@ -749,7 +749,7 @@ For each red flag, provide:
 
 ⚠️ FIRST: CHECK DOMAIN RELEVANCE
 If DOMAIN_MISMATCH detected → IMMEDIATELY:
-  - Set verdict.decision = "PASS"
+  - Set verdict.decision = "NOT PASS"
   - Set disqualified = true
   - Set overallScore ≤ 10
   - Skip to output (do not waste time on detailed scoring)
@@ -765,7 +765,7 @@ CONSIDER (Score 60-69 OR score ≥70 with MEDIUM red flags):
 REVIEW (Score 50-59 OR significant gaps in MUST-HAVEs OR domain TRANSFERABLE):
 → "Requires careful review. [What works] vs [what's missing]"
 
-PASS (Score <50 OR HIGH red flags OR missing critical MUST-HAVEs OR domain PIVOT/MISMATCH):
+NOT PASS (Score <50 OR HIGH red flags OR missing critical MUST-HAVEs OR domain PIVOT/MISMATCH):
 → "Not recommended. [Primary disqualifying factor]"
 
 DISQUALIFY (Domain MISMATCH OR critical requirement missing):
@@ -791,7 +791,7 @@ DISQUALIFY (Domain MISMATCH OR critical requirement missing):
   "recommendationReason": "Crisp 1-2 sentence hiring recommendation with key evidence",
 
   "verdict": {
-    "decision": "INTERVIEW|CONSIDER|REVIEW|PASS",
+    "decision": "INTERVIEW|CONSIDER|REVIEW|NOT PASS",
     "confidence": "HIGH|MEDIUM|LOW",
     "summary": "One powerful sentence answering: Should we hire this person?",
     "topStrength": "The single most compelling reason to proceed",
