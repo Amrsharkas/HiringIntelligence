@@ -36,10 +36,11 @@ export class CacheService {
     return `resume_parsing:${fileSize}`;
   }
 
-  // Helper: Job scoring cache key (based on file hash + jobId)
-  jobScoringKey(fileContent: string, jobId: number): string {
+  // Helper: Job scoring cache key (based on file hash + job description + requirements hash)
+  jobScoringKey(fileContent: string, jobDescription: string, jobRequirements: string): string {
     const fileHash = this.generateHash(fileContent);
-    return `job_scoring:${fileHash}:${jobId}`;
+    const jobContentHash = this.generateHash(jobDescription + jobRequirements);
+    return `job_scoring:${fileHash}:${jobContentHash}`;
   }
 }
 

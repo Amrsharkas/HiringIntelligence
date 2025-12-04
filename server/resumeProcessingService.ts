@@ -378,12 +378,12 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
     fileContent?: string
   ): Promise<JobMatchScore> {
     try {
-      // Check cache for job scoring result (based on file hash + jobId)
-      if (jobId && fileContent) {
-        const cacheKey = cacheService.jobScoringKey(fileContent, jobId);
+      // Check cache for job scoring result (based on file hash + job description + requirements)
+      if (fileContent) {
+        const cacheKey = cacheService.jobScoringKey(fileContent, jobDescription, jobRequirements);
         const cachedResult = await cacheService.get<JobMatchScore>(cacheKey);
         if (cachedResult) {
-          console.log(`✅ Cache hit for job scoring (jobId: ${jobId})`);
+          console.log(`✅ Cache hit for job scoring`);
           return cachedResult;
         }
         console.log(`📝 Cache miss for job scoring, calling OpenAI...`);
@@ -1080,10 +1080,10 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
       };
 
       // Store in cache
-      if (jobId && fileContent) {
-        const cacheKey = cacheService.jobScoringKey(fileContent, jobId);
+      if (fileContent) {
+        const cacheKey = cacheService.jobScoringKey(fileContent, jobDescription, jobRequirements);
         await cacheService.set(cacheKey, scoringResult);
-        console.log(`💾 Cached job scoring result (jobId: ${jobId})`);
+        console.log(`💾 Cached job scoring result`);
       }
 
       return scoringResult;
