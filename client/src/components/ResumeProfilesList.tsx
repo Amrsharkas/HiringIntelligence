@@ -411,9 +411,10 @@ export function ResumeProfilesList() {
       });
     } catch (error) {
       console.error('PDF export error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Export Failed",
-        description: "Failed to generate PDF. Please try again.",
+        description: `Failed to generate PDF: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -457,9 +458,10 @@ export function ResumeProfilesList() {
       });
     } catch (error) {
       console.error('PDF export error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Export Failed",
-        description: "Failed to generate PDF. Please try again.",
+        description: `Failed to generate PDF for ${profile.name}: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -2277,17 +2279,20 @@ export function ResumeProfilesList() {
           </div>
 
           {/* Stats & Actions */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <div className="flex gap-4 text-sm text-muted-foreground">
-              <span>Total Profiles: {totalItems}</span>
-              <span>•</span>
-              <span className="text-green-600">
-                Qualified: {displayRows.filter(row => !row.disqualified).length}
-              </span>
-              <span>•</span>
-              <span className="text-red-600">
-                Disqualified: {displayRows.filter(row => row.disqualified).length}
-              </span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 text-center sm:text-left">
+                <span className="text-xs sm:text-sm text-muted-foreground">Total:</span>
+                <span className="font-semibold text-foreground">{totalItems}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 text-center sm:text-left">
+                <span className="text-xs sm:text-sm text-green-600">Qualified:</span>
+                <span className="font-semibold text-green-600">{displayRows.filter(row => !row.disqualified).length}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 text-center sm:text-left">
+                <span className="text-xs sm:text-sm text-red-600">Disqualified:</span>
+                <span className="font-semibold text-red-600">{displayRows.filter(row => row.disqualified).length}</span>
+              </div>
             </div>
 
             <div className="flex gap-2">
