@@ -353,25 +353,48 @@ export function ResumeProfilesList() {
 
   // Export all filtered profiles as PDF using async pdf() for better performance
   const exportAllProfiles = async () => {
-    // Get unique profiles from display rows
-    const uniqueProfiles = Array.from(
-      new Map(displayRows.map(row => [row.profileId, row.profile])).values()
-    );
-
-    if (uniqueProfiles.length === 0) {
-      toast({
-        title: "No Profiles",
-        description: "There are no profiles to export",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setExportingAll(true);
-    const fileName = `resume_profiles_export_${new Date().toISOString().split('T')[0]}.pdf`;
 
     try {
-      const blob = await pdf(<ProfilesPDF profiles={uniqueProfiles} jobs={jobs} />).toBlob();
+      // Fetch ALL profiles matching current filters (not just current page)
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '10000', // Fetch all profiles
+      });
+
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
+      }
+      if (selectedJobFilter !== 'all') {
+        params.append('jobId', selectedJobFilter);
+      }
+      if (selectedStatusFilter !== 'all') {
+        params.append('status', selectedStatusFilter);
+      }
+
+      const response = await fetch(`/api/resume-profiles?${params}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch all profiles');
+      }
+
+      const allProfilesData = await response.json();
+      const allProfiles = allProfilesData?.data || [];
+
+      if (allProfiles.length === 0) {
+        toast({
+          title: "No Profiles",
+          description: "There are no profiles to export",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const fileName = `resume_profiles_export_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      const blob = await pdf(<ProfilesPDF profiles={allProfiles} jobs={jobs} />).toBlob();
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -384,7 +407,7 @@ export function ResumeProfilesList() {
 
       toast({
         title: "PDF Exported",
-        description: `${uniqueProfiles.length} profiles have been exported successfully`,
+        description: `${allProfiles.length} profiles have been exported successfully`,
       });
     } catch (error) {
       console.error('PDF export error:', error);
