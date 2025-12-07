@@ -5172,7 +5172,8 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
       const validPage = pageNum > 0 ? pageNum : 1;
-      const validLimit = limitNum > 0 && limitNum <= 100 ? limitNum : 10; // Cap at 100 for performance
+      // Allow large limit for "All" option (10000), otherwise cap at 100
+      const validLimit = limitNum > 0 ? (limitNum >= 10000 ? 10000 : Math.min(limitNum, 100)) : 10;
 
       // Import localDatabaseService for job matches lookup
       const { localDatabaseService } = await import('./localDatabaseService');
