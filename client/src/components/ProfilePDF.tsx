@@ -997,7 +997,7 @@ export const ProfilePDF: React.FC<ProfilePDFProps> = ({
         )}
 
         {/* Skills Section */}
-        {profile.skills.length > 0 && (
+        {profile.skills?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Skills</Text>
             <View style={styles.skillsContainer}>
@@ -1009,7 +1009,7 @@ export const ProfilePDF: React.FC<ProfilePDFProps> = ({
         )}
 
         {/* Languages Section - Keep together */}
-        {profile.languages.length > 0 && (
+        {profile.languages?.length > 0 && (
           <View style={styles.section} wrap={false}>
             <Text style={styles.sectionTitle}>Languages</Text>
             <View style={styles.languagesContainer}>
@@ -1023,7 +1023,7 @@ export const ProfilePDF: React.FC<ProfilePDFProps> = ({
         )}
 
         {/* Experience Section */}
-        {profile.experience.length > 0 && (
+        {profile.experience?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Professional Experience</Text>
             {profile.experience.map((exp, index) => (
@@ -1035,7 +1035,7 @@ export const ProfilePDF: React.FC<ProfilePDFProps> = ({
         )}
 
         {/* Education Section */}
-        {profile.education.length > 0 && (
+        {profile.education?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Education</Text>
             {profile.education.map((edu, index) => (
@@ -1047,7 +1047,7 @@ export const ProfilePDF: React.FC<ProfilePDFProps> = ({
         )}
 
         {/* Certifications Section */}
-        {profile.certifications.length > 0 && (
+        {profile.certifications?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Certifications</Text>
             {profile.certifications.map((cert, index) => (
