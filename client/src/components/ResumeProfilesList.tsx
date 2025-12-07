@@ -1450,27 +1450,35 @@ export function ResumeProfilesList() {
               Skill Depth Analysis
             </h5>
 
-            {/* Skill Depth Summary */}
-            {fullResponse.skillAnalysis.skillDepthSummary && (
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                <div className="text-center p-2 bg-green-100 rounded">
-                  <div className="text-lg font-bold text-green-700">{fullResponse.skillAnalysis.skillDepthSummary.expert || 0}</div>
-                  <div className="text-xs text-green-600">Expert</div>
+            {/* Skill Depth Summary - manually counted from matchedSkills */}
+            {fullResponse.skillAnalysis.matchedSkills && fullResponse.skillAnalysis.matchedSkills.length > 0 && (() => {
+              const skills = fullResponse.skillAnalysis.matchedSkills;
+              const expertCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'expert').length;
+              const proficientCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'proficient').length;
+              const familiarCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'familiar').length;
+              const listedOnlyCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'listed only' || s.depth?.toLowerCase() === 'listedonly' || s.depth?.toLowerCase() === 'listed').length;
+
+              return (
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  <div className="text-center p-2 bg-green-100 rounded">
+                    <div className="text-lg font-bold text-green-700">{expertCount}</div>
+                    <div className="text-xs text-green-600">Expert</div>
+                  </div>
+                  <div className="text-center p-2 bg-blue-100 rounded">
+                    <div className="text-lg font-bold text-blue-700">{proficientCount}</div>
+                    <div className="text-xs text-blue-600">Proficient</div>
+                  </div>
+                  <div className="text-center p-2 bg-yellow-100 rounded">
+                    <div className="text-lg font-bold text-yellow-700">{familiarCount}</div>
+                    <div className="text-xs text-yellow-600">Familiar</div>
+                  </div>
+                  <div className="text-center p-2 bg-gray-100 rounded">
+                    <div className="text-lg font-bold text-gray-600">{listedOnlyCount}</div>
+                    <div className="text-xs text-gray-500">Listed Only</div>
+                  </div>
                 </div>
-                <div className="text-center p-2 bg-blue-100 rounded">
-                  <div className="text-lg font-bold text-blue-700">{fullResponse.skillAnalysis.skillDepthSummary.proficient || 0}</div>
-                  <div className="text-xs text-blue-600">Proficient</div>
-                </div>
-                <div className="text-center p-2 bg-yellow-100 rounded">
-                  <div className="text-lg font-bold text-yellow-700">{fullResponse.skillAnalysis.skillDepthSummary.familiar || 0}</div>
-                  <div className="text-xs text-yellow-600">Familiar</div>
-                </div>
-                <div className="text-center p-2 bg-gray-100 rounded">
-                  <div className="text-lg font-bold text-gray-600">{fullResponse.skillAnalysis.skillDepthSummary.listedOnly || 0}</div>
-                  <div className="text-xs text-gray-500">Listed Only</div>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Matched Skills */}
             {fullResponse.skillAnalysis.matchedSkills && fullResponse.skillAnalysis.matchedSkills.length > 0 && (
