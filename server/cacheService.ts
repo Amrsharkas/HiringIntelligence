@@ -31,15 +31,17 @@ export class CacheService {
     await db.delete(cache).where(eq(cache.key, key));
   }
 
-  // Helper: Resume parsing cache key (based on file size)
-  resumeParseKey(fileSize: number): string {
-    return `resume_parsing:${fileSize}`;
+  // Helper: Resume parsing cache key (based on file size + custom rules)
+  resumeParseKey(fileSize: number, customRules?: string): string {
+    const rulesHash = customRules ? `:${this.generateHash(customRules).slice(0, 16)}` : '';
+    return `resume_parsing:${fileSize}${rulesHash}`;
   }
 
-  // Helper: Job scoring cache key (based on file hash + job description + requirements hash)
-  jobScoringKey(fileContent: string, jobDescription: string, jobRequirements: string): string {
+  // Helper: Job scoring cache key (based on file hash + job description + requirements + custom rules hash)
+  jobScoringKey(fileContent: string, jobDescription: string, jobRequirements: string, customRules?: string): string {
     const fileHash = this.generateHash(fileContent);
-    const jobContentHash = this.generateHash(jobDescription + jobRequirements);
+    const rulesComponent = customRules || '';
+    const jobContentHash = this.generateHash(jobDescription + jobRequirements + rulesComponent);
     return `job_scoring:${fileHash}:${jobContentHash}`;
   }
 }

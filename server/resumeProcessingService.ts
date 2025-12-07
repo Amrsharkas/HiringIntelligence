@@ -183,15 +183,15 @@ export class ResumeProcessingService {
 
   async processResume(resumeText: string, fileType?: string, customRules?: string, fileSize?: number): Promise<ProcessedResume> {
     try {
-      // Check cache for parsed resume (based on file size)
+      // Check cache for parsed resume (based on file size + custom rules)
       if (fileSize) {
-        const cacheKey = cacheService.resumeParseKey(fileSize);
+        const cacheKey = cacheService.resumeParseKey(fileSize, customRules);
         const cachedResult = await cacheService.get<ProcessedResume>(cacheKey);
         if (cachedResult) {
-          console.log(`✅ Cache hit for resume parsing (fileSize: ${fileSize})`);
+          console.log(`✅ Cache hit for resume parsing (fileSize: ${fileSize}, hasCustomRules: ${!!customRules})`);
           return cachedResult;
         }
-        console.log(`📝 Cache miss for resume parsing (fileSize: ${fileSize}), processing...`);
+        console.log(`📝 Cache miss for resume parsing (fileSize: ${fileSize}, hasCustomRules: ${!!customRules}), processing...`);
       }
 
       // Extract text from file if needed
@@ -331,11 +331,11 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
 
       // Store in cache (without fileId since it's specific to this upload)
       if (fileSize) {
-        const cacheKey = cacheService.resumeParseKey(fileSize);
+        const cacheKey = cacheService.resumeParseKey(fileSize, customRules);
         const cacheValue: ProcessedResume = { ...processedResume };
         delete cacheValue.fileId;
         await cacheService.set(cacheKey, cacheValue);
-        console.log(`💾 Cached resume parsing result (fileSize: ${fileSize})`);
+        console.log(`💾 Cached resume parsing result (fileSize: ${fileSize}, hasCustomRules: ${!!customRules})`);
       }
 
       return processedResume;
@@ -378,15 +378,15 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
     fileContent?: string
   ): Promise<JobMatchScore> {
     try {
-      // Check cache for job scoring result (based on file hash + job description + requirements)
+      // Check cache for job scoring result (based on file hash + job description + requirements + custom rules)
       if (fileContent) {
-        const cacheKey = cacheService.jobScoringKey(fileContent, jobDescription, jobRequirements);
+        const cacheKey = cacheService.jobScoringKey(fileContent, jobDescription, jobRequirements, customRules);
         const cachedResult = await cacheService.get<JobMatchScore>(cacheKey);
         if (cachedResult) {
-          console.log(`✅ Cache hit for job scoring`);
+          console.log(`✅ Cache hit for job scoring (hasCustomRules: ${!!customRules})`);
           return cachedResult;
         }
-        console.log(`📝 Cache miss for job scoring, calling OpenAI...`);
+        console.log(`📝 Cache miss for job scoring (hasCustomRules: ${!!customRules}), calling OpenAI...`);
       }
 
       const response = await wrapOpenAIRequest(
@@ -1081,9 +1081,9 @@ Analyze this candidate with full truth. No assumptions. No vagueness. No generic
 
       // Store in cache
       if (fileContent) {
-        const cacheKey = cacheService.jobScoringKey(fileContent, jobDescription, jobRequirements);
+        const cacheKey = cacheService.jobScoringKey(fileContent, jobDescription, jobRequirements, customRules);
         await cacheService.set(cacheKey, scoringResult);
-        console.log(`💾 Cached job scoring result`);
+        console.log(`💾 Cached job scoring result (hasCustomRules: ${!!customRules})`);
       }
 
       return scoringResult;
