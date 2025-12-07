@@ -27,34 +27,26 @@ const resumeProcessingWorker = new Worker(
 
     try {
       if (job.name === 'process-single-resume') {
-        const { fileContent, fileName, fileType, userId, organizationId, jobId, customRules } = job.data;
+        const { filePath, fileName, fileType, userId, organizationId, jobId, customRules } = job.data;
         const numericJobId = jobId ? parseInt(jobId, 10) : undefined;
 
         console.log(`📄 Processing single resume: ${fileName} for user ${userId}, organization ${organizationId}`);
 
+        // Read file content from disk (optimized - file path stored in Redis instead of content)
+        let fileContent: string;
+        try {
+          fileContent = await fileStorageService.readFileAsBase64(filePath);
+          console.log(`📖 Read file from disk: ${filePath} (${fileContent.length} chars base64)`);
+        } catch (readError) {
+          console.error(`❌ Failed to read file from disk: ${filePath}`, readError);
+          throw new Error(`Failed to read resume file: ${readError instanceof Error ? readError.message : 'Unknown error'}`);
+        }
+
         // Update progress
         job.updateProgress(5);
 
-        // For text files, we don't need to save locally - just use the content directly
-        // For other file types, save locally for processing
-        if (fileType !== 'text') {
-          console.log(`💾 Saving file locally...`);
-          let savedFileInfo;
-          try {
-            savedFileInfo = await fileStorageService.saveFileFromBase64(
-              fileContent,
-              fileName,
-              fileType || 'text/plain',
-              userId
-            );
-            console.log(`✅ File saved locally: ${savedFileInfo.relativePath}`);
-          } catch (fileError) {
-            console.warn(`⚠️ Failed to save file locally (will continue without local file):`, fileError);
-            // Continue processing even if file saving fails
-          }
-        } else {
-          console.log(`📝 Text file detected - using content directly, no local save needed`);
-        }
+        // File is already saved to disk before queuing (optimized flow)
+        console.log(`📁 File already on disk at: ${filePath}`);
 
         job.updateProgress(10);
 

@@ -16,6 +16,7 @@ import { wrapOpenAIRequest } from "./openaiTracker";
 import { localDatabaseService } from "./localDatabaseService";
 import { interviewQuestionsService } from "./interviewQuestionsService";
 import { resumeProcessingService } from "./resumeProcessingService";
+import { fileStorageService } from "./fileStorageService";
 import { emailService } from "./emailService";
 import { ragIndexingService } from "./ragIndexingService";
 import { resumeRagService } from "./resumeRagService";
@@ -5675,10 +5676,19 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         }
       }
 
-      // Create separate queue jobs for each target job
+      // Save file to disk first (optimizes Redis memory usage)
+      const savedFile = await fileStorageService.saveFileFromBase64(
+        resumeText,
+        fileName || 'resume.txt',
+        fileType || 'text/plain',
+        userId
+      );
+      console.log(`💾 Saved resume to disk: ${savedFile.filePath}`);
+
+      // Create separate queue jobs for each target job (passing file path instead of content)
       const queueJobs = await Promise.all(
         targetJobs.map(targetJob => addSingleResumeProcessingJob({
-          fileContent: resumeText,
+          filePath: savedFile.filePath,
           fileName: fileName || 'resume.txt',
           fileType: fileType || 'text/plain',
           userId,
@@ -5796,11 +5806,24 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Create background jobs for each file + job combination
       const { addSingleResumeProcessingJob } = await import('./jobProducers');
 
+      // Save all files to disk first (optimizes Redis memory usage)
+      const savedFiles = await Promise.all(
+        files.map(file => fileStorageService.saveFileFromBase64(
+          file.content,
+          file.name,
+          file.type || 'text/plain',
+          userId
+        ))
+      );
+      console.log(`💾 Saved ${savedFiles.length} resume files to disk`);
+
       const allQueueJobs = [];
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const savedFile = savedFiles[i];
         for (const targetJob of targetJobs) {
           const queueJob = await addSingleResumeProcessingJob({
-            fileContent: file.content,
+            filePath: savedFile.filePath,
             fileName: file.name,
             fileType: file.type || 'text/plain',
             userId,

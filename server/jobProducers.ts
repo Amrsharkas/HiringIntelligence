@@ -115,10 +115,11 @@ export const scheduleInterviewEmailJob = async (
 // Bulk resume processing job producer
 // Note: This is now primarily used for creating multiple queue jobs for files against a SINGLE job
 // For processing against ALL jobs, the routes.ts handles creating jobs for each file+job combination
+// OPTIMIZED: Now accepts filePath instead of content to reduce Redis memory usage
 export const addBulkResumeProcessingJob = async (data: {
   files: Array<{
     name: string;
-    content: string;
+    filePath: string;  // Path to file on disk (optimized)
     type: string;
   }>;
   userId: string;
@@ -128,7 +129,7 @@ export const addBulkResumeProcessingJob = async (data: {
 }) => {
   const jobPromises = data.files.map(file =>
     addSingleResumeProcessingJob({
-      fileContent: file.content,
+      filePath: file.filePath,
       fileName: file.name,
       fileType: file.type,
       userId: data.userId,
@@ -143,8 +144,9 @@ export const addBulkResumeProcessingJob = async (data: {
 
 // Single resume processing job producer (for individual files)
 // Note: jobId is now required - each queue job processes one resume against one specific job
+// OPTIMIZED: Now accepts filePath instead of fileContent to reduce Redis memory usage
 export const addSingleResumeProcessingJob = async (data: {
-  fileContent: string;
+  filePath: string;      // Path to file on disk (optimized - reduces Redis memory)
   fileName: string;
   fileType: string;
   userId: string;

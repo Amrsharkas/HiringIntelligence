@@ -4,6 +4,7 @@ import { promisify } from 'util';
 
 const mkdir = promisify(fs.mkdir);
 const writeFileAsync = promisify(fs.writeFile);
+const readFileAsync = promisify(fs.readFile);
 const access = promisify(fs.access);
 
 /**
@@ -186,6 +187,31 @@ export class FileStorageService {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Read a file and return its content as base64
+   */
+  async readFileAsBase64(filePath: string): Promise<string> {
+    try {
+      const buffer = await readFileAsync(filePath);
+      return buffer.toString('base64');
+    } catch (error) {
+      console.error(`❌ Error reading file: ${filePath}`, error);
+      throw new Error(`Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Read a file and return its content as buffer
+   */
+  async readFileAsBuffer(filePath: string): Promise<Buffer> {
+    try {
+      return await readFileAsync(filePath);
+    } catch (error) {
+      console.error(`❌ Error reading file: ${filePath}`, error);
+      throw new Error(`Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

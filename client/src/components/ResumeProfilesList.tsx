@@ -18,8 +18,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Search, User, Briefcase, Star, Download, Trash2, Loader2, MailCheck, Mail, AlertTriangle, CheckCircle, FileText, Users, ChevronDown, ChevronRight, X, FileDown } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
-import ProfilesPDF from '@/components/ProfilesPDF';
 import { ProfilePDF } from '@/components/ProfilePDF';
+import { ProfilesSummaryPDF } from '@/components/ProfilesSummaryPDF';
 
 interface ResumeProfile {
   id: string;
@@ -351,50 +351,30 @@ export function ResumeProfilesList() {
     },
   });
 
-  // Export all filtered profiles as PDF using async pdf() for better performance
+  // Export profiles currently displayed on the page as PDF using summary view
   const exportAllProfiles = async () => {
+    if (profiles.length === 0) {
+      toast({
+        title: "No Profiles",
+        description: "There are no profiles to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setExportingAll(true);
 
     try {
-      // Fetch ALL profiles matching current filters (not just current page)
-      const params = new URLSearchParams({
-        page: '1',
-        limit: '10000', // Fetch all profiles
-      });
+      const fileName = `resume_profiles_summary_${new Date().toISOString().split('T')[0]}.pdf`;
 
-      if (debouncedSearch) {
-        params.append('search', debouncedSearch);
-      }
-      if (selectedJobFilter !== 'all') {
-        params.append('jobId', selectedJobFilter);
-      }
-      if (selectedStatusFilter !== 'all') {
-        params.append('status', selectedStatusFilter);
-      }
-
-      const response = await fetch(`/api/resume-profiles?${params}`, {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch all profiles');
-      }
-
-      const allProfilesData = await response.json();
-      const allProfiles = allProfilesData?.data || [];
-
-      if (allProfiles.length === 0) {
-        toast({
-          title: "No Profiles",
-          description: "There are no profiles to export",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const fileName = `resume_profiles_export_${new Date().toISOString().split('T')[0]}.pdf`;
-
-      const blob = await pdf(<ProfilesPDF profiles={allProfiles} jobs={jobs} />).toBlob();
+      // Use ProfilesSummaryPDF for export - shows only summary and overall match score
+      const blob = await pdf(
+        <ProfilesSummaryPDF
+          profiles={profiles}
+          jobs={jobs}
+          selectedJobId={selectedJobFilter !== 'all' ? selectedJobFilter : undefined}
+        />
+      ).toBlob();
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -407,7 +387,7 @@ export function ResumeProfilesList() {
 
       toast({
         title: "PDF Exported",
-        description: `${allProfiles.length} profiles have been exported successfully`,
+        description: `Summary of ${profiles.length} profiles has been exported successfully`,
       });
     } catch (error) {
       console.error('PDF export error:', error);
@@ -422,21 +402,33 @@ export function ResumeProfilesList() {
     }
   };
 
-  // Export a single profile as PDF
+  // Export a single profile as PDF - fetches full details first for detailed analysis
   const exportSingleProfile = async (profile: ProfileWithScores, jobScore?: JobScoring) => {
     setExportingProfileId(profile.id);
-
-    // Create a profile with the specific job score if provided
-    const profileToExport = jobScore
-      ? { ...profile, jobScores: [jobScore] }
-      : profile;
 
     const fileName = `${profile.name.replace(/\s+/g, '_')}_profile_${new Date().toISOString().split('T')[0]}.pdf`;
 
     try {
+      // Fetch full profile details including fullResponse for detailed analysis
+      // The list view only has slim data without fullResponse
+      const detailUrl = jobScore
+        ? `/api/resume-profiles/${profile.id}?jobId=${jobScore.jobId}`
+        : `/api/resume-profiles/${profile.id}`;
+
+      const response = await fetch(detailUrl, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile details');
+      }
+
+      const fullProfileData = await response.json();
+
+      // Use the full profile data with complete job scores (including fullResponse)
       const blob = await pdf(
         <ProfilePDF
-          profile={profileToExport}
+          profile={fullProfileData}
           jobs={jobs}
           includeJobScores={true}
           selectedJobId={jobScore?.jobId}
