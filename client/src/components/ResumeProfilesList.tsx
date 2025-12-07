@@ -1449,7 +1449,7 @@ export function ResumeProfilesList() {
               const skills = fullResponse.skillAnalysis.matchedSkills;
               const expertCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'expert').length;
               const proficientCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'proficient').length;
-              const familiarCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'familiar').length;
+              const familiarCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'familiar' || s.depth?.toLowerCase() === 'basic' || s.depth?.toLowerCase() === 'beginner').length;
               const listedOnlyCount = skills.filter((s: any) => s.depth?.toLowerCase() === 'listed only' || s.depth?.toLowerCase() === 'listedonly' || s.depth?.toLowerCase() === 'listed').length;
 
               return (
