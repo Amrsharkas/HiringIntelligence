@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Home, Building2, CreditCard, Package } from "lucide-react";
+import { Home, Building2, CreditCard, Package, MessageSquareCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -18,6 +18,7 @@ const navItems: NavItem[] = [
   { id: "companies", label: "Companies", icon: Building2 },
   { id: "subscription-plans", label: "Plans", icon: CreditCard },
   { id: "credit-packages", label: "Packages", icon: Package },
+  { id: "prompts", label: "Prompts", icon: MessageSquareCode },
 ];
 
 export function SuperAdminSidebar({ activePage, onNavigate }: SuperAdminSidebarProps) {

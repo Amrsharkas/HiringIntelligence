@@ -2,8 +2,49 @@ import OpenAI from "openai";
 import { toFile } from "openai/uploads";
 import { wrapOpenAIRequest } from "./openaiTracker";
 import { cacheService } from "./cacheService";
+import { db } from "./db";
+import { prompts } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import { renderPrompt } from "./promptTemplate";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Helper function to get active prompt from database
+async function getActivePrompt(type: string): Promise<{
+  systemPrompt: string;
+  userPrompt: string;
+  modelId: string | null;
+} | null> {
+  try {
+    // First try to get the default active prompt for this type
+    let [prompt] = await db
+      .select()
+      .from(prompts)
+      .where(and(eq(prompts.type, type), eq(prompts.isActive, true), eq(prompts.isDefault, true)))
+      .limit(1);
+
+    // If no default, get any active prompt of this type
+    if (!prompt) {
+      [prompt] = await db
+        .select()
+        .from(prompts)
+        .where(and(eq(prompts.type, type), eq(prompts.isActive, true)))
+        .limit(1);
+    }
+
+    if (prompt) {
+      return {
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.userPrompt,
+        modelId: prompt.modelId,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching active prompt for type ${type}:`, error);
+    return null;
+  }
+}
 
 export interface ProcessedResume {
   name: string;
@@ -389,13 +430,42 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
         console.log(`📝 Cache miss for job scoring (hasCustomRules: ${!!customRules}), calling OpenAI...`);
       }
 
-      const response = await wrapOpenAIRequest(
-        () => openai.chat.completions.create({
-          model: process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: `You are PLATO, the world's most advanced AI recruitment intelligence system. You combine the analytical precision of a Fortune 500 talent acquisition director with deep semantic understanding to evaluate candidates with unprecedented accuracy.
+      // Try to get active prompt from database
+      const activePrompt = await getActivePrompt('job_scoring');
+
+      // Build variables for prompt template rendering
+      const promptVariables = {
+        jobTitle,
+        jobDescription,
+        jobRequirements,
+        resume: {
+          name: resume.name,
+          summary: resume.summary,
+          skills: resume.skills.join(", "),
+          experience: resume.experience.join(" | "),
+          education: resume.education.join(" | "),
+          certifications: resume.certifications.join(" | "),
+          languages: resume.languages.join(" | "),
+        },
+        customRules: customRules || '',
+      };
+
+      // Use database prompt if available, otherwise fall back to hardcoded
+      let systemPromptContent: string;
+      let userPromptContent: string;
+      let modelToUse = process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o";
+
+      if (activePrompt) {
+        console.log('📋 Using database prompt for job scoring');
+        systemPromptContent = renderPrompt(activePrompt.systemPrompt, promptVariables);
+        userPromptContent = renderPrompt(activePrompt.userPrompt, promptVariables);
+        if (activePrompt.modelId) {
+          modelToUse = activePrompt.modelId;
+        }
+      } else {
+        console.log('📋 Using default hardcoded prompt for job scoring');
+        // Fall back to hardcoded prompt (original behavior)
+        systemPromptContent = `You are PLATO, the world's most advanced AI recruitment intelligence system. You combine the analytical precision of a Fortune 500 talent acquisition director with deep semantic understanding to evaluate candidates with unprecedented accuracy.
 
 ═══════════════════════════════════════════════════════════════
 🧠 COGNITIVE FRAMEWORK — THINK LIKE AN ELITE RECRUITER
@@ -995,11 +1065,9 @@ If disqualified:
 6. BE DECISIVE: Clear recommendation, not wishy-washy.
 7. THINK RISK: Hiring mistakes are expensive. Flag concerns.
 8. OUTPUT JSON ONLY: No markdown, no explanation text outside JSON.
-9. NEVER INFLATE: A chef is not qualified for a software job. A nurse is not qualified for accounting. Be strict.`
-            },
-            {
-              role: "user",
-              content: `Evaluate the following candidate:
+9. NEVER INFLATE: A chef is not qualified for a software job. A nurse is not qualified for accounting. Be strict.`;
+
+        userPromptContent = `Evaluate the following candidate:
 
 JOB TITLE: ${jobTitle}
 
@@ -1020,14 +1088,27 @@ Languages: ${resume.languages.join(" | ")}
 
 ${customRules ? `RESUME PARSING RULES:\n${customRules}` : ''}
 
-Analyze this candidate with full truth. No assumptions. No vagueness. No generic comments. Provide complete, evidence-based scoring. Every percentage gap must include missing explanation + proof. Enforce resume parsing rules. Identify red flags only with proof. Return only the JSON object as final output—no extra text.`
+Analyze this candidate with full truth. No assumptions. No vagueness. No generic comments. Provide complete, evidence-based scoring. Every percentage gap must include missing explanation + proof. Enforce resume parsing rules. Identify red flags only with proof. Return only the JSON object as final output—no extra text.`;
+      }
+
+      const response = await wrapOpenAIRequest(
+        () => openai.chat.completions.create({
+          model: modelToUse,
+          messages: [
+            {
+              role: "system",
+              content: systemPromptContent
+            },
+            {
+              role: "user",
+              content: userPromptContent
             }
           ],
           response_format: { type: "json_object" },
         }),
         {
           requestType: "resume_job_scoring",
-          model: process.env.OPENAI_MODEL_RESUME_JOB_SCORING || "gpt-4o",
+          model: modelToUse,
           requestData: { resumeName: resume.name, jobTitle, skills: resume.skills },
           metadata: { candidateName: resume.name, jobTitle }
         }

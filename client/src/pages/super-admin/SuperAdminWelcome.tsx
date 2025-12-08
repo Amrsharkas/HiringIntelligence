@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ArrowRight, CreditCard, Package } from "lucide-react";
+import { Building2, ArrowRight, CreditCard, Package, MessageSquareCode } from "lucide-react";
 
 interface SuperAdminWelcomeProps {
   onNavigate: (page: string) => void;
@@ -34,6 +34,15 @@ export function SuperAdminWelcome({ onNavigate }: SuperAdminWelcomeProps) {
       gradient: "from-emerald-500/10 via-emerald-400/5 to-transparent",
       iconBg: "bg-emerald-100 dark:bg-emerald-900/30",
       iconColor: "text-emerald-600 dark:text-emerald-400"
+    },
+    {
+      id: "prompts",
+      title: "AI Prompts",
+      description: "Manage AI prompts for resume scoring and parsing",
+      icon: MessageSquareCode,
+      gradient: "from-amber-500/10 via-amber-400/5 to-transparent",
+      iconBg: "bg-amber-100 dark:bg-amber-900/30",
+      iconColor: "text-amber-600 dark:text-amber-400"
     }
   ];
 
@@ -52,7 +61,7 @@ export function SuperAdminWelcome({ onNavigate }: SuperAdminWelcomeProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {quickActions.map((action, index) => (
           <motion.div
             key={action.id}

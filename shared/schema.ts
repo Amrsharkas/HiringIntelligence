@@ -1027,3 +1027,56 @@ export const cache = pgTable("cache", {
 
 export type Cache = typeof cache.$inferSelect;
 export type InsertCache = typeof cache.$inferInsert;
+
+// AI Prompts management table
+export const prompts = pgTable("prompts", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // 'job_scoring', 'resume_parsing', etc.
+  systemPrompt: text("system_prompt").notNull(),
+  userPrompt: text("user_prompt").notNull(),
+  variables: jsonb("variables"), // Schema defining available variables
+  modelId: varchar("model_id"), // Optional model override
+  isActive: boolean("is_active").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Prompt version history table
+export const promptVersions = pgTable("prompt_versions", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  promptId: varchar("prompt_id").notNull(),
+  version: integer("version").notNull(),
+  systemPrompt: text("system_prompt").notNull(),
+  userPrompt: text("user_prompt").notNull(),
+  variables: jsonb("variables"),
+  modelId: varchar("model_id"),
+  changedBy: varchar("changed_by"), // User ID who made the change
+  changeNote: text("change_note"), // Optional note about what changed
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_prompt_versions_prompt_id").on(table.promptId),
+]);
+
+// Type definitions for prompts
+export type Prompt = typeof prompts.$inferSelect;
+export type InsertPrompt = typeof prompts.$inferInsert;
+export type PromptVersion = typeof promptVersions.$inferSelect;
+export type InsertPromptVersion = typeof promptVersions.$inferInsert;
+
+// Schemas for prompts
+export const insertPromptSchema = createInsertSchema(prompts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  version: true,
+});
+
+export const insertPromptVersionSchema = createInsertSchema(promptVersions).omit({
+  id: true,
+  createdAt: true,
+});
