@@ -25,6 +25,8 @@ import { eq, desc } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
 import { resumeProcessingQueue } from "./queues";
 import { setupCreditPackages } from "./setupCreditPackages";
+import { setupRegionalPricing } from "./setupRegionalPricing";
+import { geoService } from "./geoService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -469,11 +471,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Geolocation endpoints for regional pricing
+  app.get('/api/geo/country', async (req: any, res) => {
+    try {
+      // Express trust proxy is enabled, so req.ip should be the real client IP
+      const ip = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
+      const locationInfo = await geoService.getLocationInfo(ip);
+      res.json(locationInfo);
+    } catch (error) {
+      console.error("Error detecting country:", error);
+      res.json({
+        detected: { countryCode: 'EG', countryName: 'Egypt' },
+        supported: 'EG',
+      });
+    }
+  });
+
+  app.get('/api/geo/countries', async (req: any, res) => {
+    try {
+      const countries = await subscriptionService.getSupportedCountries();
+      res.json(countries);
+    } catch (error) {
+      console.error("Error fetching supported countries:", error);
+      res.status(500).json({ message: "Failed to fetch supported countries" });
+    }
+  });
+
   // Subscription plan endpoints
   app.get('/api/subscriptions/plans', async (req: any, res) => {
     try {
-      const plans = await subscriptionService.getAvailablePlans();
-      res.json(plans);
+      // Auto-detect country from IP, or use query param as override
+      let countryCode = req.query.country as string | undefined;
+
+      if (!countryCode) {
+        // Detect from IP address
+        const ip = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
+        countryCode = await geoService.getSupportedCountryCode(ip);
+      }
+
+      // Validate country code - only allow supported countries
+      const supportedCountries = ['EG', 'US'];
+      const validCountry = supportedCountries.includes(countryCode.toUpperCase())
+        ? countryCode.toUpperCase()
+        : 'EG';
+
+      // Get plans with country-specific pricing
+      const plansWithPricing = await subscriptionService.getPlansWithPricing(validCountry);
+
+      // Transform response to include pricing info in a backwards-compatible way
+      const response = plansWithPricing.map(plan => ({
+        ...plan,
+        // Override legacy price fields with country-specific pricing if available
+        monthlyPrice: plan.pricing?.monthlyPrice ?? plan.monthlyPrice,
+        yearlyPrice: plan.pricing?.yearlyPrice ?? plan.yearlyPrice,
+        currency: plan.pricing?.currency ?? 'EGP',
+        countryCode: plan.pricing?.countryCode ?? 'EG',
+        stripePriceIdMonthly: plan.pricing?.stripePriceIdMonthly ?? plan.stripePriceIdMonthly,
+        stripePriceIdYearly: plan.pricing?.stripePriceIdYearly ?? plan.stripePriceIdYearly,
+      }));
+
+      res.json(response);
     } catch (error) {
       console.error("Error fetching subscription plans:", error);
       res.status(500).json({ message: "Failed to fetch subscription plans" });
@@ -532,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/subscriptions/subscribe', requireVerifiedAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { planId, billingCycle, trialDays } = req.body;
+      const { planId, billingCycle, trialDays, countryCode } = req.body;
 
       if (!planId || !billingCycle) {
         return res.status(400).json({ message: "Plan ID and billing cycle are required" });
@@ -542,6 +599,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Billing cycle must be 'monthly' or 'yearly'" });
       }
 
+      // Validate and default country code
+      const supportedCountries = ['EG', 'US'];
+      const selectedCountry = countryCode && supportedCountries.includes(countryCode.toUpperCase())
+        ? countryCode.toUpperCase()
+        : 'EG';
+
       const organization = await storage.getOrganizationByUser(userId);
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
@@ -550,17 +613,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if already subscribed
       const existingSubscription = await subscriptionService.getActiveSubscription(organization.id);
       if (existingSubscription) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Organization already has an active subscription",
           subscription: existingSubscription
         });
       }
 
-      // Create Stripe checkout session
+      // Create Stripe checkout session with country-specific pricing
       const checkoutSession = await stripeService.createSubscriptionCheckout({
         organizationId: organization.id,
         planId,
         billingCycle,
+        countryCode: selectedCountry,
         successUrl: `${process.env.APP_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${process.env.APP_URL}/subscription/canceled`,
         customerEmail: req.user.email,
@@ -671,7 +735,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Run the complete setup
       await setupSubscriptionSystem();
 
-      await setupCreditPackages()
+      await setupCreditPackages();
+
+      await setupRegionalPricing();
 
       res.json({
         success: true,

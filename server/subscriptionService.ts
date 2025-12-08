@@ -1,20 +1,24 @@
 import { db } from './db';
-import { 
-  subscriptionPlans, 
-  organizationSubscriptions, 
-  subscriptionInvoices, 
+import {
+  subscriptionPlans,
+  organizationSubscriptions,
+  subscriptionInvoices,
   creditExpirations,
   organizations,
-  creditTransactions
+  creditTransactions,
+  supportedCountries,
+  subscriptionPlanPricing
 } from '@shared/schema';
 import { eq, and, desc, lt, asc } from 'drizzle-orm';
-import type { 
+import type {
   SubscriptionPlan,
   InsertSubscriptionPlan,
   OrganizationSubscription,
   InsertOrganizationSubscription,
   InsertSubscriptionInvoice,
-  InsertCreditExpiration
+  InsertCreditExpiration,
+  SupportedCountry,
+  SubscriptionPlanPricing
 } from '@shared/schema';
 
 export interface SubscribeParams {
@@ -164,6 +168,104 @@ export class SubscriptionService {
     } catch (error) {
       console.error('Error fetching subscription plans:', error);
       throw new Error('Failed to fetch subscription plans');
+    }
+  }
+
+  /**
+   * Get plans with country-specific pricing
+   */
+  async getPlansWithPricing(countryCode: string): Promise<(SubscriptionPlan & { pricing: SubscriptionPlanPricing | null })[]> {
+    try {
+      const plans = await this.getAvailablePlans();
+      const result: (SubscriptionPlan & { pricing: SubscriptionPlanPricing | null })[] = [];
+
+      for (const plan of plans) {
+        // Get country-specific pricing
+        let [pricing] = await db
+          .select()
+          .from(subscriptionPlanPricing)
+          .where(
+            and(
+              eq(subscriptionPlanPricing.subscriptionPlanId, plan.id),
+              eq(subscriptionPlanPricing.countryCode, countryCode),
+              eq(subscriptionPlanPricing.isActive, true)
+            )
+          );
+
+        // Fallback to default pricing if country not found
+        if (!pricing) {
+          [pricing] = await db
+            .select()
+            .from(subscriptionPlanPricing)
+            .where(
+              and(
+                eq(subscriptionPlanPricing.subscriptionPlanId, plan.id),
+                eq(subscriptionPlanPricing.isDefault, true),
+                eq(subscriptionPlanPricing.isActive, true)
+              )
+            );
+        }
+
+        result.push({ ...plan, pricing: pricing || null });
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error fetching plans with pricing:', error);
+      throw new Error('Failed to fetch plans with pricing');
+    }
+  }
+
+  /**
+   * Get pricing for a specific plan and country
+   */
+  async getPlanPricing(planId: string, countryCode: string): Promise<SubscriptionPlanPricing | null> {
+    try {
+      // Try to get country-specific pricing
+      let [pricing] = await db
+        .select()
+        .from(subscriptionPlanPricing)
+        .where(
+          and(
+            eq(subscriptionPlanPricing.subscriptionPlanId, planId),
+            eq(subscriptionPlanPricing.countryCode, countryCode),
+            eq(subscriptionPlanPricing.isActive, true)
+          )
+        );
+
+      // Fallback to default pricing
+      if (!pricing) {
+        [pricing] = await db
+          .select()
+          .from(subscriptionPlanPricing)
+          .where(
+            and(
+              eq(subscriptionPlanPricing.subscriptionPlanId, planId),
+              eq(subscriptionPlanPricing.isDefault, true),
+              eq(subscriptionPlanPricing.isActive, true)
+            )
+          );
+      }
+
+      return pricing || null;
+    } catch (error) {
+      console.error('Error fetching plan pricing:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get list of supported countries
+   */
+  async getSupportedCountries(): Promise<SupportedCountry[]> {
+    try {
+      return await db
+        .select()
+        .from(supportedCountries)
+        .where(eq(supportedCountries.isActive, true));
+    } catch (error) {
+      console.error('Error fetching supported countries:', error);
+      return [];
     }
   }
 

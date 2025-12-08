@@ -232,6 +232,36 @@ export const paymentAttempts = pgTable("payment_attempts", {
   completedAt: timestamp("completed_at"),
 });
 
+// Supported countries for regional pricing
+export const supportedCountries = pgTable("supported_countries", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  countryCode: varchar("country_code", { length: 2 }).notNull().unique(), // ISO 3166-1 alpha-2 (EG, US)
+  countryName: varchar("country_name").notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(), // ISO 4217 (EGP, USD)
+  currencySymbol: varchar("currency_symbol").notNull(), // E£, $
+  isDefault: boolean("is_default").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Country-specific subscription plan pricing
+export const subscriptionPlanPricing = pgTable("subscription_plan_pricing", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  subscriptionPlanId: varchar("subscription_plan_id").notNull(), // FK to subscriptionPlans
+  countryCode: varchar("country_code", { length: 2 }).notNull(), // ISO 3166-1 alpha-2
+  currency: varchar("currency", { length: 3 }).notNull(), // ISO 4217
+  monthlyPrice: integer("monthly_price").notNull(), // in smallest unit (cents/piasters)
+  yearlyPrice: integer("yearly_price").notNull(),
+  stripePriceIdMonthly: varchar("stripe_price_id_monthly"),
+  stripePriceIdYearly: varchar("stripe_price_id_yearly"),
+  isActive: boolean("is_active").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false), // One country should be default
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_plan_pricing_plan_country").on(table.subscriptionPlanId, table.countryCode),
+]);
+
 // Organization members table
 export const organizationMembers = pgTable("organization_members", {
   id: serial("id").primaryKey(),
@@ -715,6 +745,10 @@ export type OrganizationSubscription = typeof organizationSubscriptions.$inferSe
 export type InsertOrganizationSubscription = typeof organizationSubscriptions.$inferInsert;
 export type SubscriptionInvoice = typeof subscriptionInvoices.$inferSelect;
 export type InsertSubscriptionInvoice = typeof subscriptionInvoices.$inferInsert;
+export type SupportedCountry = typeof supportedCountries.$inferSelect;
+export type InsertSupportedCountry = typeof supportedCountries.$inferInsert;
+export type SubscriptionPlanPricing = typeof subscriptionPlanPricing.$inferSelect;
+export type InsertSubscriptionPlanPricing = typeof subscriptionPlanPricing.$inferInsert;
 export type CreditExpiration = typeof creditExpirations.$inferSelect;
 export type InsertCreditExpiration = typeof creditExpirations.$inferInsert;
 export type Job = typeof jobs.$inferSelect;

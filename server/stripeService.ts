@@ -7,9 +7,10 @@ import {
   organizations,
   subscriptionPlans,
   organizationSubscriptions,
-  subscriptionInvoices
+  subscriptionInvoices,
+  subscriptionPlanPricing
 } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { creditService } from './creditService';
 import { subscriptionService } from './subscriptionService';
 import type {
@@ -18,7 +19,8 @@ import type {
   InsertPaymentAttempt,
   CreditPackage,
   PaymentTransaction,
-  SubscriptionPlan
+  SubscriptionPlan,
+  SubscriptionPlanPricing
 } from '@shared/schema';
 
 export interface CreateCheckoutSessionParams {
@@ -509,12 +511,13 @@ export class StripeService {
   }
 
   /**
-   * Create subscription checkout session
+   * Create subscription checkout session with regional pricing support
    */
   async createSubscriptionCheckout(params: {
     organizationId: string;
     planId: string;
     billingCycle: 'monthly' | 'yearly';
+    countryCode?: string; // ISO 3166-1 alpha-2 country code (EG, US)
     successUrl: string;
     cancelUrl: string;
     customerEmail?: string;
@@ -526,6 +529,10 @@ export class StripeService {
       if (!plan) {
         throw new Error('Subscription plan not found');
       }
+
+      // Get country-specific pricing if countryCode is provided
+      const selectedCountry = params.countryCode || 'EG';
+      const pricing = await subscriptionService.getPlanPricing(params.planId, selectedCountry);
 
       // Get or create Stripe customer
       const [org] = await db
@@ -558,22 +565,29 @@ export class StripeService {
         customerId = customer.id;
       }
 
+      // Determine currency and prices - use regional pricing if available, fallback to plan defaults
+      const currency = pricing?.currency?.toLowerCase() || 'egp';
+      const monthlyPrice = pricing?.monthlyPrice ?? plan.monthlyPrice;
+      const yearlyPrice = pricing?.yearlyPrice ?? plan.yearlyPrice;
+      const stripePriceIdMonthly = pricing?.stripePriceIdMonthly ?? plan.stripePriceIdMonthly;
+      const stripePriceIdYearly = pricing?.stripePriceIdYearly ?? plan.stripePriceIdYearly;
+
       // Determine price based on billing cycle
-      const priceId = params.billingCycle === 'monthly' 
-        ? plan.stripePriceIdMonthly 
-        : plan.stripePriceIdYearly;
+      const priceId = params.billingCycle === 'monthly'
+        ? stripePriceIdMonthly
+        : stripePriceIdYearly;
 
       const shouldUseInlinePrice = params.billingCycle === 'yearly' || !priceId;
 
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = shouldUseInlinePrice
         ? [{
             price_data: {
-              currency: 'egp',
+              currency: currency,
               product_data: {
                 name: `${plan.name} Plan`,
                 description: plan.description || undefined,
               },
-              unit_amount: params.billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice,
+              unit_amount: params.billingCycle === 'monthly' ? monthlyPrice : yearlyPrice,
               recurring: {
                 interval: params.billingCycle === 'monthly' ? 'month' : 'year',
               },
@@ -582,7 +596,7 @@ export class StripeService {
           }]
         : [{ price: priceId, quantity: 1 }];
 
-      // Create checkout session
+      // Create checkout session with country metadata
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
         payment_method_types: ['card'],
@@ -594,11 +608,14 @@ export class StripeService {
           organizationId: params.organizationId,
           planId: params.planId,
           billingCycle: params.billingCycle,
+          countryCode: selectedCountry,
+          currency: currency.toUpperCase(),
         },
         subscription_data: {
           metadata: {
             organizationId: params.organizationId,
             planId: params.planId,
+            countryCode: selectedCountry,
           },
         },
       };
@@ -613,7 +630,7 @@ export class StripeService {
 
       const session = await this.stripe.checkout.sessions.create(sessionParams);
 
-      console.log(`Created subscription checkout session for organization ${params.organizationId}: ${session.id}`);
+      console.log(`Created subscription checkout session for organization ${params.organizationId} (${selectedCountry}/${currency.toUpperCase()}): ${session.id}`);
       return {
         sessionId: session.id,
         url: session.url!,

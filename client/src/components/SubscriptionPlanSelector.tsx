@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryOptions } from "@/lib/queryConfig";
@@ -16,9 +16,9 @@ import {
   Loader2,
   ArrowRight,
   Building2,
+  Globe,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
 
 interface SubscriptionPlan {
   id: string;
@@ -26,6 +26,8 @@ interface SubscriptionPlan {
   description: string;
   monthlyPrice: number;
   yearlyPrice: number;
+  currency: string; // USD, EGP
+  countryCode: string; // US, EG
   monthlyCvCredits: number;
   monthlyInterviewCredits: number;
   monthlyCredits: number; // Total for backward compatibility
@@ -55,49 +57,56 @@ const getPlanColor = (name: string) => {
   return 'from-slate-500 to-slate-600';
 };
 
-const formatPrice = (cents: number) => {
-  return (cents / 100).toLocaleString('en-US');
+const formatPrice = (cents: number, currency: string = 'EGP') => {
+  const amount = cents / 100;
+  if (currency === 'USD') {
+    return `$${amount.toLocaleString('en-US')}`;
+  }
+  return `${amount.toLocaleString('en-US')} EGP`;
 };
 
 export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> = ({ onSuccess }) => {
   const { toast } = useToast();
   const [isYearly, setIsYearly] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [countryCode, setCountryCode] = useState<string | null>(null);
 
+  // Fetch plans - country is auto-detected from IP on the server
+  // If user manually selects a country, we pass it as a query param
   const { data: plans, isLoading } = useQuery<SubscriptionPlan[]>({
-    queryKey: ["/api/subscriptions/plans"],
-    ...getQueryOptions(300000), // Cache for 5 minutes
-    onError: (error: any) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "Please log in to view subscription plans",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load subscription plans",
-          variant: "destructive",
-        });
-      }
+    queryKey: ["/api/subscriptions/plans", countryCode],
+    queryFn: async () => {
+      const url = countryCode
+        ? `/api/subscriptions/plans?country=${countryCode}`
+        : '/api/subscriptions/plans';
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch plans');
+      return response.json();
     },
+    ...getQueryOptions(300000), // Cache for 5 minutes
   });
+
+  // Update local country state when plans are fetched (for the dropdown)
+  useEffect(() => {
+    if (plans && plans.length > 0 && !countryCode) {
+      setCountryCode(plans[0].countryCode || 'EG');
+    }
+  }, [plans, countryCode]);
 
   const subscribeMutation = useMutation({
     mutationFn: async ({
       planId,
       billingCycle,
-      priceCents,
+      countryCode: selectedCountry,
     }: {
       planId: string;
       billingCycle: 'monthly' | 'yearly';
-      priceCents: number;
+      countryCode: string;
     }) => {
       const response = await fetch('/api/subscriptions/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, billingCycle, priceCents }),
+        body: JSON.stringify({ planId, billingCycle, countryCode: selectedCountry }),
         credentials: 'include',
       });
 
@@ -127,13 +136,15 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
   const handleSubscribe = (plan: SubscriptionPlan) => {
     setSelectedPlanId(plan.id);
     const billingCycle = isYearly ? 'yearly' : 'monthly';
-    const priceCents = billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
     subscribeMutation.mutate({
       planId: plan.id,
       billingCycle,
-      priceCents,
+      countryCode,
     });
   };
+
+  // Get currency from first plan or default
+  const currency = plans?.[0]?.currency || 'EGP';
 
   if (isLoading) {
     return (
@@ -183,6 +194,20 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
             <Badge className="ml-2 bg-green-500">Save {yearlyDiscount}%</Badge>
           </Label>
         </div>
+
+        {/* Country Selector */}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Globe className="w-4 h-4 text-slate-500" />
+          <span className="text-sm text-slate-500">Pricing for:</span>
+          <select
+            value={countryCode || (currency === 'USD' ? 'US' : 'EG')}
+            onChange={(e) => setCountryCode(e.target.value)}
+            className="border rounded px-2 py-1 text-sm bg-white dark:bg-slate-800 dark:border-slate-600"
+          >
+            <option value="EG">Egypt (EGP)</option>
+            <option value="US">United States (USD)</option>
+          </select>
+        </div>
       </div>
 
       {/* Plans Grid */}
@@ -191,7 +216,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
           const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
           const pricePerMonth = isYearly ? plan.yearlyPrice / 12 : plan.monthlyPrice;
           const isPopular = plan.name === 'Growth';
-          const isLoading = subscribeMutation.isLoading && selectedPlanId === plan.id;
+          const isMutating = subscribeMutation.isPending && selectedPlanId === plan.id;
 
           return (
             <motion.div
@@ -226,13 +251,13 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                       <div>
                         <div className="flex items-baseline">
                           <span className="text-3xl font-bold">
-                            {formatPrice(pricePerMonth)}
+                            {formatPrice(pricePerMonth, plan.currency || currency)}
                           </span>
-                          <span className="text-slate-500 ml-2">EGP/month</span>
+                          <span className="text-slate-500 ml-2">/month</span>
                         </div>
                         {isYearly && (
                           <p className="text-sm text-slate-500 mt-1">
-                            Billed {formatPrice(price)} EGP yearly
+                            Billed {formatPrice(price, plan.currency || currency)} yearly
                           </p>
                         )}
                       </div>
@@ -327,9 +352,9 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                         : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
                     }`}
                     onClick={() => handleSubscribe(plan)}
-                    disabled={isLoading || subscribeMutation.isLoading}
+                    disabled={isMutating || subscribeMutation.isPending}
                   >
-                    {isLoading ? (
+                    {isMutating ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Processing...

@@ -60,6 +60,8 @@ interface SubscriptionPlan {
   description: string;
   monthlyPrice: number;
   yearlyPrice: number;
+  currency: string;
+  countryCode: string;
   monthlyCredits: number;
   jobPostsLimit: number | null;
   supportLevel: string;
@@ -83,8 +85,12 @@ const getPlanColor = (name: string) => {
   return 'from-slate-500 to-slate-600';
 };
 
-const formatPrice = (cents: number) => {
-  return (cents / 100).toLocaleString('en-US');
+const formatPrice = (cents: number, currency: string = 'EGP') => {
+  const amount = cents / 100;
+  if (currency === 'USD') {
+    return `$${amount.toLocaleString('en-US')}`;
+  }
+  return `${amount.toLocaleString('en-US')} EGP`;
 };
 
 export default function Landing() {
@@ -700,13 +706,13 @@ export default function Landing() {
                         <div>
                           <div className="flex items-baseline">
                             <span className="text-4xl font-bold text-slate-900 dark:text-white">
-                              {formatPrice(pricePerMonth)}
+                              {formatPrice(pricePerMonth, plan.currency)}
                             </span>
-                            <span className="text-slate-500 ml-2">EGP/month</span>
+                            <span className="text-slate-500 ml-2">/month</span>
                           </div>
                           {isYearly && (
                             <p className="text-sm text-slate-500 mt-1">
-                              Billed {formatPrice(price)} EGP yearly
+                              Billed {formatPrice(price, plan.currency)} yearly
                             </p>
                           )}
                         </div>
