@@ -5,6 +5,7 @@ import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { SuperAdminLayout } from "@/components/super-admin/SuperAdminLayout";
 import { SuperAdminWelcome } from "./SuperAdminWelcome";
 import { SuperAdminCompanies } from "./SuperAdminCompanies";
+import { SuperAdminUsers } from "./SuperAdminUsers";
 import { SuperAdminSubscriptionPlans } from "./SuperAdminSubscriptionPlans";
 import { SuperAdminCreditPackages } from "./SuperAdminCreditPackages";
 
@@ -50,6 +51,8 @@ export default function SuperAdminDashboard() {
     switch (activePage) {
       case "companies":
         return <SuperAdminCompanies />;
+      case "users":
+        return <SuperAdminUsers />;
       case "subscription-plans":
         return <SuperAdminSubscriptionPlans />;
       case "credit-packages":

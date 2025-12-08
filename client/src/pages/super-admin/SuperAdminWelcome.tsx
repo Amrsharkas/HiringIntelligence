@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ArrowRight, CreditCard, Package } from "lucide-react";
+import { Building2, ArrowRight, CreditCard, Package, Users } from "lucide-react";
 
 interface SuperAdminWelcomeProps {
   onNavigate: (page: string) => void;
@@ -16,6 +16,15 @@ export function SuperAdminWelcome({ onNavigate }: SuperAdminWelcomeProps) {
       gradient: "from-blue-500/10 via-blue-400/5 to-transparent",
       iconBg: "bg-blue-100 dark:bg-blue-900/30",
       iconColor: "text-blue-600 dark:text-blue-400"
+    },
+    {
+      id: "users",
+      title: "Manage Users",
+      description: "View all users, edit roles, and manage admin access",
+      icon: Users,
+      gradient: "from-amber-500/10 via-amber-400/5 to-transparent",
+      iconBg: "bg-amber-100 dark:bg-amber-900/30",
+      iconColor: "text-amber-600 dark:text-amber-400"
     },
     {
       id: "subscription-plans",
@@ -52,7 +61,7 @@ export function SuperAdminWelcome({ onNavigate }: SuperAdminWelcomeProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {quickActions.map((action, index) => (
           <motion.div
             key={action.id}
