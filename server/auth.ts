@@ -386,6 +386,7 @@ export function setupAuth(app: Express) {
       username: user.username,
       role: user.role,
       isVerified: user.isVerified,
+      isSuperAdmin: user.isSuperAdmin,
     });
   });
 

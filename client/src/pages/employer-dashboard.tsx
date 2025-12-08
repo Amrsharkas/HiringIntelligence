@@ -23,7 +23,8 @@ import {
   UserPlus,
   Sparkles,
   Crown,
-  FileText
+  FileText,
+  Shield
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { JobPostingModal } from "@/components/JobPostingModal";
@@ -552,6 +553,21 @@ export default function EmployerDashboard() {
                 }}
               >
                 <Settings className="w-5 h-5" />
+              </button>
+            )}
+
+            {/* Admin Dashboard Button - Only show for super admins */}
+            {user?.isSuperAdmin && (
+              <button
+                onClick={() => setLocation('/super-admin')}
+                className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium transition-all duration-200 will-change-transform hover:scale-105"
+                style={{
+                  transformOrigin: 'center',
+                  transform: 'translateZ(0)'
+                }}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin</span>
               </button>
             )}
             <button

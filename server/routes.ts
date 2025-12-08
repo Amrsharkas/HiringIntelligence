@@ -27,6 +27,7 @@ import { resumeProcessingQueue } from "./queues";
 import { setupCreditPackages } from "./setupCreditPackages";
 import { setupRegionalPricing } from "./setupRegionalPricing";
 import { geoService } from "./geoService";
+import superAdminRoutes from "./routes/superAdmin";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -34,6 +35,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup BullMQ Dashboard
   setupBullDashboard(app);
+
+  // Mount Super Admin routes
+  app.use('/api/super-admin', superAdminRoutes);
 
   // Get user's organization route
   app.get('/api/organizations/current', requireVerifiedAuth, async (req: any, res) => {

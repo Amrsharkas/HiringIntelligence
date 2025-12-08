@@ -47,6 +47,8 @@ export const users = pgTable("users", {
   // Google OAuth fields
   googleId: varchar("google_id"),
   authProvider: varchar("auth_provider").default("local"),
+  // Super admin field
+  isSuperAdmin: boolean("is_super_admin").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

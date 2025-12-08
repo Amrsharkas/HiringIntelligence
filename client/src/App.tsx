@@ -22,6 +22,7 @@ import SubscriptionSuccessPage from "@/pages/SubscriptionSuccessPage";
 import SubscriptionCanceledPage from "@/pages/SubscriptionCanceledPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import PaymentCanceledPage from "@/pages/PaymentCanceledPage";
+import SuperAdminDashboard from "@/pages/super-admin/SuperAdminDashboard";
 import { useEffect } from "react";
 
 function DashboardRedirect() {
@@ -101,6 +102,7 @@ function Router() {
           <Route path="/dashboard" component={EmployerDashboard} />
           <Route path="/employer-dashboard" component={EmployerDashboard} />
           <Route path="/resume-profiles" component={ResumeProfiles} />
+          <Route path="/super-admin" component={SuperAdminDashboard} />
           <Route path="/organization-setup" component={EmployerDashboard} />
           <Route path="/" component={DashboardRedirect} />
         </>
