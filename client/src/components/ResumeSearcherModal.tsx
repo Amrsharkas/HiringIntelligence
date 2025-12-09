@@ -9,10 +9,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Upload, File, X, Loader2, FileText, Search, Briefcase, Users } from 'lucide-react';
+import { Upload, File, X, Loader2, FileText, Search, Briefcase, Users, History, Clock } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { CreditPurchaseModal } from './CreditPurchaseModal';
 
+
+interface CustomRule {
+  id: string;
+  organizationId: string;
+  jobId: number | null;
+  rulesText: string;
+  createdAt: string;
+}
 
 interface ResumeSearcherModalProps {
   isOpen: boolean;
@@ -36,6 +44,21 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
   // Fetch resume processing cost
   const { data: resumeProcessingCost = { cost: 1 } } = useQuery<{ actionType: string; cost: number }>({
     queryKey: ['/api/credits/pricing/resume_processing'],
+  });
+
+  // Fetch recent custom rules based on selected job
+  const { data: recentRules = [] } = useQuery<CustomRule[]>({
+    queryKey: ['/api/custom-rules', processingJobId !== 'all' ? processingJobId : undefined],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (processingJobId !== 'all') {
+        params.append('jobId', processingJobId);
+      }
+      params.append('limit', '5');
+      const response = await apiRequest('GET', `/api/custom-rules?${params.toString()}`);
+      return response.json();
+    },
+    enabled: isOpen,
   });
 
   // Calculate the number of jobs to process against
@@ -310,7 +333,40 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                 Write specific instructions for how the AI should parse and analyze the resumes
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Recent Rules Dropdown */}
+              {recentRules.length > 0 && (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <History className="h-4 w-4" />
+                    Recent rules {processingJobId !== 'all' ? 'for this job' : ''}
+                  </label>
+                  <Select
+                    onValueChange={(value) => {
+                      const rule = recentRules.find(r => r.id === value);
+                      if (rule) {
+                        setCustomRules(rule.rulesText);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select from recent rules..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {recentRules.map((rule) => (
+                        <SelectItem key={rule.id} value={rule.id}>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate max-w-[300px]">
+                              {rule.rulesText.slice(0, 60)}{rule.rulesText.length > 60 ? '...' : ''}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Textarea
                 value={customRules}
                 onChange={(e) => setCustomRules(e.target.value)}

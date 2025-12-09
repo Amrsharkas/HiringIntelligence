@@ -14,6 +14,7 @@ import {
   shortlistedApplicants,
   resumeProfiles,
   resumeJobScores,
+  customRules,
   creditTransactions,
   creditPricing,
   type User,
@@ -44,6 +45,8 @@ import {
   type InsertResumeProfile,
   type ResumeJobScore,
   type InsertResumeJobScore,
+  type CustomRule,
+  type InsertCustomRule,
   type CreditTransaction,
   type InsertCreditTransaction,
   type CreditPricing,
@@ -167,6 +170,10 @@ export interface IStorage {
   getJobScoresByJob(jobId: string): Promise<ResumeJobScore[]>;
   updateJobScore(id: number, updates: Partial<InsertResumeJobScore>): Promise<ResumeJobScore>;
   deleteJobScore(id: number): Promise<void>;
+
+  // Custom rules operations
+  createCustomRule(rule: InsertCustomRule): Promise<CustomRule>;
+  getRecentCustomRules(organizationId: string, jobId?: number, limit?: number): Promise<CustomRule[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1164,6 +1171,40 @@ export class DatabaseStorage implements IStorage {
 
   async deleteJobScore(id: number): Promise<void> {
     await db.delete(resumeJobScores).where(eq(resumeJobScores.id, id));
+  }
+
+  // Custom rules operations
+  async createCustomRule(rule: InsertCustomRule): Promise<CustomRule> {
+    const [created] = await db
+      .insert(customRules)
+      .values(rule)
+      .returning();
+    return created;
+  }
+
+  async getRecentCustomRules(organizationId: string, jobId?: number, limit: number = 5): Promise<CustomRule[]> {
+    if (jobId) {
+      // Get rules for specific job first, then org-wide rules
+      return await db
+        .select()
+        .from(customRules)
+        .where(
+          and(
+            eq(customRules.organizationId, organizationId),
+            eq(customRules.jobId, jobId)
+          )
+        )
+        .orderBy(desc(customRules.createdAt))
+        .limit(limit);
+    }
+
+    // Get most recent rules across all jobs for this organization
+    return await db
+      .select()
+      .from(customRules)
+      .where(eq(customRules.organizationId, organizationId))
+      .orderBy(desc(customRules.createdAt))
+      .limit(limit);
   }
 }
 

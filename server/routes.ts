@@ -5633,6 +5633,31 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Get recent custom rules for resume processing
+  app.get('/api/custom-rules', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const jobId = req.query.jobId ? parseInt(req.query.jobId as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 5;
+
+      const rules = await storage.getRecentCustomRules(organization.id, jobId, limit);
+
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching custom rules:", error);
+      res.status(500).json({
+        message: "Failed to fetch custom rules",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Process single resume (background job)
   // Note: We handle credit deduction manually here instead of using requireResumeProcessingCredits middleware
   // because we need to calculate credits based on number of jobs when processing against all jobs
@@ -5745,6 +5770,20 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       );
 
       console.log(`📋 Created ${queueJobs.length} background resume processing job(s) for user ${userId}, file: ${fileName}`);
+
+      // Save custom rules if provided (for future suggestions)
+      if (customRules && customRules.trim()) {
+        try {
+          await storage.createCustomRule({
+            organizationId,
+            jobId: jobId ? parseInt(jobId, 10) : null,
+            rulesText: customRules.trim()
+          });
+        } catch (ruleError) {
+          // Log but don't fail the request if saving rules fails
+          console.error("Error saving custom rules:", ruleError);
+        }
+      }
 
       // Deduct credits after successful job creation (only for non-service calls)
       if (!isServiceCall) {
@@ -5882,6 +5921,20 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
 
       console.log(`📋 Created ${allQueueJobs.length} background resume processing jobs for user ${userId}: ${files.length} files x ${targetJobs.length} jobs`);
+
+      // Save custom rules if provided (for future suggestions)
+      if (customRules && customRules.trim()) {
+        try {
+          await storage.createCustomRule({
+            organizationId: organization.id,
+            jobId: jobId ? parseInt(jobId, 10) : null,
+            rulesText: customRules.trim()
+          });
+        } catch (ruleError) {
+          // Log but don't fail the request if saving rules fails
+          console.error("Error saving custom rules:", ruleError);
+        }
+      }
 
       // Deduct credits for bulk processing
       await creditService.deductCredits(
