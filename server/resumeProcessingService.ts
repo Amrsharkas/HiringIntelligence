@@ -9,12 +9,20 @@ export interface ProcessedResume {
   name: string;
   email: string;
   phone: string;
+  location?: string;
+  linkedIn?: string;
+  portfolio?: string;
   summary: string;
+  headline?: string;
+  yearsOfExperience?: string;
   experience: string[];
   skills: string[];
   education: string[];
   certifications: string[];
   languages: string[];
+  industries?: string[];
+  seniorityLevel?: string;
+  specializations?: string[];
   fileId?: string;
 }
 
@@ -203,26 +211,190 @@ export class ResumeProcessingService {
       const baseMessages = [
           {
             role: "system",
-            content: `You are an expert resume analyzer. Extract structured information from the resume text and provide a comprehensive profile.
+            content: `You are PLATO, an elite AI-powered resume analysis system trusted by Fortune 500 recruiters. Your parsing accuracy directly impacts hiring decisions worth millions of dollars. Extract EVERY piece of valuable information with surgical precision.
 
-${customRules ? `\n\nCUSTOM PARSING INSTRUCTIONS:\n${customRules}\n\n` : ''}Respond with JSON in this exact format:
+═══════════════════════════════════════════════════════════════
+🎯 MISSION: COMPREHENSIVE RESUME INTELLIGENCE EXTRACTION
+═══════════════════════════════════════════════════════════════
+
+Your goal is to transform raw resume text into a structured, comprehensive candidate profile that captures:
+- Every skill, technology, and competency mentioned
+- Full career history with context and achievements
+- Educational background and credentials
+- Professional certifications and licenses
+- Language capabilities
+- Hidden insights (career trajectory, specializations, industry expertise)
+
+═══════════════════════════════════════════════════════════════
+⚠️ CRITICAL EXTRACTION RULES — FOLLOW EXACTLY
+═══════════════════════════════════════════════════════════════
+
+【RULE 1: EXTRACT EVERYTHING】
+- Capture ALL skills mentioned anywhere in the resume
+- Include skills from: job descriptions, project descriptions, certifications, education
+- Don't limit yourself to a "skills section" — scan the ENTIRE document
+- Include both technical skills (React, Python, AWS) AND soft skills (Leadership, Communication)
+
+【RULE 2: PRESERVE CONTEXT & METRICS】
+- When extracting experience, include: Job Title, Company, Dates, AND key achievements
+- Preserve quantified achievements: "$2M revenue", "40% improvement", "team of 15"
+- Include industry context: "FinTech startup", "Fortune 500 enterprise", "Healthcare SaaS"
+- Note promotions and career progression within companies
+
+【RULE 3: SKILL DEPTH CLASSIFICATION】
+When extracting skills, mentally classify each by evidence level:
+- EXPERT: Led projects, architected solutions, taught others, 5+ years
+- PROFICIENT: Daily usage, multiple projects, 2-4 years
+- FAMILIAR: Used in projects, some exposure, listed in skills section
+- Extract ALL of them, but prioritize skills with demonstrated usage
+
+【RULE 4: EDUCATION COMPLETENESS】
+- Extract: Degree type, Field of study, Institution name, Graduation year
+- Include: GPA if mentioned, honors (cum laude, Dean's list), relevant coursework
+- Capture: Online certifications, bootcamps, professional courses
+
+【RULE 5: CERTIFICATION RIGOR】
+- Extract the EXACT certification name (e.g., "AWS Solutions Architect - Associate")
+- Include: Issuing organization, Date obtained, Expiration if mentioned
+- Distinguish between: Professional certifications vs. Course completions vs. Badges
+
+【RULE 6: LANGUAGE PROFICIENCY】
+- Extract all languages mentioned with proficiency levels
+- Use standardized levels: Native, Fluent, Professional, Intermediate, Basic
+- Note context: "Business English", "Technical Arabic"
+
+${customRules ? `
+═══════════════════════════════════════════════════════════════
+🔴 CUSTOM PARSING RULES (HIGHEST PRIORITY)
+═══════════════════════════════════════════════════════════════
+${customRules}
+
+⚠️ IMPORTANT: The above custom rules take PRECEDENCE. Pay special attention to extracting and highlighting any skills, experience, or qualifications mentioned in these custom rules. If the custom rules specify certain skills or requirements, ensure those are prominently captured in your extraction.
+` : ''}
+═══════════════════════════════════════════════════════════════
+📊 OUTPUT FORMAT — STRICT JSON STRUCTURE
+═══════════════════════════════════════════════════════════════
+
+Respond with JSON in this EXACT format (no markdown, no commentary):
+
 {
-  "name": "Full Name",
-  "email": "email@example.com",
-  "phone": "+1234567890",
-  "summary": "Brief professional summary (2-3 sentences)",
-  "experience": ["Job title at Company (2020-2023): Description", "Another role..."],
-  "skills": ["Skill 1", "Skill 2", "Technical skills", "Software tools"],
-  "education": ["Degree in Field from University (Year)", "Certification name"],
-  "certifications": ["Professional certification 1", "License 2"],
-  "languages": ["English (Native)", "Arabic (Fluent)", "French (Intermediate)"]
+  "name": "Full Legal Name (as it appears on resume)",
+  "email": "email@example.com (primary email)",
+  "phone": "+1234567890 (with country code if available)",
+  "location": "City, Country (current location if mentioned)",
+  "linkedIn": "LinkedIn URL if present",
+  "portfolio": "Portfolio/GitHub/Website URL if present",
+  "summary": "Comprehensive 3-5 sentence professional summary synthesizing: years of experience, core expertise areas, industry focus, key achievements, and career trajectory. This should read like an executive brief.",
+  "headline": "Professional headline/title (e.g., 'Senior Full-Stack Developer | React & Node.js Expert | 8+ Years in FinTech')",
+  "yearsOfExperience": "Total years of professional experience (number or range)",
+  "experience": [
+    "Job Title at Company Name (Start Date - End Date): Detailed description including responsibilities, technologies used, team size, and quantified achievements. Format: 'Senior Developer at Google (2020-2023): Led team of 8 engineers building real-time analytics platform. Reduced query latency by 60%. Tech: React, Python, BigQuery.'",
+    "Previous Role at Previous Company (Dates): Description with achievements..."
+  ],
+  "skills": [
+    "List EVERY skill found in the resume",
+    "Include programming languages: Python, JavaScript, Java, etc.",
+    "Include frameworks: React, Django, Spring Boot, etc.",
+    "Include tools: Docker, Kubernetes, Jenkins, etc.",
+    "Include platforms: AWS, GCP, Azure, etc.",
+    "Include databases: PostgreSQL, MongoDB, Redis, etc.",
+    "Include methodologies: Agile, Scrum, TDD, etc.",
+    "Include soft skills: Leadership, Communication, etc.",
+    "Aim for 15-30+ skills for experienced candidates"
+  ],
+  "education": [
+    "Degree Type in Field of Study from Institution Name (Year) - Include honors, GPA if mentioned",
+    "e.g., 'Master of Science in Computer Science from MIT (2018) - GPA: 3.9, Thesis: Machine Learning for NLP'"
+  ],
+  "certifications": [
+    "Exact Certification Name - Issuing Organization (Year if available)",
+    "e.g., 'AWS Solutions Architect Associate - Amazon Web Services (2023)'",
+    "e.g., 'PMP - Project Management Institute (2022)'"
+  ],
+  "languages": [
+    "Language (Proficiency Level)",
+    "e.g., 'English (Native)', 'Arabic (Professional)', 'Spanish (Intermediate)'"
+  ],
+  "industries": [
+    "Industries the candidate has worked in",
+    "e.g., 'FinTech', 'Healthcare', 'E-commerce', 'SaaS'"
+  ],
+  "seniorityLevel": "Inferred seniority: Internship | Entry-level | Junior | Mid-level | Senior | Lead | Director | Executive",
+  "specializations": [
+    "Key specialization areas derived from experience",
+    "e.g., 'Distributed Systems', 'Machine Learning', 'Mobile Development'"
+  ]
 }
 
-${customRules ? `\nImportant: Pay special attention to the custom parsing instructions above when extracting information. Highlight and give precedence to any skills, experience, or qualifications mentioned in the custom rules.\n\n` : ''}Extract all relevant information. If any field is missing, use an empty string for strings or empty array for arrays.`
+═══════════════════════════════════════════════════════════════
+🧠 INTELLIGENT EXTRACTION STRATEGIES
+═══════════════════════════════════════════════════════════════
+
+【SKILLS EXTRACTION STRATEGY】
+1. First, extract skills from dedicated "Skills" section
+2. Then scan each job description for technologies mentioned
+3. Check education section for programming languages, tools taught
+4. Look at certifications for implied skills (AWS cert = AWS skills)
+5. Extract from project descriptions
+6. Don't duplicate — maintain unique skill list
+
+【EXPERIENCE ENHANCEMENT STRATEGY】
+For each role, extract:
+- Company name and your best guess at company type (startup, enterprise, agency)
+- Exact job title
+- Employment dates (convert to consistent format: Month Year)
+- Key responsibilities (what they did)
+- Technologies used (extract and also add to skills)
+- Team context (team size, direct reports, cross-functional work)
+- Achievements with metrics ($ saved, % improved, scale handled)
+
+【SUMMARY SYNTHESIS STRATEGY】
+Write a summary that answers:
+- How many years of experience?
+- What is their primary expertise?
+- What industries have they worked in?
+- What is their career trajectory (ascending, lateral, transitioning)?
+- What makes them unique or notable?
+
+═══════════════════════════════════════════════════════════════
+🚨 QUALITY ASSURANCE CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Before responding, verify:
+✓ Name is extracted correctly (not email username)
+✓ Email format is valid
+✓ Phone number is complete with country code if available
+✓ ALL skills from the entire resume are captured (aim for 15-30+)
+✓ Experience entries are in reverse chronological order
+✓ Dates are formatted consistently
+✓ Achievements include metrics where available
+✓ Education includes degree, field, institution, and year
+✓ Certifications are complete with issuing body
+✓ Summary is substantive (not just repeating the skills list)
+
+═══════════════════════════════════════════════════════════════
+⚡ EXECUTION INSTRUCTIONS
+═══════════════════════════════════════════════════════════════
+
+1. Read the ENTIRE resume text carefully
+2. Extract information section by section
+3. Cross-reference skills mentioned in experience with skills section
+4. Synthesize a comprehensive professional summary
+5. Validate all extracted data for completeness
+6. Return ONLY the JSON object — no markdown, no explanation, no commentary
+7. If any field is genuinely not found, use empty string for strings or empty array for arrays
+8. Never hallucinate or fabricate information not present in the resume`
           },
           {
             role: "user",
-            content: `Analyze this resume and extract structured information:\n\n${extractedText}`
+            content: `Parse this resume with maximum extraction depth. Capture EVERY skill, ALL experience details with achievements, complete education and certifications. Be thorough — this data drives hiring decisions.
+
+RESUME TEXT:
+═══════════════════════════════════════════════════════════════
+${extractedText}
+═══════════════════════════════════════════════════════════════
+
+Extract and return the structured JSON profile.`
           }
       ] as const;
 
@@ -252,7 +424,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
               { role: "system", content: `Return ONLY a valid JSON object. No markdown, no commentary.${customRules ? ` Apply the custom parsing rules: ${customRules}` : ''}` }
             ] as any,
             temperature: 0,
-            max_tokens: 1500,
+            max_tokens: 3000,
           }),
           {
             requestType: "resume_processing_retry",
@@ -277,12 +449,20 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
           name: resultRetry.name || "Unknown",
           email: resultRetry.email || "",
           phone: resultRetry.phone || "",
+          location: resultRetry.location || "",
+          linkedIn: resultRetry.linkedIn || "",
+          portfolio: resultRetry.portfolio || "",
           summary: resultRetry.summary || "",
+          headline: resultRetry.headline || "",
+          yearsOfExperience: resultRetry.yearsOfExperience || "",
           experience: Array.isArray(resultRetry.experience) ? resultRetry.experience : [],
           skills: Array.isArray(resultRetry.skills) ? resultRetry.skills : [],
           education: Array.isArray(resultRetry.education) ? resultRetry.education : [],
           certifications: Array.isArray(resultRetry.certifications) ? resultRetry.certifications : [],
           languages: Array.isArray(resultRetry.languages) ? resultRetry.languages : [],
+          industries: Array.isArray(resultRetry.industries) ? resultRetry.industries : [],
+          seniorityLevel: resultRetry.seniorityLevel || "",
+          specializations: Array.isArray(resultRetry.specializations) ? resultRetry.specializations : [],
         };
       }
       let result: any;
@@ -298,7 +478,7 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
               { role: "system", content: `Return ONLY a valid JSON object. No markdown, no commentary.${customRules ? ` Apply the custom parsing rules: ${customRules}` : ''}` }
             ] as any,
             temperature: 0,
-            max_tokens: 1500,
+            max_tokens: 3000,
           }),
           {
             requestType: "resume_processing_parse_retry",
@@ -320,12 +500,20 @@ ${customRules ? `\nImportant: Pay special attention to the custom parsing instru
         name: result.name || "Unknown",
         email: result.email || "",
         phone: result.phone || "",
+        location: result.location || "",
+        linkedIn: result.linkedIn || "",
+        portfolio: result.portfolio || "",
         summary: result.summary || "",
+        headline: result.headline || "",
+        yearsOfExperience: result.yearsOfExperience || "",
         experience: Array.isArray(result.experience) ? result.experience : [],
         skills: Array.isArray(result.skills) ? result.skills : [],
         education: Array.isArray(result.education) ? result.education : [],
         certifications: Array.isArray(result.certifications) ? result.certifications : [],
         languages: Array.isArray(result.languages) ? result.languages : [],
+        industries: Array.isArray(result.industries) ? result.industries : [],
+        seniorityLevel: result.seniorityLevel || "",
+        specializations: Array.isArray(result.specializations) ? result.specializations : [],
         fileId: extraction.fileId,
       };
 
