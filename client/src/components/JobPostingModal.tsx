@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle, Mail, Languages, ClipboardList } from "lucide-react";
+import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle, Mail, Languages, ClipboardList, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -47,6 +47,10 @@ const jobFormSchema = z.object({
   scoreMatchingThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(30),
   // Email invite threshold: 0-100
   emailInviteThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(30),
+  // Auto shortlist threshold: 0-100 (candidates scoring >= this are auto-shortlisted after voice interview)
+  autoShortlistThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(70),
+  // Auto denied threshold: 0-100 (candidates scoring < this are auto-denied after voice interview)
+  autoDeniedThreshold: z.coerce.number().int().min(0, "Must be at least 0").max(100, "Must be 100 or less").default(30),
 });
 
 type JobFormData = z.infer<typeof jobFormSchema>;
@@ -204,6 +208,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       certifications: "",
       scoreMatchingThreshold: 30,
       emailInviteThreshold: 30,
+      autoShortlistThreshold: 70,
+      autoDeniedThreshold: 30,
     },
   });
 
@@ -289,6 +295,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         aiPrompt: editJob.aiPrompt || "",
         scoreMatchingThreshold: editJob.scoreMatchingThreshold ?? 30,
         emailInviteThreshold: editJob.emailInviteThreshold ?? 30,
+        autoShortlistThreshold: editJob.autoShortlistThreshold ?? 70,
+        autoDeniedThreshold: editJob.autoDeniedThreshold ?? 30,
         employmentType: editJob.employmentType || "",
         workplaceType: editJob.workplaceType || "",
         seniorityLevel: editJob.seniorityLevel || "",
@@ -325,6 +333,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
         certifications: "",
         scoreMatchingThreshold: 30,
         emailInviteThreshold: 30,
+        autoShortlistThreshold: 70,
+        autoDeniedThreshold: 30,
       });
       setSelectedSoftSkills([]);
       setSelectedTechnicalSkills([]);
@@ -625,6 +635,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
       scoreMatchingThreshold: data.scoreMatchingThreshold,
       emailInviteThreshold: data.emailInviteThreshold,
+      autoShortlistThreshold: data.autoShortlistThreshold,
+      autoDeniedThreshold: data.autoDeniedThreshold,
       // Include assessment questions
       assessmentQuestions: validAssessmentQuestions.length > 0 ? validAssessmentQuestions : null,
     };
@@ -858,6 +870,45 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   <p className="text-red-500 text-sm mt-1">{form.formState.errors.emailInviteThreshold.message as any}</p>
                 )}
                 <p className="text-xs text-slate-500 mt-1">Only candidates with a score ≥ this value will receive automatic email invitations.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  Auto Shortlist Threshold
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...form.register("autoShortlistThreshold", { valueAsNumber: true })}
+                  placeholder="70"
+                  className="mt-2"
+                />
+                {form.formState.errors.autoShortlistThreshold && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.autoShortlistThreshold.message as any}</p>
+                )}
+                <p className="text-xs text-slate-500 mt-1">Candidates scoring ≥ this value after voice interview will be auto-shortlisted.</p>
+              </div>
+              <div>
+                <Label className="flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-red-600" />
+                  Auto Denied Threshold
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...form.register("autoDeniedThreshold", { valueAsNumber: true })}
+                  placeholder="30"
+                  className="mt-2"
+                />
+                {form.formState.errors.autoDeniedThreshold && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.autoDeniedThreshold.message as any}</p>
+                )}
+                <p className="text-xs text-slate-500 mt-1">Candidates scoring below this value after voice interview will be auto-denied.</p>
               </div>
             </div>
 
