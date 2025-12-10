@@ -10,7 +10,7 @@ import { creditService } from "./creditService";
 import { stripeService } from "./stripeService";
 import { subscriptionService } from "./subscriptionService";
 import { setupSubscriptionSystem } from "./setupSubscriptionSystem";
-import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema, type InsertOrganization, users } from "@shared/schema";
+import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema, type InsertOrganization, users, organizations } from "@shared/schema";
 import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
 import { localDatabaseService } from "./localDatabaseService";
@@ -2794,12 +2794,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const identifier = decodeURIComponent(req.params.identifier);
       const jobId = req.query.jobId as string | undefined;
+      const profileId = req.query.profileId as string | undefined;
 
-      const [userProfile] = await db.select()
-        .from(applicantProfiles)
-        .where(eq(applicantProfiles.userId, identifier));
+      let userProfile;
+      if (profileId) {
+        // Use exact profile ID if provided - for precise profile lookup when multiple profiles exist
+        [userProfile] = await db.select()
+          .from(applicantProfiles)
+          .where(eq(applicantProfiles.id, parseInt(profileId)));
+      } else {
+        // Fallback to userId lookup
+        [userProfile] = await db.select()
+          .from(applicantProfiles)
+          .where(eq(applicantProfiles.userId, identifier));
+      }
 
-      const profileData = userProfile.aiProfile?.brutallyHonestProfile || {};
+      const profileData = userProfile?.aiProfile?.brutallyHonestProfile || {};
 
       // Get interview video URL from job applications -> interview sessions
       let interviewVideoUrl = null;
@@ -2848,7 +2858,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Extract brutallyHonestProfile directly - no transformation needed
       // The UI will use the raw structure from V4 profile generator
-      const brutallyHonestProfile = userProfile.aiProfile?.brutallyHonestProfile || {};
+      const brutallyHonestProfile = userProfile?.aiProfile?.brutallyHonestProfile || {};
       const profileVersion = brutallyHonestProfile.version || 1;
 
       // Pass brutallyHonestProfile directly as structuredProfile
@@ -2857,18 +2867,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Format the response
       const profile = {
-        name: userProfile.Name || identifier,
-        email: userProfile.email || '',
-        matchScorePercentage: userProfile.aiProfile?.matchScorePercentage || 0,
-        experiencePercentage: userProfile.aiProfile?.experiencePercentage || 0,
-        techSkillsPercentage: userProfile.aiProfile?.techSkillsPercentage || 0,
-        culturalFitPercentage: userProfile.aiProfile?.culturalFitPercentage || 0,
+        name: userProfile?.name || identifier,
+        email: userProfile?.email || '',
+        matchScorePercentage: userProfile?.aiProfile?.matchScorePercentage || 0,
+        experiencePercentage: userProfile?.aiProfile?.experiencePercentage || 0,
+        techSkillsPercentage: userProfile?.aiProfile?.techSkillsPercentage || 0,
+        culturalFitPercentage: userProfile?.aiProfile?.culturalFitPercentage || 0,
         // NEW: Include profile version and structured data
         profileVersion,
         structuredProfile,
         // Keep userProfile markdown for backward compatibility
-        userProfile: formatProfileForDisplay(userProfile.aiProfile),
-        userId: userProfile.userId,
+        userProfile: formatProfileForDisplay(userProfile?.aiProfile),
+        userId: userProfile?.userId,
         interviewVideoUrl, // Add video URL to response
         // Include all raw fields for debugging
         rawFields: userProfile
@@ -2924,11 +2934,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get profile data from applicantProfiles table (where aiProfile.brutallyHonestProfile lives)
+      // Use applicantProfileId if available for precise lookup, fallback to applicantUserId
       const [applicantProfile] = await db.select()
         .from(applicantProfiles)
-        .where(eq(applicantProfiles.userId, application.applicantUserId));
+        .where(
+          application.applicantProfileId
+            ? eq(applicantProfiles.id, application.applicantProfileId)
+            : eq(applicantProfiles.userId, application.applicantUserId)
+        );
 
       console.log('📋 ApplicantProfile found:', applicantProfile ? 'Yes' : 'No');
+      console.log('📋 Lookup method:', application.applicantProfileId ? `by profileId: ${application.applicantProfileId}` : `by userId: ${application.applicantUserId}`);
       console.log('📋 ApplicantProfile has aiProfile:', !!applicantProfile?.aiProfile);
       console.log('📋 ApplicantProfile has brutallyHonestProfile:', !!applicantProfile?.aiProfile?.brutallyHonestProfile);
 
@@ -3926,7 +3942,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  app.post('/api/real-applicants/:id/decline', requireAuth, async (req: any, res) => {
+  app.post('/api/real-applicants/:id/decline', requireAuthOrService, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       const userId = req.user?.id;
@@ -3939,7 +3955,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       let organization;
       try {
         application = await localDatabaseService.getJobApplication(applicantId);
-        organization = await storage.getOrganizationByUser(userId);
+        // Get organization from user if available, otherwise from the job
+        organization = userId ? await storage.getOrganizationByUser(userId) : null;
+
+        // If no user (service call), get organization from the applicant's job
+        if (!organization && application?.jobId) {
+          const job = await storage.getJob(parseInt(application.jobId));
+          if (job?.organizationId) {
+            const [org] = await db
+              .select()
+              .from(organizations)
+              .where(eq(organizations.id, job.organizationId.toString()))
+              .limit(1);
+            organization = org;
+          }
+        }
       } catch (error) {
         console.warn('⚠️ Could not fetch applicant or organization details:', error);
       }
@@ -3990,46 +4020,62 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   // Shortlist applicant
-  app.post('/api/real-applicants/:id/shortlist', requireAuth, async (req: any, res) => {
+  app.post('/api/real-applicants/:id/shortlist', requireAuthOrService, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
       const userId = req.user?.id;
-      const organization = await storage.getOrganizationByUser(userId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
 
-      console.log(`🌟 DATABASE SHORTLIST: User ${userId} adding applicant ${applicantId} to shortlist...`);
-      
-      // Get applicant details from local database
-      // Use local database service instead of Airtable
+      // Get applicant details from local database first (needed for organization lookup)
       const applicant = await localDatabaseService.getJobApplication(applicantId);
-      
+
       if (!applicant) {
         return res.status(404).json({ message: "Applicant not found" });
       }
 
-      // Check if already shortlisted
-      const isAlreadyShortlisted = await storage.isApplicantShortlisted(userId, applicantId, applicant.jobId);
-      if (isAlreadyShortlisted) {
-        return res.status(400).json({ message: "Applicant already shortlisted for this job" });
+      // Get organization from user if available, otherwise from the job
+      let organization = userId ? await storage.getOrganizationByUser(userId) : null;
+
+      // If no user (service call), get organization from the applicant's job
+      if (!organization && applicant?.jobId) {
+        const job = await storage.getJob(parseInt(applicant.jobId));
+        if (job?.organizationId) {
+          const [org] = await db
+            .select()
+            .from(organizations)
+            .where(eq(organizations.id, job.organizationId.toString()))
+            .limit(1);
+          organization = org;
+        }
       }
-      
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      console.log(`🌟 DATABASE SHORTLIST: ${userId ? `User ${userId}` : 'Service'} adding applicant ${applicantId} to shortlist...`);
+
+      // Check if already shortlisted (skip if no userId - service call)
+      if (userId) {
+        const isAlreadyShortlisted = await storage.isApplicantShortlisted(userId, applicantId, applicant.jobId);
+        if (isAlreadyShortlisted) {
+          return res.status(400).json({ message: "Applicant already shortlisted for this job" });
+        }
+      }
+
       // Add to database shortlist
       const shortlistedData = {
         id: `shortlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        employerId: userId,
+        employerId: userId || `auto_${organization.id}`,
         applicantId: applicantId,
         applicantName: applicant.name,
         jobTitle: applicant.jobTitle,
         jobId: applicant.jobId,
-        note: null,
+        note: userId ? null : 'Auto-shortlisted based on interview score',
         dateShortlisted: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       await storage.addToShortlist(shortlistedData);
       
       console.log(`✅ DATABASE SHORTLIST SUCCESS: Applicant ${applicantId} added to database shortlist`);

@@ -63,6 +63,7 @@ interface Applicant {
   skills: string[];
   userId: string;
   applicantUserId?: string;
+  applicantProfileId?: number; // Reference to applicant_profiles.id for precise profile lookup
   matchScore?: number;
   technicalScore?: number;
   experienceScore?: number;
@@ -355,9 +356,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
           setSelectedUserProfile(userProfile);
         } else {
           console.error('❌ Failed to fetch application profile:', response.status, response.statusText);
-          // Try fallback to old endpoint with applicantUserId
+          // Try fallback to old endpoint with applicantUserId, include profileId if available for precise lookup
           const jobIdParam = applicant.jobId ? `?jobId=${encodeURIComponent(applicant.jobId)}` : '';
-          const fallbackResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.applicantUserId || applicant.userId)}${jobIdParam}`);
+          const profileIdParam = applicant.applicantProfileId ? `${jobIdParam ? '&' : '?'}profileId=${applicant.applicantProfileId}` : '';
+          const fallbackResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.applicantUserId || applicant.userId)}${jobIdParam}${profileIdParam}`);
           if (fallbackResponse.ok) {
             const fallbackProfile = await fallbackResponse.json();
             console.log('✅ Fallback profile fetched:', fallbackProfile);
