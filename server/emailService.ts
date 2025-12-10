@@ -348,6 +348,76 @@ The Plato Team
     }
   }
 
+  async sendInterviewReminderEmail(params: {
+    applicantName: string;
+    applicantEmail: string;
+    jobTitle: string;
+    companyName: string;
+    invitationLink: string;
+    reminderType: '1h' | '24h';
+  }): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping reminder email: SendGrid not configured');
+        return false;
+      }
+
+      const urgencyText = params.reminderType === '1h'
+        ? 'Your interview invitation expires soon!'
+        : 'Don\'t forget to complete your interview!';
+
+      const subject = `Reminder: Complete Your AI Interview for ${params.jobTitle} at ${params.companyName}`;
+
+      const html = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 640px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #111827;">Dear ${params.applicantName},</h2>
+          <div style="margin: 16px 0; padding: 12px 16px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <p style="color: #92400e; margin: 0; font-weight: 600;">${urgencyText}</p>
+          </div>
+          <p>This is a friendly reminder that you have a pending AI interview for the <strong>${params.jobTitle}</strong> position at ${params.companyName}.</p>
+          <p>Please complete your interview using the link below:</p>
+          <div style="margin: 24px 0; text-align: center;">
+            <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Complete Your Interview</a>
+          </div>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #2563eb;">${params.invitationLink}</p>
+          <p>We look forward to learning more about you.</p>
+          <p>Best regards,<br>The Plato Team<br><em>(On behalf of ${params.companyName})</em></p>
+        </div>`;
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+
+      await this.mailService.send({
+        to: process.env.TO_EMAIL || params.applicantEmail,
+        from: { email: fromEmail, name: fromName },
+        subject,
+        text: `Dear ${params.applicantName},
+
+${urgencyText}
+
+This is a friendly reminder that you have a pending AI interview for the ${params.jobTitle} position at ${params.companyName}.
+
+Please complete your interview using the link below:
+
+${params.invitationLink}
+
+We look forward to learning more about you.
+
+Best regards,
+The Plato Team
+(On behalf of ${params.companyName})`,
+        html,
+      });
+
+      console.log(`✅ Interview reminder email (${params.reminderType}) sent to ${params.applicantEmail}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid reminder email error:', error);
+      return false;
+    }
+  }
+
   async sendTeamInvitationEmail(params: {
     email: string;
     organizationName: string;

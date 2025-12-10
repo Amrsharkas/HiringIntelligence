@@ -1019,6 +1019,10 @@ export const airtableJobMatches = pgTable("airtable_job_matches", {
   interviewComments: text("interview_comments"), // AI-generated feedback
   status: varchar("status").default("pending"),
   token: varchar("token").unique().notNull(),
+  reminder1hSent: boolean("reminder_1h_sent").default(false),
+  reminder24hSent: boolean("reminder_24h_sent").default(false),
+  reminder1hJobId: varchar("reminder_1h_job_id"),
+  reminder24hJobId: varchar("reminder_24h_job_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [

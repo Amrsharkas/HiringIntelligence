@@ -6,6 +6,7 @@ import { emailService } from './emailService';
 import { matchingService } from './matchingService';
 import { fileStorageService } from './fileStorageService';
 import { ragIndexingService } from './ragIndexingService';
+import { localDatabaseService } from './localDatabaseService';
 
 // Check Redis connection health
 const checkRedisHealth = async () => {
@@ -327,6 +328,48 @@ const interviewInvitationWorker = new Worker(
         return { success: true, result };
       } catch (error) {
         console.error(`Error sending interview invitation email to ${applicantEmail}:`, error);
+        throw error;
+      }
+    } else if (job.name === 'send-interview-reminder') {
+      const { applicantName, applicantEmail, jobTitle, companyName, invitationLink, matchId, reminderType } = job.data;
+
+      console.log(`Processing interview reminder (${reminderType}) for ${applicantEmail}`);
+
+      try {
+        // Check if interview has started (status changed from 'invited')
+        const match = await localDatabaseService.getJobMatch(matchId);
+
+        if (!match) {
+          console.log(`Match ${matchId} not found, skipping reminder`);
+          return { success: false, reason: 'match_not_found' };
+        }
+
+        // Only send reminder if status is still 'invited'
+        if (match.status !== 'invited') {
+          console.log(`Match ${matchId} status is '${match.status}', skipping reminder`);
+          return { success: false, reason: 'interview_already_started' };
+        }
+
+        // Send the reminder email
+        const result = await emailService.sendInterviewReminderEmail({
+          applicantName,
+          applicantEmail,
+          jobTitle,
+          companyName,
+          invitationLink,
+          reminderType,
+        });
+
+        // Update the reminder sent flag
+        const updateData = reminderType === '1h'
+          ? { reminder1hSent: true }
+          : { reminder24hSent: true };
+        await localDatabaseService.updateJobMatch(matchId, updateData);
+
+        console.log(`Successfully sent interview reminder (${reminderType}) to ${applicantEmail}`);
+        return { success: true, result };
+      } catch (error) {
+        console.error(`Error sending interview reminder to ${applicantEmail}:`, error);
         throw error;
       }
     }

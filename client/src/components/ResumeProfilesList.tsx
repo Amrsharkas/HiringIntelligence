@@ -305,6 +305,30 @@ export function ResumeProfilesList() {
     },
   });
 
+  // Resend invitation mutation
+  const resendInvitationMutation = useMutation({
+    mutationFn: async ({ profileId, jobId }: { profileId: string; jobId: string }) => {
+      const response = await apiRequest('POST', '/api/resend-invitation', {
+        profileId,
+        jobId
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invitation Resent",
+        description: "Invitation email has been resent successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Resend Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete profile mutation
   const deleteProfileMutation = useMutation({
     mutationFn: async (profileId: string) => {
@@ -2456,6 +2480,27 @@ export function ResumeProfilesList() {
                                   <>
                                     <Mail className="h-3 w-3 mr-1" />
                                     Invite
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                            {row.invitationStatus === 'invited' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => resendInvitationMutation.mutate({
+                                  profileId: row.profileId,
+                                  jobId: row.jobId.toString()
+                                })}
+                                disabled={resendInvitationMutation.isPending}
+                                className="h-8 px-2 text-xs"
+                              >
+                                {resendInvitationMutation.isPending ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Mail className="h-3 w-3 mr-1" />
+                                    Resend
                                   </>
                                 )}
                               </Button>

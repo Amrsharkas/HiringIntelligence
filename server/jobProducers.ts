@@ -164,3 +164,41 @@ export const addSingleResumeProcessingJob = async (data: {
     },
   });
 };
+
+// Interview reminder email job producer
+// Schedules a reminder email with a unique jobId for potential cancellation
+export const scheduleInterviewReminderJob = async (
+  data: {
+    applicantName: string;
+    applicantEmail: string;
+    jobTitle: string;
+    companyName: string;
+    invitationLink: string;
+    matchId: string;
+    reminderType: '1h' | '24h';
+  },
+  delay: number
+) => {
+  const jobId = `reminder-${data.reminderType}-${data.matchId}`;
+  return await emailQueue.add('send-interview-reminder', data, {
+    delay,
+    priority: 3,
+    jobId,
+  });
+};
+
+// Cancel a scheduled reminder job by jobId
+export const cancelScheduledReminderJob = async (jobId: string) => {
+  try {
+    const job = await emailQueue.getJob(jobId);
+    if (job) {
+      await job.remove();
+      console.log(`Cancelled scheduled reminder job: ${jobId}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error(`Error cancelling reminder job ${jobId}:`, error);
+    return false;
+  }
+};

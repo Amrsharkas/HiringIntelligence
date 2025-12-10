@@ -321,6 +321,22 @@ export class LocalDatabaseService {
     }
   }
 
+  async getJobMatchByUserAndJob(userId: string, jobId: string): Promise<AirtableJobMatch | null> {
+    try {
+      const [match] = await db
+        .select()
+        .from(schema.airtableJobMatches)
+        .where(and(
+          eq(schema.airtableJobMatches.userId, userId),
+          eq(schema.airtableJobMatches.jobId, jobId)
+        ));
+      return match || null;
+    } catch (error) {
+      console.error('Error getting job match by user and job:', error);
+      throw error;
+    }
+  }
+
   async updateJobMatch(id: string, data: Partial<InsertAirtableJobMatch>): Promise<AirtableJobMatch | null> {
     try {
       const [match] = await db

@@ -6430,6 +6430,51 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         console.warn('📧 Invitation email failed (non-blocking):', emailErr);
       }
 
+      // Schedule reminder emails (1h and 24h after invitation)
+      try {
+        const { scheduleInterviewReminderJob } = await import('./jobProducers');
+
+        // Get the newly created job match to get its ID
+        const newMatch = await localDatabaseService.getJobMatchByUserAndJob(profileId, jobIdString);
+
+        if (newMatch) {
+          const ONE_HOUR_MS = 60 * 60 * 1000;
+          const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+          // Schedule 1-hour reminder
+          const reminder1hJob = await scheduleInterviewReminderJob({
+            applicantName: processedResume.name || processedResume.email,
+            applicantEmail: processedResume.email,
+            jobTitle: job.title,
+            companyName,
+            invitationLink,
+            matchId: newMatch.id,
+            reminderType: '1h',
+          }, ONE_HOUR_MS);
+
+          // Schedule 24-hour reminder
+          const reminder24hJob = await scheduleInterviewReminderJob({
+            applicantName: processedResume.name || processedResume.email,
+            applicantEmail: processedResume.email,
+            jobTitle: job.title,
+            companyName,
+            invitationLink,
+            matchId: newMatch.id,
+            reminderType: '24h',
+          }, TWENTY_FOUR_HOURS_MS);
+
+          // Store job IDs for potential cancellation
+          await localDatabaseService.updateJobMatch(newMatch.id, {
+            reminder1hJobId: `reminder-1h-${newMatch.id}`,
+            reminder24hJobId: `reminder-24h-${newMatch.id}`,
+          });
+
+          console.log(`⏰ Scheduled reminder emails for match ${newMatch.id}`);
+        }
+      } catch (reminderErr) {
+        console.warn('⏰ Failed to schedule reminder emails (non-blocking):', reminderErr);
+      }
+
       res.json({
         success: true,
         message: "Applicant invited successfully",
@@ -6441,6 +6486,136 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       console.error("Error inviting applicant:", error);
       res.status(500).json({
         message: "Failed to invite applicant",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Resend invitation endpoint
+  app.post('/api/resend-invitation', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { profileId, jobId } = req.body;
+
+      if (!profileId || !jobId) {
+        return res.status(400).json({ message: "Profile ID and Job ID are required" });
+      }
+
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Get the profile and job details
+      const profile = await storage.getResumeProfileById(profileId);
+      const job = await storage.getJobById(parseInt(jobId));
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Get existing job match to retrieve the token
+      const { localDatabaseService } = await import('./localDatabaseService');
+      const jobIdString = String(jobId);
+      const existingMatch = await localDatabaseService.getJobMatchByUserAndJob(profileId, jobIdString);
+
+      if (!existingMatch) {
+        return res.status(404).json({ message: "No existing invitation found for this profile and job" });
+      }
+
+      if (existingMatch.status !== 'invited') {
+        return res.status(400).json({
+          message: `Cannot resend invitation - current status is '${existingMatch.status}'`
+        });
+      }
+
+      // Build invitation link using existing token
+      const baseUrl = process.env.APPLICANTS_APP_URL || 'https://applicants.platohiring.com';
+      const invitationLink = `${baseUrl.replace(/\/$/, '')}/ai-interview-initation?token=${encodeURIComponent(existingMatch.token)}`;
+
+      const companyName = organization.companyName || 'Our Company';
+
+      // Resend invitation email
+      try {
+        const { emailService } = await import('./emailService');
+        await emailService.sendInterviewInvitationEmail({
+          applicantName: profile.name || profile.email,
+          applicantEmail: profile.email,
+          jobTitle: job.title,
+          companyName,
+          invitationLink,
+          matchScore: existingMatch.matchScore || 0,
+          matchSummary: "Invitation resent by employer",
+        });
+        console.log(`📧 Invitation email resent to ${profile.email}`);
+      } catch (emailErr) {
+        console.error('📧 Resend invitation email failed:', emailErr);
+        return res.status(500).json({ message: "Failed to send invitation email" });
+      }
+
+      // Cancel old reminders and reschedule new ones
+      try {
+        const { scheduleInterviewReminderJob, cancelScheduledReminderJob } = await import('./jobProducers');
+
+        // Cancel existing reminders if they exist
+        if (existingMatch.reminder1hJobId) {
+          await cancelScheduledReminderJob(existingMatch.reminder1hJobId);
+        }
+        if (existingMatch.reminder24hJobId) {
+          await cancelScheduledReminderJob(existingMatch.reminder24hJobId);
+        }
+
+        const ONE_HOUR_MS = 60 * 60 * 1000;
+        const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+        // Reschedule reminders
+        await scheduleInterviewReminderJob({
+          applicantName: profile.name || profile.email,
+          applicantEmail: profile.email,
+          jobTitle: job.title,
+          companyName,
+          invitationLink,
+          matchId: existingMatch.id,
+          reminderType: '1h',
+        }, ONE_HOUR_MS);
+
+        await scheduleInterviewReminderJob({
+          applicantName: profile.name || profile.email,
+          applicantEmail: profile.email,
+          jobTitle: job.title,
+          companyName,
+          invitationLink,
+          matchId: existingMatch.id,
+          reminderType: '24h',
+        }, TWENTY_FOUR_HOURS_MS);
+
+        // Update reminder job IDs and reset sent flags
+        await localDatabaseService.updateJobMatch(existingMatch.id, {
+          reminder1hJobId: `reminder-1h-${existingMatch.id}`,
+          reminder24hJobId: `reminder-24h-${existingMatch.id}`,
+          reminder1hSent: false,
+          reminder24hSent: false,
+        });
+
+        console.log(`⏰ Rescheduled reminder emails for match ${existingMatch.id}`);
+      } catch (reminderErr) {
+        console.warn('⏰ Failed to reschedule reminder emails (non-blocking):', reminderErr);
+      }
+
+      res.json({
+        success: true,
+        message: "Invitation resent successfully",
+        invitationLink
+      });
+
+    } catch (error) {
+      console.error("Error resending invitation:", error);
+      res.status(500).json({
+        message: "Failed to resend invitation",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
