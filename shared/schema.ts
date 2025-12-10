@@ -310,6 +310,7 @@ export const jobs = pgTable("jobs", {
   seniorityLevel: varchar("seniority_level").notNull(),
   industry: varchar("industry").notNull(),
   languagesRequired: jsonb("languages_required"),
+  assessmentQuestions: jsonb("assessment_questions"),
   interviewLanguage: varchar("interview_language"),
   certifications: text("certifications"),
   organizationId: varchar("organization_id"),
@@ -837,6 +838,42 @@ export type InsertCustomRule = typeof customRules.$inferInsert;
 export type InsertOpenAIRequest = typeof openaiRequests.$inferInsert;
 export type OrganizationInvitation = typeof organizationInvitations.$inferSelect;
 export type InsertOrganizationInvitation = typeof organizationInvitations.$inferInsert;
+
+// Assessment question types for job postings
+export type AssessmentQuestionType =
+  | 'text'
+  | 'multiple_choice'
+  | 'yes_no'
+  | 'numeric'
+  | 'rating'
+  | 'file_upload';
+
+export interface AssessmentQuestionOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface AssessmentQuestionValidation {
+  required?: boolean;
+  minLength?: number;      // text
+  maxLength?: number;      // text
+  minValue?: number;       // numeric
+  maxValue?: number;       // numeric
+  allowedFileTypes?: string[]; // file_upload
+  maxFileSize?: number;    // file_upload (bytes)
+}
+
+export interface AssessmentQuestion {
+  id: string;
+  questionText: string;
+  type: AssessmentQuestionType;
+  description?: string;
+  options?: AssessmentQuestionOption[];       // For multiple_choice
+  ratingScale?: { min: number; max: number }; // For rating (default 1-5)
+  validation?: AssessmentQuestionValidation;
+  order: number;
+}
 
 export const insertOrganizationSchema = createInsertSchema(organizations, {
   url: (schema) => schema.trim().min(1, "Organization URL is required"),

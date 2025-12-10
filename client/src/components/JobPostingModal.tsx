@@ -12,10 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle, Mail, Languages } from "lucide-react";
+import { X, Sparkles, Loader2, MapPin, DollarSign, Plus, Trash2, HelpCircle, Mail, Languages, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { AssessmentQuestionsBuilder } from "./AssessmentQuestionsBuilder";
+import type { AssessmentQuestion } from "@shared/schema";
 
 const jobFormSchema = z.object({
   title: z.string().min(1, "Job title is required"),
@@ -177,6 +179,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [selectedLanguages, setSelectedLanguages] = useState<Array<{language: string, fluency: string}>>([]);
   const [usesEgpSalary, setUsesEgpSalary] = useState(false);
+  const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([]);
 
   const form = useForm<JobFormData>({
     resolver: zodResolver(jobFormSchema),
@@ -299,6 +302,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       setEmployerQuestions(editJob.employerQuestions?.length > 0 ? editJob.employerQuestions : ['']);
       setSelectedLanguages(editJob.languagesRequired || []);
       setUsesEgpSalary(editJob.salaryRange?.includes('EGP') || false);
+      setAssessmentQuestions(editJob.assessmentQuestions || []);
     } else {
       form.reset({
         title: "",
@@ -327,6 +331,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       setEmployerQuestions(['']);
       setSelectedLanguages([]);
       setUsesEgpSalary(false);
+      setAssessmentQuestions([]);
       setActiveTab('details');
     }
   }, [editJob, form]);
@@ -603,6 +608,9 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
     // Filter out empty language requirements
     const validLanguages = selectedLanguages.filter(lang => lang.language && lang.fluency);
     
+    // Filter out incomplete assessment questions (must have questionText)
+    const validAssessmentQuestions = assessmentQuestions.filter(q => q.questionText.trim() !== '');
+
     const jobData = {
       ...data,
       softSkills: selectedSoftSkills,
@@ -617,6 +625,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
       salaryMax: data.salaryMax ? parseInt(data.salaryMax) : undefined,
       scoreMatchingThreshold: data.scoreMatchingThreshold,
       emailInviteThreshold: data.emailInviteThreshold,
+      // Include assessment questions
+      assessmentQuestions: validAssessmentQuestions.length > 0 ? validAssessmentQuestions : null,
     };
 
     if (editJob) {
@@ -655,10 +665,14 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="details" className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
                   Job Details
+                </TabsTrigger>
+                <TabsTrigger value="assessment" className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4" />
+                  Assessment
                 </TabsTrigger>
                 <TabsTrigger value="questions" className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
@@ -1152,6 +1166,13 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                 List any professional certifications that are required or preferred for this role
               </p>
             </div>
+              </TabsContent>
+
+              <TabsContent value="assessment" className="space-y-6">
+                <AssessmentQuestionsBuilder
+                  questions={assessmentQuestions}
+                  onChange={setAssessmentQuestions}
+                />
               </TabsContent>
 
               <TabsContent value="questions" className="space-y-6">
