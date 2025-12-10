@@ -21,7 +21,7 @@ import { emailService } from "./emailService";
 import { ragIndexingService } from "./ragIndexingService";
 import { resumeRagService } from "./resumeRagService";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { setupBullDashboard } from "./dashboard";
 import { resumeProcessingQueue } from "./queues";
 import { setupCreditPackages } from "./setupCreditPackages";
@@ -2793,6 +2793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/public-profile/:identifier", async (req, res) => {
     try {
       const identifier = decodeURIComponent(req.params.identifier);
+      const jobId = req.query.jobId as string | undefined;
 
       const [userProfile] = await db.select()
         .from(applicantProfiles)
@@ -2805,12 +2806,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { airtableJobApplications, interviewSessions } = await import('@shared/schema');
 
-        // Get the most recent application for this user
-        const [application] = await db.select()
-          .from(airtableJobApplications)
-          .where(eq(airtableJobApplications.applicantUserId, identifier))
-          .orderBy(desc(airtableJobApplications.applicationDate))
-          .limit(1);
+        // Get the application for this user - filter by jobId if provided, otherwise get most recent
+        let application;
+        if (jobId) {
+          // Filter by specific job to get the correct application
+          const [specificApplication] = await db.select()
+            .from(airtableJobApplications)
+            .where(and(
+              eq(airtableJobApplications.applicantUserId, identifier),
+              eq(airtableJobApplications.jobId, jobId)
+            ))
+            .limit(1);
+          application = specificApplication;
+        }
+
+        // Fallback to most recent if no jobId provided or no match found
+        if (!application) {
+          const [recentApplication] = await db.select()
+            .from(airtableJobApplications)
+            .where(eq(airtableJobApplications.applicantUserId, identifier))
+            .orderBy(desc(airtableJobApplications.applicationDate))
+            .limit(1);
+          application = recentApplication;
+        }
 
         // If application has sessionId, get the interview video URL
         if (application?.sessionId) {
@@ -2860,6 +2878,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error('❌ PUBLIC: Error fetching public profile:', error);
+      res.status(500).json({ error: "Failed to fetch profile", details: error.message });
+    }
+  });
+
+  // Get profile by application ID - fetches the specific application's profile data
+  app.get("/api/application-profile/:applicationId", async (req, res) => {
+    try {
+      const applicationId = decodeURIComponent(req.params.applicationId);
+      console.log('📋 Fetching application profile for ID:', applicationId);
+
+      // Get the specific application by its ID
+      const { airtableJobApplications, interviewSessions } = await import('@shared/schema');
+
+      const [application] = await db.select()
+        .from(airtableJobApplications)
+        .where(eq(airtableJobApplications.id, applicationId))
+        .limit(1);
+
+      console.log('📋 Application found:', application ? 'Yes' : 'No');
+
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      console.log('📋 Application details:', {
+        id: application.id,
+        applicantName: application.applicantName,
+        applicantUserId: application.applicantUserId,
+        hasUserProfile: !!application.userProfile,
+        sessionId: application.sessionId
+      });
+
+      // Get interview video URL from THIS specific application's session
+      let interviewVideoUrl = null;
+      if (application.sessionId) {
+        const [session] = await db.select()
+          .from(interviewSessions)
+          .where(eq(interviewSessions.id, application.sessionId));
+
+        if (session?.interviewVideoUrl) {
+          interviewVideoUrl = session.interviewVideoUrl;
+          console.log('✅ Found interview video URL for application:', applicationId);
+        }
+      }
+
+      // Get profile data from applicantProfiles table (where aiProfile.brutallyHonestProfile lives)
+      const [applicantProfile] = await db.select()
+        .from(applicantProfiles)
+        .where(eq(applicantProfiles.userId, application.applicantUserId));
+
+      console.log('📋 ApplicantProfile found:', applicantProfile ? 'Yes' : 'No');
+      console.log('📋 ApplicantProfile has aiProfile:', !!applicantProfile?.aiProfile);
+      console.log('📋 ApplicantProfile has brutallyHonestProfile:', !!applicantProfile?.aiProfile?.brutallyHonestProfile);
+
+      // Use applicantProfiles.aiProfile as primary source, fall back to application.userProfile
+      const aiProfileData = applicantProfile?.aiProfile || {};
+      const applicationUserProfile = (application.userProfile as any) || {};
+
+      // brutallyHonestProfile is in aiProfile
+      const brutallyHonestProfile = aiProfileData.brutallyHonestProfile || applicationUserProfile.brutallyHonestProfile || {};
+      const profileVersion = brutallyHonestProfile.version || aiProfileData.profileVersion || 1;
+
+      // Restructure V4 profile to match client expectations
+      // V4 has deeply nested structure inside executive_summary that client expects at top level
+      let structuredProfile: any = profileVersion >= 3 ? { ...brutallyHonestProfile } : null;
+      if (structuredProfile && structuredProfile.executive_summary) {
+        const execSummary = structuredProfile.executive_summary;
+
+        // Move scores from executive_summary.scores to top level
+        if (execSummary.scores) {
+          structuredProfile.scores = execSummary.scores;
+
+          // detailed_profile is inside scores in V4
+          if (execSummary.scores.detailed_profile) {
+            structuredProfile.detailed_profile = execSummary.scores.detailed_profile;
+          }
+
+          // cross_reference_analysis is inside scores in V4
+          if (execSummary.scores.cross_reference_analysis) {
+            structuredProfile.cross_reference_analysis = execSummary.scores.cross_reference_analysis;
+          }
+        }
+
+        // transcript_analysis is directly in executive_summary
+        if (execSummary.transcript_analysis) {
+          structuredProfile.transcript_analysis = {
+            ...execSummary.transcript_analysis,
+            // Also include response analysis from exec_summary
+            strongest_responses: execSummary.strongest_responses,
+            weakest_responses: execSummary.weakest_responses,
+            linguistic_patterns: execSummary.linguistic_patterns,
+            authenticity_assessment: execSummary.authenticity_assessment,
+          };
+        }
+
+        // Red/green flags - keep as objects for detailed view
+        if (execSummary.red_flags_detected) {
+          structuredProfile.red_flags = execSummary.red_flags_detected;
+        }
+        if (execSummary.green_flags_detected) {
+          structuredProfile.green_flags = execSummary.green_flags_detected;
+        }
+
+        // Interview analysis for client - convert V4 object flags to strings for legacy rendering
+        const greenFlagsAsStrings = execSummary.green_flags_detected?.map((f: any) =>
+          typeof f === 'string' ? f : f.description || f.flag_type || 'Green flag'
+        ) || [];
+        const redFlagsAsStrings = execSummary.red_flags_detected?.map((f: any) =>
+          typeof f === 'string' ? f : f.description || f.issue || f.flag_type || 'Red flag'
+        ) || [];
+
+        structuredProfile.interview_analysis = {
+          strongest_responses: execSummary.strongest_responses,
+          weakest_responses: execSummary.weakest_responses,
+          green_flags_detected: greenFlagsAsStrings,
+          red_flags_detected: redFlagsAsStrings,
+        };
+      }
+
+      // Extract scores from structured profile (prefer these over legacy scores)
+      const v4Scores = structuredProfile?.scores;
+      const overallScore = v4Scores?.overall_score?.value ?? v4Scores?.overall_score?.score ?? aiProfileData.matchScorePercentage ?? applicationUserProfile.matchScorePercentage ?? 0;
+      const techScore = v4Scores?.technical_competence?.score ?? aiProfileData.techSkillsPercentage ?? applicationUserProfile.techSkillsPercentage ?? 0;
+      const expScore = v4Scores?.experience_quality?.score ?? aiProfileData.experiencePercentage ?? applicationUserProfile.experiencePercentage ?? 0;
+      const culturalScore = v4Scores?.cultural_collaboration_fit?.score ?? aiProfileData.culturalFitPercentage ?? applicationUserProfile.culturalFitPercentage ?? 0;
+
+      // Format the response - same structure as /api/public-profile
+      const profile = {
+        name: applicantProfile?.name || application.applicantName,
+        email: applicantProfile?.email || application.applicantEmail,
+        jobTitle: application.jobTitle,
+        jobId: application.jobId,
+        applicationId: application.id,
+        applicationDate: application.applicationDate,
+        matchScorePercentage: overallScore,
+        experiencePercentage: expScore,
+        techSkillsPercentage: techScore,
+        culturalFitPercentage: culturalScore,
+        profileVersion,
+        structuredProfile,
+        userProfile: formatProfileForDisplay(aiProfileData.brutallyHonestProfile ? aiProfileData : applicationUserProfile),
+        userId: application.applicantUserId,
+        interviewVideoUrl,
+        rawFields: {
+          application,
+          applicantProfile
+        }
+      };
+
+      res.json(profile);
+
+    } catch (error) {
+      console.error('❌ Error fetching application profile:', error);
       res.status(500).json({ error: "Failed to fetch profile", details: error.message });
     }
   });

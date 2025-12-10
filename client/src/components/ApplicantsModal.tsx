@@ -341,21 +341,23 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
       
       // Fetch profile in background without blocking modal display
       try {
-        
-        const response = await fetch(`/api/public-profile/${encodeURIComponent(applicant.applicantUserId)}`);
+        // Use application ID to get the specific application's profile data
+        console.log('🔍 Fetching with applicant.id:', applicant.id);
+        const response = await fetch(`/api/application-profile/${encodeURIComponent(applicant.id)}`);
         if (response.ok) {
           const userProfile = await response.json();
 
-          console.log({
-            userProfile
-          });
-          
-          console.log('✅ User profile fetched successfully:', userProfile);
+          console.log('📋 Full userProfile response:', userProfile);
+          console.log('📋 Profile version:', userProfile.profileVersion);
+          console.log('📋 Has structuredProfile:', !!userProfile.structuredProfile);
+          console.log('📋 structuredProfile keys:', userProfile.structuredProfile ? Object.keys(userProfile.structuredProfile) : 'null');
+
           setSelectedUserProfile(userProfile);
         } else {
-          console.error('❌ Failed to fetch user profile with name:', response.status, response.statusText);
-          // Try with userId as fallback
-          const fallbackResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.userId)}`);
+          console.error('❌ Failed to fetch application profile:', response.status, response.statusText);
+          // Try fallback to old endpoint with applicantUserId
+          const jobIdParam = applicant.jobId ? `?jobId=${encodeURIComponent(applicant.jobId)}` : '';
+          const fallbackResponse = await fetch(`/api/public-profile/${encodeURIComponent(applicant.applicantUserId || applicant.userId)}${jobIdParam}`);
           if (fallbackResponse.ok) {
             const fallbackProfile = await fallbackResponse.json();
             console.log('✅ Fallback profile fetched:', fallbackProfile);
