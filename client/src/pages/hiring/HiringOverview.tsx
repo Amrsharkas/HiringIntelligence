@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Briefcase,
   Users,
@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   BarChart3,
-  TrendingUp,
   ArrowRight,
 } from "lucide-react";
 
@@ -95,44 +94,6 @@ const QuickActionCard = memo(({
 ));
 
 QuickActionCard.displayName = "QuickActionCard";
-
-// Live Stats Components
-const LiveJobCount = memo(() => {
-  const { data: jobCounts = { active: 0 } } = useQuery<any>({
-    queryKey: ["/api/job-postings/count"],
-    staleTime: 30000,
-  });
-  return jobCounts.active;
-});
-
-const LiveApplicantsCount = memo(() => {
-  const { data: applicantsCount = { count: 0 } } = useQuery<any>({
-    queryKey: ["/api/applicants/count"],
-    staleTime: 30000,
-  });
-  return applicantsCount.count;
-});
-
-const LiveResumesCount = memo(() => {
-  const { data: resumesCount = { count: 0 } } = useQuery<any>({
-    queryKey: ["/api/resume-profiles/count"],
-    staleTime: 30000,
-  });
-  return resumesCount.count;
-});
-
-const LiveInterviewsCount = memo(() => {
-  const { data: interviewsCount = { count: 0 } } = useQuery<any>({
-    queryKey: ["/api/interviews/count"],
-    staleTime: 30000,
-  });
-  return interviewsCount.count;
-});
-
-LiveJobCount.displayName = "LiveJobCount";
-LiveApplicantsCount.displayName = "LiveApplicantsCount";
-LiveResumesCount.displayName = "LiveResumesCount";
-LiveInterviewsCount.displayName = "LiveInterviewsCount";
 
 export default function HiringOverview() {
   const navigate = useNavigate();
@@ -248,103 +209,6 @@ export default function HiringOverview() {
         </div>
       </div>
 
-      {/* Recent Activity Section */}
-      <div>
-        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4">
-          Recent Activity
-        </h2>
-        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60">
-          <CardContent className="p-6">
-            <RecentActivityList />
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
-
-// Recent Activity List Component
-const RecentActivityList = memo(() => {
-  const { data: jobCounts = { active: 0 } } = useQuery<any>({
-    queryKey: ["/api/job-postings/count"],
-    staleTime: 30000,
-  });
-
-  const { data: applicantsCount = { count: 0 } } = useQuery<any>({
-    queryKey: ["/api/applicants/count"],
-    staleTime: 30000,
-  });
-
-  const { data: resumesCount = { count: 0 } } = useQuery<any>({
-    queryKey: ["/api/resume-profiles/count"],
-    staleTime: 30000,
-  });
-
-  const { data: interviewsCount = { count: 0 } } = useQuery<any>({
-    queryKey: ["/api/interviews/count"],
-    staleTime: 30000,
-  });
-
-  const activities = [];
-
-  if (jobCounts.active > 0) {
-    activities.push({
-      id: "jobs",
-      color: "bg-blue-500",
-      text: `${jobCounts.active} active job posting${jobCounts.active !== 1 ? "s" : ""} currently live`,
-      time: "Active",
-    });
-  }
-
-  if (applicantsCount.count > 0) {
-    activities.push({
-      id: "applicants",
-      color: "bg-emerald-500",
-      text: `${applicantsCount.count} applicant${applicantsCount.count !== 1 ? "s" : ""} in pipeline`,
-      time: "Total",
-    });
-  }
-
-  if (resumesCount.count > 0) {
-    activities.push({
-      id: "resumes",
-      color: "bg-purple-500",
-      text: `${resumesCount.count} resume profile${resumesCount.count !== 1 ? "s" : ""} processed`,
-      time: "Total",
-    });
-  }
-
-  if (interviewsCount.count > 0) {
-    activities.push({
-      id: "interviews",
-      color: "bg-amber-500",
-      text: `${interviewsCount.count} interview${interviewsCount.count !== 1 ? "s" : ""} scheduled`,
-      time: "Upcoming",
-    });
-  }
-
-  if (activities.length === 0) {
-    return (
-      <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-        <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p>No activity yet. Start by posting a job!</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {activities.map((activity) => (
-        <div key={activity.id} className="flex items-start gap-3">
-          <div className={`w-2 h-2 ${activity.color} rounded-full mt-2`}></div>
-          <div className="flex-1">
-            <p className="text-sm text-slate-800 dark:text-slate-200">{activity.text}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{activity.time}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-});
-
-RecentActivityList.displayName = "RecentActivityList";

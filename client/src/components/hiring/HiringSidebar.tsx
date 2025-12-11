@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Home,
   Briefcase,
@@ -13,11 +14,10 @@ import {
   Settings,
   X,
   Crown,
-  Sparkles,
   ArrowUpRight,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import logo from "@assets/logo.png";
 
 interface NavSection {
@@ -72,6 +72,7 @@ const navSections: NavSection[] = [
 
 export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: organization } = useQuery<any>({
     queryKey: ["/api/organizations/current"],
@@ -86,6 +87,7 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
   const planName = subscription?.plan?.name || "Free";
   const cvCredits = organization?.cvProcessingCredits || 0;
   const interviewCredits = organization?.interviewCredits || 0;
+  const isSuperAdmin = user?.isSuperAdmin;
 
   const isActive = (itemId: string) => {
     return activePage === itemId || activePage.startsWith(itemId + "/");
@@ -158,6 +160,21 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
 
       {/* Plan & Credits Footer */}
       <div className="p-4 border-t border-slate-200/60 dark:border-slate-700/60 flex-shrink-0 space-y-3">
+        {/* Super Admin Button */}
+        {isSuperAdmin && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleNavigation("/super-admin")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300 dark:hover:border-purple-600 transition-all"
+          >
+            <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <span className="font-medium text-purple-700 dark:text-purple-300">
+              Super Admin
+            </span>
+          </motion.button>
+        )}
+
         {/* Current Plan */}
         <div
           className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 cursor-pointer hover:shadow-md transition-shadow"

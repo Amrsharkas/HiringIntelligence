@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Shield, ArrowLeft } from "lucide-react";
 import logo from "@assets/logo.png";
 
 export function SuperAdminHeader() {
   const { user, logoutMutation } = useAuth();
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -21,7 +21,7 @@ export function SuperAdminHeader() {
       <div className="h-16 px-6 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => setLocation("/employer-dashboard")}
+            onClick={() => navigate("/hiring/overview")}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
