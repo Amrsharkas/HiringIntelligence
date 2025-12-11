@@ -49,6 +49,19 @@ import { BlobProvider } from '@react-pdf/renderer';
 import ApplicantsPDF from './ApplicantsPDF';
 import { HLSVideoPlayer } from './HLSVideoPlayer';
 
+interface AssessmentResponse {
+  questionId: string;
+  questionText: string;
+  type: string;
+  answer: string | number | boolean | string[];
+  fileUrl?: string;
+}
+
+interface AssessmentSubmission {
+  completedAt: string;
+  responses: AssessmentResponse[];
+}
+
 interface Applicant {
   id: string;
   name: string;
@@ -69,6 +82,7 @@ interface Applicant {
   experienceScore?: number;
   culturalFitScore?: number;
   matchSummary?: string;
+  assessmentResponses?: AssessmentSubmission;
 }
 
 interface ApplicantsModalProps {
@@ -2262,6 +2276,70 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                         <Badge key={index} variant="secondary" className="text-sm py-1 px-3">
                           {skill}
                         </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Assessment Responses Section */}
+                {selectedApplicant?.assessmentResponses && selectedApplicant.assessmentResponses.responses.length > 0 && (
+                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Assessment Responses</h3>
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        Completed {new Date(selectedApplicant.assessmentResponses.completedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      {selectedApplicant.assessmentResponses.responses.map((response, index) => (
+                        <div key={response.questionId || index} className="border-b border-slate-100 dark:border-slate-700 pb-4 last:border-0 last:pb-0">
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            {index + 1}. {response.questionText}
+                          </p>
+                          <div className="text-slate-600 dark:text-slate-400">
+                            {response.type === 'multiple_choice' && Array.isArray(response.answer) ? (
+                              <div className="flex flex-wrap gap-2">
+                                {response.answer.map((option, i) => (
+                                  <Badge key={i} variant="outline" className="text-sm">
+                                    {option}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : response.type === 'yes_no' ? (
+                              <Badge variant={response.answer === true || response.answer === 'true' ? 'default' : 'secondary'}>
+                                {response.answer === true || response.answer === 'true' ? 'Yes' : 'No'}
+                              </Badge>
+                            ) : response.type === 'rating' ? (
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-5 h-5 ${
+                                      star <= Number(response.answer)
+                                        ? 'text-yellow-400 fill-yellow-400'
+                                        : 'text-slate-300 dark:text-slate-600'
+                                    }`}
+                                  />
+                                ))}
+                                <span className="ml-2 text-sm">({response.answer}/5)</span>
+                              </div>
+                            ) : response.type === 'file_upload' && response.fileUrl ? (
+                              <a
+                                href={response.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              >
+                                <Download className="w-4 h-4" />
+                                View uploaded file
+                              </a>
+                            ) : response.type === 'numeric' ? (
+                              <span className="font-medium">{response.answer}</span>
+                            ) : (
+                              <p className="whitespace-pre-wrap">{String(response.answer)}</p>
+                            )}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>

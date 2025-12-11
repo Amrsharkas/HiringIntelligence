@@ -1380,11 +1380,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort by match score (highest first)
       applicants.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
 
-      applicants = applicants.map(app => ({
-        ...app,
-        name: app.applicantName,
-        email: app.applicantEmail,
-      }));
+      // Fetch job matches to get assessment responses
+      const jobIds = Array.from(new Set(applicants.map(app => app.jobId)));
+      const jobMatches = await localDatabaseService.getJobMatchesByJobIds(jobIds);
+
+      // Create a map of jobId+userId -> assessmentResponses
+      const assessmentResponsesMap = new Map<string, any>();
+      for (const match of jobMatches) {
+        if (match.assessmentResponses) {
+          const key = `${match.jobId}_${match.userId}`;
+          assessmentResponsesMap.set(key, match.assessmentResponses);
+        }
+      }
+
+      applicants = applicants.map(app => {
+        // Look up assessment responses for this applicant
+        const assessmentKey = `${app.jobId}_${app.applicantUserId}`;
+        const assessmentResponses = assessmentResponsesMap.get(assessmentKey) || null;
+
+        return {
+          ...app,
+          name: app.applicantName,
+          email: app.applicantEmail,
+          assessmentResponses,
+        };
+      });
 
       // Apply pagination
       const totalCount = applicants.length;
