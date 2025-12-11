@@ -1001,16 +1001,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json({ active: 0 });
       }
-      
+
       const count = await storage.getActiveJobsCount(organization.id);
       res.json({ active: count });
     } catch (error) {
       console.error("Error fetching job count:", error);
       res.status(500).json({ message: "Failed to fetch job count" });
+    }
+  });
+
+  // Get single job by ID
+  app.get('/api/job-postings/:id', requireAuth, async (req: any, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const job = await storage.getJobById(jobId);
+
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Verify job belongs to user's organization
+      if (job.organizationId !== organization.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(job);
+    } catch (error) {
+      console.error("Error fetching job:", error);
+      res.status(500).json({ message: "Failed to fetch job posting" });
     }
   });
 
