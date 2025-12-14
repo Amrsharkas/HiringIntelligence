@@ -75,6 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login successful!",
         description: "Welcome back to Plato Hiring.",
       });
+
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
     },
     onError: (error: Error) => {
       // Don't show duplicate toast for verification errors (handled above)
