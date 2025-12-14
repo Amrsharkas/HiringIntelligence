@@ -183,9 +183,9 @@ export default function ResumeDetailsPage() {
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
+    if (score >= 60) return "text-amber-600 dark:text-amber-400";
+    return "text-rose-600 dark:text-rose-400";
   };
 
   const getScoreBgColor = (score: number) => {
@@ -232,7 +232,7 @@ export default function ResumeDetailsPage() {
       const hasScore = score !== undefined && maxScore !== undefined;
 
       return (
-        <div className="p-3 bg-gray-50 rounded border border-gray-200">
+        <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded border border-gray-200 dark:border-gray-700">
           <div className="flex items-start justify-between mb-2">
             <span className="text-sm font-medium flex-1">{label}</span>
             {hasScore && (
@@ -406,10 +406,10 @@ export default function ResumeDetailsPage() {
 
     // Render new 100-point matrix format
     const renderNewFormat = () => (
-      <div className="p-4 space-y-4 bg-white">
+      <div className="p-4 space-y-4 bg-white dark:bg-slate-900">
         {/* Executive Summary - Quick Scan Section */}
         {fullResponse.executiveSummary && (
-          <div className="p-3 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+          <div className="p-3 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-lg font-bold">{fullResponse.executiveSummary.oneLiner || 'Candidate Analysis'}</span>
@@ -443,7 +443,7 @@ export default function ResumeDetailsPage() {
 
         {/* Verdict & Recommendation - Most Important Section */}
         {fullResponse.verdict && (
-          <div className="p-4 rounded-lg border-2 border-gray-300 bg-gradient-to-r from-gray-50 to-white">
+          <div className="p-4 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-900">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(fullResponse.verdict.decision)}`}>
@@ -480,43 +480,43 @@ export default function ResumeDetailsPage() {
             </div>
 
             {fullResponse.verdict.summary && (
-              <p className="text-base font-medium text-gray-800 mb-3">
+              <p className="text-base font-medium text-gray-800 dark:text-gray-200 mb-3">
                 {fullResponse.verdict.summary}
               </p>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               {fullResponse.verdict.topStrength && (
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-xs font-semibold text-green-600 mb-1 flex items-center gap-1">
+                <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-700">
+                  <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
                     <CheckCircle className="h-3 w-3" /> TOP STRENGTH
                   </div>
-                  <div className="text-sm text-green-800">{fullResponse.verdict.topStrength}</div>
+                  <div className="text-sm text-green-800 dark:text-green-300">{fullResponse.verdict.topStrength}</div>
                 </div>
               )}
               {fullResponse.verdict.topConcern && fullResponse.verdict.topConcern !== 'None significant' && fullResponse.verdict.topConcern !== 'None' && fullResponse.verdict.topConcern !== 'None identified' && (
-                <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <div className="text-xs font-semibold text-orange-600 mb-1 flex items-center gap-1">
+                <div className="p-3 bg-orange-50 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-700">
+                  <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-1 flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" /> TOP CONCERN
                   </div>
-                  <div className="text-sm text-orange-800">{fullResponse.verdict.topConcern}</div>
+                  <div className="text-sm text-orange-800 dark:text-orange-300">{fullResponse.verdict.topConcern}</div>
                 </div>
               )}
               {fullResponse.verdict.topConcern && (fullResponse.verdict.topConcern === 'None significant' || fullResponse.verdict.topConcern === 'None' || fullResponse.verdict.topConcern === 'None identified') && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+                <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1">
                     <CheckCircle className="h-3 w-3" /> TOP CONCERN
                   </div>
-                  <div className="text-sm text-gray-600 italic">No significant concerns</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300 italic">No significant concerns</div>
                 </div>
               )}
             </div>
 
             {/* Dealbreakers if any */}
             {fullResponse.verdict.dealbreakers && fullResponse.verdict.dealbreakers.length > 0 && (
-              <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                <div className="text-xs font-semibold text-red-600 mb-1">DEALBREAKERS</div>
-                <ul className="text-sm text-red-800">
+              <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-700">
+                <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">DEALBREAKERS</div>
+                <ul className="text-sm text-red-800 dark:text-red-300">
                   {fullResponse.verdict.dealbreakers.map((item: string, i: number) => (
                     <li key={i} className="flex items-start gap-1">
                       <span className="text-red-500">✗</span> {item}
@@ -527,7 +527,7 @@ export default function ResumeDetailsPage() {
             )}
 
             {fullResponse.recommendationReason && (
-              <p className="text-sm text-gray-600 mt-3 italic border-t pt-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 italic border-t border-gray-200 dark:border-gray-700 pt-3">
                 {fullResponse.recommendationReason}
               </p>
             )}
@@ -536,26 +536,26 @@ export default function ResumeDetailsPage() {
 
         {/* Section Scores Summary with Accordion */}
         {(fullResponse.sectionA !== undefined || fullResponse.sectionB !== undefined) && (
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <h5 className="font-medium text-sm mb-3 text-blue-800">Score Breakdown by Section (Click to expand details)</h5>
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+            <h5 className="font-medium text-sm mb-3 text-blue-800 dark:text-blue-300">Score Breakdown by Section (Click to expand details)</h5>
             <Accordion type="multiple" className="space-y-2">
               {/* Section A: Skills */}
               {fullResponse.detailedBreakdown?.sectionA && (
-                <AccordionItem value="sectionA" className="bg-white rounded border overflow-hidden">
-                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                <AccordionItem value="sectionA" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
                         <Briefcase className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section A: Skills & Competency</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></span>
-                        <span className="text-xs text-gray-500">({fullResponse.sectionA !== undefined ? Math.round((fullResponse.sectionA / 30) * 100) : 0}%)</span>
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/30</span></span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({fullResponse.sectionA !== undefined ? Math.round((fullResponse.sectionA / 30) * 100) : 0}%)</span>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-3 pb-3">
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                       {fullResponse.detailedBreakdown.sectionA.A1_skillsMatch && renderSubsectionItem('A1: Skills Match', fullResponse.detailedBreakdown.sectionA.A1_skillsMatch, 15)}
                       {fullResponse.detailedBreakdown.sectionA.A1_coreTechStackMatch && renderSubsectionItem('A1: Core Skills Match', fullResponse.detailedBreakdown.sectionA.A1_coreTechStackMatch, 15)}
                       {fullResponse.detailedBreakdown.sectionA.A2_skillDepth && renderSubsectionItem('A2: Skill Depth & Recency', fullResponse.detailedBreakdown.sectionA.A2_skillDepth, 10)}
@@ -569,21 +569,21 @@ export default function ResumeDetailsPage() {
 
               {/* Section B: Experience */}
               {fullResponse.detailedBreakdown?.sectionB && (
-                <AccordionItem value="sectionB" className="bg-white rounded border overflow-hidden">
-                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                <AccordionItem value="sectionB" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section B: Experience Alignment</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></span>
-                        <span className="text-xs text-gray-500">({fullResponse.sectionB !== undefined ? Math.round((fullResponse.sectionB / 25) * 100) : 0}%)</span>
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/25</span></span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({fullResponse.sectionB !== undefined ? Math.round((fullResponse.sectionB / 25) * 100) : 0}%)</span>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-3 pb-3">
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                       {fullResponse.detailedBreakdown.sectionB.B1_yearsExperience && renderSubsectionItem('B1: Years of Experience', fullResponse.detailedBreakdown.sectionB.B1_yearsExperience, 10)}
                       {fullResponse.detailedBreakdown.sectionB.B1_qualifiedYears && renderSubsectionItem('B1: Qualified Years', fullResponse.detailedBreakdown.sectionB.B1_qualifiedYears, 10)}
                       {fullResponse.detailedBreakdown.sectionB.B2_seniorityMatch && renderSubsectionItem('B2: Seniority Match', fullResponse.detailedBreakdown.sectionB.B2_seniorityMatch, 10)}
@@ -597,21 +597,21 @@ export default function ResumeDetailsPage() {
 
               {/* Section C: Impact */}
               {fullResponse.detailedBreakdown?.sectionC && (
-                <AccordionItem value="sectionC" className="bg-white rounded border overflow-hidden">
-                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                <AccordionItem value="sectionC" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section C: Impact & Achievements</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></span>
-                        <span className="text-xs text-gray-500">({fullResponse.sectionC !== undefined ? Math.round((fullResponse.sectionC / 20) * 100) : 0}%)</span>
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/20</span></span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({fullResponse.sectionC !== undefined ? Math.round((fullResponse.sectionC / 20) * 100) : 0}%)</span>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-3 pb-3">
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                       {fullResponse.detailedBreakdown.sectionC.C1_quantifiedResults && renderSubsectionItem('C1: Quantified Results', fullResponse.detailedBreakdown.sectionC.C1_quantifiedResults, 12)}
                       {fullResponse.detailedBreakdown.sectionC.C1_scopeComplexity && renderSubsectionItem('C1: Scope & Complexity', fullResponse.detailedBreakdown.sectionC.C1_scopeComplexity, 12)}
                       {fullResponse.detailedBreakdown.sectionC.C2_softSkills && renderSubsectionItem('C2: Soft Skills Evidence', fullResponse.detailedBreakdown.sectionC.C2_softSkills, 8)}
@@ -623,21 +623,21 @@ export default function ResumeDetailsPage() {
 
               {/* Section D: Qualifications */}
               {fullResponse.detailedBreakdown?.sectionD && (
-                <AccordionItem value="sectionD" className="bg-white rounded border overflow-hidden">
-                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                <AccordionItem value="sectionD" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
                         <Star className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section D: Qualifications</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></span>
-                        <span className="text-xs text-gray-500">({fullResponse.sectionD !== undefined ? Math.round((fullResponse.sectionD / 10) * 100) : 0}%)</span>
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/10</span></span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({fullResponse.sectionD !== undefined ? Math.round((fullResponse.sectionD / 10) * 100) : 0}%)</span>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-3 pb-3">
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                       {fullResponse.detailedBreakdown.sectionD.D1_education && renderSubsectionItem('D1: Education', fullResponse.detailedBreakdown.sectionD.D1_education, 5)}
                       {fullResponse.detailedBreakdown.sectionD.D2_certifications && renderSubsectionItem('D2: Certifications', fullResponse.detailedBreakdown.sectionD.D2_certifications, 5)}
                     </div>
@@ -647,21 +647,21 @@ export default function ResumeDetailsPage() {
 
               {/* Section E: Logistics */}
               {fullResponse.detailedBreakdown?.sectionE && (
-                <AccordionItem value="sectionE" className="bg-white rounded border overflow-hidden">
-                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                <AccordionItem value="sectionE" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section E: Logistics & Compatibility</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></span>
-                        <span className="text-xs text-gray-500">({fullResponse.sectionE !== undefined ? Math.round((fullResponse.sectionE / 10) * 100) : 0}%)</span>
+                        <span className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/10</span></span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({fullResponse.sectionE !== undefined ? Math.round((fullResponse.sectionE / 10) * 100) : 0}%)</span>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-3 pb-3">
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                       {fullResponse.detailedBreakdown.sectionE.E1_location && renderSubsectionItem('E1: Location Match', fullResponse.detailedBreakdown.sectionE.E1_location, 4)}
                       {fullResponse.detailedBreakdown.sectionE.E1_languageMatch && renderSubsectionItem('E1: Language Match', fullResponse.detailedBreakdown.sectionE.E1_languageMatch, 4)}
                       {fullResponse.detailedBreakdown.sectionE.E2_language && renderSubsectionItem('E2: Language', fullResponse.detailedBreakdown.sectionE.E2_language, 3)}
@@ -675,8 +675,8 @@ export default function ResumeDetailsPage() {
 
               {/* Section F: Modifiers */}
               {fullResponse.detailedBreakdown?.sectionF && (
-                <AccordionItem value="sectionF" className="bg-white rounded border overflow-hidden">
-                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
+                <AccordionItem value="sectionF" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
+                  <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-primary" />
@@ -686,12 +686,12 @@ export default function ResumeDetailsPage() {
                         <span className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                           {(fullResponse.sectionF ?? 0) >= 0 ? '+' : ''}{fullResponse.sectionF ?? '0'}
                         </span>
-                        <span className="text-xs text-gray-500">pts</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">pts</span>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-3 pb-3">
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                       {fullResponse.detailedBreakdown.sectionF.bonusPoints && renderSubsectionItem('Bonus Points', fullResponse.detailedBreakdown.sectionF.bonusPoints, 5)}
                       {fullResponse.detailedBreakdown.sectionF.penalties && renderSubsectionItem('Penalties', fullResponse.detailedBreakdown.sectionF.penalties, undefined)}
                       {fullResponse.detailedBreakdown.sectionF.F1_disqualification && renderSubsectionItem('Disqualification Check', fullResponse.detailedBreakdown.sectionF.F1_disqualification, undefined)}
@@ -705,27 +705,27 @@ export default function ResumeDetailsPage() {
             {/* Fallback summary row if no detailed breakdown available */}
             {!fullResponse.detailedBreakdown && (
               <div className="grid grid-cols-6 gap-2 mt-2">
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></div>
+                <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                  <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/30</span></div>
                   <div className="text-xs text-primary font-medium">Skills</div>
                 </div>
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></div>
+                <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                  <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/25</span></div>
                   <div className="text-xs text-primary font-medium">Experience</div>
                 </div>
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></div>
+                <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                  <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/20</span></div>
                   <div className="text-xs text-primary font-medium">Impact</div>
                 </div>
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
+                <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                  <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/10</span></div>
                   <div className="text-xs text-primary font-medium">Qualifications</div>
                 </div>
-                <div className="text-center p-2 bg-white rounded border">
-                  <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
+                <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                  <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">/10</span></div>
                   <div className="text-xs text-primary font-medium">Logistics</div>
                 </div>
-                <div className="text-center p-2 bg-white rounded border">
+                <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
                   <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                     {(fullResponse.sectionF ?? 0) >= 0 ? '+' : ''}{fullResponse.sectionF ?? '0'}
                   </div>
@@ -738,25 +738,25 @@ export default function ResumeDetailsPage() {
 
         {/* Quick Stats Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-3 bg-green-50 rounded-lg border border-green-200 text-center">
+          <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-700 text-center">
             <div className="text-2xl font-bold text-green-700">
               {fullResponse.strengthsHighlights?.length || 0}
             </div>
             <div className="text-xs text-green-600">Strengths Found</div>
           </div>
-          <div className="p-3 bg-red-50 rounded-lg border border-red-200 text-center">
+          <div className="p-3 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-700 text-center">
             <div className="text-2xl font-bold text-red-700">
               {fullResponse.improvementAreas?.length || 0}
             </div>
             <div className="text-xs text-red-600">Gaps Identified</div>
           </div>
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-center">
+          <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-700 text-center">
             <div className="text-2xl font-bold text-amber-700">
               {fullResponse.skillAnalysis?.matchedSkills?.length || 0}
             </div>
             <div className="text-xs text-amber-600">Skills Matched</div>
           </div>
-          <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-center">
+          <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700 text-center">
             <div className="text-2xl font-bold text-purple-700">
               {fullResponse.skillAnalysis?.missingSkills?.length || 0}
             </div>
@@ -767,18 +767,18 @@ export default function ResumeDetailsPage() {
         {/* Strengths & Gaps Comparison */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Strengths Column */}
-          <div className="p-3 bg-gradient-to-b from-green-50 to-emerald-50 rounded-lg border border-green-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800">
+          <div className="p-3 bg-gradient-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
               <CheckCircle className="h-4 w-4" />
               Strengths ({fullResponse.strengthsHighlights?.length || 0})
             </h5>
             {fullResponse.strengthsHighlights && fullResponse.strengthsHighlights.length > 0 ? (
               <div className="space-y-2">
                 {fullResponse.strengthsHighlights.map((item: any, i: number) => (
-                  <div key={i} className="p-2 bg-white rounded border border-green-100">
+                  <div key={i} className="p-2 bg-white dark:bg-slate-800 rounded border border-green-100 dark:border-green-800">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-green-800">{item.strength || (typeof item === 'string' ? item : 'Strength identified')}</div>
+                        <div className="text-sm font-medium text-green-800 dark:text-green-300">{item.strength || (typeof item === 'string' ? item : 'Strength identified')}</div>
                         {item.evidence && (
                           <div className="text-xs text-gray-600 mt-1">
                             <span className="font-medium">Evidence:</span> {item.evidence}
@@ -809,22 +809,22 @@ export default function ResumeDetailsPage() {
           </div>
 
           {/* Gaps Column */}
-          <div className="p-3 bg-gradient-to-b from-red-50 to-orange-50 rounded-lg border border-red-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800">
+          <div className="p-3 bg-gradient-to-b from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg border border-red-200 dark:border-red-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800 dark:text-red-300">
               <AlertTriangle className="h-4 w-4" />
               Gaps & Areas for Concern ({fullResponse.improvementAreas?.length || 0})
             </h5>
             {fullResponse.improvementAreas && fullResponse.improvementAreas.length > 0 ? (
               <div className="space-y-2">
                 {fullResponse.improvementAreas.map((item: any, i: number) => (
-                  <div key={i} className={`p-2 bg-white rounded border ${
+                  <div key={i} className={`p-2 bg-white dark:bg-slate-800 rounded border ${
                     item.severity === 'CRITICAL' ? 'border-red-300' :
                     item.severity === 'MAJOR' ? 'border-orange-300' :
                     'border-yellow-300'
                   }`}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-red-800">{item.gap || (typeof item === 'string' ? item : 'Gap identified')}</div>
+                        <div className="text-sm font-medium text-red-800 dark:text-red-300">{item.gap || (typeof item === 'string' ? item : 'Gap identified')}</div>
                         {(item.jobRequirement || item.jdRequirement) && (
                           <div className="text-xs text-gray-600 mt-1">
                             <span className="font-medium">Job Requirement:</span> {item.jobRequirement || item.jdRequirement}
@@ -867,7 +867,7 @@ export default function ResumeDetailsPage() {
                           </Badge>
                         )}
                         {item.timeToAddress && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             {item.timeToAddress}
                           </span>
                         )}
@@ -889,18 +889,18 @@ export default function ResumeDetailsPage() {
 
         {/* Domain Analysis */}
         {fullResponse.domainAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800">
+          <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-lg border border-indigo-200 dark:border-indigo-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
               <Briefcase className="h-4 w-4" />
               Domain Match Analysis
             </h5>
             <div className="grid grid-cols-2 gap-3 mb-2">
               <div>
-                <span className="text-xs text-gray-500">Job Description Domain:</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Job Description Domain:</span>
                 <div className="text-sm font-medium">{fullResponse.domainAnalysis.jobDescriptionDomain || fullResponse.domainAnalysis.jdDomain || 'N/A'}</div>
               </div>
               <div>
-                <span className="text-xs text-gray-500">Candidate Domain:</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Candidate Domain:</span>
                 <div className="text-sm font-medium">{fullResponse.domainAnalysis.candidateDomain || 'N/A'}</div>
               </div>
             </div>
@@ -909,67 +909,67 @@ export default function ResumeDetailsPage() {
                 {fullResponse.domainAnalysis.domainMatchLevel || 'UNKNOWN'}
               </Badge>
               {fullResponse.domainAnalysis.domainMatchScore !== undefined && (
-                <span className="text-sm font-bold text-indigo-700">
+                <span className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
                   {fullResponse.domainAnalysis.domainMatchScore}% Match Score
                 </span>
               )}
               {(fullResponse.domainAnalysis.domainPenaltyPercent > 0 || fullResponse.domainAnalysis.domainPenalty > 0) && (
-                <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
+                <span className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">
                   -{fullResponse.domainAnalysis.domainPenaltyPercent || Math.round((fullResponse.domainAnalysis.domainPenalty || 0) * 100)}% Penalty Applied
                 </span>
               )}
             </div>
             {(fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes) && (
-              <p className="text-xs text-gray-600 mt-2">{fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{fullResponse.domainAnalysis.transferabilityNotes || fullResponse.domainAnalysis.domainNotes}</p>
             )}
 
             {/* Match Rationale - Step by step reasoning */}
             {fullResponse.domainAnalysis.matchRationale && (
-              <div className="mt-3 p-3 bg-white/80 rounded border border-indigo-200">
-                <span className="text-xs font-semibold text-indigo-800 mb-2 block">Match Rationale</span>
+              <div className="mt-3 p-3 bg-white/80 dark:bg-slate-800/80 rounded border border-indigo-200 dark:border-indigo-700">
+                <span className="text-xs font-semibold text-indigo-800 dark:text-indigo-300 mb-2 block">Match Rationale</span>
                 {typeof fullResponse.domainAnalysis.matchRationale === 'string' ? (
-                  <p className="text-xs text-gray-700 whitespace-pre-line">{fullResponse.domainAnalysis.matchRationale}</p>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-line">{fullResponse.domainAnalysis.matchRationale}</p>
                 ) : (
                   <div className="space-y-2">
                     {fullResponse.domainAnalysis.matchRationale.step1_jobDomain && (
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded shrink-0">1</span>
+                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 rounded shrink-0">1</span>
                         <div>
-                          <span className="text-xs font-medium text-gray-700">Job Domain: </span>
-                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step1_jobDomain}</span>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Job Domain: </span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">{fullResponse.domainAnalysis.matchRationale.step1_jobDomain}</span>
                         </div>
                       </div>
                     )}
                     {fullResponse.domainAnalysis.matchRationale.step2_candidateDomain && (
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded shrink-0">2</span>
+                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 rounded shrink-0">2</span>
                         <div>
-                          <span className="text-xs font-medium text-gray-700">Candidate Domain: </span>
-                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step2_candidateDomain}</span>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Candidate Domain: </span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">{fullResponse.domainAnalysis.matchRationale.step2_candidateDomain}</span>
                         </div>
                       </div>
                     )}
                     {fullResponse.domainAnalysis.matchRationale.step3_overlaps && (
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded shrink-0">3</span>
+                        <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-1.5 py-0.5 rounded shrink-0">3</span>
                         <div>
-                          <span className="text-xs font-medium text-gray-700">Overlaps: </span>
-                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step3_overlaps}</span>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Overlaps: </span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">{fullResponse.domainAnalysis.matchRationale.step3_overlaps}</span>
                         </div>
                       </div>
                     )}
                     {fullResponse.domainAnalysis.matchRationale.step4_gaps && (
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded shrink-0">4</span>
+                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/50 px-1.5 py-0.5 rounded shrink-0">4</span>
                         <div>
-                          <span className="text-xs font-medium text-gray-700">Gaps: </span>
-                          <span className="text-xs text-gray-600">{fullResponse.domainAnalysis.matchRationale.step4_gaps}</span>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Gaps: </span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">{fullResponse.domainAnalysis.matchRationale.step4_gaps}</span>
                         </div>
                       </div>
                     )}
                     {fullResponse.domainAnalysis.matchRationale.step5_verdict && (
                       <div className="flex items-start gap-2 mt-2 pt-2 border-t border-indigo-100">
-                        <span className="text-xs font-bold text-indigo-700 bg-indigo-200 px-1.5 py-0.5 rounded shrink-0">!</span>
+                        <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-200 dark:bg-indigo-800 px-1.5 py-0.5 rounded shrink-0">!</span>
                         <div>
                           <span className="text-xs font-semibold text-indigo-800">Verdict: </span>
                           <span className="text-xs text-gray-700">{fullResponse.domainAnalysis.matchRationale.step5_verdict}</span>
@@ -983,15 +983,15 @@ export default function ResumeDetailsPage() {
 
             {/* Domain Match Explanation */}
             {fullResponse.domainAnalysis.domainMatchExplanation && (
-              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
-                <span className="text-xs font-medium text-indigo-700">Match Explanation:</span>
-                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.domainMatchExplanation}</p>
+              <div className="mt-2 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-indigo-100 dark:border-indigo-800">
+                <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Match Explanation:</span>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">{fullResponse.domainAnalysis.domainMatchExplanation}</p>
               </div>
             )}
 
             {/* Domain Risk Assessment */}
             {(fullResponse.domainAnalysis.domainRiskLevel || fullResponse.domainAnalysis.rampUpEstimate) && (
-              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
+              <div className="mt-2 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-indigo-100 dark:border-indigo-800">
                 <div className="flex items-center gap-2 mb-1">
                   {fullResponse.domainAnalysis.domainRiskLevel && (
                     <Badge variant="outline" className={`text-xs ${
@@ -1004,7 +1004,7 @@ export default function ResumeDetailsPage() {
                     </Badge>
                   )}
                   {fullResponse.domainAnalysis.rampUpEstimate && (
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
                       <span className="font-medium">Ramp-up:</span> {fullResponse.domainAnalysis.rampUpEstimate}
                     </span>
                   )}
@@ -1017,17 +1017,17 @@ export default function ResumeDetailsPage() {
 
             {/* Previous Domain Transitions */}
             {fullResponse.domainAnalysis.previousDomainTransitions && (
-              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
-                <span className="text-xs font-medium text-indigo-700">Previous Domain Transitions:</span>
-                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.previousDomainTransitions}</p>
+              <div className="mt-2 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-indigo-100 dark:border-indigo-800">
+                <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Previous Domain Transitions:</span>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">{fullResponse.domainAnalysis.previousDomainTransitions}</p>
               </div>
             )}
 
             {/* Industry Context */}
             {fullResponse.domainAnalysis.industryContext && (
-              <div className="mt-2 p-2 bg-white/60 rounded border border-indigo-100">
-                <span className="text-xs font-medium text-indigo-700">Industry Context:</span>
-                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.industryContext}</p>
+              <div className="mt-2 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-indigo-100 dark:border-indigo-800">
+                <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Industry Context:</span>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">{fullResponse.domainAnalysis.industryContext}</p>
               </div>
             )}
 
@@ -1079,7 +1079,7 @@ export default function ResumeDetailsPage() {
                             </span>
                           )}
                           {gap.estimatedRampUpTime && (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               Ramp-up: {gap.estimatedRampUpTime}
                             </span>
                           )}
@@ -1093,7 +1093,7 @@ export default function ResumeDetailsPage() {
 
             {/* Domain Hiring Recommendation */}
             {fullResponse.domainAnalysis.domainHiringRecommendation && (
-              <div className="mt-3 p-3 bg-white/80 rounded border border-indigo-200">
+              <div className="mt-3 p-3 bg-white/80 dark:bg-slate-800/80 rounded border border-indigo-200 dark:border-indigo-700">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-indigo-800">Domain Hiring Recommendation</span>
                   <div className="flex items-center gap-2">
@@ -1126,7 +1126,7 @@ export default function ResumeDetailsPage() {
             {fullResponse.domainAnalysis.competitiveAdvantage && (
               <div className="mt-2 p-2 bg-green-50/50 rounded border border-green-200">
                 <span className="text-xs font-medium text-green-700">Unique Domain Perspective:</span>
-                <p className="text-xs text-gray-700 mt-1">{fullResponse.domainAnalysis.competitiveAdvantage}</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">{fullResponse.domainAnalysis.competitiveAdvantage}</p>
               </div>
             )}
 
@@ -1163,8 +1163,8 @@ export default function ResumeDetailsPage() {
 
         {/* Skill Analysis Summary */}
         {fullResponse.skillAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800">
+          <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
               <Star className="h-4 w-4" />
               Skill Depth Analysis
             </h5>
@@ -1179,19 +1179,19 @@ export default function ResumeDetailsPage() {
 
               return (
                 <div className="grid grid-cols-4 gap-2 mb-3">
-                  <div className="text-center p-2 bg-green-100 rounded">
+                  <div className="text-center p-2 bg-green-100 dark:bg-green-900/50 rounded">
                     <div className="text-lg font-bold text-green-700">{expertCount}</div>
                     <div className="text-xs text-green-600">Expert</div>
                   </div>
-                  <div className="text-center p-2 bg-blue-100 rounded">
-                    <div className="text-lg font-bold text-blue-700">{proficientCount}</div>
+                  <div className="text-center p-2 bg-blue-100 dark:bg-blue-900/50 rounded">
+                    <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{proficientCount}</div>
                     <div className="text-xs text-primary">Proficient</div>
                   </div>
-                  <div className="text-center p-2 bg-yellow-100 rounded">
+                  <div className="text-center p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded">
                     <div className="text-lg font-bold text-yellow-700">{familiarCount}</div>
                     <div className="text-xs text-yellow-600">Familiar</div>
                   </div>
-                  <div className="text-center p-2 bg-gray-100 rounded">
+                  <div className="text-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
                     <div className="text-lg font-bold text-gray-600">{listedOnlyCount}</div>
                     <div className="text-xs text-gray-500">Listed Only</div>
                   </div>
@@ -1247,42 +1247,42 @@ export default function ResumeDetailsPage() {
 
         {/* Experience Analysis */}
         {fullResponse.experienceAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800">
+          <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300">
               <User className="h-4 w-4" />
               Experience & Career Analysis
             </h5>
 
             {/* Experience Summary */}
             {fullResponse.experienceAnalysis.experienceSummary && (
-              <p className="text-xs text-gray-700 mb-3 p-2 bg-white/60 rounded border border-blue-100">
+              <p className="text-xs text-gray-700 dark:text-gray-300 mb-3 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-blue-100 dark:border-blue-800">
                 {fullResponse.experienceAnalysis.experienceSummary}
               </p>
             )}
 
             <div className="grid grid-cols-4 gap-2 mb-3">
-              <div className="text-center p-2 bg-white rounded border">
-                <div className="text-lg font-bold text-blue-700">
+              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
                   {fullResponse.experienceAnalysis.totalExperienceFormatted ||
                    `${fullResponse.experienceAnalysis.totalYears || 0}y ${fullResponse.experienceAnalysis.totalMonths || 0}m`}
                 </div>
                 <div className="text-xs text-gray-500">Total Experience</div>
               </div>
-              <div className="text-center p-2 bg-white rounded border">
+              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
                 <div className="text-lg font-bold text-green-700">
                   {fullResponse.experienceAnalysis.relevantExperienceFormatted ||
                    `${fullResponse.experienceAnalysis.relevantYears || 0}y ${fullResponse.experienceAnalysis.relevantMonths || 0}m`}
                 </div>
                 <div className="text-xs text-gray-500">Relevant</div>
               </div>
-              <div className="text-center p-2 bg-white rounded border">
+              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
                 <div className="text-lg font-bold text-purple-700">
                   {fullResponse.experienceAnalysis.domainExperienceFormatted ||
                    `${fullResponse.experienceAnalysis.domainYears || 0}y ${fullResponse.experienceAnalysis.domainMonths || 0}m`}
                 </div>
                 <div className="text-xs text-gray-500">Domain</div>
               </div>
-              <div className="text-center p-2 bg-white rounded border">
+              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
                 <Badge className={`${getProgressionColor(fullResponse.experienceAnalysis.careerProgression)} text-xs`}>
                   {fullResponse.experienceAnalysis.careerProgression || 'N/A'}
                 </Badge>
@@ -1292,7 +1292,7 @@ export default function ResumeDetailsPage() {
 
             {/* Progression & Velocity Explanation */}
             {(fullResponse.experienceAnalysis.progressionExplanation || fullResponse.experienceAnalysis.velocityExplanation) && (
-              <div className="p-2 bg-white/60 rounded border border-blue-100 mb-2">
+              <div className="p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-blue-100 dark:border-blue-800 mb-2">
                 {fullResponse.experienceAnalysis.progressionExplanation && (
                   <div className="text-xs text-gray-700 mb-1">
                     <span className="font-medium text-blue-700">Progression:</span> {fullResponse.experienceAnalysis.progressionExplanation}
@@ -1308,9 +1308,9 @@ export default function ResumeDetailsPage() {
 
             {/* Seniority Match */}
             {fullResponse.experienceAnalysis.seniorityMatch && (
-              <div className="p-2 bg-white rounded border mb-2">
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 mb-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-gray-500">Seniority:</span>
+                  <span className="text-gray-500 dark:text-gray-400">Seniority:</span>
                   <span className="font-medium">{fullResponse.experienceAnalysis.seniorityMatch.candidateLevel}</span>
                   <span className="text-gray-400">→</span>
                   <span className="font-medium">{fullResponse.experienceAnalysis.seniorityMatch.jobRequiredLevel || fullResponse.experienceAnalysis.seniorityMatch.jdLevel}</span>
@@ -1383,12 +1383,12 @@ export default function ResumeDetailsPage() {
                 <span className="text-xs font-medium text-blue-700">Role Timeline:</span>
                 <div className="space-y-2 mt-1">
                   {fullResponse.experienceAnalysis.roleTimeline.slice(0, 5).map((role: any, i: number) => (
-                    <div key={i} className="text-xs p-3 bg-white rounded border">
+                    <div key={i} className="text-xs p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
                       {/* Header Row */}
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <span className="font-medium text-sm">{role.title}</span>
-                          <span className="text-gray-500"> @ {role.company}</span>
+                          <span className="text-gray-500 dark:text-gray-400"> @ {role.company}</span>
                           {role.companyType && role.companyType !== 'UNKNOWN' && (
                             <Badge variant="outline" className="ml-2 text-xs bg-gray-50 text-gray-600">
                               {role.companyType}
@@ -1396,7 +1396,7 @@ export default function ResumeDetailsPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-500">{role.duration}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{role.duration}</span>
                           {role.relevance && (
                             <Badge variant="outline" className={`text-xs ${
                               role.relevance === 'HIGH' ? 'bg-green-50 text-green-700' :
@@ -1448,14 +1448,14 @@ export default function ResumeDetailsPage() {
 
                       {/* Responsibilities */}
                       {role.responsibilities && (
-                        <p className="text-gray-600 mb-2">
+                        <p className="text-gray-600 dark:text-gray-400 mb-2">
                           <span className="font-medium">Responsibilities:</span> {role.responsibilities}
                         </p>
                       )}
 
                       {/* Team Context */}
                       {role.teamContext && (
-                        <p className="text-gray-500 mb-2">
+                        <p className="text-gray-500 dark:text-gray-400 mb-2">
                           <span className="font-medium">Team:</span> {role.teamContext}
                         </p>
                       )}
@@ -1510,7 +1510,7 @@ export default function ResumeDetailsPage() {
                       {fullResponse.experienceAnalysis.tenureAnalysis.pattern}
                     </Badge>
                     {fullResponse.experienceAnalysis.tenureAnalysis.patternExplanation && (
-                      <span className="text-xs text-gray-600">{fullResponse.experienceAnalysis.tenureAnalysis.patternExplanation}</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{fullResponse.experienceAnalysis.tenureAnalysis.patternExplanation}</span>
                     )}
                   </div>
                 )}
@@ -1521,18 +1521,18 @@ export default function ResumeDetailsPage() {
 
         {/* Quantified Achievements */}
         {fullResponse.quantifiedAchievements && fullResponse.quantifiedAchievements.length > 0 && (
-          <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800">
+          <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
               <Star className="h-4 w-4" />
               Quantified Achievements ({fullResponse.quantifiedAchievements.length})
             </h5>
             <div className="space-y-2">
               {fullResponse.quantifiedAchievements.map((achievement: any, i: number) => (
-                <div key={i} className="p-2 bg-white rounded border flex items-start justify-between">
+                <div key={i} className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 flex items-start justify-between">
                   <div className="flex-1">
                     <div className="text-sm">{achievement.achievement}</div>
                     {achievement.metric && (
-                      <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded mt-1 inline-block">
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded mt-1 inline-block">
                         {achievement.metric}
                       </span>
                     )}
@@ -1555,8 +1555,8 @@ export default function ResumeDetailsPage() {
 
         {/* Interview Recommendations */}
         {fullResponse.interviewRecommendations && (
-          <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800">
+          <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-lg border border-teal-200 dark:border-teal-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800 dark:text-teal-300">
               <Users className="h-4 w-4" />
               Interview Preparation Guide
             </h5>
@@ -1564,7 +1564,7 @@ export default function ResumeDetailsPage() {
               <div className="space-y-3">
                 {fullResponse.interviewRecommendations.mustExplore?.length > 0 && (
                   <div>
-                    <div className="text-xs font-semibold text-teal-700 mb-1">Must Explore</div>
+                    <div className="text-xs font-semibold text-teal-700 dark:text-teal-300 mb-1">Must Explore</div>
                     <ul className="space-y-1">
                       {fullResponse.interviewRecommendations.mustExplore.map((item: string, i: number) => (
                         <li key={i} className="text-sm flex items-start gap-2">
@@ -1604,14 +1604,14 @@ export default function ResumeDetailsPage() {
 
         {/* Red Flags */}
         {fullResponse.redFlags && fullResponse.redFlags.length > 0 && (
-          <div className="p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
-            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800">
+          <div className="p-3 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 rounded-lg border border-red-200 dark:border-red-700">
+            <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800 dark:text-red-300">
               <AlertTriangle className="h-4 w-4" />
               Red Flags ({fullResponse.redFlags.length})
             </h5>
             <div className="space-y-2">
               {fullResponse.redFlags.map((flag: any, i: number) => (
-                <div key={i} className="p-2 bg-white rounded border border-red-200">
+                <div key={i} className="p-2 bg-white dark:bg-slate-800 rounded border border-red-200 dark:border-red-700">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge variant="outline" className="text-xs">{flag.type || "FLAG"}</Badge>
                     <Badge
@@ -1694,9 +1694,9 @@ export default function ResumeDetailsPage() {
       )}
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Contact & Basic Info */}
-        <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Contact & Basic Info Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Contact Card */}
           <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
             <CardHeader>
@@ -1777,8 +1777,8 @@ export default function ResumeDetailsPage() {
           )}
         </div>
 
-        {/* Right Column - Details & Analysis */}
-        <div className="lg:col-span-2 space-y-4">
+        {/* Details & Analysis Section */}
+        <div className="space-y-4">
           {/* Detailed Analysis (if job selected) */}
           {selectedJobScore && (
             <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
