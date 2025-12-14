@@ -170,6 +170,13 @@ export default function ApplicantsPage() {
             <CheckCircle className="w-4 h-4 mr-2" />
             Accepted
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/hiring/applicants/denied")}
+          >
+            <XCircle className="w-4 h-4 mr-2" />
+            Denied
+          </Button>
         </div>
       </div>
 
@@ -205,7 +212,7 @@ export default function ApplicantsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Jobs</SelectItem>
-                {jobs.map((job) => (
+                {jobs.map((job: any) => (
                   <SelectItem key={job.id} value={job.id.toString()}>
                     {job.title}
                   </SelectItem>
@@ -250,7 +257,7 @@ export default function ApplicantsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredApplicants.map((applicant, index) => (
+                {filteredApplicants.map((applicant: any, index: number) => (
                   <motion.tr
                     key={applicant.id}
                     initial={{ opacity: 0, y: 10 }}

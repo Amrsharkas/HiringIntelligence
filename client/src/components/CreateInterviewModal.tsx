@@ -63,11 +63,13 @@ export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: 
     enabled: isOpen,
   });
 
-  // Fetch accepted applicants for the selected job from platojobmatches table
-  const { data: acceptedApplicants = [], isLoading: isLoadingApplicants, error: applicantsError } = useQuery({
-    queryKey: ['/api/accepted-applicants', selectedJob],
+  // Fetch interviewable applicants (shortlisted OR accepted) for the selected job
+  const { data: interviewableApplicants = [], isLoading: isLoadingApplicants, error: applicantsError } = useQuery({
+    queryKey: ['/api/interviewable-applicants', selectedJob],
     queryFn: async () => {
-      const res = await fetch(`/api/accepted-applicants/${selectedJob}`);
+      const res = await fetch(`/api/interviewable-applicants?jobId=${selectedJob}`, {
+        credentials: 'include',
+      });
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
@@ -134,7 +136,7 @@ export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: 
       return;
     }
 
-    const applicant = acceptedApplicants.find(app => app.id === selectedApplicant);
+    const applicant = interviewableApplicants.find((app: any) => app.id === selectedApplicant);
     if (!applicant) {
       toast({
         title: "Error",
@@ -154,7 +156,7 @@ export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: 
     });
   };
 
-  // All applicants from platojobmatches are already accepted, no additional filtering needed
+  // Applicants are now filtered by status (shortlisted OR accepted)
 
   if (!isOpen) return null;
 
@@ -213,23 +215,23 @@ export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Users className="w-4 h-4 inline mr-2" />
-                  Select Accepted Applicant *
+                  Select Applicant *
                 </label>
                 <select
                   value={selectedApplicant}
                   onChange={(e) => setSelectedApplicant(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
-                  <option value="">Choose an accepted applicant...</option>
-                  {acceptedApplicants.map((applicant: any) => (
+                  <option value="">Choose a shortlisted or accepted applicant...</option>
+                  {interviewableApplicants.map((applicant: any) => (
                     <option key={applicant.id} value={applicant.id}>
-                      {applicant.name} - {applicant.jobTitle} {applicant.email ? `(${applicant.email})` : ''}
+                      {applicant.name} - {applicant.jobTitle} {applicant.status ? `[${applicant.status}]` : ''} {applicant.email ? `(${applicant.email})` : ''}
                     </option>
                   ))}
                 </select>
                 {isLoadingApplicants && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Loading accepted applicants...
+                    Loading applicants...
                   </p>
                 )}
                 {applicantsError && (
@@ -237,9 +239,9 @@ export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: 
                     Error loading applicants: {applicantsError.message}
                   </p>
                 )}
-                {!isLoadingApplicants && !applicantsError && acceptedApplicants.length === 0 && (
+                {!isLoadingApplicants && !applicantsError && interviewableApplicants.length === 0 && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    No accepted applicants found for this job position.
+                    No shortlisted or accepted applicants found for this job position.
                   </p>
                 )}
               </div>

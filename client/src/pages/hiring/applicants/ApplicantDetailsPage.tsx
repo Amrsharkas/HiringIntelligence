@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -17,18 +16,21 @@ import {
   Mail,
   Phone,
   MapPin,
-  Briefcase,
-  GraduationCap,
   FileText,
   Loader2,
   Play,
   User,
   AlertTriangle,
   TrendingUp,
+  Brain,
+  MessageSquare,
+  Target,
+  Shield,
+  Award,
+  Flag,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { DetailedAnalysis } from "@/components/DetailedAnalysis";
 import { HLSVideoPlayer } from "@/components/HLSVideoPlayer";
 
 // Helper functions for structured profile rendering
@@ -84,9 +86,8 @@ export default function ApplicantDetailsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
 
+  // Single query to fetch all applicant data including interview video URL
   const { data: applicant, isLoading } = useQuery<any>({
     queryKey: ["/api/applicants/detail", applicantId],
     queryFn: async () => {
@@ -95,40 +96,6 @@ export default function ApplicantDetailsPage() {
       return response.json();
     },
   });
-
-  // Fetch detailed profile when applicant data is available
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!applicantId) return;
-
-      setProfileLoading(true);
-      try {
-        // Try the application-profile endpoint first (same as modal)
-        const response = await fetch(`/api/application-profile/${encodeURIComponent(applicantId)}`);
-        if (response.ok) {
-          const profile = await response.json();
-          setUserProfile(profile);
-        } else {
-          // Try fallback to public-profile with userId
-          if (applicant?.applicantUserId || applicant?.userId) {
-            const userId = applicant.applicantUserId || applicant.userId;
-            const jobIdParam = applicant.jobId ? `?jobId=${encodeURIComponent(applicant.jobId)}` : '';
-            const fallbackResponse = await fetch(`/api/public-profile/${encodeURIComponent(userId)}${jobIdParam}`);
-            if (fallbackResponse.ok) {
-              const fallbackProfile = await fallbackResponse.json();
-              setUserProfile(fallbackProfile);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [applicantId, applicant?.applicantUserId, applicant?.userId, applicant?.jobId]);
 
   const shortlistMutation = useMutation({
     mutationFn: async () => {
@@ -222,6 +189,26 @@ export default function ApplicantDetailsPage() {
     );
   }
 
+  // Extract profile data from the detail endpoint response
+  const profile = applicant.brutallyHonestProfile;
+  const execSummary = profile?.executive_summary;
+  const interviewMeta = profile?.interview_metadata;
+  const transcript = profile?.transcript_analysis;
+  const overallQuality = transcript?.overall_quality;
+  const hiringGuidance = profile?.hiring_guidance;
+  const cognitivePatterns = profile?.cognitive_patterns;
+  const linguisticPatterns = profile?.linguistic_patterns;
+  const redFlags = profile?.red_flags_detected;
+  const greenFlags = profile?.green_flags_detected;
+  const strongestResponses = profile?.strongest_responses;
+  const weakestResponses = profile?.weakest_responses;
+  const topicsWellCovered = profile?.topics_well_covered;
+  const topicsAvoidedOrWeak = profile?.topics_avoided_or_weak;
+  const omissionsAnalysis = profile?.omissions_analysis;
+  const authenticityAssessment = profile?.authenticity_assessment;
+  const assessmentMetadata = profile?.assessment_metadata;
+  const fullResponse = applicant.fullResponse;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -248,7 +235,7 @@ export default function ApplicantDetailsPage() {
                 <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
                   {applicant.firstName && applicant.lastName
                     ? `${applicant.firstName} ${applicant.lastName}`
-                    : applicant.email}
+                    : applicant.name || applicant.email}
                 </h1>
                 {getStatusBadge(applicant.status)}
               </div>
@@ -302,7 +289,7 @@ export default function ApplicantDetailsPage() {
 
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="space-y-6 pr-4">
-          {/* Header Section */}
+          {/* Basic Info Section */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
@@ -310,9 +297,9 @@ export default function ApplicantDetailsPage() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">
-                  {applicant.name || applicant.firstName && applicant.lastName
+                  {applicant.firstName && applicant.lastName
                     ? `${applicant.firstName} ${applicant.lastName}`
-                    : applicant.email}
+                    : applicant.name || applicant.email}
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{applicant.email}</p>
                 {applicant.phone && <p className="text-sm text-slate-500 dark:text-slate-400">{applicant.phone}</p>}
@@ -322,8 +309,8 @@ export default function ApplicantDetailsPage() {
 
           <Separator />
 
-          {/* Interview Video Section - Same as Modal */}
-          {userProfile?.interviewVideoUrl && (
+          {/* Interview Video Section */}
+          {applicant.interviewVideoUrl && (
             <>
               <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                 <CardHeader>
@@ -335,7 +322,7 @@ export default function ApplicantDetailsPage() {
                 <CardContent>
                   <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
                     <HLSVideoPlayer
-                      src={userProfile.interviewVideoUrl}
+                      src={applicant.interviewVideoUrl}
                       className="w-full h-full object-contain"
                     />
                   </div>
@@ -345,761 +332,765 @@ export default function ApplicantDetailsPage() {
             </>
           )}
 
-          {/* AI Analysis & Scoring - Same as Modal */}
-          {(() => {
-            const structuredProfile = userProfile?.structuredProfile;
-            const hasV3Profile = (userProfile?.profileVersion >= 3 || structuredProfile?.profile_version === "4.0") && structuredProfile;
+          {/* AI Candidate Analysis */}
+          {profile && (
+            <div className="space-y-6">
+              <h4 className="font-semibold text-xl text-slate-800 dark:text-slate-200">
+                AI Candidate Analysis
+              </h4>
 
-            if (profileLoading) {
-              return (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
-                  <span className="text-slate-500">Loading detailed analysis...</span>
+              {/* Executive Summary Banner */}
+              {execSummary && (
+                <div className="p-5 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex-1">
+                      <h5 className="text-lg font-bold mb-1">{profile.candidate_name}</h5>
+                      <p className="text-base text-slate-100">{execSummary.one_sentence}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge className={`text-sm px-3 py-1 ${getFitScoreColor(execSummary.fit_verdict)}`}>
+                        {execSummary.fit_verdict?.replace(/_/g, ' ')}
+                      </Badge>
+                      <Badge className={`text-xs ${getConfidenceColor(execSummary.confidence_in_verdict)}`}>
+                        {execSummary.confidence_in_verdict} Confidence
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {execSummary.key_impression && (
+                    <p className="text-sm text-slate-300 mb-4 italic">
+                      "{execSummary.key_impression}"
+                    </p>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 bg-green-900/40 rounded-lg border border-green-700">
+                      <div className="text-xs text-green-400 font-semibold mb-1">STANDOUT POSITIVE</div>
+                      <div className="text-sm text-green-100">{execSummary.standout_positive || 'None identified'}</div>
+                    </div>
+                    <div className="p-3 bg-orange-900/40 rounded-lg border border-orange-700">
+                      <div className="text-xs text-orange-400 font-semibold mb-1">PRIMARY CONCERN</div>
+                      <div className="text-sm text-orange-100">{execSummary.primary_concern || 'None identified'}</div>
+                    </div>
+                  </div>
                 </div>
-              );
-            }
+              )}
 
-            if (!hasV3Profile) return null;
-
-            return (
-              <>
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg text-slate-800 dark:text-slate-200">AI Analysis & Scoring</h4>
-
-                  {/* Executive Summary Banner */}
-                  {structuredProfile?.executive_summary && (
-                    <div className="p-4 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <span className="text-lg font-bold">
-                            {structuredProfile.executive_summary?.one_sentence ||
-                             structuredProfile.executive_summary?.one_liner ||
-                             'Candidate Analysis'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {(structuredProfile.executive_summary?.fit_verdict ||
-                            structuredProfile.executive_summary?.fit_score) && (
-                            <Badge className={`text-xs ${getFitScoreColor(
-                              structuredProfile.executive_summary?.fit_verdict ||
-                              structuredProfile.executive_summary?.fit_score
-                            )}`}>
-                              {(structuredProfile.executive_summary?.fit_verdict ||
-                                structuredProfile.executive_summary?.fit_score)?.replace(/_/g, ' ')} FIT
-                            </Badge>
-                          )}
-                          {structuredProfile.executive_summary?.confidence_in_verdict && (
-                            <Badge className={`text-xs ${getConfidenceColor(structuredProfile.executive_summary?.confidence_in_verdict)}`}>
-                              {structuredProfile.executive_summary?.confidence_in_verdict} Confidence
-                            </Badge>
-                          )}
-                        </div>
+              {/* Interview Metadata */}
+              {interviewMeta && (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-slate-800 dark:text-slate-200">Interview Metadata</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <div className="text-2xl font-bold text-slate-700 dark:text-slate-300">{interviewMeta.exchange_count}</div>
+                        <div className="text-xs text-slate-500">Exchanges</div>
                       </div>
-                      {structuredProfile.executive_summary?.key_impression && (
-                        <p className="text-sm text-slate-200 mt-2">
-                          {structuredProfile.executive_summary?.key_impression}
-                        </p>
-                      )}
-                      {(structuredProfile.executive_summary?.standout_positive ||
-                        structuredProfile.executive_summary?.primary_concern) && (
-                        <div className="grid grid-cols-2 gap-3 mt-3">
-                          {structuredProfile.executive_summary?.standout_positive && (
-                            <div className="p-2 bg-green-900/30 rounded border border-green-700">
-                              <div className="text-xs text-green-400 font-medium">Standout Positive</div>
-                              <div className="text-sm text-green-200">{structuredProfile.executive_summary?.standout_positive}</div>
-                            </div>
-                          )}
-                          {structuredProfile.executive_summary?.primary_concern &&
-                           structuredProfile.executive_summary?.primary_concern !== 'None identified' && (
-                            <div className="p-2 bg-orange-900/30 rounded border border-orange-700">
-                              <div className="text-xs text-orange-400 font-medium">Primary Concern</div>
-                              <div className="text-sm text-orange-200">{structuredProfile.executive_summary?.primary_concern}</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Verdict & Recommendation Section */}
-                  {structuredProfile?.verdict && (
-                    <div className="p-4 rounded-lg border-2 border-gray-300 dark:border-slate-600 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-900">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(structuredProfile.verdict?.decision)}`}>
-                            {structuredProfile.verdict?.decision === 'INTERVIEW' ? '✓ INTERVIEW' :
-                             structuredProfile.verdict?.decision === 'CONSIDER' ? '? CONSIDER' :
-                             structuredProfile.verdict?.decision === 'REVIEW' ? '⚠ REVIEW' :
-                             '✗ NOT SUITABLE'}
-                          </Badge>
-                          {structuredProfile.verdict?.confidence && (
-                            <span className={`text-xs font-medium px-2 py-1 rounded ${getConfidenceColor(structuredProfile.verdict?.confidence)}`}>
-                              {structuredProfile.verdict?.confidence} Confidence
-                            </span>
-                          )}
-                          {structuredProfile.verdict?.risk_level && (
-                            <span className={`text-xs font-medium px-2 py-1 rounded ${getRiskColor(structuredProfile.verdict?.risk_level)}`}>
-                              {structuredProfile.verdict?.risk_level} Risk
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {structuredProfile.verdict?.summary && (
-                        <p className="text-base font-medium text-gray-800 dark:text-slate-200 mb-3">
-                          {structuredProfile.verdict?.summary}
-                        </p>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-4">
-                        {structuredProfile.verdict?.top_strength && (
-                          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-                            <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" /> TOP STRENGTH
-                            </div>
-                            <div className="text-sm text-green-800 dark:text-green-200">
-                              {structuredProfile.verdict?.top_strength}
-                            </div>
-                          </div>
-                        )}
-                        {structuredProfile.verdict?.top_concern &&
-                         structuredProfile.verdict?.top_concern !== 'None significant' &&
-                         structuredProfile.verdict?.top_concern !== 'None' ? (
-                          <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
-                            <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-1 flex items-center gap-1">
-                              <AlertTriangle className="h-3 w-3" /> TOP CONCERN
-                            </div>
-                            <div className="text-sm text-orange-800 dark:text-orange-200">
-                              {structuredProfile.verdict?.top_concern}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600">
-                            <div className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" /> TOP CONCERN
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-slate-400 italic">No significant concerns</div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Dealbreakers if any */}
-                      {structuredProfile.verdict?.dealbreakers &&
-                       structuredProfile.verdict?.dealbreakers.length > 0 && (
-                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                          <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">DEALBREAKERS</div>
-                          <ul className="text-sm text-red-800 dark:text-red-200">
-                            {structuredProfile.verdict?.dealbreakers.map((item: string, i: number) => (
-                              <li key={i} className="flex items-start gap-1">
-                                <span className="text-red-500">✗</span> {item}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Hiring Guidance Section */}
-                  {structuredProfile?.hiring_guidance && (
-                    <div className="p-4 rounded-lg border-2 border-indigo-300 dark:border-indigo-600 bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900/20 dark:to-slate-900">
-                      <h5 className="font-semibold text-indigo-700 dark:text-indigo-400 mb-3 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4" /> Hiring Guidance
-                      </h5>
-                      <div className="flex items-center gap-3 mb-4">
-                        <Badge className={`text-lg px-4 py-2 font-bold ${
-                          structuredProfile.hiring_guidance?.proceed_to_next_round === 'YES' ? 'bg-green-500 text-white' :
-                          structuredProfile.hiring_guidance?.proceed_to_next_round === 'LIKELY' ? 'bg-blue-500 text-white' :
-                          structuredProfile.hiring_guidance?.proceed_to_next_round === 'MAYBE' ? 'bg-yellow-500 text-white' :
-                          structuredProfile.hiring_guidance?.proceed_to_next_round === 'UNLIKELY' ? 'bg-orange-500 text-white' :
-                          'bg-red-500 text-white'
-                        }`}>
-                          {structuredProfile.hiring_guidance?.proceed_to_next_round === 'YES' ? '✓ PROCEED' :
-                           structuredProfile.hiring_guidance?.proceed_to_next_round === 'LIKELY' ? '↗ LIKELY PROCEED' :
-                           structuredProfile.hiring_guidance?.proceed_to_next_round === 'MAYBE' ? '? MAYBE' :
-                           structuredProfile.hiring_guidance?.proceed_to_next_round === 'UNLIKELY' ? '↘ UNLIKELY' :
-                           '✗ DO NOT PROCEED'}
+                      <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <Badge className={`${
+                          interviewMeta.interview_quality === 'EXCELLENT' ? 'bg-green-500' :
+                          interviewMeta.interview_quality === 'GOOD' ? 'bg-blue-500' :
+                          interviewMeta.interview_quality === 'ADEQUATE' ? 'bg-yellow-500' :
+                          'bg-orange-500'
+                        } text-white`}>
+                          {interviewMeta.interview_quality}
                         </Badge>
+                        <div className="text-xs text-slate-500 mt-1">Quality</div>
                       </div>
-                      {structuredProfile.hiring_guidance?.reasoning && (
-                        <p className="text-sm text-slate-700 dark:text-slate-300 mb-4 p-3 bg-white dark:bg-slate-800 rounded border">
-                          {structuredProfile.hiring_guidance?.reasoning}
-                        </p>
+                      <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg col-span-2">
+                        <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          {interviewMeta.avg_response_length_chars} chars avg
+                        </div>
+                        <div className="text-xs text-slate-500">Response Length</div>
+                      </div>
+                    </div>
+                    {interviewMeta.data_limitations?.length > 0 && (
+                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                        <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2">Data Limitations</div>
+                        <ul className="space-y-1">
+                          {interviewMeta.data_limitations.map((limit: string, i: number) => (
+                            <li key={i} className="text-sm text-yellow-800 dark:text-yellow-200 flex items-start gap-2">
+                              <span className="text-yellow-500">•</span> {limit}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Hiring Guidance */}
+              {hiringGuidance && (
+                <Card className="bg-white dark:bg-slate-900 border-2 border-indigo-200 dark:border-indigo-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" /> Hiring Guidance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Badge className={`text-lg px-4 py-2 font-bold ${
+                        hiringGuidance.proceed_to_next_round === 'YES' ? 'bg-green-500 text-white' :
+                        hiringGuidance.proceed_to_next_round === 'LIKELY' ? 'bg-blue-500 text-white' :
+                        hiringGuidance.proceed_to_next_round === 'MAYBE' ? 'bg-yellow-500 text-white' :
+                        hiringGuidance.proceed_to_next_round === 'UNLIKELY' ? 'bg-orange-500 text-white' :
+                        'bg-red-500 text-white'
+                      }`}>
+                        {hiringGuidance.proceed_to_next_round === 'YES' ? '✓ PROCEED' :
+                         hiringGuidance.proceed_to_next_round === 'LIKELY' ? '↗ LIKELY' :
+                         hiringGuidance.proceed_to_next_round === 'MAYBE' ? '? MAYBE' :
+                         hiringGuidance.proceed_to_next_round === 'UNLIKELY' ? '↘ UNLIKELY' :
+                         '✗ NO'}
+                      </Badge>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Next Round</span>
+                    </div>
+
+                    {hiringGuidance.reasoning && (
+                      <p className="text-sm text-slate-700 dark:text-slate-300 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                        {hiringGuidance.reasoning}
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {hiringGuidance.potential_role_fits?.length > 0 && (
+                        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                          <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">Potential Role Fits</div>
+                          <div className="flex flex-wrap gap-1">
+                            {hiringGuidance.potential_role_fits.map((role: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-xs">{role}</Badge>
+                            ))}
+                          </div>
+                        </div>
                       )}
-                      {structuredProfile.hiring_guidance?.suggested_follow_up_questions?.length > 0 && (
-                        <div className="mb-4">
-                          <div className="text-xs font-medium text-indigo-600 dark:text-indigo-400 mb-2">Suggested Follow-up Questions</div>
+                      {hiringGuidance.risk_factors_to_investigate?.length > 0 && (
+                        <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
+                          <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-2">Risk Factors to Investigate</div>
                           <ul className="space-y-1">
-                            {structuredProfile.hiring_guidance?.suggested_follow_up_questions.map((q: string, i: number) => (
-                              <li key={i} className="text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                                <span className="text-indigo-500">•</span> {q}
-                              </li>
+                            {hiringGuidance.risk_factors_to_investigate.map((risk: string, i: number) => (
+                              <li key={i} className="text-xs text-orange-800 dark:text-orange-200">• {risk}</li>
                             ))}
                           </ul>
                         </div>
                       )}
                     </div>
-                  )}
 
-                  {/* Score Breakdown */}
-                  {structuredProfile?.scores && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">Overall Score</div>
-                        <div className={`text-3xl font-bold ${getScoreColorClass(structuredProfile.scores?.overall_score?.value || 0)}`}>
-                          {structuredProfile.scores?.overall_score?.value ?? structuredProfile.scores?.overall_score?.score ?? 0}%
-                        </div>
-                        <Progress value={structuredProfile.scores?.overall_score?.value || 0} className="h-1.5 mt-2" />
+                    {hiringGuidance.interview_tips_for_next_round?.length > 0 && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                        <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">Interview Tips for Next Round</div>
+                        <ul className="space-y-1">
+                          {hiringGuidance.interview_tips_for_next_round.map((tip: string, i: number) => (
+                            <li key={i} className="text-sm text-blue-800 dark:text-blue-200">• {tip}</li>
+                          ))}
+                        </ul>
                       </div>
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">Technical</div>
-                        <div className={`text-3xl font-bold ${getScoreColorClass(structuredProfile.scores?.technical_competence?.score || 0)}`}>
-                          {structuredProfile.scores?.technical_competence?.score || 0}%
-                        </div>
-                        <Progress value={structuredProfile.scores?.technical_competence?.score || 0} className="h-1.5 mt-2" />
-                      </div>
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">Experience</div>
-                        <div className={`text-3xl font-bold ${getScoreColorClass(structuredProfile.scores?.experience_quality?.score || 0)}`}>
-                          {structuredProfile.scores?.experience_quality?.score || 0}%
-                        </div>
-                        <Progress value={structuredProfile.scores?.experience_quality?.score || 0} className="h-1.5 mt-2" />
-                      </div>
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">Cultural Fit</div>
-                        <div className={`text-3xl font-bold ${getScoreColorClass(structuredProfile.scores?.cultural_collaboration_fit?.score || 0)}`}>
-                          {structuredProfile.scores?.cultural_collaboration_fit?.score || 0}%
-                        </div>
-                        <Progress value={structuredProfile.scores?.cultural_collaboration_fit?.score || 0} className="h-1.5 mt-2" />
-                      </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Red Flags */}
-                  {structuredProfile?.red_flags && structuredProfile.red_flags.length > 0 && (
-                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-                      <h5 className="font-semibold text-red-700 dark:text-red-400 mb-3 flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4" /> Red Flags ({structuredProfile.red_flags.length})
-                      </h5>
-                      <div className="space-y-2">
-                        {structuredProfile.red_flags.map((flag: any, i: number) => (
-                          <div key={i} className="p-3 bg-white dark:bg-slate-800 rounded border border-red-200 dark:border-red-700">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="font-medium text-red-800 dark:text-red-200">{flag.flag || flag.issue}</div>
-                                {flag.evidence && (
-                                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                    Evidence: {flag.evidence}
-                                  </div>
-                                )}
-                              </div>
-                              {flag.severity && (
-                                <Badge className={`text-xs ${
-                                  flag.severity === 'HIGH' ? 'bg-red-100 text-red-700' :
-                                  flag.severity === 'MEDIUM' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-yellow-100 text-yellow-700'
-                                }`}>
-                                  {flag.severity}
-                                </Badge>
+                    {hiringGuidance.suggested_follow_up_questions?.length > 0 && (
+                      <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                        <div className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Suggested Follow-up Questions</div>
+                        <ul className="space-y-1">
+                          {hiringGuidance.suggested_follow_up_questions.map((q: any, i: number) => (
+                            <li key={i} className="text-sm text-purple-800 dark:text-purple-200">
+                              {typeof q === 'string' ? `• ${q}` : (
+                                <>
+                                  <span className="font-medium">• {q.question}</span>
+                                  {q.purpose && <span className="text-xs text-purple-600 block ml-3">Purpose: {q.purpose}</span>}
+                                </>
                               )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {hiringGuidance.risk_assessment && (
+                      <div className={`p-3 rounded-lg border ${
+                        hiringGuidance.risk_assessment.overall_risk === 'LOW' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' :
+                        hiringGuidance.risk_assessment.overall_risk === 'MEDIUM' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700' :
+                        hiringGuidance.risk_assessment.overall_risk === 'HIGH' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700' :
+                        'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`text-xs font-semibold ${
+                            hiringGuidance.risk_assessment.overall_risk === 'LOW' ? 'text-green-700 dark:text-green-400' :
+                            hiringGuidance.risk_assessment.overall_risk === 'MEDIUM' ? 'text-yellow-700 dark:text-yellow-400' :
+                            hiringGuidance.risk_assessment.overall_risk === 'HIGH' ? 'text-orange-700 dark:text-orange-400' :
+                            'text-red-700 dark:text-red-400'
+                          }`}>
+                            Risk Assessment
+                          </div>
+                          <Badge className={`text-xs ${
+                            hiringGuidance.risk_assessment.overall_risk === 'LOW' ? 'bg-green-500 text-white' :
+                            hiringGuidance.risk_assessment.overall_risk === 'MEDIUM' ? 'bg-yellow-500 text-white' :
+                            hiringGuidance.risk_assessment.overall_risk === 'HIGH' ? 'bg-orange-500 text-white' :
+                            'bg-red-500 text-white'
+                          }`}>
+                            {hiringGuidance.risk_assessment.overall_risk}
+                          </Badge>
+                        </div>
+                        {hiringGuidance.risk_assessment.risk_factors?.length > 0 && (
+                          <ul className="space-y-2">
+                            {hiringGuidance.risk_assessment.risk_factors.map((risk: any, i: number) => (
+                              <li key={i} className="text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className={`text-xs ${
+                                    risk.severity === 'HIGH' ? 'border-red-500 text-red-700' :
+                                    risk.severity === 'MEDIUM' ? 'border-yellow-500 text-yellow-700' :
+                                    'border-green-500 text-green-700'
+                                  }`}>
+                                    {risk.severity}
+                                  </Badge>
+                                  <span className="font-medium text-slate-700 dark:text-slate-300">{risk.factor}</span>
+                                </div>
+                                {risk.mitigation && (
+                                  <p className="text-xs text-slate-500 ml-14 mt-1">Mitigation: {risk.mitigation}</p>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+
+                    {hiringGuidance.verification_needed?.length > 0 && (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-400 mb-2">Verification Needed (References/Background)</div>
+                        <ul className="space-y-1">
+                          {hiringGuidance.verification_needed.map((item: string, i: number) => (
+                            <li key={i} className="text-xs text-slate-600 dark:text-slate-300">• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {hiringGuidance.roles_to_avoid?.length > 0 && (
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+                        <div className="text-xs font-semibold text-red-700 dark:text-red-400 mb-2">Roles to Avoid</div>
+                        <div className="flex flex-wrap gap-1">
+                          {hiringGuidance.roles_to_avoid.map((role: string, i: number) => (
+                            <Badge key={i} variant="outline" className="text-xs border-red-300 text-red-700">{role}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Interview Quality & Linguistic Patterns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {overallQuality && (
+                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-slate-800 dark:text-slate-200">Interview Quality Assessment</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded text-center">
+                          <div className="text-xs text-slate-500">Depth</div>
+                          <Badge variant="outline" className="mt-1">{overallQuality.depth_rating}</Badge>
+                        </div>
+                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded text-center">
+                          <div className="text-xs text-slate-500">Structure</div>
+                          <Badge variant="outline" className="mt-1">{overallQuality.structure_rating}</Badge>
+                        </div>
+                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded text-center">
+                          <div className="text-xs text-slate-500">Engagement</div>
+                          <Badge variant="outline" className="mt-1">{overallQuality.engagement_rating}</Badge>
+                        </div>
+                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded text-center">
+                          <div className="text-xs text-slate-500">Specificity</div>
+                          <Badge variant="outline" className="mt-1">{overallQuality.specificity_rating}</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {linguisticPatterns && (
+                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-slate-800 dark:text-slate-200">Linguistic Patterns</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-500">Ownership Pattern:</span>
+                        <Badge variant="outline">{linguisticPatterns.ownership_pattern}</Badge>
+                      </div>
+                      {linguisticPatterns.ownership_evidence && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                          "{linguisticPatterns.ownership_evidence}"
+                        </p>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                          <div className="text-xs text-green-600 font-semibold">Confidence Markers: {linguisticPatterns.confidence_markers_count}</div>
+                          {linguisticPatterns.confidence_examples?.map((ex: string, i: number) => (
+                            <div key={i} className="text-xs text-green-700 italic">"{ex}"</div>
+                          ))}
+                        </div>
+                        <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                          <div className="text-xs text-orange-600 font-semibold">Uncertainty Markers: {linguisticPatterns.uncertainty_markers_count}</div>
+                          {linguisticPatterns.uncertainty_examples?.map((ex: string, i: number) => (
+                            <div key={i} className="text-xs text-orange-700 italic">"{ex}"</div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Response-by-Response Micro Analysis */}
+              {transcript?.response_by_response?.length > 0 && (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" /> Response-by-Response Analysis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {transcript.response_by_response.map((resp: any, i: number) => (
+                        <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">Q{resp.question_number}</Badge>
+                              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{resp.topic || 'General'}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <Badge className={`text-xs ${
+                                resp.quality === 'EXCELLENT' ? 'bg-green-500' :
+                                resp.quality === 'GOOD' ? 'bg-blue-500' :
+                                resp.quality === 'ADEQUATE' ? 'bg-yellow-500' :
+                                'bg-orange-500'
+                              } text-white`}>
+                                {resp.quality}
+                              </Badge>
                             </div>
                           </div>
-                        ))}
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{resp.question}</p>
+                          <p className="text-xs text-slate-500 italic mb-2">Analysis: {resp.micro_analysis}</p>
+                          {resp.flags?.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {resp.flags.map((flag: string, j: number) => (
+                                <Badge key={j} variant="outline" className="text-xs">{flag}</Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Cognitive Patterns */}
+              {cognitivePatterns && (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <Brain className="h-4 w-4" /> Cognitive Patterns
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <div className="text-xs text-blue-600 font-semibold mb-1">Thinking Style</div>
+                        <Badge variant="outline">{cognitivePatterns.thinking_style}</Badge>
+                        {cognitivePatterns.thinking_style_evidence && (
+                          <p className="text-xs text-blue-700 mt-2 italic">"{cognitivePatterns.thinking_style_evidence}"</p>
+                        )}
+                      </div>
+                      <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                        <div className="text-xs text-purple-600 font-semibold mb-1">Systems Thinking</div>
+                        <Badge variant="outline">{cognitivePatterns.systems_thinking_level}</Badge>
+                      </div>
+                      <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                        <div className="text-xs text-indigo-600 font-semibold mb-1">Problem Solving</div>
+                        <Badge variant="outline">{cognitivePatterns.problem_solving_approach}</Badge>
                       </div>
                     </div>
-                  )}
-                </div>
-                <Separator />
-              </>
-            );
-          })()}
+                    {cognitivePatterns.learning_indicators?.length > 0 && (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <div className="text-xs text-green-600 font-semibold mb-2">Learning Indicators</div>
+                        <div className="flex flex-wrap gap-1">
+                          {cognitivePatterns.learning_indicators.map((indicator: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{indicator}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
-          {/* Professional Summary */}
-          {(applicant.summary || applicant.matchSummary) && (
-            <>
-              <div>
-                <h4 className="font-semibold mb-3 text-lg text-slate-800 dark:text-slate-200">Professional Summary</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  {applicant.summary || applicant.matchSummary}
-                </p>
+              {/* Topics Coverage */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {topicsWellCovered?.length > 0 && (
+                  <Card className="bg-white dark:bg-slate-900 border border-green-200 dark:border-green-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-green-700 dark:text-green-400 flex items-center gap-2">
+                        <Award className="h-4 w-4" /> Topics Well Covered
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {topicsWellCovered.map((topic: any, i: number) => (
+                          <li key={i} className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100">{topic.topic}</div>
+                            <p className="text-xs text-green-700 dark:text-green-300 mt-1">{topic.why_strong}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {topicsAvoidedOrWeak?.length > 0 && (
+                  <Card className="bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-orange-700 dark:text-orange-400 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" /> Topics Avoided/Weak
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {topicsAvoidedOrWeak.map((topic: any, i: number) => (
+                          <li key={i} className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                            <div className="text-sm font-medium text-orange-900 dark:text-orange-100">{topic.topic}</div>
+                            <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">{topic.evidence}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
+
+              {/* Strongest & Weakest Responses */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {strongestResponses?.length > 0 && (
+                  <Card className="bg-white dark:bg-slate-900 border border-green-200 dark:border-green-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-green-700 dark:text-green-400">Strongest Responses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {strongestResponses.map((resp: any, i: number) => (
+                          <li key={i} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">{resp.question_topic}</div>
+                            <p className="text-xs text-green-700 dark:text-green-300">{resp.why_strong}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {weakestResponses?.length > 0 && (
+                  <Card className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-red-700 dark:text-red-400">Weakest Responses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {weakestResponses.map((resp: any, i: number) => (
+                          <li key={i} className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <div className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">{resp.question_topic}</div>
+                            <p className="text-xs text-red-700 dark:text-red-300">{resp.why_weak}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Red Flags & Green Flags */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {redFlags?.length > 0 && (
+                  <Card className="bg-white dark:bg-slate-900 border-2 border-red-300 dark:border-red-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-red-700 dark:text-red-400 flex items-center gap-2">
+                        <Flag className="h-4 w-4" /> Red Flags Detected
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {redFlags.map((flag: any, i: number) => (
+                          <li key={i} className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+                            <div className="flex items-start gap-2">
+                              <Badge className={`text-xs ${getRiskColor(flag.severity)}`}>{flag.severity}</Badge>
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-red-900 dark:text-red-100">{flag.flag}</div>
+                                <p className="text-xs text-red-700 dark:text-red-300 mt-1">{flag.evidence}</p>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {greenFlags?.length > 0 && (
+                  <Card className="bg-white dark:bg-slate-900 border-2 border-green-300 dark:border-green-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-green-700 dark:text-green-400 flex items-center gap-2">
+                        <Flag className="h-4 w-4" /> Green Flags Detected
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {greenFlags.map((flag: any, i: number) => (
+                          <li key={i} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100">{flag.flag}</div>
+                            <p className="text-xs text-green-700 dark:text-green-300 mt-1">{flag.evidence}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Omissions Analysis */}
+              {omissionsAnalysis && (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-slate-800 dark:text-slate-200">Omissions Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {omissionsAnalysis.expected_but_missing?.length > 0 && (
+                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                        <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2">Expected but Missing</div>
+                        <ul className="space-y-1">
+                          {omissionsAnalysis.expected_but_missing.map((item: string, i: number) => (
+                            <li key={i} className="text-sm text-yellow-800 dark:text-yellow-200">• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {omissionsAnalysis.suspicious_gaps?.length > 0 && (
+                      <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
+                        <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-2">Suspicious Gaps</div>
+                        <ul className="space-y-1">
+                          {omissionsAnalysis.suspicious_gaps.map((gap: string, i: number) => (
+                            <li key={i} className="text-sm text-orange-800 dark:text-orange-200">• {gap}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Authenticity Assessment */}
+              {authenticityAssessment && (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <Shield className="h-4 w-4" /> Authenticity Assessment
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Authenticity Score:</span>
+                      <Badge className={`text-sm ${
+                        authenticityAssessment.authenticity_score >= 80 ? 'bg-green-500' :
+                        authenticityAssessment.authenticity_score >= 60 ? 'bg-blue-500' :
+                        authenticityAssessment.authenticity_score >= 40 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      } text-white`}>
+                        {authenticityAssessment.authenticity_score}%
+                      </Badge>
+                    </div>
+                    {authenticityAssessment.genuine_indicators?.length > 0 && (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">Genuine Indicators</div>
+                        <ul className="space-y-1">
+                          {authenticityAssessment.genuine_indicators.map((indicator: string, i: number) => (
+                            <li key={i} className="text-xs text-green-700 dark:text-green-300">• {indicator}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {authenticityAssessment.coaching_indicators?.length > 0 && (
+                      <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                        <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-2">Coaching Indicators</div>
+                        <ul className="space-y-1">
+                          {authenticityAssessment.coaching_indicators.map((indicator: string, i: number) => (
+                            <li key={i} className="text-xs text-orange-700 dark:text-orange-300">• {indicator}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Assessment Metadata */}
+              {assessmentMetadata && (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-slate-800 dark:text-slate-200">Assessment Metadata</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500">Analysis Confidence:</span>
+                      <Badge className={getConfidenceColor(assessmentMetadata.analysis_confidence)}>{assessmentMetadata.analysis_confidence}</Badge>
+                    </div>
+                    {assessmentMetadata.caveats?.length > 0 && (
+                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2">Caveats</div>
+                        <ul className="space-y-1">
+                          {assessmentMetadata.caveats.map((caveat: string, i: number) => (
+                            <li key={i} className="text-xs text-yellow-700 dark:text-yellow-300">• {caveat}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {assessmentMetadata.data_gaps?.length > 0 && (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-400 mb-2">Data Gaps</div>
+                        <ul className="space-y-1">
+                          {assessmentMetadata.data_gaps.map((gap: string, i: number) => (
+                            <li key={i} className="text-xs text-slate-600 dark:text-slate-300">• {gap}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Resume/CV Full Response Analysis */}
+          {fullResponse && (
+            <>
               <Separator />
+              <div className="space-y-6">
+                <h4 className="font-semibold text-xl text-slate-800 dark:text-slate-200">
+                  Resume & CV Analysis
+                </h4>
+
+                {fullResponse.executiveSummary && (
+                  <div className="p-5 rounded-xl bg-gradient-to-r from-indigo-900 to-purple-900 text-white">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="flex-1">
+                        <h5 className="text-lg font-bold mb-1">Executive Summary</h5>
+                        <p className="text-base text-indigo-100">{fullResponse.executiveSummary.summary}</p>
+                      </div>
+                      {fullResponse.executiveSummary.verdict && (
+                        <Badge className={`text-sm px-3 py-1 ${getVerdictColor(fullResponse.executiveSummary.verdict.decision)}`}>
+                          {fullResponse.executiveSummary.verdict.decision}
+                        </Badge>
+                      )}
+                    </div>
+                    {fullResponse.executiveSummary.verdict?.reasoning && (
+                      <p className="text-sm text-indigo-200 italic">
+                        {fullResponse.executiveSummary.verdict.reasoning}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {fullResponse.skillAnalysis && (
+                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-slate-800 dark:text-slate-200">Skill Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {fullResponse.skillAnalysis.overallScore !== undefined && (
+                          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Overall Skill Score</span>
+                            <div className="flex items-center gap-2">
+                              <Progress value={fullResponse.skillAnalysis.overallScore} className="w-24" />
+                              <span className={`font-bold ${getScoreColor(fullResponse.skillAnalysis.overallScore)}`}>
+                                {fullResponse.skillAnalysis.overallScore}%
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {fullResponse.skillAnalysis.breakdown?.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-sm font-semibold text-slate-700 dark:text-slate-400">Breakdown</div>
+                            {fullResponse.skillAnalysis.breakdown.map((item: any, i: number) => (
+                              <div key={i} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded">
+                                <span className="text-sm text-slate-600 dark:text-slate-400">{item.skill}</span>
+                                <Badge variant="secondary">{item.level || item.score}</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {fullResponse.experienceAnalysis && (
+                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-slate-800 dark:text-slate-200">Experience Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {fullResponse.experienceAnalysis.summary && (
+                          <p className="text-sm text-slate-600 dark:text-slate-400">{fullResponse.experienceAnalysis.summary}</p>
+                        )}
+                        {fullResponse.experienceAnalysis.score !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-slate-500">Score:</span>
+                            <span className={`font-bold ${getScoreColor(fullResponse.experienceAnalysis.score)}`}>
+                              {fullResponse.experienceAnalysis.score}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {fullResponse.interviewRecommendations && (
+                  <Card className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-700">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-indigo-700 dark:text-indigo-400">Interview Recommendations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {fullResponse.interviewRecommendations.areasToProbe?.length > 0 && (
+                          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                            <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Areas to Probe</div>
+                            <ul className="space-y-1">
+                              {fullResponse.interviewRecommendations.areasToProbe.map((area: string, i: number) => (
+                                <li key={i} className="text-sm text-indigo-800 dark:text-indigo-200">• {area}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {fullResponse.interviewRecommendations.suggestedQuestions?.length > 0 && (
+                          <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                            <div className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Suggested Questions</div>
+                            <ul className="space-y-1">
+                              {fullResponse.interviewRecommendations.suggestedQuestions.map((q: string, i: number) => (
+                                <li key={i} className="text-sm text-purple-800 dark:text-purple-200">• {q}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </>
           )}
-
-          {/* Job Match Analysis */}
-          <div>
-            <h4 className="font-semibold mb-4 text-lg text-slate-800 dark:text-slate-200">Job Match Analysis</h4>
-            <Card className={applicant.disqualified ? 'border-red-200 bg-red-50/30 dark:bg-red-900/10' : ''}>
-              <CardContent className="p-6">
-                {/* Job Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Briefcase className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-                      <h5 className="font-semibold text-lg text-slate-800 dark:text-slate-200">
-                        {applicant.jobTitle || 'Applied Position'}
-                      </h5>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {applicant.disqualified ? (
-                        <Badge variant="destructive" className="text-xs font-semibold">
-                          NOT A MATCH
-                        </Badge>
-                      ) : applicant.matchScore ? (
-                        <Badge
-                          variant={applicant.matchScore >= 70 ? "default" : applicant.matchScore >= 50 ? "secondary" : "destructive"}
-                          className={
-                            applicant.matchScore >= 70
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                              : applicant.matchScore >= 50
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              : ""
-                          }
-                        >
-                          {applicant.matchScore}% Overall Match
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Disqualified Candidate Special Layout */}
-                {applicant.disqualified && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    {/* Left Column - Status and Scores */}
-                    <div className="space-y-4">
-                      <div className="p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-                        <div className="flex items-center gap-2 mb-3">
-                          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                          <h6 className="font-semibold text-red-800 dark:text-red-400">Not Suitable for This Role</h6>
-                        </div>
-                        {applicant.disqualificationReason && (
-                          <p className="text-sm text-red-700 dark:text-red-300 mb-3">{applicant.disqualificationReason}</p>
-                        )}
-                      </div>
-
-                      {/* Key Skill Gaps */}
-                      {applicant.improvementAreas && applicant.improvementAreas.length > 0 && (
-                        <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                          <div className="flex items-center gap-2 mb-3">
-                            <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                            <h6 className="font-semibold text-orange-800 dark:text-orange-400">
-                              Critical Skill Gaps ({applicant.improvementAreas.length})
-                            </h6>
-                          </div>
-                          <ul className="space-y-2">
-                            {applicant.improvementAreas.map((gap: any, index: number) => (
-                              <li key={index} className="text-sm text-orange-700 dark:text-orange-300 flex items-start gap-2">
-                                <span className="text-orange-500 mt-1">-</span>
-                                <span>{typeof gap === 'string' ? gap : gap.gap || 'Gap identified'}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right Column - Additional Info */}
-                    <div className="space-y-4">
-                      {applicant.redFlags && applicant.redFlags.length > 0 && (
-                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                          <h6 className="font-semibold text-yellow-800 dark:text-yellow-400 mb-2">Red Flags</h6>
-                          <ul className="space-y-1">
-                            {applicant.redFlags.map((flag: any, index: number) => (
-                              <li key={index} className="text-sm text-yellow-700 dark:text-yellow-300">
-                                - {flag.issue} - {flag.reason}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {applicant.matchSummary && (
-                        <div className="p-3 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-lg">
-                          <h6 className="font-semibold text-gray-700 dark:text-slate-300 mb-2">Assessment Summary</h6>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">{applicant.matchSummary}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Regular Score Breakdown (for non-disqualified) */}
-                {!applicant.disqualified && (
-                  <>
-                    {applicant.matchSummary && (
-                      <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{applicant.matchSummary}</p>
-                    )}
-
-                    {/* Component Score Breakdown */}
-                    {(applicant.technicalSkillsScore || applicant.experienceScore || applicant.culturalFitScore) && (
-                      <div className="grid grid-cols-3 gap-4 mb-4">
-                        {applicant.technicalSkillsScore !== undefined && (
-                          <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-                              {applicant.technicalSkillsScore}%
-                            </div>
-                            <div className="text-xs text-blue-600 dark:text-blue-400">Technical Skills</div>
-                          </div>
-                        )}
-                        {applicant.experienceScore !== undefined && (
-                          <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                            <div className="text-2xl font-bold text-green-700 dark:text-green-400">
-                              {applicant.experienceScore}%
-                            </div>
-                            <div className="text-xs text-green-600 dark:text-green-400">Experience</div>
-                          </div>
-                        )}
-                        {applicant.culturalFitScore !== undefined && (
-                          <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                            <div className="text-2xl font-bold text-purple-700 dark:text-purple-400">
-                              {applicant.culturalFitScore}%
-                            </div>
-                            <div className="text-xs text-purple-600 dark:text-purple-400">Cultural Fit</div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Detailed Analysis Component */}
-                {applicant.fullResponse && (
-                  <DetailedAnalysis
-                    jobScore={{
-                      jobId: parseInt(applicant.jobId) || 0,
-                      overallScore: applicant.matchScore || 0,
-                      matchSummary: applicant.matchSummary,
-                      disqualified: applicant.disqualified,
-                      disqualificationReason: applicant.disqualificationReason,
-                      improvementAreas: applicant.improvementAreas,
-                      redFlags: applicant.redFlags,
-                      strengthsHighlights: applicant.strengthsHighlights,
-                      fullResponse: applicant.fullResponse,
-                    }}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Separator />
-
-          {/* Skills and Other Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Skills */}
-            {applicant.skills && applicant.skills.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2 text-slate-800 dark:text-slate-200">Skills</h4>
-                <div className="flex flex-wrap gap-1">
-                  {applicant.skills.map((skill: any, index: number) => (
-                    <Badge key={index} variant="outline" className="dark:border-slate-600">
-                      {typeof skill === 'string' ? skill : (skill.name || skill.skill || JSON.stringify(skill))}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Languages */}
-            {applicant.languages && applicant.languages.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2 text-slate-800 dark:text-slate-200">Languages</h4>
-                <div className="flex flex-wrap gap-1">
-                  {applicant.languages.map((language: any, index: number) => (
-                    <Badge key={index} variant="secondary">
-                      {typeof language === 'string' ? language : (language.name || language.language || JSON.stringify(language))}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Experience */}
-          {applicant.experience && (
-            <div>
-              <h4 className="font-semibold mb-2 text-slate-800 dark:text-slate-200">Experience</h4>
-              <div className="space-y-3">
-                {Array.isArray(applicant.experience) ? (
-                  applicant.experience.map((exp: any, index: number) => (
-                    <div key={index} className="bg-gray-50 dark:bg-slate-700/50 p-3 rounded text-slate-600 dark:text-slate-300">
-                      {typeof exp === 'string' ? (
-                        <p className="text-sm">{exp}</p>
-                      ) : (
-                        <>
-                          <div className="flex items-start justify-between mb-1">
-                            <div>
-                              <div className="font-medium text-slate-800 dark:text-slate-200">
-                                {exp.position || exp.title || exp.role}
-                              </div>
-                              <div className="text-sm text-slate-600 dark:text-slate-400">
-                                {exp.company || exp.organization}
-                                {exp.location && ` - ${exp.location}`}
-                              </div>
-                            </div>
-                            {exp.current && (
-                              <Badge variant="secondary" className="text-xs">Current</Badge>
-                            )}
-                          </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                            {exp.startDate || exp.start_date}
-                            {(exp.endDate || exp.end_date || exp.current) &&
-                              ` - ${exp.current ? 'Present' : (exp.endDate || exp.end_date)}`}
-                            {exp.yearsAtPosition && ` (${exp.yearsAtPosition})`}
-                          </div>
-                          {exp.responsibilities && (
-                            <div className="text-sm">
-                              {Array.isArray(exp.responsibilities) ? (
-                                <ul className="list-disc list-inside space-y-1">
-                                  {exp.responsibilities.map((resp: string, i: number) => (
-                                    <li key={i}>{resp}</li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p>{exp.responsibilities}</p>
-                              )}
-                            </div>
-                          )}
-                          {exp.description && !exp.responsibilities && (
-                            <p className="text-sm">{exp.description}</p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm bg-gray-50 dark:bg-slate-700/50 p-2 rounded text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
-                    {typeof applicant.experience === 'object'
-                      ? JSON.stringify(applicant.experience, null, 2)
-                      : applicant.experience}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Education */}
-          {applicant.education && (
-            <div>
-              <h4 className="font-semibold mb-2 text-slate-800 dark:text-slate-200">Education</h4>
-              <div className="space-y-3">
-                {Array.isArray(applicant.education) ? (
-                  applicant.education.map((edu: any, index: number) => (
-                    <div key={index} className="bg-gray-50 dark:bg-slate-700/50 p-3 rounded text-slate-600 dark:text-slate-300">
-                      {typeof edu === 'string' ? (
-                        <p className="text-sm">{edu}</p>
-                      ) : (
-                        <>
-                          <div className="font-medium text-slate-800 dark:text-slate-200">
-                            {edu.degree || edu.qualification}
-                            {edu.field && ` in ${edu.field}`}
-                            {edu.major && ` - ${edu.major}`}
-                          </div>
-                          <div className="text-sm text-slate-600 dark:text-slate-400">
-                            {edu.institution || edu.school || edu.university}
-                            {edu.location && ` - ${edu.location}`}
-                          </div>
-                          {(edu.graduationYear || edu.graduation_year || edu.endDate || edu.year) && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              {edu.startDate || edu.start_date}
-                              {edu.startDate && ' - '}
-                              {edu.graduationYear || edu.graduation_year || edu.endDate || edu.year}
-                            </div>
-                          )}
-                          {edu.gpa && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              GPA: {edu.gpa}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm bg-gray-50 dark:bg-slate-700/50 p-2 rounded text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
-                    {typeof applicant.education === 'object'
-                      ? JSON.stringify(applicant.education, null, 2)
-                      : applicant.education}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Certifications */}
-          {applicant.certifications && applicant.certifications.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2 text-slate-800 dark:text-slate-200">Certifications</h4>
-              <div className="space-y-2">
-                {applicant.certifications.map((cert: any, index: number) => (
-                  <div key={index} className="text-sm bg-gray-50 dark:bg-slate-700/50 p-2 rounded text-slate-600 dark:text-slate-300">
-                    {typeof cert === 'string' ? cert : (
-                      <>
-                        <span className="font-medium">{cert.name || cert.title}</span>
-                        {cert.issuer && <span className="text-slate-500"> - {cert.issuer}</span>}
-                        {cert.year && <span className="text-slate-500"> ({cert.year})</span>}
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Contact Info & Timeline Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Contact Information */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-slate-800 dark:text-slate-200">Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                    <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
-                    <a
-                      href={`mailto:${applicant.email}`}
-                      className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {applicant.email}
-                    </a>
-                  </div>
-                </div>
-
-                {applicant.phone && (
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                      <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Phone</p>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {applicant.phone}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {applicant.location && (
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                      <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Location</p>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {applicant.location}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Application Timeline */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-slate-800 dark:text-slate-200">Timeline</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Applied</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(applicant.appliedAt || applicant.createdAt).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                </div>
-                {applicant.shortlistedAt && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">Shortlisted</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {new Date(applicant.shortlistedAt).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {applicant.acceptedAt && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">Accepted</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {new Date(applicant.acceptedAt).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Resume & Interview Recording */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {applicant.resumeUrl && (
-              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                    <FileText className="w-5 h-5" />
-                    Resume
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.open(applicant.resumeUrl, "_blank")}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    View Resume
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {applicant.interviewRecordingUrl && (
-              <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                    <Play className="w-5 h-5" />
-                    Interview Recording
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.open(applicant.interviewRecordingUrl, "_blank")}
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Watch Recording
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
         </div>
       </ScrollArea>
     </div>

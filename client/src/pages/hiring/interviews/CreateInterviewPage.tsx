@@ -69,11 +69,13 @@ export default function CreateInterviewPage() {
 
   const jobs = Array.isArray(jobsData) ? jobsData : (jobsData?.jobs || jobsData?.data || []);
 
-  // Fetch accepted applicants for the selected job
-  const { data: acceptedApplicants = [], isLoading: isLoadingApplicants } = useQuery({
-    queryKey: ["/api/accepted-applicants", selectedJob],
+  // Fetch interviewable applicants (shortlisted OR accepted) for the selected job
+  const { data: interviewableApplicants = [], isLoading: isLoadingApplicants } = useQuery({
+    queryKey: ["/api/interviewable-applicants", selectedJob],
     queryFn: async () => {
-      const res = await fetch(`/api/accepted-applicants/${selectedJob}`);
+      const res = await fetch(`/api/interviewable-applicants?jobId=${selectedJob}`, {
+        credentials: 'include',
+      });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -134,7 +136,7 @@ export default function CreateInterviewPage() {
       return;
     }
 
-    const applicant = acceptedApplicants.find((app: any) => app.id === selectedApplicant);
+    const applicant = interviewableApplicants.find((app: any) => app.id === selectedApplicant);
     if (!applicant) {
       toast({
         title: "Error",
@@ -220,16 +222,16 @@ export default function CreateInterviewPage() {
               <div>
                 <Label className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-green-600" />
-                  Select Accepted Applicant *
+                  Select Applicant *
                 </Label>
                 <Select value={selectedApplicant} onValueChange={setSelectedApplicant}>
                   <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Choose an accepted applicant..." />
+                    <SelectValue placeholder="Choose a shortlisted or accepted applicant..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {acceptedApplicants.map((applicant: any) => (
+                    {interviewableApplicants.map((applicant: any) => (
                       <SelectItem key={applicant.id} value={applicant.id}>
-                        {applicant.name} - {applicant.jobTitle} {applicant.email ? `(${applicant.email})` : ""}
+                        {applicant.name} - {applicant.jobTitle} {applicant.status ? `[${applicant.status}]` : ""} {applicant.email ? `(${applicant.email})` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -237,12 +239,12 @@ export default function CreateInterviewPage() {
                 {isLoadingApplicants && (
                   <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Loading accepted applicants...
+                    Loading applicants...
                   </p>
                 )}
-                {!isLoadingApplicants && acceptedApplicants.length === 0 && (
+                {!isLoadingApplicants && interviewableApplicants.length === 0 && (
                   <p className="text-sm text-slate-500 mt-1">
-                    No accepted applicants found for this job position.
+                    No shortlisted or accepted applicants found for this job position.
                   </p>
                 )}
               </div>

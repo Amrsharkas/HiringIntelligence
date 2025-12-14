@@ -15,6 +15,7 @@ import JobApplicantsPage from "./jobs/JobApplicantsPage";
 import ApplicantsPage from "./applicants/ApplicantsPage";
 import ShortlistedPage from "./applicants/ShortlistedPage";
 import AcceptedPage from "./applicants/AcceptedPage";
+import DeniedPage from "./applicants/DeniedPage";
 import ApplicantDetailsPage from "./applicants/ApplicantDetailsPage";
 import ResumesPage from "./resumes/ResumesPage";
 import ResumeSearchPage from "./resumes/ResumeSearchPage";
@@ -105,6 +106,7 @@ export default function HiringDashboard() {
         <Route path="applicants" element={<ApplicantsPage />} />
         <Route path="applicants/shortlisted" element={<ShortlistedPage />} />
         <Route path="applicants/accepted" element={<AcceptedPage />} />
+        <Route path="applicants/denied" element={<DeniedPage />} />
         <Route path="applicants/:applicantId" element={<ApplicantDetailsPage />} />
 
         {/* Resumes routes */}

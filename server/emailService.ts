@@ -47,6 +47,14 @@ interface ApplicantStatusEmailData {
   matchScore?: number;
 }
 
+interface OfferLetterEmailData {
+  recipientEmail: string;
+  recipientName: string;
+  companyName: string;
+  jobTitle: string;
+  offerContentText: string;
+}
+
 class EmailService {
   private mailService: MailService | null;
 
@@ -1623,7 +1631,131 @@ Best regards,
 ${data.companyName} Hiring Team
     `.trim();
   }
+
+  /**
+   * Convert plain text offer letter to professional HTML email
+   */
+  private convertTextOfferToHTML(text: string, companyName: string, jobTitle: string): string {
+    // Split text into lines and process
+    const lines = text.split('\n');
+
+    // Convert plain text to HTML with formatting
+    let htmlBody = '';
+    let inSection = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim();
+
+      // Skip empty lines (we'll add spacing manually)
+      if (!trimmedLine) {
+        htmlBody += '<div style="margin: 12px 0;"></div>';
+        continue;
+      }
+
+      // Detect section headers (all caps or contains dashes)
+      if (trimmedLine.match(/^[A-Z\s:━]+$/) || trimmedLine.includes('━━━')) {
+        if (trimmedLine.includes('━━━')) {
+          // Separator line
+          htmlBody += '<div style="border-top: 2px solid #e5e7eb; margin: 20px 0;"></div>';
+        } else {
+          // Section header
+          htmlBody += `<h3 style="color: #2563eb; margin: 24px 0 12px 0; font-size: 16px; font-weight: 600;">${trimmedLine}</h3>`;
+        }
+        inSection = true;
+        continue;
+      }
+
+      // Detect bullet points
+      if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+        const bulletText = trimmedLine.substring(1).trim();
+        htmlBody += `<div style="margin: 8px 0; padding-left: 20px;"><span style="color: #2563eb; margin-right: 8px;">•</span>${bulletText}</div>`;
+        continue;
+      }
+
+      // Detect key-value pairs (e.g., "Role: Software Engineer")
+      if (trimmedLine.includes(':') && trimmedLine.split(':')[0].length < 30) {
+        const [key, ...valueParts] = trimmedLine.split(':');
+        const value = valueParts.join(':').trim();
+        htmlBody += `<div style="margin: 10px 0;"><strong style="color: #374151;">${key}:</strong> <span style="color: #6b7280;">${value}</span></div>`;
+        continue;
+      }
+
+      // Regular paragraph
+      htmlBody += `<p style="color: #4b5563; line-height: 1.6; margin: 12px 0;">${trimmedLine}</p>`;
+    }
+
+    // Wrap in professional email template
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Job Offer - ${jobTitle}</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="display: inline-block; width: 80px; height: 80px; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); border-radius: 50%; margin: 0 auto 20px; line-height: 80px; font-size: 36px;">
+            🎉
+          </div>
+          <h1 style="color: #1e40af; margin: 0; font-size: 32px; font-weight: 700;">Job Offer</h1>
+          <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 18px;">We're excited to offer you this opportunity!</p>
+        </div>
+
+        <div style="background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
+          ${htmlBody}
+        </div>
+
+        <div style="text-align: center; margin-top: 32px; color: #9ca3af; font-size: 13px;">
+          <p style="margin: 0;">This offer letter was sent from ${companyName}</p>
+          <p style="margin: 8px 0 0 0;">© ${new Date().getFullYear()} ${companyName}. All rights reserved.</p>
+        </div>
+
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Send offer letter email to applicant
+   */
+  async sendOfferLetterEmail(data: OfferLetterEmailData): Promise<boolean> {
+    try {
+      if (!this.mailService) {
+        console.warn('📧 Skipping offer letter email: SendGrid not configured');
+        return false;
+      }
+
+      const subject = `🎉 Job Offer: ${data.jobTitle} at ${data.companyName}`;
+
+      // Convert plain text to HTML
+      const htmlContent = this.convertTextOfferToHTML(
+        data.offerContentText,
+        data.companyName,
+        data.jobTitle
+      );
+
+      const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
+      const fromName = (process.env.SENDGRID_FROM_NAME || 'Plato Hiring').trim();
+
+      await this.mailService.send({
+        to: data.recipientEmail,
+        from: { email: fromEmail, name: fromName },
+        subject: subject,
+        text: data.offerContentText, // Plain text version
+        html: htmlContent,           // HTML version
+      });
+
+      console.log(`✅ Offer letter email sent to ${data.recipientEmail} for ${data.jobTitle}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Offer letter email error:', error);
+      return false;
+    }
+  }
 }
 
 export const emailService = new EmailService();
-export { InterviewEmailData, VerificationEmailData, VerificationSuccessEmailData, PasswordResetEmailData, PasswordResetSuccessEmailData, ApplicantStatusEmailData };
+export { InterviewEmailData, VerificationEmailData, VerificationSuccessEmailData, PasswordResetEmailData, PasswordResetSuccessEmailData, ApplicantStatusEmailData, OfferLetterEmailData };

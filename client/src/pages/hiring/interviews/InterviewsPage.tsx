@@ -44,6 +44,7 @@ export default function InterviewsPage() {
   });
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "No date set";
     return new Date(dateString).toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
@@ -52,11 +53,9 @@ export default function InterviewsPage() {
     });
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const formatTime = (timeString: string) => {
+    if (!timeString) return "No time set";
+    return timeString; // Time is already in HH:MM format
   };
 
   const getStatusBadge = (status: string) => {
@@ -72,12 +71,17 @@ export default function InterviewsPage() {
     }
   };
 
-  const now = new Date();
-  const upcomingInterviews = interviews.filter(
-    (i) => new Date(i.scheduledAt) > now && i.status !== "cancelled"
-  );
-  const pastInterviews = interviews.filter(
-    (i) => new Date(i.scheduledAt) <= now || i.status === "completed"
+  const upcomingInterviews = interviews.filter((i) => {
+    if (i.status === "completed" || i.status === "cancelled") return false;
+
+    const scheduledDateTime = new Date(`${i.scheduledDate}T${i.scheduledTime || '00:00'}`);
+    return scheduledDateTime > new Date();
+  });
+
+  const pastInterviews = interviews.filter((i) =>
+    i.status === "completed" ||
+    i.status === "cancelled" ||
+    new Date(`${i.scheduledDate}T${i.scheduledTime || '00:00'}`) <= new Date()
   );
 
   const filteredInterviews =
@@ -209,17 +213,17 @@ export default function InterviewsPage() {
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="text-slate-900 dark:text-white">
-                              {formatDate(interview.scheduledAt)}
+                              {formatDate(interview.scheduledDate)}
                             </span>
                             <span className="text-sm text-slate-500 dark:text-slate-400">
-                              {formatTime(interview.scheduledAt)}
+                              {formatTime(interview.scheduledTime)} {interview.timeZone ? `(${interview.timeZone})` : ''}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
                             <Video className="w-4 h-4" />
-                            {interview.type || "Video"}
+                            {interview.interviewType || "Video"}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -250,7 +254,7 @@ export default function InterviewsPage() {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
-                                onClick={() => navigate(`/hiring/applicants/${interview.applicantId}`)}
+                                onClick={() => navigate(`/hiring/applicants/${interview.candidateId}`)}
                               >
                                 <User className="w-4 h-4 mr-2" />
                                 View Candidate

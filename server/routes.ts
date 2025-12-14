@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
 import fetch from "node-fetch";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { setupAuth, requireAuth, requireVerifiedAuth, requireAuthOrService } from "./auth";
 import { requireCredits, deductCredits, attachCreditBalance } from "./creditMiddleware";
@@ -10,8 +11,8 @@ import { creditService } from "./creditService";
 import { stripeService } from "./stripeService";
 import { subscriptionService } from "./subscriptionService";
 import { setupSubscriptionSystem } from "./setupSubscriptionSystem";
-import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema, type InsertOrganization, users, organizations } from "@shared/schema";
-import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating } from "./openai";
+import { airtableUserProfiles, applicantProfiles, insertJobSchema, insertOrganizationSchema, type InsertOrganization, users, organizations, offerLetters } from "@shared/schema";
+import { generateJobDescription, generateJobRequirements, extractTechnicalSkills, generateCandidateMatchRating, generateOfferLetter } from "./openai";
 import { wrapOpenAIRequest } from "./openaiTracker";
 import { localDatabaseService } from "./localDatabaseService";
 import { interviewQuestionsService } from "./interviewQuestionsService";
@@ -1459,11 +1460,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Original Applicants routes (now for platojobapplications table) - UPDATED WITH BRUTAL AI SCORING
+  // Supports ?status=shortlisted|accepted|denied|applied filter
   app.get('/api/applicants', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+      const { status } = req.query; // Optional status filter
+
       if (!organization) {
         return res.json([]);
       }
@@ -1473,11 +1476,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔄 MIGRATING TO BRUTAL AI SCORING: Fetching applicants with new scoring system');
       // Use local database service instead of Airtable
       let applicants = await localDatabaseService.getAllJobApplications();
-      
+
       // Filter to only show applicants for this organization's jobs
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
       applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
+
+      // Apply status filter if provided
+      if (status) {
+        console.log(`🔍 Filtering applicants by status: ${status}`);
+        applicants = applicants.filter(app => app.status === status);
+      }
 
       // APPLY BRUTAL AI SCORING SYSTEM TO ALL APPLICANTS
       if (applicants.length > 0) {
@@ -1657,6 +1666,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Could not fetch resume profile for detailed analysis:', e);
       }
 
+      // Parse generatedProfile if available
+      let generatedProfile: any = null;
+      if (applicant.generatedProfile) {
+        generatedProfile = typeof applicant.generatedProfile === 'string'
+          ? JSON.parse(applicant.generatedProfile)
+          : applicant.generatedProfile;
+      }
+
+      // Get interview video URL from application's session
+      let interviewVideoUrl = null;
+      if (applicant.sessionId) {
+        try {
+          const { interviewSessions } = await import('@shared/schema');
+          const [session] = await db.select()
+            .from(interviewSessions)
+            .where(eq(interviewSessions.id, applicant.sessionId));
+
+          if (session?.interviewVideoUrl) {
+            interviewVideoUrl = session.interviewVideoUrl;
+          }
+        } catch (videoError) {
+          console.warn('Could not fetch interview video:', videoError);
+        }
+      }
+
       const enrichedApplicant = {
         ...applicant,
         // Basic info
@@ -1664,24 +1698,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: parsedProfile.email || applicant.applicantEmail,
         phone: parsedProfile.phone,
         location: parsedProfile.location,
-        summary: parsedProfile.summary,
+        summary: generatedProfile?.summary || parsedProfile.summary,
 
         // Structured data from profile
-        skills: parsedProfile.skills,
-        experience: parsedProfile.experience,
+        skills: generatedProfile?.skills?.length > 0 ? generatedProfile.skills : parsedProfile.skills,
+        experience: generatedProfile?.experience?.length > 0 ? generatedProfile.experience : parsedProfile.experience,
         education: parsedProfile.education,
         certifications: parsedProfile.certifications,
         languages: parsedProfile.languages,
 
-        // Score data
-        matchScore: scoredData?.matchScore || (applicant as any).matchScore,
-        matchSummary: scoredData?.matchSummary || (applicant as any).matchSummary,
-        technicalSkillsScore: scoredData?.technicalSkillsScore,
-        experienceScore: scoredData?.experienceScore,
-        culturalFitScore: scoredData?.culturalFitScore,
+        // Score data - prefer generatedProfile scores if available
+        matchScore: generatedProfile?.matchScorePercentage || scoredData?.matchScore || (applicant as any).matchScore,
+        matchSummary: generatedProfile?.summary || scoredData?.matchSummary || (applicant as any).matchSummary,
+        technicalSkillsScore: generatedProfile?.techSkillsPercentage || scoredData?.technicalSkillsScore,
+        experienceScore: generatedProfile?.experiencePercentage || scoredData?.experienceScore,
+        culturalFitScore: generatedProfile?.culturalFitPercentage || scoredData?.culturalFitScore,
+
+        // AI Generated Profile data
+        generatedProfile: generatedProfile,
+        hireRecommendation: generatedProfile?.hireRecommendation,
+        strengths: generatedProfile?.strengths,
+        careerGoals: generatedProfile?.careerGoals,
+        workStyle: generatedProfile?.workStyle,
+        personality: generatedProfile?.personality,
+        jobMatch: generatedProfile?.jobMatch,
+        brutallyHonestProfile: generatedProfile?.brutallyHonestProfile,
 
         // Detailed analysis (if available from resume profile)
         fullResponse: fullResponse,
+
+        // Interview video URL
+        interviewVideoUrl: interviewVideoUrl,
       };
 
       res.json(enrichedApplicant);
@@ -1779,7 +1826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const applicantId = req.params.id;
       const { jobId, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
       const userId = req.user.id;
-      
+
       const interviewData = {
         jobId,
         candidateId: applicantId,
@@ -1791,12 +1838,257 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes,
         scheduledBy: userId
       };
-      
+
       const interview = await storage.createInterview(interviewData);
       res.json(interview);
     } catch (error) {
       console.error("Error scheduling interview:", error);
       res.status(500).json({ message: "Failed to schedule interview" });
+    }
+  });
+
+  // Generate offer letter for applicant
+  app.post('/api/applicants/:id/generate-offer-letter', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { customMessage } = req.body;
+      const userId = req.user.id;
+
+      console.log(`📝 Generating AI offer letter for applicant ${applicantId}...`);
+      console.log(`Custom message provided: ${customMessage ? 'Yes' : 'No'}`);
+
+      // Get applicant details
+      const application = await localDatabaseService.getJobApplication(applicantId);
+      if (!application) {
+        console.error(`❌ Applicant ${applicantId} not found`);
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+
+      // Get job details
+      const job = await storage.getJob(application.jobId);
+      if (!job) {
+        console.error(`❌ Job ${application.jobId} not found`);
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Get organization details from user
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        console.error(`❌ Organization not found for user ${userId}`);
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Extract applicant profile data
+      const applicantName = application.applicantName || 'Candidate';
+      const jobTitle = application.jobTitle || job.title;
+      const companyName = organization.companyName || 'Our Company';
+      const location = job.location || 'Not specified';
+      const employmentType = job.employmentType || 'Full-time';
+      const workplaceType = job.workplaceType || 'On-site';
+      const salaryRange = job.salaryRange || (job.salaryMin && job.salaryMax ? `$${job.salaryMin.toLocaleString()} - $${job.salaryMax.toLocaleString()}` : 'Competitive compensation');
+      const benefits = job.benefits || [];
+
+      // Parse applicant profile for AI personalization
+      let applicantSkills = [];
+      let applicantExperience = '';
+      try {
+        const generatedProfile = typeof application.generatedProfile === 'string'
+          ? JSON.parse(application.generatedProfile)
+          : application.generatedProfile;
+
+        if (generatedProfile) {
+          applicantSkills = generatedProfile.skills || [];
+          if (generatedProfile.strengths && generatedProfile.strengths.length > 0) {
+            applicantExperience = generatedProfile.strengths.join(', ');
+          }
+        }
+      } catch (e) {
+        console.log('Note: Could not parse applicant profile for personalization');
+      }
+
+      console.log(`🤖 Using AI to generate personalized offer letter...`);
+
+      let offerText = '';
+      try {
+        offerText = await generateOfferLetter({
+          applicantName,
+          jobTitle,
+          companyName,
+          location,
+          employmentType,
+          workplaceType,
+          salaryRange,
+          benefits,
+          customMessage,
+          applicantSkills,
+          applicantExperience
+        });
+
+        console.log(`✅ AI-generated offer letter created (${offerText.length} characters)`);
+      } catch (aiError) {
+        console.error('⚠️  AI generation failed, falling back to template:', aiError);
+
+        // Fallback to template-based generation
+        offerText = `Dear ${applicantName},
+
+We are delighted to offer you the position of ${jobTitle} at ${companyName}.`;
+
+        if (customMessage) {
+          offerText += `\n\n${customMessage}`;
+        }
+
+        offerText += `\n\nPOSITION DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Role: ${jobTitle}
+Location: ${location}
+Employment Type: ${employmentType}
+Workplace: ${workplaceType}
+Compensation: ${salaryRange}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+        if (benefits.length > 0) {
+          offerText += `\n\nBENEFITS:`;
+          benefits.forEach((benefit: string) => {
+            offerText += `\n• ${benefit}`;
+          });
+        }
+
+        offerText += `\n\nNEXT STEPS:
+Please review this offer carefully. Our HR team will contact you soon with formal documentation and additional details about the onboarding process.
+
+We're excited about the possibility of you joining our team and look forward to your response!
+
+Best regards,
+${companyName} Hiring Team
+
+---
+This is a preliminary offer. A formal offer letter with complete terms will follow.`;
+      }
+
+      // Ensure offerText is not empty
+      if (!offerText || offerText.trim().length === 0) {
+        throw new Error('Generated offer text is empty');
+      }
+
+      const response = {
+        offerText: offerText.trim(),
+        applicantName,
+        jobTitle,
+        companyName
+      };
+
+      console.log(`✅ Offer letter response prepared:`, {
+        offerTextLength: response.offerText.length,
+        applicantName: response.applicantName,
+        jobTitle: response.jobTitle
+      });
+
+      res.json(response);
+
+    } catch (error) {
+      console.error("❌ Error generating offer letter:", error);
+      res.status(500).json({
+        message: "Failed to generate offer letter",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Send offer letter email to applicant
+  app.post('/api/applicants/:id/send-offer-letter', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const { offerContent, subject } = req.body;
+      const userId = req.user.id;
+
+      console.log(`📧 Sending offer letter to applicant ${applicantId}...`);
+
+      // Validate offer content is provided
+      if (!offerContent || offerContent.trim().length === 0) {
+        return res.status(400).json({ message: "Offer content is required" });
+      }
+
+      // Get applicant details
+      const application = await localDatabaseService.getJobApplication(applicantId);
+      if (!application) {
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+
+      if (!application.applicantEmail) {
+        return res.status(400).json({ message: "Applicant has no email address" });
+      }
+
+      // Get job details
+      const job = await storage.getJob(application.jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Get organization details from user
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const applicantName = application.applicantName || 'Candidate';
+      const jobTitle = application.jobTitle || job.title;
+      const companyName = organization.companyName || 'Our Company';
+      const salaryRange = job.salaryRange || (job.salaryMin && job.salaryMax ? `$${job.salaryMin.toLocaleString()} - $${job.salaryMax.toLocaleString()}` : undefined);
+
+      // Create offer letter record in database
+      const sentAt = new Date();
+      const offerLetterId = crypto.randomUUID();
+
+      try {
+        await db.insert(offerLetters).values({
+          id: offerLetterId,
+          applicantId,
+          jobId: application.jobId,
+          organizationId: organization.id,
+          offerContent,
+          position: jobTitle,
+          salary: salaryRange,
+          recipientEmail: application.applicantEmail,
+          recipientName: applicantName,
+          status: 'sent',
+          sentAt,
+          sentBy: userId,
+        });
+        console.log(`✅ Offer letter record created in database: ${offerLetterId}`);
+      } catch (dbError) {
+        console.error('❌ Error creating offer letter record:', dbError);
+        // Continue anyway - email is more important
+      }
+
+      // Send email
+      try {
+        const emailSent = await emailService.sendOfferLetterEmail({
+          recipientEmail: application.applicantEmail,
+          recipientName: applicantName,
+          companyName,
+          jobTitle,
+          offerContentText: offerContent,
+        });
+
+        if (emailSent) {
+          console.log(`✅ Offer letter email sent successfully to ${application.applicantEmail}`);
+        } else {
+          console.warn(`⚠️ Failed to send offer letter email to ${application.applicantEmail}`);
+        }
+      } catch (emailError) {
+        console.error(`❌ Error sending offer letter email:`, emailError);
+        // Continue with response even if email fails
+      }
+
+      res.json({
+        success: true,
+        message: "Offer letter sent successfully",
+        sentAt: sentAt.toISOString()
+      });
+
+    } catch (error) {
+      console.error("❌ Error sending offer letter:", error);
+      res.status(500).json({ message: "Failed to send offer letter" });
     }
   });
 
@@ -1992,32 +2284,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Shortlisted Applicants endpoints
+  // Now updates the status field in airtableJobApplications instead of creating separate record
   app.post('/api/shortlisted-applicants', requireAuth, async (req: any, res) => {
     try {
-      const { applicantId, applicantName, jobTitle, jobId, note } = req.body;
-      const employerId = req.user.id;
-      
+      const { applicantId } = req.body;
+
+      // Get the applicant to check current status
+      const applicant = await localDatabaseService.getJobApplication(applicantId);
+      if (!applicant) {
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+
       // Check if already shortlisted
-      const isAlreadyShortlisted = await storage.isApplicantShortlisted(employerId, applicantId, jobId);
-      if (isAlreadyShortlisted) {
+      if (applicant.status === 'shortlisted') {
         return res.status(400).json({ message: "Applicant already shortlisted for this job" });
       }
-      
-      const shortlistedData = {
-        id: `shortlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        employerId,
-        applicantId,
-        applicantName,
-        jobTitle,
-        jobId,
-        note: note || null,
-        dateShortlisted: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      const shortlisted = await storage.addToShortlist(shortlistedData);
-      res.json(shortlisted);
+
+      // Update status to 'shortlisted'
+      await localDatabaseService.updateJobApplication(applicantId, { status: 'shortlisted' });
+
+      console.log(`✅ Updated applicant ${applicantId} status to 'shortlisted'`);
+      res.json({ success: true, message: "Applicant shortlisted successfully" });
     } catch (error) {
       console.error("Error adding to shortlist:", error);
       res.status(500).json({ message: "Failed to add to shortlist" });
@@ -2028,76 +2315,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json([]);
       }
 
-      console.log("🌟 Fetching shortlisted applicants from database...");
-      
-      // Get shortlisted applicants from database
-      const shortlistedApplicants = await storage.getShortlistedApplicants(userId);
-      
-      console.log(`✅ Found ${shortlistedApplicants.length} shortlisted applicants in database`);
-      
-      // Get full applicant details from local database for each shortlisted applicant
-      const enrichedApplicants = [];
+      console.log("🌟 Fetching shortlisted applicants by status from airtableJobApplications...");
 
-      for (const shortlisted of shortlistedApplicants) {
-        try {
-          // Use local database service instead of Airtable
-          const applicantDetails = await localDatabaseService.getJobApplication(shortlisted.applicantId);
-          if (applicantDetails) {
-            console.log(`📋 Applicant details for ${shortlisted.applicantId}:`, {
-              name: applicantDetails.name,
-              applicantName: shortlisted.applicantName,
-              applicantEmail: applicantDetails.applicantEmail
-            });
+      // Get all job applications and filter by status = 'shortlisted'
+      const allApplicants = await localDatabaseService.getAllJobApplications();
 
-            enrichedApplicants.push({
-              id: shortlisted.id,
-              employerId: shortlisted.employerId,
-              applicantId: shortlisted.applicantId,
-              applicantName: shortlisted.applicantName,
-              name: applicantDetails.applicantName || shortlisted.applicantName || 'Unknown Applicant',
-              email: applicantDetails.applicantEmail || applicantDetails.email || 'No email available',
-              jobTitle: shortlisted.jobTitle,
-              jobId: shortlisted.jobId,
-              note: shortlisted.note,
-              appliedDate: applicantDetails.applicationDate,
-              dateShortlisted: shortlisted.dateShortlisted,
-              createdAt: shortlisted.createdAt,
-              updatedAt: shortlisted.updatedAt,
-              // Include all the applicant details for display
-              applicantUserId: applicantDetails.applicantUserId,
-              userProfile: applicantDetails.userProfile,
-              companyName: applicantDetails.companyName,
-              jobDescription: applicantDetails.jobDescription,
-              matchScore: applicantDetails.matchScore || applicantDetails.savedMatchScore,
-              matchSummary: applicantDetails.matchSummary || applicantDetails.savedMatchSummary,
-              technicalSkillsScore: applicantDetails.technicalSkillsScore,
-              experienceScore: applicantDetails.experienceScore,
-              culturalFitScore: applicantDetails.culturalFitScore,
-            });
-          } else {
-            console.log(`⚠️ No applicant details found for ${shortlisted.applicantId}, using shortlisted data`);
-            enrichedApplicants.push({
-              ...shortlisted,
-              name: shortlisted.applicantName || 'Unknown Applicant',
-              email: 'No email available',
-            });
-          }
-        } catch (error) {
-          console.error(`❌ Error enriching applicant ${shortlisted.applicantId}:`, error);
-          // Include basic info even if enrichment fails
-          enrichedApplicants.push({
-            ...shortlisted,
-            name: shortlisted.applicantName || 'Unknown Applicant',
-            email: 'No email available',
-          });
-        }
-      }
-      
+      // Get organization's jobs to filter by
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+
+      // Filter by organization's jobs and status = 'shortlisted'
+      const shortlistedApplicants = allApplicants.filter((app: any) =>
+        organizationJobIds.has(app.jobId?.toString()) && app.status === 'shortlisted'
+      );
+
+      console.log(`✅ Found ${shortlistedApplicants.length} shortlisted applicants by status`);
+
+      // Transform to expected format
+      const enrichedApplicants = shortlistedApplicants.map((app: any) => ({
+        id: app.id,
+        applicantId: app.id,
+        applicantName: app.applicantName,
+        name: app.applicantName || 'Unknown Applicant',
+        email: app.applicantEmail || app.email || 'No email available',
+        jobTitle: app.jobTitle,
+        jobId: app.jobId,
+        note: app.note || null,
+        appliedDate: app.applicationDate,
+        dateShortlisted: app.updatedAt || app.createdAt,
+        createdAt: app.createdAt,
+        updatedAt: app.updatedAt,
+        applicantUserId: app.applicantUserId,
+        userProfile: app.userProfile,
+        companyName: app.companyName,
+        jobDescription: app.jobDescription,
+        matchScore: app.matchScore || app.savedMatchScore,
+        matchSummary: app.matchSummary || app.savedMatchSummary,
+        technicalSkillsScore: app.technicalSkillsScore,
+        experienceScore: app.experienceScore,
+        culturalFitScore: app.culturalFitScore,
+      }));
+
       res.json(enrichedApplicants);
     } catch (error) {
       console.error("❌ Error fetching shortlisted applicants:", error);
@@ -2118,9 +2381,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get('/api/shortlisted-applicants/check/:applicantId/:jobId', requireAuth, async (req: any, res) => {
     try {
-      const { applicantId, jobId } = req.params;
-      const employerId = req.user.id;
-      const isShortlisted = await storage.isApplicantShortlisted(employerId, applicantId, jobId);
+      const { applicantId } = req.params;
+
+      // Check status from the main applicant record
+      const applicant = await localDatabaseService.getJobApplication(applicantId);
+      const isShortlisted = applicant?.status === 'shortlisted';
+
       res.json({ isShortlisted });
     } catch (error) {
       console.error("Error checking shortlist status:", error);
@@ -5015,59 +5281,48 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  // Get accepted applicants for CreateInterviewModal (from platojobmatches table filtered by job ID)
-  // Get all accepted applicants across all jobs for an organization
+  // Get accepted applicants - now queries by status from airtableJobApplications
   app.get('/api/accepted-applicants', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      // Get accepted applicants from platojobmatches table filtered by Company
-      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP'; // Correct base ID for platojobmatches
-      
-      console.log(`🔍 Fetching ALL accepted applicants from platojobmatches table for Organization: ${organization.companyName}`);
-      
-      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-      const filterFormula = `{Company name}='${organization.companyName}'`;
-      const fullUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+      console.log(`🔍 Fetching accepted applicants by status for Organization: ${organization.companyName}`);
 
-      const response = await fetch(fullUrl, {
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Get all job applications and filter by status = 'accepted'
+      const allApplicants = await localDatabaseService.getAllJobApplications();
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log(`Airtable error response:`, errorText);
-        throw new Error(`Failed to fetch accepted applicants: ${response.status} - ${errorText}`);
-      }
+      // Get organization's jobs to filter by
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
 
-      const data = await response.json();
-      console.log(`✅ Found ${data.records.length} total accepted applicants for organization ${organization.companyName}`);
+      // Filter by organization's jobs and status = 'accepted'
+      const acceptedApplicants = allApplicants.filter((app: any) =>
+        organizationJobIds.has(app.jobId?.toString()) && app.status === 'accepted'
+      );
+
+      console.log(`✅ Found ${acceptedApplicants.length} accepted applicants by status`);
 
       // Transform to expected format
-      const formattedApplicants = data.records.map((record: any) => ({
-        id: record.fields['User ID'] || record.id,
-        applicantName: record.fields['Name'] || 'Unknown',
-        jobTitle: record.fields['Job title'] || 'Unknown Position',
-        jobId: record.fields['Job ID'] || '',
+      const formattedApplicants = acceptedApplicants.map((app: any) => ({
+        id: app.id,
+        applicantName: app.applicantName || 'Unknown',
+        name: app.applicantName || 'Unknown',
+        jobTitle: app.jobTitle || 'Unknown Position',
+        jobId: app.jobId || '',
         status: 'Accepted',
-        acceptedDate: record.fields['Created'] || new Date().toISOString(),
-        userId: record.fields['User ID'] || record.id,
-        email: record.fields['Email'] || '',
-        airtableRecordId: record.id
+        acceptedDate: app.updatedAt || app.createdAt || new Date().toISOString(),
+        userId: app.applicantUserId || app.id,
+        email: app.applicantEmail || app.email || '',
       }));
 
       res.json(formattedApplicants);
     } catch (error) {
-      console.error("Error fetching all accepted applicants:", error);
+      console.error("Error fetching accepted applicants:", error);
       res.status(500).json({ message: "Failed to fetch accepted applicants" });
     }
   });
@@ -5077,58 +5332,91 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
       const jobId = req.params.jobId;
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      // Get accepted applicants from platojobmatches table filtered by Job ID and Company
-      const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      const MATCHES_BASE_ID = 'app1u4N2W46jD43mP'; // Correct base ID for platojobmatches
-      
-      console.log(`🔍 Fetching accepted applicants from platojobmatches table for Job ID: ${jobId}, Organization: ${organization.companyName}`);
-      console.log(`Using Airtable API Key: ${AIRTABLE_API_KEY.substring(0, 10)}...`);
-      console.log(`Using Base ID: ${MATCHES_BASE_ID}`);
-      const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-      
-      const filterFormula = `AND({Company name}='${organization.companyName}', {Job ID}='${jobId}')`;
-      const fullUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-      console.log(`Making request to: ${fullUrl}`);
-      console.log(`Filter formula: ${filterFormula}`);
+      console.log(`🔍 Fetching accepted applicants by status for Job ID: ${jobId}`);
 
-      const response = await fetch(fullUrl, {
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Get all job applications and filter by status = 'accepted' and jobId
+      const allApplicants = await localDatabaseService.getAllJobApplications();
 
-      console.log(`Response status: ${response.status}`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log(`Airtable error response:`, errorText);
-        throw new Error(`Failed to fetch accepted applicants: ${response.status} - ${errorText}`);
-      }
+      // Filter by jobId and status = 'accepted'
+      const acceptedApplicants = allApplicants.filter((app: any) =>
+        app.jobId?.toString() === jobId && app.status === 'accepted'
+      );
 
-      const data = await response.json();
-      console.log(`✅ Found ${data.records.length} accepted applicants for Job ID ${jobId} in platojobmatches table`);
+      console.log(`✅ Found ${acceptedApplicants.length} accepted applicants for Job ID ${jobId}`);
 
       // Transform to expected format for the interview modal
-      const formattedApplicants = data.records.map((record: any) => ({
-        id: record.fields['User ID'] || record.id,
-        name: record.fields['Name'] || 'Unknown',
-        jobTitle: record.fields['Job title'] || 'Unknown Position',
-        userId: record.fields['User ID'] || record.id,
-        jobId: record.fields['Job ID'] || '',
-        email: record.fields['Email'] || '',
-        airtableRecordId: record.id
+      const formattedApplicants = acceptedApplicants.map((app: any) => ({
+        id: app.id,
+        name: app.applicantName || 'Unknown',
+        jobTitle: app.jobTitle || 'Unknown Position',
+        userId: app.applicantUserId || app.id,
+        jobId: app.jobId || '',
+        email: app.applicantEmail || app.email || '',
       }));
 
       res.json(formattedApplicants);
     } catch (error) {
       console.error("Error fetching accepted applicants:", error);
       res.status(500).json({ message: "Failed to fetch accepted applicants" });
+    }
+  });
+
+  // Get interviewable applicants (shortlisted OR accepted) for interview scheduling
+  app.get('/api/interviewable-applicants', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+      const { jobId } = req.query;
+
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      console.log(`🔍 Fetching interviewable applicants (shortlisted OR accepted) for Organization: ${organization.companyName}`);
+
+      // Get all job applications
+      const allApplicants = await localDatabaseService.getAllJobApplications();
+
+      // Get organization's jobs to filter by
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+
+      // Filter by organization's jobs and status = 'shortlisted' OR 'accepted'
+      let interviewableApplicants = allApplicants.filter((app: any) =>
+        organizationJobIds.has(app.jobId?.toString()) &&
+        (app.status === 'shortlisted' || app.status === 'accepted')
+      );
+
+      // Optionally filter by specific job
+      if (jobId) {
+        interviewableApplicants = interviewableApplicants.filter((app: any) =>
+          app.jobId?.toString() === jobId
+        );
+      }
+
+      console.log(`✅ Found ${interviewableApplicants.length} interviewable applicants`);
+
+      // Transform to expected format
+      const formattedApplicants = interviewableApplicants.map((app: any) => ({
+        id: app.id,
+        name: app.applicantName || 'Unknown',
+        applicantName: app.applicantName || 'Unknown',
+        jobTitle: app.jobTitle || 'Unknown Position',
+        userId: app.applicantUserId || app.id,
+        jobId: app.jobId || '',
+        email: app.applicantEmail || app.email || '',
+        status: app.status,
+      }));
+
+      res.json(formattedApplicants);
+    } catch (error) {
+      console.error("Error fetching interviewable applicants:", error);
+      res.status(500).json({ message: "Failed to fetch interviewable applicants" });
     }
   });
 

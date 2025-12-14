@@ -1415,3 +1415,103 @@ export function getRoleKnowledge(jobTitle: string): RoleKnowledge | null {
 export function getSupportedRoles(): string[] {
   return Object.keys(ROLE_KNOWLEDGE_BASE);
 }
+
+/**
+ * Generate a personalized offer letter using AI
+ */
+export async function generateOfferLetter(params: {
+  applicantName: string;
+  jobTitle: string;
+  companyName: string;
+  location: string;
+  employmentType: string;
+  workplaceType: string;
+  salaryRange: string;
+  benefits: string[];
+  customMessage?: string;
+  applicantSkills?: string[];
+  applicantExperience?: string;
+}): Promise<string> {
+  const {
+    applicantName,
+    jobTitle,
+    companyName,
+    location,
+    employmentType,
+    workplaceType,
+    salaryRange,
+    benefits,
+    customMessage,
+    applicantSkills = [],
+    applicantExperience = ''
+  } = params;
+
+  const aiPrompt = `Generate a professional job offer letter with the following details:
+
+COMPANY INFORMATION:
+- Company Name: ${companyName}
+- Position: ${jobTitle}
+- Location: ${location}
+- Employment Type: ${employmentType}
+- Workplace Type: ${workplaceType}
+- Compensation: ${salaryRange}
+
+CANDIDATE INFORMATION:
+- Name: ${applicantName}
+${applicantSkills.length > 0 ? `- Key Skills: ${applicantSkills.slice(0, 5).join(', ')}` : ''}
+${applicantExperience ? `- Strengths: ${applicantExperience}` : ''}
+
+${benefits.length > 0 ? `BENEFITS:
+${benefits.map((b: string) => `- ${b}`).join('\n')}` : ''}
+
+${customMessage ? `PERSONALIZED MESSAGE FROM HIRING MANAGER:
+${customMessage}` : ''}
+
+Please generate a warm, professional offer letter that:
+1. Opens with a personalized greeting using the actual candidate name: ${applicantName}
+2. ${customMessage ? 'Incorporates the hiring manager\'s personalized message naturally' : 'Includes a brief, genuine statement about why they were selected'}
+3. Clearly outlines the position details, compensation, and benefits using the ACTUAL values provided above
+4. Maintains a professional yet welcoming tone
+5. Includes next steps for the candidate
+6. Ends with an enthusiastic closing signed with "${companyName} Hiring Team" (not placeholders like [Your Name] or [Your Position])
+
+CRITICAL REQUIREMENTS:
+- DO NOT use any placeholders like [Your Name], [Your Position], [Specific Date], (date), etc.
+- Use ONLY the actual information provided above
+- If a specific deadline date is needed for accepting the offer, use "within 7 business days" or similar wording instead of placeholder dates
+- The letter should be complete and ready to send as-is, without requiring any manual edits to fill in blanks
+- Sign the letter as "${companyName} Hiring Team" - do not use individual names or placeholder names
+
+Format the letter as plain text (not markdown), well-structured with proper spacing and sections. Make it feel personal and genuine, not generic.`;
+
+  try {
+    const response = await wrapOpenAIRequest(
+      () => openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL_OFFER_LETTER || 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert HR professional and offer letter writer. Create compelling, professional, and personalized job offer letters that make candidates excited to join the company.'
+          },
+          {
+            role: 'user',
+            content: aiPrompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+      }),
+      {
+        requestType: "offer_letter_generation",
+        model: process.env.OPENAI_MODEL_OFFER_LETTER || 'gpt-4',
+        requestData: { ...params, aiPrompt },
+        metadata: { applicantName, jobTitle, companyName }
+      }
+    );
+
+    return response.choices[0].message.content || '';
+  } catch (error) {
+    console.error('⚠️  AI offer letter generation failed:', error);
+    throw error;
+  }
+}

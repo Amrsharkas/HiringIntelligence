@@ -641,6 +641,32 @@ export const scoredApplicants = pgTable("scored_applicants", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const offerLetters = pgTable("offer_letters", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  applicantId: varchar("applicant_id").notNull(),
+  jobId: varchar("job_id").notNull(),
+  organizationId: varchar("organization_id").notNull(),
+
+  // Offer details
+  offerContent: text("offer_content").notNull(),
+  position: varchar("position").notNull(),
+  salary: varchar("salary"),
+  startDate: varchar("start_date"),
+
+  // Email tracking
+  recipientEmail: varchar("recipient_email").notNull(),
+  recipientName: varchar("recipient_name").notNull(),
+
+  // Status tracking
+  status: varchar("status").notNull().default("sent"),
+  sentAt: timestamp("sent_at").notNull(),
+  sentBy: varchar("sent_by").notNull(),
+
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const resumeProfiles = pgTable("resume_profiles", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar("name").notNull(),
@@ -1053,6 +1079,8 @@ export const airtableJobApplications = pgTable("airtable_job_applications", {
   applicationDate: timestamp("application_date").defaultNow(),
   jobDescription: text("job_description"),
   sessionId: integer("session_id"), // Reference to interview session for video URL
+  applicantProfileId: integer("applicant_profile_id"), // Reference to applicant_profiles.id for precise profile lookup
+  generatedProfile: jsonb("generated_profile"), // AI-generated profile from interview completion
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

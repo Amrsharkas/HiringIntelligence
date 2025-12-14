@@ -18,7 +18,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -27,77 +26,48 @@ import {
   MoreHorizontal,
   Eye,
   Star,
-  CheckCircle,
   XCircle,
   Calendar,
-  Users,
   Loader2,
-  FileText,
+  RotateCcw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { GenerateOfferLetterModal } from "@/components/GenerateOfferLetterModal";
 
-export default function ShortlistedPage() {
+export default function DeniedPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [offerLetterModal, setOfferLetterModal] = useState({
-    isOpen: false,
-    applicantId: '',
-    applicantName: '',
-    applicantEmail: '',
-    jobTitle: '',
-    jobId: ''
-  });
 
-  // Fetch shortlisted applicants using status filter
-  const { data: shortlistedData, isLoading } = useQuery<any>({
-    queryKey: ["/api/applicants", { status: "shortlisted" }],
+  // Fetch denied applicants using status filter
+  const { data: deniedData, isLoading } = useQuery<any>({
+    queryKey: ["/api/applicants", { status: "denied" }],
     queryFn: async () => {
-      const res = await fetch("/api/applicants?status=shortlisted", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch shortlisted applicants");
+      const res = await fetch("/api/applicants?status=denied", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch denied applicants");
       return res.json();
     },
   });
 
   // Handle response format
-  const applicants = Array.isArray(shortlistedData)
-    ? shortlistedData
-    : (shortlistedData?.applicants || shortlistedData?.data || []);
+  const applicants = Array.isArray(deniedData)
+    ? deniedData
+    : (deniedData?.applicants || deniedData?.data || []);
 
-  const acceptMutation = useMutation({
+  const shortlistMutation = useMutation({
     mutationFn: async (applicantId: number) => {
-      await apiRequest("POST", `/api/applicants/${applicantId}/accept`);
+      await apiRequest("POST", `/api/applicants/${applicantId}/shortlist`);
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Applicant accepted!" });
-      // Invalidate all applicant queries (with and without status filters)
+      toast({ title: "Success", description: "Applicant moved back to shortlisted!" });
+      // Invalidate all applicant queries
       queryClient.invalidateQueries({ queryKey: ["/api/applicants"] });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to accept applicant",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const denyMutation = useMutation({
-    mutationFn: async (applicantId: number) => {
-      await apiRequest("POST", `/api/applicants/${applicantId}/deny`);
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Applicant denied" });
-      // Invalidate all applicant queries (with and without status filters)
-      queryClient.invalidateQueries({ queryKey: ["/api/applicants"] });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to deny applicant",
+        description: "Failed to move applicant back to shortlisted",
         variant: "destructive",
       });
     },
@@ -136,10 +106,10 @@ export default function ShortlistedPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-            Shortlisted Applicants
+            Denied Applicants
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Candidates you've marked for further consideration
+            Candidates who were not selected for positions
           </p>
         </div>
       </div>
@@ -150,7 +120,7 @@ export default function ShortlistedPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              placeholder="Search shortlisted applicants..."
+              placeholder="Search denied applicants..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -169,16 +139,16 @@ export default function ShortlistedPage() {
           ) : filteredApplicants.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-slate-400" />
+                <XCircle className="w-8 h-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                No shortlisted applicants
+                No denied applicants
               </h3>
               <p className="text-slate-600 dark:text-slate-400 mb-4">
-                Shortlist applicants from the All Applicants page
+                Denied applicants will appear here after you make rejection decisions
               </p>
-              <Button onClick={() => navigate("/hiring/applicants")}>
-                View All Applicants
+              <Button onClick={() => navigate("/hiring/applicants/shortlisted")}>
+                View Shortlisted
               </Button>
             </div>
           ) : (
@@ -188,12 +158,12 @@ export default function ShortlistedPage() {
                   <TableHead>Applicant</TableHead>
                   <TableHead>Job</TableHead>
                   <TableHead>Match Score</TableHead>
-                  <TableHead>Shortlisted</TableHead>
+                  <TableHead>Denied</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredApplicants.map((applicant, index) => (
+                {filteredApplicants.map((applicant: any, index: number) => (
                   <motion.tr
                     key={applicant.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -204,7 +174,7 @@ export default function ShortlistedPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                           {applicant.applicantName?.[0] || applicant.applicantEmail?.[0]?.toUpperCase() || "A"}
                         </div>
                         <div>
@@ -235,7 +205,7 @@ export default function ShortlistedPage() {
                     <TableCell>
                       <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
                         <Calendar className="w-4 h-4" />
-                        {formatDate(applicant.shortlistedAt || applicant.createdAt)}
+                        {formatDate(applicant.deniedAt || applicant.createdAt)}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -258,48 +228,12 @@ export default function ShortlistedPage() {
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/hiring/interviews/new?applicantId=${applicant.id}`);
+                              shortlistMutation.mutate(applicant.id);
                             }}
+                            className="text-blue-600 dark:text-blue-400"
                           >
-                            <Calendar className="w-4 h-4 mr-2" />
-                            Schedule Interview
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOfferLetterModal({
-                                isOpen: true,
-                                applicantId: applicant.id,
-                                applicantName: applicant.applicantName || 'Candidate',
-                                applicantEmail: applicant.applicantEmail || applicant.email || '',
-                                jobTitle: applicant.jobTitle || 'Position',
-                                jobId: applicant.jobId || ''
-                              });
-                            }}
-                          >
-                            <FileText className="w-4 h-4 mr-2" />
-                            Generate Offer Letter
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              acceptMutation.mutate(applicant.id);
-                            }}
-                            className="text-green-600 dark:text-green-400"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Accept
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              denyMutation.mutate(applicant.id);
-                            }}
-                            className="text-red-600 dark:text-red-400"
-                          >
-                            <XCircle className="w-4 h-4 mr-2" />
-                            Deny
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Move to Shortlisted
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -311,17 +245,6 @@ export default function ShortlistedPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Generate Offer Letter Modal */}
-      <GenerateOfferLetterModal
-        isOpen={offerLetterModal.isOpen}
-        onClose={() => setOfferLetterModal({ ...offerLetterModal, isOpen: false })}
-        applicantId={offerLetterModal.applicantId}
-        applicantName={offerLetterModal.applicantName}
-        applicantEmail={offerLetterModal.applicantEmail}
-        jobTitle={offerLetterModal.jobTitle}
-        jobId={offerLetterModal.jobId}
-      />
     </div>
   );
 }

@@ -36,17 +36,20 @@ export default function AcceptedPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch all applicants and filter accepted
-  const { data: allApplicantsData, isLoading } = useQuery<any>({
-    queryKey: ["/api/applicants"],
+  // Fetch accepted applicants using status filter
+  const { data: acceptedData, isLoading } = useQuery<any>({
+    queryKey: ["/api/applicants", { status: "accepted" }],
+    queryFn: async () => {
+      const res = await fetch("/api/applicants?status=accepted", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch accepted applicants");
+      return res.json();
+    },
   });
 
-  // Handle response format and filter accepted
-  const allApplicants = Array.isArray(allApplicantsData)
-    ? allApplicantsData
-    : (allApplicantsData?.applicants || allApplicantsData?.data || []);
-
-  const applicants = allApplicants.filter((a: any) => a.status === "accepted");
+  // Handle response format
+  const applicants = Array.isArray(acceptedData)
+    ? acceptedData
+    : (acceptedData?.applicants || acceptedData?.data || []);
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
@@ -62,10 +65,10 @@ export default function AcceptedPage() {
     });
   };
 
-  const filteredApplicants = applicants.filter((applicant) =>
-    applicant.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    applicant.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    applicant.lastName?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredApplicants = applicants.filter((applicant: any) =>
+    applicant.applicantEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    applicant.applicantName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    applicant.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -150,16 +153,14 @@ export default function AcceptedPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          {applicant.firstName?.[0] || applicant.email?.[0]?.toUpperCase() || "A"}
+                          {applicant.applicantName?.[0] || applicant.applicantEmail?.[0]?.toUpperCase() || "A"}
                         </div>
                         <div>
                           <p className="font-medium text-slate-900 dark:text-white">
-                            {applicant.firstName && applicant.lastName
-                              ? `${applicant.firstName} ${applicant.lastName}`
-                              : "Unnamed"}
+                            {applicant.applicantName || "Unnamed"}
                           </p>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {applicant.email}
+                            {applicant.applicantEmail || applicant.email}
                           </p>
                         </div>
                       </div>

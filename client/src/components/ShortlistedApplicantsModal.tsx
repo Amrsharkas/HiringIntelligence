@@ -69,13 +69,15 @@ export function ShortlistedApplicantsModal({
   });
 
   const denyApplicantMutation = useMutation({
-    mutationFn: async (shortlistId: string) => {
-      return await apiRequest("POST", `/api/shortlisted-applicants/${shortlistId}/deny`);
+    mutationFn: async (applicantId: string) => {
+      // Use the main applicant deny endpoint to update status
+      return await apiRequest("POST", `/api/applicants/${applicantId}/deny`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants"] });
       toast({
-        description: "Candidate removed from shortlist",
+        description: "Candidate denied",
       });
     },
     onError: (error: any) => {
@@ -99,8 +101,16 @@ export function ShortlistedApplicantsModal({
   });
 
   const scheduleInterviewMutation = useMutation({
-    mutationFn: async (data: { shortlistId: string; interviewData: any }) => {
-      return await apiRequest("POST", `/api/shortlisted-applicants/${data.shortlistId}/schedule-interview`, data.interviewData);
+    mutationFn: async (data: { applicantId: string; applicant: any; interviewData: any }) => {
+      // Use the main interviews endpoint to create the interview
+      return await apiRequest("POST", `/api/interviews`, {
+        candidateName: data.applicant.name || data.applicant.applicantName,
+        candidateEmail: data.applicant.email || '',
+        candidateId: data.applicant.applicantUserId || data.applicant.id,
+        jobId: data.applicant.jobId,
+        jobTitle: data.applicant.jobTitle,
+        ...data.interviewData
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
@@ -233,7 +243,8 @@ export function ShortlistedApplicantsModal({
     }
 
     scheduleInterviewMutation.mutate({
-      shortlistId: selectedApplicantForSchedule.id,
+      applicantId: selectedApplicantForSchedule.id,
+      applicant: selectedApplicantForSchedule,
       interviewData
     });
   };

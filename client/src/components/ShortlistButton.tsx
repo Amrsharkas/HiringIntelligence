@@ -41,16 +41,13 @@ export function ShortlistButton({
   });
 
   const shortlistMutation = useMutation({
-    mutationFn: async (noteText: string) => {
-      return await apiRequest("/api/shortlisted-applicants", "POST", {
-        applicantId,
-        applicantName,
-        jobTitle,
-        jobId,
-        note: noteText,
-      });
+    mutationFn: async (_noteText: string) => {
+      // Use the status-based shortlist endpoint
+      return await apiRequest("POST", `/api/applicants/${applicantId}/shortlist`);
     },
     onSuccess: () => {
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shortlisted-applicants/check", applicantId, jobId] });
       setIsNoteModalOpen(false);
