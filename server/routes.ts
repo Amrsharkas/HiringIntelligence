@@ -1584,6 +1584,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single applicant by ID
+  app.get('/api/applicants/detail/:applicantId', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.applicantId;
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(403).json({ message: "Organization not found" });
+      }
+
+      // Get the applicant from local database
+      const applicant = await localDatabaseService.getJobApplication(applicantId);
+
+      if (!applicant) {
+        return res.status(404).json({ message: "Applicant not found" });
+      }
+
+      // Verify this applicant belongs to one of the organization's jobs
+      const organizationJobs = await storage.getJobsByOrganization(organization.id);
+      const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
+
+      if (!organizationJobIds.has(applicant.jobId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get the scored data if available
+      const allScoredApplicants = await storage.getScoredApplicantsByOrganization(organization.id);
+      const scoredData = allScoredApplicants.find(s => s.applicantId === applicantId);
+
+      // Parse userProfile to extract structured data
+      let parsedProfile: any = {};
+      if (applicant.userProfile) {
+        const profile = typeof applicant.userProfile === 'string'
+          ? JSON.parse(applicant.userProfile)
+          : applicant.userProfile;
+
+        parsedProfile = {
+          name: profile.name || profile.fullName || applicant.applicantName,
+          email: profile.email || applicant.applicantEmail,
+          phone: profile.phone || profile.phoneNumber,
+          location: profile.location || profile.city,
+          summary: profile.summary || profile.professionalSummary || profile.objective,
+          skills: profile.skills || profile.technicalSkills || [],
+          experience: profile.experience || profile.workExperience || [],
+          education: profile.education || [],
+          certifications: profile.certifications || profile.certificates || [],
+          languages: profile.languages || [],
+        };
+      }
+
+      // Check if there's a matching resume profile with detailed analysis
+      let fullResponse = null;
+      try {
+        // Try to find a resume profile that matches this applicant by email
+        const resumeProfiles = await storage.getResumeProfilesByOrganization(organization.id.toString());
+        const matchingProfile = resumeProfiles.find(
+          p => p.email?.toLowerCase() === applicant.applicantEmail?.toLowerCase()
+        );
+
+        if (matchingProfile) {
+          // Get job scores for this profile
+          const jobScores = await storage.getJobScoresByProfile(matchingProfile.id);
+          const matchingJobScore = jobScores.find(js => js.jobId?.toString() === applicant.jobId);
+
+          if (matchingJobScore?.fullResponse) {
+            fullResponse = matchingJobScore.fullResponse;
+          }
+        }
+      } catch (e) {
+        console.log('Could not fetch resume profile for detailed analysis:', e);
+      }
+
+      const enrichedApplicant = {
+        ...applicant,
+        // Basic info
+        name: parsedProfile.name || applicant.applicantName,
+        email: parsedProfile.email || applicant.applicantEmail,
+        phone: parsedProfile.phone,
+        location: parsedProfile.location,
+        summary: parsedProfile.summary,
+
+        // Structured data from profile
+        skills: parsedProfile.skills,
+        experience: parsedProfile.experience,
+        education: parsedProfile.education,
+        certifications: parsedProfile.certifications,
+        languages: parsedProfile.languages,
+
+        // Score data
+        matchScore: scoredData?.matchScore || (applicant as any).matchScore,
+        matchSummary: scoredData?.matchSummary || (applicant as any).matchSummary,
+        technicalSkillsScore: scoredData?.technicalSkillsScore,
+        experienceScore: scoredData?.experienceScore,
+        culturalFitScore: scoredData?.culturalFitScore,
+
+        // Detailed analysis (if available from resume profile)
+        fullResponse: fullResponse,
+      };
+
+      res.json(enrichedApplicant);
+    } catch (error) {
+      console.error("Error fetching applicant details:", error);
+      res.status(500).json({ message: "Failed to fetch applicant details" });
+    }
+  });
+
   app.get('/api/applicants/:jobId', requireAuth, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
@@ -1599,9 +1706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/applicants/:id/accept', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
-      const { applicantsAirtableService } = await import('./applicantsAirtableService');
-      
-      await applicantsAirtableService.updateApplicantStatus(applicantId, 'accepted');
+      await localDatabaseService.updateJobApplication(applicantId, { status: 'accepted' });
       res.json({ message: "Applicant accepted successfully" });
     } catch (error) {
       console.error("Error accepting applicant:", error);
@@ -1612,13 +1717,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/applicants/:id/decline', requireAuth, async (req: any, res) => {
     try {
       const applicantId = req.params.id;
-      const { applicantsAirtableService } = await import('./applicantsAirtableService');
-      
-      await applicantsAirtableService.updateApplicantStatus(applicantId, 'declined');
+      await localDatabaseService.updateJobApplication(applicantId, { status: 'declined' });
       res.json({ message: "Applicant declined successfully" });
     } catch (error) {
       console.error("Error declining applicant:", error);
       res.status(500).json({ message: "Failed to decline applicant" });
+    }
+  });
+
+  // Alias for deny (same as decline)
+  app.post('/api/applicants/:id/deny', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      await localDatabaseService.updateJobApplication(applicantId, { status: 'denied' });
+      res.json({ message: "Applicant denied successfully" });
+    } catch (error) {
+      console.error("Error denying applicant:", error);
+      res.status(500).json({ message: "Failed to deny applicant" });
+    }
+  });
+
+  // Shortlist an applicant
+  app.post('/api/applicants/:id/shortlist', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      await localDatabaseService.updateJobApplication(applicantId, { status: 'shortlisted' });
+      res.json({ message: "Applicant shortlisted successfully" });
+    } catch (error) {
+      console.error("Error shortlisting applicant:", error);
+      res.status(500).json({ message: "Failed to shortlist applicant" });
     }
   });
 

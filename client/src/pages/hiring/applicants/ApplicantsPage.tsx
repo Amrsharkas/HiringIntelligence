@@ -132,11 +132,12 @@ export default function ApplicantsPage() {
   // Filter applicants
   const filteredApplicants = applicants.filter((applicant: any) => {
     const matchesSearch =
-      applicant.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      applicant.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      applicant.lastName?.toLowerCase().includes(searchQuery.toLowerCase());
+      applicant.applicantEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      applicant.applicantName?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || applicant.status === statusFilter;
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "new" && applicant.status === "applied") ||
+      applicant.status === statusFilter;
     const matchesJob = jobFilter === "all" || applicant.jobId?.toString() === jobFilter;
 
     return matchesSearch && matchesStatus && matchesJob;
@@ -261,16 +262,14 @@ export default function ApplicantsPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                          {applicant.firstName?.[0] || applicant.email?.[0]?.toUpperCase() || "A"}
+                          {applicant.applicantName?.[0]?.toUpperCase() || applicant.applicantEmail?.[0]?.toUpperCase() || "A"}
                         </div>
                         <div>
                           <p className="font-medium text-slate-900 dark:text-white">
-                            {applicant.firstName && applicant.lastName
-                              ? `${applicant.firstName} ${applicant.lastName}`
-                              : "Unnamed"}
+                            {applicant.applicantName || "Unnamed"}
                           </p>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {applicant.email}
+                            {applicant.applicantEmail}
                           </p>
                         </div>
                       </div>
@@ -293,7 +292,7 @@ export default function ApplicantsPage() {
                     <TableCell>
                       <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
                         <Calendar className="w-4 h-4" />
-                        {formatDate(applicant.appliedAt || applicant.createdAt)}
+                        {formatDate(applicant.applicationDate || applicant.createdAt)}
                       </div>
                     </TableCell>
                     <TableCell>
