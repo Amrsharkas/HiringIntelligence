@@ -31,9 +31,9 @@ export default function JobApplicantsPage() {
   });
 
   const { data: applicants = [], isLoading: applicantsLoading } = useQuery<any[]>({
-    queryKey: [`/api/real-applicants/${jobId}`],
+    queryKey: [`/api/applicants`, { jobId }],
     queryFn: async () => {
-      const response = await fetch(`/api/real-applicants/${jobId}`, {
+      const response = await fetch(`/api/applicants?jobId=${jobId}`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error("Failed to fetch applicants");
@@ -129,22 +129,20 @@ export default function JobApplicantsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
-                        {applicant.firstName?.[0] || applicant.email?.[0]?.toUpperCase() || "A"}
+                        {applicant.applicantName?.[0]?.toUpperCase() || applicant.applicantEmail?.[0]?.toUpperCase() || "A"}
                       </div>
                       <div>
                         <h3 className="font-semibold text-slate-900 dark:text-white">
-                          {applicant.firstName && applicant.lastName
-                            ? `${applicant.firstName} ${applicant.lastName}`
-                            : applicant.email}
+                          {applicant.applicantName || applicant.applicantEmail}
                         </h3>
                         <div className="flex items-center gap-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1">
                             <Mail className="w-4 h-4" />
-                            {applicant.email}
+                            {applicant.applicantEmail}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            Applied {formatDate(applicant.appliedAt || applicant.createdAt)}
+                            Applied {formatDate(applicant.applicationDate || applicant.createdAt)}
                           </span>
                         </div>
                       </div>

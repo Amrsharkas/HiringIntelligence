@@ -1450,7 +1450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      const jobId = req.params.jobId ? parseInt(req.params.jobId) : null;
+      const jobId = req.params.jobId || null;
 
       // Pagination parameters
       const page = parseInt(req.query.page) || 1;
@@ -1622,12 +1622,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Original Applicants routes (now for platojobapplications table) - UPDATED WITH BRUTAL AI SCORING
-  // Supports ?status=shortlisted|accepted|denied|applied filter
+  // Supports ?status=shortlisted|accepted|denied|applied&jobId=123 filters
   app.get('/api/applicants', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      const { status } = req.query; // Optional status filter
+      const { status, jobId } = req.query; // Optional status and jobId filters
 
       if (!organization) {
         return res.json([]);
@@ -1643,6 +1643,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
       applicants = applicants.filter(app => organizationJobIds.has(app.jobId));
+
+      // Apply jobId filter if provided
+      if (jobId) {
+        console.log(`🔍 Filtering applicants by jobId: ${jobId}`);
+        applicants = applicants.filter(app => app.jobId === jobId);
+      }
 
       // Apply status filter if provided
       if (status) {
