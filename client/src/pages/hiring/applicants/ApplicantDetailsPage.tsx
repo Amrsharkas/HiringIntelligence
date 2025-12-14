@@ -195,19 +195,18 @@ export default function ApplicantDetailsPage() {
   const interviewMeta = profile?.interview_metadata;
   const transcript = profile?.transcript_analysis;
   const overallQuality = transcript?.overall_quality;
-  const hiringGuidance = profile?.hiring_guidance;
-  const cognitivePatterns = profile?.cognitive_patterns;
-  const linguisticPatterns = profile?.linguistic_patterns;
-  const redFlags = profile?.red_flags_detected;
-  const greenFlags = profile?.green_flags_detected;
-  const strongestResponses = profile?.strongest_responses;
-  const weakestResponses = profile?.weakest_responses;
-  const topicsWellCovered = profile?.topics_well_covered;
-  const topicsAvoidedOrWeak = profile?.topics_avoided_or_weak;
-  const omissionsAnalysis = profile?.omissions_analysis;
-  const authenticityAssessment = profile?.authenticity_assessment;
-  const assessmentMetadata = profile?.assessment_metadata;
-  const fullResponse = applicant.fullResponse;
+  const hiringGuidance = transcript?.hiring_guidance;
+  const cognitivePatterns = transcript?.cognitive_patterns;
+  const linguisticPatterns = transcript?.linguistic_patterns;
+  const redFlags = transcript?.red_flags_detected;
+  const greenFlags = transcript?.green_flags_detected;
+  const strongestResponses = transcript?.strongest_responses;
+  const weakestResponses = transcript?.weakest_responses;
+  const topicsWellCovered = transcript?.topics_well_covered;
+  const topicsAvoidedOrWeak = transcript?.topics_avoided_or_weak;
+  const omissionsAnalysis = transcript?.omissions_analysis;
+  const authenticityAssessment = transcript?.authenticity_assessment;
+  const assessmentMetadata = hiringGuidance?.assessment_metadata;
 
   return (
     <div className="space-y-6">
@@ -659,28 +658,31 @@ export default function ApplicantDetailsPage() {
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="text-xs">Q{resp.question_number}</Badge>
-                              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{resp.topic || 'General'}</span>
+                              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{resp.question_topic || 'General'}</span>
                             </div>
                             <div className="flex gap-1">
                               <Badge className={`text-xs ${
-                                resp.quality === 'EXCELLENT' ? 'bg-green-500' :
-                                resp.quality === 'GOOD' ? 'bg-primary' :
-                                resp.quality === 'ADEQUATE' ? 'bg-yellow-500' :
+                                resp.micro_score >= 8 ? 'bg-green-500' :
+                                resp.micro_score >= 6 ? 'bg-primary' :
+                                resp.micro_score >= 4 ? 'bg-yellow-500' :
                                 'bg-orange-500'
                               } text-white`}>
-                                {resp.quality}
+                                Score: {resp.micro_score}
                               </Badge>
                             </div>
                           </div>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{resp.question}</p>
-                          <p className="text-xs text-slate-500 italic mb-2">Analysis: {resp.micro_analysis}</p>
-                          {resp.flags?.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {resp.flags.map((flag: string, j: number) => (
-                                <Badge key={j} variant="outline" className="text-xs">{flag}</Badge>
-                              ))}
-                            </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{resp.content_summary}</p>
+                          {resp.key_quote && (
+                            <p className="text-xs text-slate-500 italic mb-2">Quote: "{resp.key_quote}"</p>
                           )}
+                          {resp.missing_element && (
+                            <p className="text-xs text-slate-500 italic mb-2">Missing: {resp.missing_element}</p>
+                          )}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            <Badge variant="outline" className="text-xs">Ownership: {resp.ownership_signal}</Badge>
+                            <Badge variant="outline" className="text-xs">Specificity: {resp.specificity_level}</Badge>
+                            <Badge variant="outline" className="text-xs">Authenticity: {resp.authenticity_signal}</Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -739,12 +741,19 @@ export default function ApplicantDetailsPage() {
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">
-                        {topicsWellCovered.map((topic: any, i: number) => (
+                        {Array.isArray(topicsWellCovered) ? topicsWellCovered.map((topic: any, i: number) => (
                           <li key={i} className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                            <div className="text-sm font-medium text-green-900 dark:text-green-100">{topic.topic}</div>
-                            <p className="text-xs text-green-700 dark:text-green-300 mt-1">{topic.why_strong}</p>
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100">
+                              {typeof topic === 'string' ? topic : topic.topic || `Topic ${i + 1}`}
+                            </div>
+                            {topic.why_strong && <p className="text-xs text-green-700 dark:text-green-300 mt-1">{topic.why_strong}</p>}
                           </li>
-                        ))}
+                        )) : (
+                          <li className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100">Topics Well Covered</div>
+                            <p className="text-xs text-green-700 dark:text-green-300 mt-1">{topicsWellCovered}</p>
+                          </li>
+                        )}
                       </ul>
                     </CardContent>
                   </Card>
@@ -759,12 +768,19 @@ export default function ApplicantDetailsPage() {
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">
-                        {topicsAvoidedOrWeak.map((topic: any, i: number) => (
+                        {Array.isArray(topicsAvoidedOrWeak) ? topicsAvoidedOrWeak.map((topic: any, i: number) => (
                           <li key={i} className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
-                            <div className="text-sm font-medium text-orange-900 dark:text-orange-100">{topic.topic}</div>
-                            <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">{topic.evidence}</p>
+                            <div className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                              {typeof topic === 'string' ? topic : topic.topic || `Topic ${i + 1}`}
+                            </div>
+                            {topic.evidence && <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">{topic.evidence}</p>}
                           </li>
-                        ))}
+                        )) : (
+                          <li className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                            <div className="text-sm font-medium text-orange-900 dark:text-orange-100">Topics Avoided/Weak</div>
+                            <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">{topicsAvoidedOrWeak}</p>
+                          </li>
+                        )}
                       </ul>
                     </CardContent>
                   </Card>
@@ -782,7 +798,10 @@ export default function ApplicantDetailsPage() {
                       <ul className="space-y-3">
                         {strongestResponses.map((resp: any, i: number) => (
                           <li key={i} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <div className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">{resp.question_topic}</div>
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">Q{resp.question_number}: {resp.question_topic}</div>
+                            {resp.verbatim_highlight && (
+                              <p className="text-xs text-green-600 dark:text-green-400 italic mb-2">"{resp.verbatim_highlight}"</p>
+                            )}
                             <p className="text-xs text-green-700 dark:text-green-300">{resp.why_strong}</p>
                           </li>
                         ))}
@@ -800,8 +819,14 @@ export default function ApplicantDetailsPage() {
                       <ul className="space-y-3">
                         {weakestResponses.map((resp: any, i: number) => (
                           <li key={i} className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                            <div className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">{resp.question_topic}</div>
+                            <div className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">Q{resp.question_number}: {resp.question_topic}</div>
+                            {resp.verbatim_example && (
+                              <p className="text-xs text-red-600 dark:text-red-400 italic mb-2">"{resp.verbatim_example}"</p>
+                            )}
                             <p className="text-xs text-red-700 dark:text-red-300">{resp.why_weak}</p>
+                            {resp.what_was_missing && (
+                              <p className="text-xs text-red-600 dark:text-red-400 mt-2">Missing: {resp.what_was_missing}</p>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -826,8 +851,11 @@ export default function ApplicantDetailsPage() {
                             <div className="flex items-start gap-2">
                               <Badge className={`text-xs ${getRiskColor(flag.severity)}`}>{flag.severity}</Badge>
                               <div className="flex-1">
-                                <div className="text-sm font-medium text-red-900 dark:text-red-100">{flag.flag}</div>
+                                <div className="text-sm font-medium text-red-900 dark:text-red-100">{flag.description || flag.flag_type}</div>
                                 <p className="text-xs text-red-700 dark:text-red-300 mt-1">{flag.evidence}</p>
+                                {flag.hiring_implication && (
+                                  <p className="text-xs text-red-600 dark:text-red-400 mt-1 italic">Hiring Impact: {flag.hiring_implication}</p>
+                                )}
                               </div>
                             </div>
                           </li>
@@ -848,7 +876,7 @@ export default function ApplicantDetailsPage() {
                       <ul className="space-y-2">
                         {greenFlags.map((flag: any, i: number) => (
                           <li key={i} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-                            <div className="text-sm font-medium text-green-900 dark:text-green-100">{flag.flag}</div>
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100">{flag.description || flag.flag_type}</div>
                             <p className="text-xs text-green-700 dark:text-green-300 mt-1">{flag.evidence}</p>
                           </li>
                         ))}
@@ -899,34 +927,29 @@ export default function ApplicantDetailsPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Authenticity Score:</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Authenticity Rating:</span>
                       <Badge className={`text-sm ${
-                        authenticityAssessment.authenticity_score >= 80 ? 'bg-green-500' :
-                        authenticityAssessment.authenticity_score >= 60 ? 'bg-primary' :
-                        authenticityAssessment.authenticity_score >= 40 ? 'bg-yellow-500' :
+                        authenticityAssessment.rating === 'HIGHLY_AUTHENTIC' ? 'bg-green-500' :
+                        authenticityAssessment.rating === 'MIXED' ? 'bg-yellow-500' :
+                        authenticityAssessment.rating === 'POSSIBLY_REHEARSED' ? 'bg-orange-500' :
                         'bg-red-500'
                       } text-white`}>
-                        {authenticityAssessment.authenticity_score}%
+                        {authenticityAssessment.rating?.replace(/_/g, ' ')}
                       </Badge>
                     </div>
-                    {authenticityAssessment.genuine_indicators?.length > 0 && (
-                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">Genuine Indicators</div>
-                        <ul className="space-y-1">
-                          {authenticityAssessment.genuine_indicators.map((indicator: string, i: number) => (
-                            <li key={i} className="text-xs text-green-700 dark:text-green-300">• {indicator}</li>
-                          ))}
-                        </ul>
-                      </div>
+                    {authenticityAssessment.reasoning && (
+                      <p className="text-sm text-slate-600 dark:text-slate-400 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        {authenticityAssessment.reasoning}
+                      </p>
                     )}
-                    {authenticityAssessment.coaching_indicators?.length > 0 && (
-                      <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                        <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-2">Coaching Indicators</div>
-                        <ul className="space-y-1">
-                          {authenticityAssessment.coaching_indicators.map((indicator: string, i: number) => (
-                            <li key={i} className="text-xs text-orange-700 dark:text-orange-300">• {indicator}</li>
-                          ))}
-                        </ul>
+                    {authenticityAssessment.genuine_moment_count !== undefined && (
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded text-center">
+                          <div className="text-green-700 dark:text-green-300">Genuine: {authenticityAssessment.genuine_moment_count}</div>
+                        </div>
+                        <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded text-center">
+                          <div className="text-orange-700 dark:text-orange-300">Rehearsed: {authenticityAssessment.rehearsed_answer_count}</div>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -941,10 +964,15 @@ export default function ApplicantDetailsPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-500">Analysis Confidence:</span>
-                      <Badge className={getConfidenceColor(assessmentMetadata.analysis_confidence)}>{assessmentMetadata.analysis_confidence}</Badge>
+                      <span className="text-sm text-slate-500">Overall Confidence:</span>
+                      <Badge className={getConfidenceColor(assessmentMetadata?.overall_confidence >= 7 ? 'HIGH' : assessmentMetadata?.overall_confidence >= 5 ? 'MEDIUM' : 'LOW')}>
+                        {assessmentMetadata?.overall_confidence >= 7 ? 'HIGH' : assessmentMetadata?.overall_confidence >= 5 ? 'MEDIUM' : 'LOW'}
+                      </Badge>
                     </div>
-                    {assessmentMetadata.caveats?.length > 0 && (
+                    {assessmentMetadata?.confidence_explanation && (
+                      <p className="text-xs text-slate-600 dark:text-slate-400 italic">{assessmentMetadata.confidence_explanation}</p>
+                    )}
+                    {assessmentMetadata?.caveats?.length > 0 && (
                       <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                         <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2">Caveats</div>
                         <ul className="space-y-1">
@@ -954,7 +982,7 @@ export default function ApplicantDetailsPage() {
                         </ul>
                       </div>
                     )}
-                    {assessmentMetadata.data_gaps?.length > 0 && (
+                    {assessmentMetadata?.data_gaps?.length > 0 && (
                       <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                         <div className="text-xs font-semibold text-slate-700 dark:text-slate-400 mb-2">Data Gaps</div>
                         <ul className="space-y-1">
@@ -964,134 +992,19 @@ export default function ApplicantDetailsPage() {
                         </ul>
                       </div>
                     )}
+                    {assessmentMetadata?.data_source_verification && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">Data Source</div>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">{assessmentMetadata.data_source_verification.replace(/_/g, ' ')}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
             </div>
           )}
 
-          {/* Resume/CV Full Response Analysis */}
-          {fullResponse && (
-            <>
-              <Separator />
-              <div className="space-y-6">
-                <h4 className="font-semibold text-xl text-slate-800 dark:text-slate-200">
-                  Resume & CV Analysis
-                </h4>
-
-                {fullResponse.executiveSummary && (
-                  <div className="p-5 rounded-xl bg-gradient-to-r from-indigo-900 to-purple-900 text-white">
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex-1">
-                        <h5 className="text-lg font-bold mb-1">Executive Summary</h5>
-                        <p className="text-base text-indigo-100">{fullResponse.executiveSummary.summary}</p>
-                      </div>
-                      {fullResponse.executiveSummary.verdict && (
-                        <Badge className={`text-sm px-3 py-1 ${getVerdictColor(fullResponse.executiveSummary.verdict.decision)}`}>
-                          {fullResponse.executiveSummary.verdict.decision}
-                        </Badge>
-                      )}
-                    </div>
-                    {fullResponse.executiveSummary.verdict?.reasoning && (
-                      <p className="text-sm text-indigo-200 italic">
-                        {fullResponse.executiveSummary.verdict.reasoning}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {fullResponse.skillAnalysis && (
-                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base text-slate-800 dark:text-slate-200">Skill Analysis</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {fullResponse.skillAnalysis.overallScore !== undefined && (
-                          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">Overall Skill Score</span>
-                            <div className="flex items-center gap-2">
-                              <Progress value={fullResponse.skillAnalysis.overallScore} className="w-24" />
-                              <span className={`font-bold ${getScoreColor(fullResponse.skillAnalysis.overallScore)}`}>
-                                {fullResponse.skillAnalysis.overallScore}%
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        {fullResponse.skillAnalysis.breakdown?.length > 0 && (
-                          <div className="space-y-2">
-                            <div className="text-sm font-semibold text-slate-700 dark:text-slate-400">Breakdown</div>
-                            {fullResponse.skillAnalysis.breakdown.map((item: any, i: number) => (
-                              <div key={i} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded">
-                                <span className="text-sm text-slate-600 dark:text-slate-400">{item.skill}</span>
-                                <Badge variant="secondary">{item.level || item.score}</Badge>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {fullResponse.experienceAnalysis && (
-                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base text-slate-800 dark:text-slate-200">Experience Analysis</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {fullResponse.experienceAnalysis.summary && (
-                          <p className="text-sm text-slate-600 dark:text-slate-400">{fullResponse.experienceAnalysis.summary}</p>
-                        )}
-                        {fullResponse.experienceAnalysis.score !== undefined && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-slate-500">Score:</span>
-                            <span className={`font-bold ${getScoreColor(fullResponse.experienceAnalysis.score)}`}>
-                              {fullResponse.experienceAnalysis.score}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {fullResponse.interviewRecommendations && (
-                  <Card className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-700">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base text-indigo-700 dark:text-indigo-400">Interview Recommendations</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {fullResponse.interviewRecommendations.areasToProbe?.length > 0 && (
-                          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                            <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Areas to Probe</div>
-                            <ul className="space-y-1">
-                              {fullResponse.interviewRecommendations.areasToProbe.map((area: string, i: number) => (
-                                <li key={i} className="text-sm text-indigo-800 dark:text-indigo-200">• {area}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {fullResponse.interviewRecommendations.suggestedQuestions?.length > 0 && (
-                          <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                            <div className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Suggested Questions</div>
-                            <ul className="space-y-1">
-                              {fullResponse.interviewRecommendations.suggestedQuestions.map((q: string, i: number) => (
-                                <li key={i} className="text-sm text-purple-800 dark:text-purple-200">• {q}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+          </div>
       </ScrollArea>
     </div>
   );
