@@ -75,7 +75,7 @@ export function ResetPasswordForm({ token, onSuccess }: ResetPasswordFormProps) 
   const getPasswordStrengthColor = (strength: number) => {
     if (strength <= 2) return "bg-red-500";
     if (strength <= 3) return "bg-yellow-500";
-    if (strength <= 4) return "bg-blue-500";
+    if (strength <= 4) return "bg-primary";
     return "bg-green-500";
   };
 
@@ -144,7 +144,7 @@ export function ResetPasswordForm({ token, onSuccess }: ResetPasswordFormProps) 
         <Card className="w-full max-w-md">
           <CardContent className="p-8">
             <div className="text-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
               <p className="text-gray-600">Verifying reset link...</p>
             </div>
           </CardContent>
@@ -352,7 +352,7 @@ export function ResetPasswordForm({ token, onSuccess }: ResetPasswordFormProps) 
               type="button"
               variant="ghost"
               onClick={() => window.location.href = '/'}
-              className="text-blue-600 hover:text-blue-800"
+              className="text-primary hover:text-blue-800"
             >
               Back to Login
             </Button>

@@ -90,7 +90,7 @@ export function AssessmentQuestionsBuilder({ questions, onChange }: AssessmentQu
           Add assessment questions to gather specific information from applicants.
           Questions can be text, multiple choice, yes/no, numeric, rating, or file upload.
         </p>
-        <Button onClick={addQuestion} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={addQuestion} className="bg-primary hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
           Add First Question
         </Button>
@@ -109,7 +109,7 @@ export function AssessmentQuestionsBuilder({ questions, onChange }: AssessmentQu
             Questions will be shown to applicants in order
           </p>
         </div>
-        <Button onClick={addQuestion} size="sm" className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={addQuestion} size="sm" className="bg-primary hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
           Add Question
         </Button>
@@ -205,7 +205,7 @@ export function AssessmentQuestionsBuilder({ questions, onChange }: AssessmentQu
           type="button"
           variant="outline"
           onClick={addQuestion}
-          className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+          className="w-full border-dashed border-blue-300 text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Another Question

@@ -139,6 +139,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Organization Branding routes
+  // Upload organization logo
+  app.post('/api/organizations/current/branding/logo', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { fileName, fileType, fileContent } = req.body;
+
+      if (!fileName || !fileType || !fileContent) {
+        return res.status(400).json({ message: "Missing required fields: fileName, fileType, fileContent" });
+      }
+
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Check if user is admin
+      const isAdmin = await storage.isOrganizationAdmin(userId, organization.id);
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Only administrators can update branding" });
+      }
+
+      // Save logo using fileStorageService
+      const { relativePath } = await fileStorageService.saveOrganizationLogo(
+        fileContent,
+        fileName,
+        fileType,
+        organization.id
+      );
+
+      // Update organization with logo path
+      await storage.updateOrganization(organization.id, { brandLogoPath: relativePath });
+
+      const logoUrl = `/api/organizations/logos/${organization.id}/${relativePath}`;
+      console.log("✅ Organization logo uploaded:", logoUrl);
+
+      res.json({ logoUrl, fileName: relativePath });
+    } catch (error) {
+      console.error("Error uploading organization logo:", error);
+      res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to upload logo"
+      });
+    }
+  });
+
+  // Update organization branding (primary color)
+  app.put('/api/organizations/current/branding', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { primaryColor } = req.body;
+
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Check if user is admin
+      const isAdmin = await storage.isOrganizationAdmin(userId, organization.id);
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Only administrators can update branding" });
+      }
+
+      // Validate HSL color format (should be like "207, 90%, 54%")
+      if (primaryColor) {
+        const hslRegex = /^\d+,\s*\d+%,\s*\d+%$/;
+        if (!hslRegex.test(primaryColor)) {
+          return res.status(400).json({
+            message: "Invalid color format. Expected HSL format like '207, 90%, 54%'"
+          });
+        }
+      }
+
+      // Update organization with primary color
+      const updatedOrg = await storage.updateOrganization(organization.id, {
+        brandPrimaryColor: primaryColor
+      });
+
+      console.log("✅ Organization branding updated:", updatedOrg.brandPrimaryColor);
+      res.json(updatedOrg);
+    } catch (error) {
+      console.error("Error updating organization branding:", error);
+      res.status(500).json({ message: "Failed to update branding" });
+    }
+  });
+
+  // Delete organization logo
+  app.delete('/api/organizations/current/branding/logo', requireVerifiedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Get user's organization
+      const organization = await storage.getOrganizationByUser(userId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Check if user is admin
+      const isAdmin = await storage.isOrganizationAdmin(userId, organization.id);
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Only administrators can update branding" });
+      }
+
+      // Delete logo file if exists
+      if (organization.brandLogoPath) {
+        try {
+          await fileStorageService.deleteOrganizationLogo(
+            organization.id,
+            organization.brandLogoPath
+          );
+        } catch (error) {
+          console.error("Error deleting logo file:", error);
+          // Continue even if file deletion fails
+        }
+      }
+
+      // Update organization to remove logo path
+      await storage.updateOrganization(organization.id, { brandLogoPath: null });
+
+      console.log("✅ Organization logo deleted");
+      res.json({ message: "Logo deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting organization logo:", error);
+      res.status(500).json({ message: "Failed to delete logo" });
+    }
+  });
+
+  // Serve organization logo files
+  app.get('/api/organizations/logos/:organizationId/:filename', async (req, res) => {
+    try {
+      const { organizationId, filename } = req.params;
+      const filePath = fileStorageService.getOrganizationLogoPath(organizationId, filename);
+
+      // Check if file exists
+      const exists = await fileStorageService.fileExists(filePath);
+      if (!exists) {
+        return res.status(404).json({ message: "Logo not found" });
+      }
+
+      // Set cache headers
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+
+      // Determine content type from filename
+      const ext = filename.split('.').pop()?.toLowerCase();
+      const contentTypeMap: { [key: string]: string } = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'svg': 'image/svg+xml'
+      };
+      const contentType = ext ? contentTypeMap[ext] : 'application/octet-stream';
+      res.setHeader('Content-Type', contentType);
+
+      // Send file
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error("Error serving organization logo:", error);
+      res.status(500).json({ message: "Failed to serve logo" });
+    }
+  });
+
   // User profile routes
   app.get('/api/user/profile', requireVerifiedAuth, async (req: any, res) => {
     try {

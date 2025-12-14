@@ -684,7 +684,7 @@ export function ResumeProfilesList() {
     const getVerdictColor = (decision: string) => {
       switch (decision?.toUpperCase()) {
         case 'INTERVIEW': return 'bg-green-500 text-white border-green-600';
-        case 'CONSIDER': return 'bg-blue-500 text-white border-blue-600';
+        case 'CONSIDER': return 'bg-primary text-white border-primary';
         case 'REVIEW': return 'bg-yellow-500 text-white border-yellow-600';
         case 'NOT PASS': return 'bg-red-500 text-white border-red-600';
         default: return 'bg-gray-500 text-white border-gray-600';
@@ -717,7 +717,7 @@ export function ResumeProfilesList() {
                 {fullResponse.executiveSummary.fitScore && (
                   <Badge className={`text-xs ${
                     fullResponse.executiveSummary.fitScore === 'EXCELLENT' ? 'bg-green-500' :
-                    fullResponse.executiveSummary.fitScore === 'GOOD' ? 'bg-blue-500' :
+                    fullResponse.executiveSummary.fitScore === 'GOOD' ? 'bg-primary' :
                     fullResponse.executiveSummary.fitScore === 'FAIR' ? 'bg-yellow-500' :
                     fullResponse.executiveSummary.fitScore === 'POOR' ? 'bg-orange-500' :
                     'bg-red-500'
@@ -728,7 +728,7 @@ export function ResumeProfilesList() {
                 {fullResponse.executiveSummary.hiringUrgency && (
                   <Badge className={`text-xs ${
                     fullResponse.executiveSummary.hiringUrgency === 'EXPEDITE' ? 'bg-green-600' :
-                    fullResponse.executiveSummary.hiringUrgency === 'STANDARD' ? 'bg-blue-600' :
+                    fullResponse.executiveSummary.hiringUrgency === 'STANDARD' ? 'bg-primary' :
                     fullResponse.executiveSummary.hiringUrgency === 'LOW_PRIORITY' ? 'bg-gray-600' :
                     'bg-red-600'
                   }`}>
@@ -844,7 +844,7 @@ export function ResumeProfilesList() {
                   <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-blue-600" />
+                        <Briefcase className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section A: Skills & Competency</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -872,7 +872,7 @@ export function ResumeProfilesList() {
                   <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-blue-600" />
+                        <User className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section B: Experience Alignment</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -900,7 +900,7 @@ export function ResumeProfilesList() {
                   <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-blue-600" />
+                        <Users className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section C: Impact & Achievements</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -926,7 +926,7 @@ export function ResumeProfilesList() {
                   <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-blue-600" />
+                        <Star className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section D: Qualifications</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -950,7 +950,7 @@ export function ResumeProfilesList() {
                   <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-600" />
+                        <FileText className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section E: Logistics & Compatibility</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -978,7 +978,7 @@ export function ResumeProfilesList() {
                   <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-blue-600" />
+                        <AlertTriangle className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">Section F: Bonus & Penalties</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1006,23 +1006,23 @@ export function ResumeProfilesList() {
               <div className="grid grid-cols-6 gap-2 mt-2">
                 <div className="text-center p-2 bg-white rounded border">
                   <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></div>
-                  <div className="text-xs text-blue-600 font-medium">Skills</div>
+                  <div className="text-xs text-primary font-medium">Skills</div>
                 </div>
                 <div className="text-center p-2 bg-white rounded border">
                   <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></div>
-                  <div className="text-xs text-blue-600 font-medium">Experience</div>
+                  <div className="text-xs text-primary font-medium">Experience</div>
                 </div>
                 <div className="text-center p-2 bg-white rounded border">
                   <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></div>
-                  <div className="text-xs text-blue-600 font-medium">Impact</div>
+                  <div className="text-xs text-primary font-medium">Impact</div>
                 </div>
                 <div className="text-center p-2 bg-white rounded border">
                   <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
-                  <div className="text-xs text-blue-600 font-medium">Qualifications</div>
+                  <div className="text-xs text-primary font-medium">Qualifications</div>
                 </div>
                 <div className="text-center p-2 bg-white rounded border">
                   <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
-                  <div className="text-xs text-blue-600 font-medium">Logistics</div>
+                  <div className="text-xs text-primary font-medium">Logistics</div>
                 </div>
                 <div className="text-center p-2 bg-white rounded border">
                   <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -1145,7 +1145,7 @@ export function ResumeProfilesList() {
                           </div>
                         )}
                         {item.recommendation && (
-                          <div className="text-xs text-blue-600 mt-1">
+                          <div className="text-xs text-primary mt-1">
                             <span className="font-medium">Recommendation:</span> {item.recommendation}
                           </div>
                         )}
@@ -1436,7 +1436,7 @@ export function ResumeProfilesList() {
                 <ul className="mt-1 space-y-1">
                   {fullResponse.domainAnalysis.domainInterviewQuestions.map((q: string, i: number) => (
                     <li key={i} className="text-xs text-gray-700 flex items-start gap-1">
-                      <span className="text-blue-500">•</span>
+                      <span className="text-primary">•</span>
                       <span>{q}</span>
                     </li>
                   ))}
@@ -1484,7 +1484,7 @@ export function ResumeProfilesList() {
                   </div>
                   <div className="text-center p-2 bg-blue-100 rounded">
                     <div className="text-lg font-bold text-blue-700">{proficientCount}</div>
-                    <div className="text-xs text-blue-600">Proficient</div>
+                    <div className="text-xs text-primary">Proficient</div>
                   </div>
                   <div className="text-center p-2 bg-yellow-100 rounded">
                     <div className="text-lg font-bold text-yellow-700">{familiarCount}</div>
@@ -1769,7 +1769,7 @@ export function ResumeProfilesList() {
                       {/* Skills & Technologies */}
                       <div className="flex flex-wrap gap-1 mt-2">
                         {role.skillsUsed && role.skillsUsed.map((skill: string, si: number) => (
-                          <span key={`skill-${si}`} className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{skill}</span>
+                          <span key={`skill-${si}`} className="text-xs bg-blue-50 text-primary px-1.5 py-0.5 rounded">{skill}</span>
                         ))}
                         {role.technologiesUsed && role.technologiesUsed.map((tech: string, ti: number) => (
                           <span key={`tech-${ti}`} className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">{tech}</span>
@@ -1929,7 +1929,7 @@ export function ResumeProfilesList() {
                     <ul className="space-y-1">
                       {fullResponse.interviewRecommendations.technicalValidation.map((item: string, i: number) => (
                         <li key={i} className="text-sm flex items-start gap-2">
-                          <span className="text-blue-500">✓</span>
+                          <span className="text-primary">✓</span>
                           <span>{item}</span>
                         </li>
                       ))}
@@ -2010,7 +2010,7 @@ export function ResumeProfilesList() {
                     {skill.evidence}
                   </div>
                   {skill.missingDetail && (
-                    <div className="text-xs text-blue-600">
+                    <div className="text-xs text-primary">
                       {skill.missingDetail}
                     </div>
                   )}
@@ -2045,7 +2045,7 @@ export function ResumeProfilesList() {
                     {exp.evidence}
                   </div>
                   {exp.missingDetail && (
-                    <div className="text-xs text-blue-600">
+                    <div className="text-xs text-primary">
                       {exp.missingDetail}
                     </div>
                   )}
@@ -2080,7 +2080,7 @@ export function ResumeProfilesList() {
                     {edu.evidence}
                   </div>
                   {edu.missingDetail && (
-                    <div className="text-xs text-blue-600">
+                    <div className="text-xs text-primary">
                       {edu.missingDetail}
                     </div>
                   )}
@@ -2115,7 +2115,7 @@ export function ResumeProfilesList() {
                     {skill.evidence}
                   </div>
                   {skill.missingDetail && (
-                    <div className="text-xs text-blue-600">
+                    <div className="text-xs text-primary">
                       {skill.missingDetail}
                     </div>
                   )}
@@ -2163,7 +2163,7 @@ export function ResumeProfilesList() {
             <Card className="border-blue-200 bg-blue-50/50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   Resume Processing in Progress
                 </CardTitle>
               </CardHeader>
@@ -2172,7 +2172,7 @@ export function ResumeProfilesList() {
                   {/* Overall Progress */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <p className="text-2xl font-bold text-blue-600">
+                      <p className="text-2xl font-bold text-primary">
                         {activeJobsData.completedFiles} / {activeJobsData.totalFiles}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -2180,7 +2180,7 @@ export function ResumeProfilesList() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-3xl font-bold text-blue-600">{activeJobsData.overallProgress}%</p>
+                      <p className="text-3xl font-bold text-primary">{activeJobsData.overallProgress}%</p>
                       <p className="text-xs text-muted-foreground">Complete</p>
                     </div>
                   </div>
@@ -2193,7 +2193,7 @@ export function ResumeProfilesList() {
                   {/* Status Details */}
                   <div className="flex items-center gap-6 text-sm">
                     {activeJobsData.activeJobsCount > 0 && (
-                      <div className="flex items-center gap-2 text-blue-600">
+                      <div className="flex items-center gap-2 text-primary">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span className="font-medium">
                           {activeJobsData.activeJobsCount} {activeJobsData.activeJobsCount === 1 ? 'job' : 'jobs'} processing
@@ -2217,7 +2217,7 @@ export function ResumeProfilesList() {
                       <div className="space-y-1">
                         {activeJobsData.activeJobDetails.map((job, index) => (
                           <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <div className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></div>
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></div>
                             <span>{job.fileName} ({job.progress}%)</span>
                           </div>
                         ))}
@@ -2382,7 +2382,7 @@ export function ResumeProfilesList() {
         <CardContent className="p-0">
           {profilesLoading ? (
             <div className="text-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
               <p className="text-muted-foreground">Loading profiles...</p>
             </div>
           ) : displayRows.length === 0 ? (
@@ -2443,7 +2443,7 @@ export function ResumeProfilesList() {
                                   <Badge
                                     className={`w-fit text-xs ${
                                       row.jobScore.fullResponse.verdict.decision === 'INTERVIEW' ? 'bg-green-500 text-white' :
-                                      row.jobScore.fullResponse.verdict.decision === 'CONSIDER' ? 'bg-blue-500 text-white' :
+                                      row.jobScore.fullResponse.verdict.decision === 'CONSIDER' ? 'bg-primary text-white' :
                                       row.jobScore.fullResponse.verdict.decision === 'REVIEW' ? 'bg-yellow-500 text-white' :
                                       'bg-red-500 text-white'
                                     }`}
@@ -2521,7 +2521,7 @@ export function ResumeProfilesList() {
                               size="sm"
                               onClick={() => exportSingleProfile(row.profile, row.jobScore)}
                               disabled={exportingProfileId === row.profileId}
-                              className="h-8 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              className="h-8 px-2 text-xs text-primary hover:text-blue-700 hover:bg-blue-50"
                               title="Export PDF"
                             >
                               {exportingProfileId === row.profileId ? (

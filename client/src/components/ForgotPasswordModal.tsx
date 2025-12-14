@@ -106,7 +106,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin }: ForgotPa
                 type="button"
                 variant="ghost"
                 onClick={handleBackToLogin}
-                className="text-blue-600 hover:text-blue-800 flex items-center gap-2 mx-auto"
+                className="text-primary hover:text-blue-800 flex items-center gap-2 mx-auto"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Login
@@ -161,7 +161,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin }: ForgotPa
                 type="button"
                 variant="ghost"
                 onClick={handleBackToLogin}
-                className="w-full text-blue-600 hover:text-blue-800"
+                className="w-full text-primary hover:text-blue-800"
               >
                 Back to Login
               </Button>

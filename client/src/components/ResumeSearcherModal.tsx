@@ -467,7 +467,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-600" />
+                        <FileText className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium text-blue-900">
                           Credit Cost
                         </span>

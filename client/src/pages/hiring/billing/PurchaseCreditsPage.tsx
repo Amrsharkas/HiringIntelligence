@@ -64,7 +64,7 @@ export default function PurchaseCreditsPage() {
   const getPackageTier = (creditAmount: number) => {
     if (creditAmount >= 1000) return { label: "Best Value", color: "bg-amber-500" };
     if (creditAmount >= 300) return { label: "Popular", color: "bg-purple-500" };
-    if (creditAmount >= 100) return { label: "Starter", color: "bg-blue-500" };
+    if (creditAmount >= 100) return { label: "Starter", color: "bg-primary" };
     return null;
   };
 
@@ -77,7 +77,7 @@ export default function PurchaseCreditsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -136,11 +136,11 @@ export default function PurchaseCreditsPage() {
                     className={`w-5 h-5 ${
                       type === "cv"
                         ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-blue-600 dark:text-blue-400"
+                        : "text-primary dark:text-blue-400"
                     }`}
                   />
                 ) : (
-                  <Video className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <Video className="w-5 h-5 text-primary dark:text-blue-400" />
                 )}
               </div>
             </div>
@@ -158,7 +158,7 @@ export default function PurchaseCreditsPage() {
                   className={`text-4xl font-bold ${
                     type === "cv"
                       ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-blue-600 dark:text-blue-400"
+                      : "text-primary dark:text-blue-400"
                   }`}
                 >
                   {pkg.creditAmount.toLocaleString()}
@@ -193,7 +193,7 @@ export default function PurchaseCreditsPage() {
                   ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                   : type === "cv"
                   ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-blue-600 hover:bg-blue-700"
+                  : "bg-primary hover:bg-blue-700"
               }`}
               onClick={() => handlePurchase(pkg.id)}
             >
@@ -250,11 +250,11 @@ export default function PurchaseCreditsPage() {
             <div className="w-px h-10 bg-slate-300 dark:bg-slate-600 hidden sm:block" />
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Video className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <Video className="w-5 h-5 text-primary dark:text-blue-400" />
               </div>
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Current Interview Credits</p>
-                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                <p className="text-xl font-bold text-primary dark:text-blue-400">
                   {currentInterviewCredits.toLocaleString()}
                 </p>
               </div>

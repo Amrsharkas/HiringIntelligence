@@ -99,7 +99,7 @@ export default function AcceptedApplicantsModal({
         <div className="overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
               <span className="ml-3 text-slate-600 dark:text-slate-400">Loading accepted applicants...</span>
             </div>
           ) : acceptedApplicants.length === 0 ? (
@@ -161,7 +161,7 @@ export default function AcceptedApplicantsModal({
                       </div>
                       <Button
                         onClick={() => handleScheduleInterview(applicant.id, applicant.jobId, applicant.applicantName, applicant.jobTitle)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-primary hover:bg-blue-700 text-white"
                       >
                         <Calendar className="w-4 h-4 mr-2" />
                         Schedule Interview

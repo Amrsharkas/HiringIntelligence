@@ -100,7 +100,7 @@ export default function TeamPage() {
         </div>
         <Button
           onClick={() => navigate("/hiring/team/invite")}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+          className=""
         >
           <UserPlus className="w-4 h-4 mr-2" />
           Invite Team Member
@@ -112,7 +112,7 @@ export default function TeamPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : teamMembers.length === 0 ? (
             <div className="text-center py-12">
@@ -151,7 +151,7 @@ export default function TeamPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold text-sm">
                           {member.email?.[0]?.toUpperCase() || "U"}
                         </div>
                         <div>

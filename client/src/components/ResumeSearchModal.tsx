@@ -379,7 +379,7 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
                               onClick={() => handleViewProfile(match.resume.id)}
                               variant="outline"
                               size="sm"
-                              className="whitespace-nowrap hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-700"
+                              className="whitespace-nowrap hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-primary dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-700"
                             >
                               <ExternalLink className="h-4 w-4 mr-2" />
                               View Profile
@@ -459,8 +459,8 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
                       </div>
                     )}
                     <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
+                      <Target className="w-4 h-4 text-primary" />
+                      <span className="font-medium text-primary dark:text-blue-400">
                         {selectedResume.matchScore}% Match
                       </span>
                     </div>
@@ -594,25 +594,25 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.overallScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Overall</div>
+                      <div className="text-primary dark:text-blue-400">Overall</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.technicalSkillsScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Technical</div>
+                      <div className="text-primary dark:text-blue-400">Technical</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.experienceScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Experience</div>
+                      <div className="text-primary dark:text-blue-400">Experience</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.culturalFitScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Culture</div>
+                      <div className="text-primary dark:text-blue-400">Culture</div>
                     </div>
                   </div>
                   {selectedResume.existingScore.matchSummary && (

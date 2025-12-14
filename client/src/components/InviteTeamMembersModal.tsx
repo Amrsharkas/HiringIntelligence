@@ -213,7 +213,7 @@ export function InviteTeamMembersModal({ isOpen, onClose }: InviteTeamMembersMod
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <UserPlus className="h-5 w-5 text-primary dark:text-blue-400" />
             </div>
             <div>
               <DialogTitle>Invite Team Members</DialogTitle>
@@ -249,7 +249,7 @@ export function InviteTeamMembersModal({ isOpen, onClose }: InviteTeamMembersMod
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
-                                <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <Mail className="h-4 w-4 text-primary dark:text-blue-400" />
                               </div>
                               <div>
                                 <p className="font-medium text-slate-900 dark:text-white">
@@ -345,7 +345,7 @@ export function InviteTeamMembersModal({ isOpen, onClose }: InviteTeamMembersMod
                         variant="outline"
                         size="sm"
                         onClick={addEmailField}
-                        className="text-blue-600 hover:text-blue-700"
+                        className="text-primary hover:text-blue-700"
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         Add Email
@@ -419,7 +419,7 @@ export function InviteTeamMembersModal({ isOpen, onClose }: InviteTeamMembersMod
                   <Button
                     type="submit"
                     disabled={sendInvitationsMutation.isPending || watchedEmails.filter(e => e.trim()).length === 0}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="flex-1 bg-primary hover:bg-blue-700 text-white"
                   >
                     {sendInvitationsMutation.isPending ? (
                       <>
@@ -441,7 +441,7 @@ export function InviteTeamMembersModal({ isOpen, onClose }: InviteTeamMembersMod
               <DialogFooter>
                 <Button
                   onClick={handleClose}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1 bg-primary hover:bg-blue-700 text-white"
                 >
                   Done
                 </Button>

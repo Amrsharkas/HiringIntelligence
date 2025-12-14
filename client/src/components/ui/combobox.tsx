@@ -74,7 +74,7 @@ export function Combobox({
                   variant="ghost"
                   size="sm"
                   onClick={handleCreateCustom}
-                  className="w-full justify-start text-blue-600 hover:text-blue-700"
+                  className="w-full justify-start text-primary hover:text-blue-700"
                 >
                   Create "{inputValue.trim()}"
                 </Button>

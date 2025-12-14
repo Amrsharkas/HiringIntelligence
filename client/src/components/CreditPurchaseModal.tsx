@@ -134,7 +134,7 @@ export const CreditPurchaseModal = React.memo<CreditPurchaseModalProps>(({
             <DialogHeader>
               <div className="flex items-center justify-between">
                 <DialogTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <CreditCard className="w-6 h-6 text-blue-600" />
+                  <CreditCard className="w-6 h-6 text-primary" />
                   Purchase Credits
                 </DialogTitle>
                 <Button
@@ -184,7 +184,7 @@ export const CreditPurchaseModal = React.memo<CreditPurchaseModalProps>(({
                   animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col items-center justify-center py-16"
                 >
-                  <Loader2 className="w-16 h-16 animate-spin text-blue-600 mb-4" />
+                  <Loader2 className="w-16 h-16 animate-spin text-primary mb-4" />
                   <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
                     Creating Your Payment Session
                   </h3>
@@ -202,7 +202,7 @@ export const CreditPurchaseModal = React.memo<CreditPurchaseModalProps>(({
                 >
                   <div className="relative mb-6">
                     <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <ExternalLink className="w-8 h-8 text-blue-600" />
+                      <ExternalLink className="w-8 h-8 text-primary" />
                     </div>
                     <motion.div
                       className="absolute inset-0 border-2 border-blue-200 dark:border-blue-800 rounded-full"

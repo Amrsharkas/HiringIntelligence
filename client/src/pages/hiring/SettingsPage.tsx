@@ -19,10 +19,13 @@ import {
   User,
   Settings,
   Loader2,
+  Palette,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getQueryOptions } from "@/lib/queryConfig";
 import { z } from "zod";
+import LogoUploader from "@/components/LogoUploader";
+import { useBranding } from "@/contexts/BrandingContext";
 
 interface OrganizationData {
   companyName: string;
@@ -233,7 +236,7 @@ export default function SettingsPage() {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'owner': return <Crown className="w-4 h-4 text-yellow-600" />;
-      case 'admin': return <Shield className="w-4 h-4 text-blue-600" />;
+      case 'admin': return <Shield className="w-4 h-4 text-primary" />;
       default: return <User className="w-4 h-4 text-gray-600" />;
     }
   };
@@ -269,7 +272,7 @@ export default function SettingsPage() {
       </motion.div>
 
       <Tabs defaultValue="organization" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-3xl">
           <TabsTrigger value="organization" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Organization
@@ -286,6 +289,10 @@ export default function SettingsPage() {
             <Users className="w-4 h-4" />
             Team
           </TabsTrigger>
+          <TabsTrigger value="branding" className="flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            Branding
+          </TabsTrigger>
         </TabsList>
 
         {/* Organization Tab */}
@@ -293,14 +300,14 @@ export default function SettingsPage() {
           <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-600" />
+                <Building2 className="w-5 h-5 text-primary" />
                 Organization Details
               </CardTitle>
             </CardHeader>
             <CardContent>
               {orgLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : (
                 <form onSubmit={handleOrgUpdate} className="space-y-4">
@@ -394,7 +401,7 @@ export default function SettingsPage() {
             <CardContent>
               {userProfileLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : (
                 <form onSubmit={handleUserProfileUpdate} className="space-y-4">
@@ -545,7 +552,7 @@ export default function SettingsPage() {
             <CardContent>
               {teamLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : teamMembers.length === 0 ? (
                 <div className="text-center py-8">
@@ -560,7 +567,7 @@ export default function SettingsPage() {
                       className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                           <span className="text-sm font-semibold text-white">
                             {member.name.charAt(0).toUpperCase()}
                           </span>
@@ -585,7 +592,181 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Branding Tab */}
+        <TabsContent value="branding" className="mt-6">
+          <BrandingTabContent teamMembers={teamMembers} currentUserId={userProfile?.id} />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function BrandingTabContent({ teamMembers, currentUserId }: { teamMembers: TeamMember[], currentUserId?: string }) {
+  const { logoUrl, primaryColor, updateLogo, updatePrimaryColor, deleteLogo } = useBranding();
+  const [selectedColor, setSelectedColor] = useState(primaryColor || "");
+  const [hexColor, setHexColor] = useState("#3b82f6"); // Default blue
+
+  // Check if current user is admin or owner
+  const currentUserMember = teamMembers.find(m => m.userId === currentUserId);
+  const isAdmin = currentUserMember?.role === 'admin' || currentUserMember?.role === 'owner';
+
+  // Convert HSL to HEX for color picker display
+  useEffect(() => {
+    if (primaryColor) {
+      const hslMatch = primaryColor.match(/(\d+),\s*(\d+)%,\s*(\d+)%/);
+      if (hslMatch) {
+        const [, h, s, l] = hslMatch.map(Number);
+        const hex = hslToHex(h, s, l);
+        setHexColor(hex);
+      }
+    }
+  }, [primaryColor]);
+
+  // Convert HEX to HSL
+  const hexToHsl = (hex: string): string => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+
+    h = Math.round(h * 360);
+    s = Math.round(s * 100);
+    l = Math.round(l * 100);
+
+    return `${h}, ${s}%, ${l}%`;
+  };
+
+  // Convert HSL to HEX for color picker
+  const hslToHex = (h: number, s: number, l: number): string => {
+    s /= 100;
+    l /= 100;
+
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+
+    const r = Math.round(255 * f(0));
+    const g = Math.round(255 * f(8));
+    const b = Math.round(255 * f(4));
+
+    return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+  };
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const hex = e.target.value;
+    setHexColor(hex);
+    const hsl = hexToHsl(hex);
+    setSelectedColor(hsl);
+  };
+
+  const handleSaveColor = async () => {
+    if (selectedColor) {
+      await updatePrimaryColor(selectedColor);
+    }
+  };
+
+  if (!isAdmin) {
+    return (
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60">
+        <CardContent className="py-8">
+          <div className="text-center">
+            <Shield className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-600 dark:text-slate-400">
+              Only organization administrators can manage branding settings.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Logo Upload Section */}
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="w-5 h-5 text-purple-600" />
+            Organization Logo
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LogoUploader
+            currentLogoUrl={logoUrl}
+            onUpload={updateLogo}
+            onDelete={deleteLogo}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Primary Color Section */}
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="w-5 h-5 text-purple-600" />
+            Primary Brand Color
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="primaryColor">Choose your brand color</Label>
+            <div className="flex gap-4 items-center mt-2">
+              <input
+                id="primaryColor"
+                type="color"
+                value={hexColor}
+                onChange={handleColorChange}
+                className="h-12 w-20 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
+              />
+              <div className="flex-1">
+                <Input
+                  value={hexColor}
+                  onChange={handleColorChange}
+                  placeholder="#3b82f6"
+                  className="font-mono"
+                />
+              </div>
+              <Button onClick={handleSaveColor}>
+                Save Color
+              </Button>
+            </div>
+          </div>
+
+          {/* Preview Section */}
+          <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+            <p className="text-sm font-medium mb-3">Preview:</p>
+            <div className="flex flex-wrap gap-3">
+              <Button style={{ backgroundColor: hexColor, borderColor: hexColor }}>
+                Primary Button
+              </Button>
+              <Button variant="outline" style={{ color: hexColor, borderColor: hexColor }}>
+                Outline Button
+              </Button>
+              <a href="#" style={{ color: hexColor }} className="underline font-medium">
+                Link Example
+              </a>
+              <Badge style={{ backgroundColor: hexColor, borderColor: hexColor }}>
+                Badge
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

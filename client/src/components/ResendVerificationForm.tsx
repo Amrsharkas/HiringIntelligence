@@ -54,7 +54,7 @@ export default function ResendVerificationForm({ onBack }: ResendVerificationFor
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <div className="mx-auto mb-4 h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-          <Mail className="h-6 w-6 text-blue-600" />
+          <Mail className="h-6 w-6 text-primary" />
         </div>
         <CardTitle className="text-xl text-gray-900">Resend Verification Email</CardTitle>
         <p className="text-sm text-gray-600">

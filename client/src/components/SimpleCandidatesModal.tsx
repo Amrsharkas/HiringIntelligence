@@ -90,7 +90,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
   const getMatchScoreColor = (score: number) => {
     if (score >= 95) return "text-emerald-600 dark:text-emerald-400";
     if (score >= 90) return "text-green-600 dark:text-green-400";
-    if (score >= 85) return "text-blue-600 dark:text-blue-400";
+    if (score >= 85) return "text-primary dark:text-blue-400";
     return "text-purple-600 dark:text-purple-400";
   };
 
@@ -169,7 +169,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                 
                 <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700/50 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <Brain className="w-5 h-5 text-primary dark:text-blue-400 mt-0.5" />
                     <div>
                       <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">AI-Powered Matching</h4>
                       <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -257,7 +257,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                              className="text-primary hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               View Profile

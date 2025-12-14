@@ -275,7 +275,7 @@ export function ShortlistedApplicantsModal({
           <div className="flex-1 overflow-auto p-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : shortlistedApplicants.length === 0 ? (
               <div className="text-center py-12">
@@ -320,7 +320,7 @@ export function ShortlistedApplicantsModal({
                             size="sm"
                             variant="outline"
                             onClick={() => handleScheduleInterview(applicant)}
-                            className="border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 text-xs px-3 py-1.5 h-8"
+                            className="border-blue-200 text-primary hover:bg-blue-50 dark:border-primary dark:text-blue-400 dark:hover:bg-blue-900/20 text-xs px-3 py-1.5 h-8"
                           >
                             <CalendarPlus className="h-3 w-3 mr-1" />
                             Schedule Interview
@@ -456,7 +456,7 @@ export function ShortlistedApplicantsModal({
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <CalendarPlus className="h-5 w-5 text-blue-600" />
+                <CalendarPlus className="h-5 w-5 text-primary" />
                 Schedule Interview - {selectedApplicantForSchedule.name || selectedApplicantForSchedule.applicantName}
               </DialogTitle>
             </DialogHeader>
@@ -578,7 +578,7 @@ export function ShortlistedApplicantsModal({
               <Button
                 onClick={handleSubmitSchedule}
                 disabled={scheduleInterviewMutation.isPending || !interviewData.scheduledDate || !interviewData.scheduledTime}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {scheduleInterviewMutation.isPending ? 'Scheduling...' : 'Schedule Interview'}
               </Button>

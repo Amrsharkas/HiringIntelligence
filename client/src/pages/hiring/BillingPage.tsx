@@ -88,7 +88,7 @@ export default function BillingPage() {
   if (isLoadingSubscription) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -99,7 +99,7 @@ export default function BillingPage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <CreditCard className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <CreditCard className="w-6 h-6 text-primary dark:text-blue-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
@@ -120,7 +120,7 @@ export default function BillingPage() {
           transition={{ delay: 0.1 }}
         >
           <Card
-            className="bg-gradient-to-br from-blue-500 to-purple-600 text-white border-0 cursor-pointer hover:shadow-xl transition-all hover:scale-[1.02]"
+            className="bg-primary text-white border-0 cursor-pointer hover:shadow-xl transition-all hover:scale-[1.02]"
             onClick={() => navigate("/hiring/billing/plans")}
           >
             <CardContent className="p-6">
@@ -220,13 +220,13 @@ export default function BillingPage() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-                      <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <Video className="w-4 h-4 text-primary dark:text-blue-400" />
                     </div>
                     <span className="font-medium text-slate-700 dark:text-slate-300">
                       Interviews
                     </span>
                   </div>
-                  <Badge variant="outline" className="text-blue-600 border-blue-300">
+                  <Badge variant="outline" className="text-primary border-blue-300">
                     {interviewCredits.toLocaleString()} available
                   </Badge>
                 </div>
@@ -267,7 +267,7 @@ export default function BillingPage() {
                 {/* Plan Info */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <div className="p-3 rounded-xl bg-primary text-white">
                       <Crown className="w-6 h-6" />
                     </div>
                     <div>
@@ -284,7 +284,7 @@ export default function BillingPage() {
                       subscription.status === "active"
                         ? "bg-green-500"
                         : subscription.status === "trialing"
-                        ? "bg-blue-500"
+                        ? "bg-primary"
                         : "bg-amber-500"
                     }
                   >
@@ -302,7 +302,7 @@ export default function BillingPage() {
                     <p className="text-xs text-slate-500">CV Credits/mo</p>
                   </div>
                   <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-center">
-                    <Video className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+                    <Video className="w-5 h-5 text-primary mx-auto mb-1" />
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
                       {subscription.plan.monthlyInterviewCredits || 0}
                     </p>
@@ -396,7 +396,6 @@ export default function BillingPage() {
                 </p>
                 <Button
                   onClick={() => navigate("/hiring/billing/plans")}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   View Plans

@@ -133,7 +133,6 @@ export default function JobsPage() {
         </div>
         <Button
           onClick={() => navigate("/hiring/jobs/new")}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Job
@@ -160,7 +159,7 @@ export default function JobsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : filteredJobs.length === 0 ? (
             <div className="text-center py-12">

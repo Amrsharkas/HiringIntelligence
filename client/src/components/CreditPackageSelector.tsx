@@ -88,7 +88,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
   if (isLoadingPackages) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -163,7 +163,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
                       {getPackageIcon(pkg.creditAmount)}
                     </div>
                     {isSelected && (
-                      <div className="bg-blue-500 text-white rounded-full p-1">
+                      <div className="bg-primary text-white rounded-full p-1">
                         <Check className="w-4 h-4" />
                       </div>
                     )}
@@ -188,7 +188,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
                         <span className="text-sm text-slate-500 ml-1">EGP</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                        <span className="text-lg font-semibold text-primary dark:text-blue-400">
                           {pkg.creditAmount}
                         </span>
                         <span className="text-sm text-slate-500 block">credits</span>
@@ -209,7 +209,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
                     <Button
                       className={`w-full mt-4 ${
                         isSelected
-                          ? 'bg-blue-600 hover:bg-blue-700'
+                          ? 'bg-primary hover:bg-blue-700'
                           : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
                       }`}
                       onClick={(e) => {
@@ -267,7 +267,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
               <Card
                 className={`cursor-pointer transition-all duration-200 ${
                   isSelected
-                    ? 'ring-2 ring-blue-500 border-blue-500'
+                    ? 'ring-2 ring-blue-500 border-primary'
                     : 'hover:border-blue-300 dark:hover:border-blue-700'
                 }`}
                 onClick={() => onPackageSelect(pkg.id)}
@@ -281,7 +281,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
                         {getPackageIcon(pkg.creditAmount)}
                       </div>
                       {savings > 0 && (
-                        <Badge variant="default" className="bg-blue-500">
+                        <Badge variant="default" className="bg-primary">
                           Save {savings}%
                         </Badge>
                       )}
@@ -328,7 +328,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
                     <Button
                       className={`w-full mt-4 ${
                         isSelected
-                          ? 'bg-blue-600 hover:bg-blue-700'
+                          ? 'bg-primary hover:bg-blue-700'
                           : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
                       }`}
                       onClick={(e) => {

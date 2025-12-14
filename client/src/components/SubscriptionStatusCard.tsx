@@ -37,7 +37,7 @@ const getStatusBadge = (status: string) => {
     case 'active':
       return <Badge className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
     case 'trialing':
-      return <Badge className="bg-blue-500"><Sparkles className="w-3 h-3 mr-1" />Trial</Badge>;
+      return <Badge className="bg-primary"><Sparkles className="w-3 h-3 mr-1" />Trial</Badge>;
     case 'past_due':
       return <Badge className="bg-amber-500"><AlertCircle className="w-3 h-3 mr-1" />Past Due</Badge>;
     case 'canceled':
@@ -65,7 +65,7 @@ export const SubscriptionStatusCard: React.FC<SubscriptionStatusCardProps> = ({
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
@@ -86,7 +86,7 @@ export const SubscriptionStatusCard: React.FC<SubscriptionStatusCardProps> = ({
           </p>
           <Button 
             onClick={onUpgradeClick}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-primary hover:bg-blue-700"
           >
             Choose a Plan
           </Button>
@@ -160,7 +160,7 @@ export const SubscriptionStatusCard: React.FC<SubscriptionStatusCardProps> = ({
         <div className="space-y-3 pt-3 border-t">
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-600 dark:text-slate-400">Monthly Credits</span>
-            <span className="font-semibold text-blue-600">{plan.monthlyCredits}</span>
+            <span className="font-semibold text-primary">{plan.monthlyCredits}</span>
           </div>
 
           {/* Job Posts Usage */}
@@ -209,7 +209,7 @@ export const SubscriptionStatusCard: React.FC<SubscriptionStatusCardProps> = ({
           )}
           {onUpgradeClick && plan.name !== 'Enterprise' && (
             <Button 
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              className="flex-1 bg-primary hover:bg-blue-700"
               onClick={onUpgradeClick}
             >
               Upgrade

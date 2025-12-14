@@ -401,7 +401,7 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="flex items-center gap-2"><MapPin className="w-4 h-4 text-blue-600" />Location</Label>
+              <Label className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />Location</Label>
               <Input {...form.register("location")} placeholder="e.g., Remote, Cairo, Egypt" className="mt-2" />
               {form.formState.errors.location && <p className="text-red-500 text-sm mt-1">{form.formState.errors.location.message}</p>}
             </div>
@@ -485,7 +485,7 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="description">Job Description</Label>
               <Button type="button" onClick={generateDescription} disabled={isGeneratingDescription}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg">
+                size="sm">
                 {isGeneratingDescription ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
                 AI Generate
               </Button>
@@ -498,7 +498,7 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="requirements">Job Requirements</Label>
               <Button type="button" onClick={generateRequirements} disabled={isGeneratingRequirements}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg">
+                size="sm">
                 {isGeneratingRequirements ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
                 AI Generate
               </Button>
@@ -566,8 +566,8 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
                 </div>
                 {isExtractingSkills && (
                   <div className="flex items-center justify-center pt-2">
-                    <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                    <span className="text-xs text-blue-500 ml-2">AI analyzing skills...</span>
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    <span className="text-xs text-primary ml-2">AI analyzing skills...</span>
                   </div>
                 )}
               </div>
@@ -616,7 +616,7 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
                   setSelectedLanguages(newLanguages);
                   form.setValue("languagesRequired", newLanguages);
                 }}
-                className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900">
+                className="w-full border-dashed border-blue-300 text-primary hover:bg-blue-50 dark:hover:bg-blue-900">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Language Requirement
               </Button>
@@ -652,7 +652,7 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
 
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Tips for Effective AI Prompts</h4>
                   <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
@@ -673,8 +673,7 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
           disabled={createJobMutation.isPending || updateJobMutation.isPending}>
           Cancel
         </Button>
-        <Button type="submit" disabled={createJobMutation.isPending || updateJobMutation.isPending}
-          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg">
+        <Button type="submit" disabled={createJobMutation.isPending || updateJobMutation.isPending}>
           {(createJobMutation.isPending || updateJobMutation.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           {editJob ? "Update Job" : "Post Job"}
         </Button>

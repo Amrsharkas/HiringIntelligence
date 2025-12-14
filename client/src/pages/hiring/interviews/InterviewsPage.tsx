@@ -106,7 +106,7 @@ export default function InterviewsPage() {
         </div>
         <Button
           onClick={() => navigate("/hiring/interviews/new")}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+          className=""
         >
           <Plus className="w-4 h-4 mr-2" />
           Schedule Interview
@@ -147,7 +147,7 @@ export default function InterviewsPage() {
             <CardContent className="p-0">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : searchFiltered.length === 0 ? (
                 <div className="text-center py-12">
@@ -192,7 +192,7 @@ export default function InterviewsPage() {
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold text-sm">
                               {interview.candidateName?.[0] || "C"}
                             </div>
                             <div>

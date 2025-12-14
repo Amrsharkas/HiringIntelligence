@@ -6,6 +6,8 @@ const mkdir = promisify(fs.mkdir);
 const writeFileAsync = promisify(fs.writeFile);
 const readFileAsync = promisify(fs.readFile);
 const access = promisify(fs.access);
+const unlink = promisify(fs.unlink);
+const readdir = promisify(fs.readdir);
 
 /**
  * FileStorageService handles saving uploaded files to local disk
@@ -213,6 +215,95 @@ export class FileStorageService {
       console.error(`❌ Error reading file: ${filePath}`, error);
       throw new Error(`Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Save organization logo from base64 content
+   */
+  async saveOrganizationLogo(
+    fileContent: string,
+    fileName: string,
+    fileType: string,
+    organizationId: string
+  ): Promise<{ filePath: string; fileName: string; relativePath: string }> {
+    // Validate file type
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+    if (!allowedMimeTypes.includes(fileType)) {
+      throw new Error(`Invalid file type. Allowed types: PNG, JPG, JPEG, SVG`);
+    }
+
+    // Validate file size (2MB max)
+    const buffer = Buffer.from(fileContent, 'base64');
+    const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+    if (buffer.length > maxSize) {
+      throw new Error(`File size exceeds 2MB limit`);
+    }
+
+    // Create logos directory
+    const logosDir = path.join(process.cwd(), 'uploads', 'organization-logos', organizationId);
+    try {
+      await access(logosDir, fs.constants.F_OK);
+    } catch {
+      await mkdir(logosDir, { recursive: true });
+      console.log(`✅ Created organization logos directory: ${logosDir}`);
+    }
+
+    // Delete old logo if exists
+    try {
+      const existingFiles = await readdir(logosDir);
+      for (const file of existingFiles) {
+        const oldFilePath = path.join(logosDir, file);
+        await unlink(oldFilePath);
+        console.log(`🗑️ Deleted old logo: ${oldFilePath}`);
+      }
+    } catch (error) {
+      // Directory might not exist or be empty, that's fine
+    }
+
+    // Generate filename with timestamp
+    const timestamp = Date.now();
+    const extension = this.getFileExtension(fileName, fileType);
+    const finalFileName = `logo-${timestamp}${extension}`;
+    const filePath = path.join(logosDir, finalFileName);
+
+    try {
+      await writeFileAsync(filePath, buffer);
+      console.log(`💾 Saved organization logo: ${filePath} (${buffer.length} bytes)`);
+
+      // Return just the filename for storage in database
+      const relativePath = finalFileName;
+
+      return {
+        filePath,
+        fileName: finalFileName,
+        relativePath
+      };
+    } catch (error) {
+      console.error('❌ Error saving organization logo:', error);
+      throw new Error(`Failed to save logo: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Delete organization logo
+   */
+  async deleteOrganizationLogo(organizationId: string, fileName: string): Promise<void> {
+    const filePath = path.join(process.cwd(), 'uploads', 'organization-logos', organizationId, fileName);
+
+    try {
+      await unlink(filePath);
+      console.log(`🗑️ Deleted organization logo: ${filePath}`);
+    } catch (error) {
+      console.error('❌ Error deleting organization logo:', error);
+      throw new Error(`Failed to delete logo: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get organization logo file path
+   */
+  getOrganizationLogoPath(organizationId: string, fileName: string): string {
+    return path.join(process.cwd(), 'uploads', 'organization-logos', organizationId, fileName);
   }
 }
 

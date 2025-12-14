@@ -81,7 +81,7 @@ export function HiringHeader({ onMenuClick }: HiringHeaderProps) {
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>

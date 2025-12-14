@@ -149,7 +149,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -227,7 +227,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
               className="relative"
             >
               {isPopular && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500 hover:bg-blue-600 z-10">
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary hover:bg-primary z-10">
                   Most Popular
                 </Badge>
               )}
@@ -309,7 +309,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm">
                           {plan.monthlyInterviewCredits || 0} Interview Credits/month
                         </span>
@@ -348,7 +348,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                   <Button
                     className={`w-full ${
                       isPopular
-                        ? 'bg-blue-600 hover:bg-blue-700'
+                        ? 'bg-primary hover:bg-blue-700'
                         : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
                     }`}
                     onClick={() => handleSubscribe(plan)}

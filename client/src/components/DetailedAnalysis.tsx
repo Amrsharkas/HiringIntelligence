@@ -217,7 +217,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
   const getVerdictColor = (decision: string) => {
     switch (decision?.toUpperCase()) {
       case 'INTERVIEW': return 'bg-green-500 text-white border-green-600';
-      case 'CONSIDER': return 'bg-blue-500 text-white border-blue-600';
+      case 'CONSIDER': return 'bg-primary text-white border-primary';
       case 'REVIEW': return 'bg-yellow-500 text-white border-yellow-600';
       case 'NOT PASS': return 'bg-red-500 text-white border-red-600';
       default: return 'bg-gray-500 text-white border-gray-600';
@@ -250,7 +250,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
               {fullResponse.executiveSummary.fitScore && (
                 <Badge className={`text-xs ${
                   fullResponse.executiveSummary.fitScore === 'EXCELLENT' ? 'bg-green-500' :
-                  fullResponse.executiveSummary.fitScore === 'GOOD' ? 'bg-blue-500' :
+                  fullResponse.executiveSummary.fitScore === 'GOOD' ? 'bg-primary' :
                   fullResponse.executiveSummary.fitScore === 'FAIR' ? 'bg-yellow-500' :
                   fullResponse.executiveSummary.fitScore === 'POOR' ? 'bg-orange-500' :
                   'bg-red-500'
@@ -261,7 +261,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
               {fullResponse.executiveSummary.hiringUrgency && (
                 <Badge className={`text-xs ${
                   fullResponse.executiveSummary.hiringUrgency === 'EXPEDITE' ? 'bg-green-600' :
-                  fullResponse.executiveSummary.hiringUrgency === 'STANDARD' ? 'bg-blue-600' :
+                  fullResponse.executiveSummary.hiringUrgency === 'STANDARD' ? 'bg-primary' :
                   fullResponse.executiveSummary.hiringUrgency === 'LOW_PRIORITY' ? 'bg-gray-600' :
                   'bg-red-600'
                 }`}>
@@ -377,7 +377,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                 <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                   <div className="flex items-center justify-between w-full pr-2">
                     <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-blue-600" />
+                      <Briefcase className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Section A: Skills & Competency</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -405,7 +405,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                 <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                   <div className="flex items-center justify-between w-full pr-2">
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-blue-600" />
+                      <User className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Section B: Experience Alignment</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -433,7 +433,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                 <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                   <div className="flex items-center justify-between w-full pr-2">
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-blue-600" />
+                      <Users className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Section C: Impact & Achievements</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -459,7 +459,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                 <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                   <div className="flex items-center justify-between w-full pr-2">
                     <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-blue-600" />
+                      <Star className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Section D: Qualifications</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -483,7 +483,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                 <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                   <div className="flex items-center justify-between w-full pr-2">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-blue-600" />
+                      <FileText className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Section E: Logistics & Compatibility</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -511,7 +511,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                 <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50">
                   <div className="flex items-center justify-between w-full pr-2">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-blue-600" />
+                      <AlertTriangle className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Section F: Bonus & Penalties</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -539,23 +539,23 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
             <div className="grid grid-cols-6 gap-2 mt-2">
               <div className="text-center p-2 bg-white rounded border">
                 <div className="text-lg font-bold text-blue-700">{fullResponse.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></div>
-                <div className="text-xs text-blue-600 font-medium">Skills</div>
+                <div className="text-xs text-primary font-medium">Skills</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
                 <div className="text-lg font-bold text-blue-700">{fullResponse.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></div>
-                <div className="text-xs text-blue-600 font-medium">Experience</div>
+                <div className="text-xs text-primary font-medium">Experience</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
                 <div className="text-lg font-bold text-blue-700">{fullResponse.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></div>
-                <div className="text-xs text-blue-600 font-medium">Impact</div>
+                <div className="text-xs text-primary font-medium">Impact</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
                 <div className="text-lg font-bold text-blue-700">{fullResponse.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
-                <div className="text-xs text-blue-600 font-medium">Qualifications</div>
+                <div className="text-xs text-primary font-medium">Qualifications</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
                 <div className="text-lg font-bold text-blue-700">{fullResponse.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></div>
-                <div className="text-xs text-blue-600 font-medium">Logistics</div>
+                <div className="text-xs text-primary font-medium">Logistics</div>
               </div>
               <div className="text-center p-2 bg-white rounded border">
                 <div className={`text-lg font-bold ${(fullResponse.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -678,7 +678,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                         </div>
                       )}
                       {item.recommendation && (
-                        <div className="text-xs text-blue-600 mt-1">
+                        <div className="text-xs text-primary mt-1">
                           <span className="font-medium">Recommendation:</span> {item.recommendation}
                         </div>
                       )}
@@ -781,7 +781,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                 </div>
                 <div className="text-center p-2 bg-blue-100 rounded">
                   <div className="text-lg font-bold text-blue-700">{proficientCount}</div>
-                  <div className="text-xs text-blue-600">Proficient</div>
+                  <div className="text-xs text-primary">Proficient</div>
                 </div>
                 <div className="text-center p-2 bg-yellow-100 rounded">
                   <div className="text-lg font-bold text-yellow-700">{familiarCount}</div>
@@ -1022,7 +1022,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                   <ul className="space-y-1">
                     {fullResponse.interviewRecommendations.technicalValidation.map((item: string, i: number) => (
                       <li key={i} className="text-sm flex items-start gap-2">
-                        <span className="text-blue-500">-</span>
+                        <span className="text-primary">-</span>
                         <span>{item}</span>
                       </li>
                     ))}
@@ -1090,7 +1090,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                   {skill.evidence}
                 </div>
                 {skill.missingDetail && (
-                  <div className="text-xs text-blue-600">
+                  <div className="text-xs text-primary">
                     {skill.missingDetail}
                   </div>
                 )}
@@ -1125,7 +1125,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                   {exp.evidence}
                 </div>
                 {exp.missingDetail && (
-                  <div className="text-xs text-blue-600">
+                  <div className="text-xs text-primary">
                     {exp.missingDetail}
                   </div>
                 )}
@@ -1160,7 +1160,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                   {edu.evidence}
                 </div>
                 {edu.missingDetail && (
-                  <div className="text-xs text-blue-600">
+                  <div className="text-xs text-primary">
                     {edu.missingDetail}
                   </div>
                 )}
@@ -1195,7 +1195,7 @@ export const DetailedAnalysis = ({ jobScore }: DetailedAnalysisProps) => {
                   {skill.evidence}
                 </div>
                 {skill.missingDetail && (
-                  <div className="text-xs text-blue-600">
+                  <div className="text-xs text-primary">
                     {skill.missingDetail}
                   </div>
                 )}

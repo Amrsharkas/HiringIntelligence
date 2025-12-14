@@ -194,7 +194,7 @@ export default function InviteMemberPage() {
       case "admin":
         return <Shield className="w-5 h-5 text-purple-500" />;
       case "member":
-        return <Users className="w-5 h-5 text-blue-500" />;
+        return <Users className="w-5 h-5 text-primary" />;
       case "viewer":
         return <EyeIcon className="w-5 h-5 text-slate-500" />;
       default:
@@ -248,7 +248,7 @@ export default function InviteMemberPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
-                    <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <Mail className="h-4 w-4 text-primary dark:text-blue-400" />
                   </div>
                   <div>
                     <p className="font-medium text-slate-900 dark:text-white">
@@ -335,7 +335,7 @@ export default function InviteMemberPage() {
         </Button>
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <UserPlus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <UserPlus className="w-6 h-6 text-primary dark:text-blue-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
@@ -508,7 +508,7 @@ export default function InviteMemberPage() {
               sendInvitationsMutation.isPending ||
               watchedEmails.filter((e) => e.trim()).length === 0
             }
-            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+            className=""
           >
             {sendInvitationsMutation.isPending ? (
               <>

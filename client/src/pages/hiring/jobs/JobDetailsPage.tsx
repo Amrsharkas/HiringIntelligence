@@ -86,7 +86,7 @@ export default function JobDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -260,7 +260,7 @@ export default function JobDetailsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <DollarSign className="w-4 h-4 text-primary dark:text-blue-400" />
                 </div>
                 <div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Salary</p>

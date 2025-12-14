@@ -60,7 +60,7 @@ const CreditBalanceDisplay = memo(({
   if (isLoading) {
     return (
       <div className="p-4 sm:p-6 h-full flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -88,7 +88,7 @@ const CreditBalanceDisplay = memo(({
     <div className="p-4 sm:p-6 h-full flex flex-col justify-between">
       <div className="flex items-center justify-between mb-4">
         <div className="group-hover:scale-110 transition-transform duration-200">
-          <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
+          <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-primary dark:text-blue-400" />
         </div>
         <div className="text-right">
           {isLowCredits && (
@@ -144,7 +144,7 @@ const CreditBalanceDisplay = memo(({
                   ? 'bg-red-500'
                   : isLowInterviewCredits
                     ? 'bg-yellow-500'
-                    : 'bg-blue-500'
+                    : 'bg-primary'
               }`}
               style={{ width: `${Math.max(Math.min((interviewCredits / 500) * 100, 100), 5)}%` }}
             />
@@ -173,7 +173,7 @@ const CreditBalanceDisplay = memo(({
               <Button
                 size="sm"
                 variant="default"
-                className="h-6 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-6 px-2 text-xs bg-primary hover:bg-blue-700 text-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   onTopUp();
@@ -186,7 +186,7 @@ const CreditBalanceDisplay = memo(({
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+              className="h-6 px-2 text-xs text-primary hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onViewHistory) {

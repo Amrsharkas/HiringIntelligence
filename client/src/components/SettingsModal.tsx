@@ -343,7 +343,7 @@ export function SettingsModal({ isOpen, onClose, isAdminOrOwner = false }: Setti
       case 'owner':
         return <Crown className="w-4 h-4 text-yellow-600" />;
       case 'admin':
-        return <Shield className="w-4 h-4 text-blue-600" />;
+        return <Shield className="w-4 h-4 text-primary" />;
       default:
         return <User className="w-4 h-4 text-gray-600" />;
     }
@@ -607,7 +607,7 @@ export function SettingsModal({ isOpen, onClose, isAdminOrOwner = false }: Setti
               <CardContent>
                 {teamLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   </div>
                 ) : teamMembers.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
@@ -619,7 +619,7 @@ export function SettingsModal({ isOpen, onClose, isAdminOrOwner = false }: Setti
                       <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">
+                            <span className="text-sm font-medium text-primary">
                               {member.name.charAt(0).toUpperCase()}
                             </span>
                           </div>

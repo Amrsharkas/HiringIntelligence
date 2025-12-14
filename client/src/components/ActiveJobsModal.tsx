@@ -181,7 +181,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
           <div className="p-6">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                 <span className="ml-3 text-slate-600 dark:text-slate-400">Loading jobs...</span>
               </div>
             ) : jobs.length === 0 ? (
@@ -306,7 +306,7 @@ export function ActiveJobsModal({ isOpen, onClose }: ActiveJobsModalProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEditJob(job)}
-                          className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                          className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>

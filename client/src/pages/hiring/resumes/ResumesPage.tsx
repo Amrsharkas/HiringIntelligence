@@ -495,7 +495,7 @@ export default function ResumesPage() {
             AI Search
           </Button>
           <Button
-            className="bg-gradient-to-r from-blue-500 to-blue-600"
+            className=""
             onClick={() => setIsUploadModalOpen(true)}
           >
             <Upload className="w-4 h-4 mr-2" />
@@ -602,7 +602,7 @@ export default function ResumesPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : displayRows.length === 0 ? (
             <div className="text-center py-12">

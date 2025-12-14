@@ -98,7 +98,7 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl">
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         </DialogContent>
       </Dialog>
@@ -113,7 +113,7 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl flex items-center gap-2">
-              <Crown className="w-6 h-6 text-blue-600" />
+              <Crown className="w-6 h-6 text-primary" />
               Subscription Management
             </DialogTitle>
           </DialogHeader>
@@ -143,7 +143,7 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Crown className="w-5 h-5 text-blue-600" />
+                          <Crown className="w-5 h-5 text-primary" />
                           {subscription.plan.name} Plan
                         </h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -152,7 +152,7 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
                       </div>
                       <Badge className={
                         subscription.status === 'active' ? 'bg-green-500' :
-                        subscription.status === 'trialing' ? 'bg-blue-500' :
+                        subscription.status === 'trialing' ? 'bg-primary' :
                         'bg-amber-500'
                       }>
                         {subscription.status}

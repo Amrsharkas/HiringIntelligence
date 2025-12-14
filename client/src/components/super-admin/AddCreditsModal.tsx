@@ -124,7 +124,7 @@ export function AddCreditsModal({ isOpen, onClose, organization, onSuccess }: Ad
           </div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <Sparkles className="w-4 h-4 text-primary dark:text-blue-400" />
             </div>
             <div>
               <p className="text-xs text-slate-500">Interview Credits</p>
@@ -152,7 +152,7 @@ export function AddCreditsModal({ isOpen, onClose, organization, onSuccess }: Ad
                 </SelectItem>
                 <SelectItem value="interview">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-500" />
+                    <Sparkles className="w-4 h-4 text-primary" />
                     Interview Credits
                   </div>
                 </SelectItem>

@@ -54,7 +54,7 @@ const getPlanIcon = (name: string) => {
 
 const getPlanGradient = (name: string) => {
   const gradients: Record<string, string> = {
-    Starter: "from-blue-500 to-cyan-500",
+    Starter: "bg-primary",
     Growth: "from-purple-500 to-pink-500",
     Pro: "from-amber-500 to-orange-500",
     Enterprise: "from-rose-500 to-red-600",
@@ -159,7 +159,7 @@ export default function SubscriptionPlansPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -198,7 +198,7 @@ export default function SubscriptionPlansPage() {
             <div className="flex items-center gap-4 bg-white dark:bg-slate-800 rounded-full px-6 py-3 shadow-sm">
               <span
                 className={`text-sm font-medium transition-colors ${
-                  !isYearly ? "text-blue-600" : "text-slate-500"
+                  !isYearly ? "text-primary" : "text-slate-500"
                 }`}
               >
                 Monthly
@@ -206,7 +206,7 @@ export default function SubscriptionPlansPage() {
               <Switch checked={isYearly} onCheckedChange={setIsYearly} />
               <span
                 className={`text-sm font-medium transition-colors ${
-                  isYearly ? "text-blue-600" : "text-slate-500"
+                  isYearly ? "text-primary" : "text-slate-500"
                 }`}
               >
                 Yearly
@@ -325,7 +325,7 @@ export default function SubscriptionPlansPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                            <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <Video className="w-4 h-4 text-primary dark:text-blue-400" />
                           </div>
                           <span className="text-sm">
                             <strong>{plan.monthlyInterviewCredits || 0}</strong> Interview Credits/month
@@ -430,7 +430,7 @@ export default function SubscriptionPlansPage() {
                 <span>1 CV Credit = Full AI Analysis + Match Score</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <div className="w-2 h-2 rounded-full bg-primary" />
                 <span>1 Interview Credit = AI Interview Package</span>
               </div>
             </div>

@@ -206,7 +206,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
               {/* Invite Code Tip */}
               {inviteCode && (
                 <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <Info className="h-4 w-4 text-primary dark:text-blue-400" />
                   <AlertDescription className="text-sm text-blue-800 dark:text-blue-300">
                     <strong>You've been invited!</strong> Complete your registration to join the team.
                     After signing up, you'll be automatically added to the organization.
@@ -351,10 +351,10 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
                         />
                         <Label htmlFor="acceptedTerms" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                           I have read and agree to the Terms of Service above (printable version{" "}
-                          <a href="/terms" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline">
+                          <a href="/terms" className="text-primary hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline">
                             available here
                           </a>) and the{" "}
-                          <a href="/privacy" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline">
+                          <a href="/privacy" className="text-primary hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline">
                             Privacy Policy
                           </a>
                         </Label>
@@ -416,7 +416,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
                   Already have an account?{" "}
                   <button
                     onClick={handleSwitchToSignIn}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium hover:underline"
+                    className="text-primary hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium hover:underline"
                   >
                     Sign in here  
                   </button>

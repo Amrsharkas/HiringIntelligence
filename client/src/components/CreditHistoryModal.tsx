@@ -129,7 +129,7 @@ const TransactionList = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -266,7 +266,7 @@ const UsageStats = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -301,7 +301,7 @@ const UsageStats = () => {
       label: 'Resume Processing',
       value: usage.resumeProcessingCount,
       icon: <FileText className="w-5 h-5" />,
-      color: 'text-blue-600 dark:text-blue-400',
+      color: 'text-primary dark:text-blue-400',
       bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     },
     {
@@ -324,24 +324,24 @@ const UsageStats = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">
+              <p className="text-sm text-primary dark:text-blue-400 font-medium mb-1">
                 Current Balance
               </p>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-blue-700 dark:text-blue-300">
                   {balance.remainingCredits}
                 </span>
-                <span className="text-sm text-blue-600/70 dark:text-blue-400/70">
+                <span className="text-sm text-primary/70 dark:text-blue-400/70">
                   / {balance.creditLimit} credits
                 </span>
               </div>
             </div>
-            <CreditCard className="w-12 h-12 text-blue-600/30 dark:text-blue-400/30" />
+            <CreditCard className="w-12 h-12 text-primary/30 dark:text-blue-400/30" />
           </div>
           <div className="mt-4">
             <div className="w-full bg-blue-200 dark:bg-blue-900/30 rounded-full h-2">
               <div
-                className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
+                className="bg-primary dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
                 style={{
                   width: `${Math.max((balance.remainingCredits / balance.creditLimit) * 100, 5)}%`,
                 }}
@@ -419,7 +419,7 @@ export function CreditHistoryModal({ isOpen, onClose }: CreditHistoryModalProps)
           <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                <CreditCard className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <CreditCard className="w-6 h-6 text-primary dark:text-blue-400" />
                 Credit Management
               </h2>
               <Button
@@ -464,7 +464,7 @@ export function CreditHistoryModal({ isOpen, onClose }: CreditHistoryModalProps)
 
               <TabsContent value="payments">
                 <div className="text-center py-8">
-                  <DollarSign className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                  <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
                     Payment History
                   </h3>
@@ -473,7 +473,7 @@ export function CreditHistoryModal({ isOpen, onClose }: CreditHistoryModalProps)
                   </p>
                   <Button
                     onClick={() => setIsPaymentHistoryOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-primary hover:bg-blue-700"
                   >
                     <DollarSign className="w-4 h-4 mr-2" />
                     View Payment History

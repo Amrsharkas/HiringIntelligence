@@ -296,15 +296,50 @@
 
 /* Improved focus indicators */
 .focus-visible:focus-visible {
-  outline: 2px solid hsl(207, 90%, 54%);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 /* Better selection styles */
 ::selection {
-  background-color: hsl(207, 90%, 54%, 0.3);
+  background-color: hsl(var(--primary) / 0.3);
 }
 
 .dark ::selection {
-  background-color: hsl(207, 90%, 54%, 0.5);
+  background-color: hsl(var(--primary) / 0.5);
+}
+
+/* Primary color gradient utilities */
+@layer utilities {
+  .bg-primary-gradient {
+    background: linear-gradient(to right, var(--primary), var(--primary));
+    filter: brightness(1.1);
+  }
+
+  .from-primary {
+    --tw-gradient-from: var(--primary);
+    --tw-gradient-to: transparent;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+
+  .to-primary-dark {
+    --tw-gradient-to: var(--primary);
+    filter: brightness(0.9);
+  }
+
+  .hover\:from-primary:hover {
+    --tw-gradient-from: var(--primary);
+  }
+
+  .text-primary-custom {
+    color: var(--primary);
+  }
+
+  .border-primary-custom {
+    border-color: var(--primary);
+  }
+
+  .bg-primary-custom {
+    background-color: var(--primary);
+  }
 }

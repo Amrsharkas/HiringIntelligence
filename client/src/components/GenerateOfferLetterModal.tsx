@@ -190,7 +190,7 @@ export function GenerateOfferLetterModal({
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <FileText className="w-5 h-5 text-primary dark:text-blue-400" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
@@ -229,7 +229,7 @@ export function GenerateOfferLetterModal({
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                           isActive
-                            ? 'bg-blue-600 text-white shadow-lg'
+                            ? 'bg-primary text-white shadow-lg'
                             : isComplete
                             ? 'bg-green-500 text-white'
                             : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
@@ -244,7 +244,7 @@ export function GenerateOfferLetterModal({
                       <span
                         className={`text-xs mt-1 ${
                           isActive
-                            ? 'text-blue-600 dark:text-blue-400 font-semibold'
+                            ? 'text-primary dark:text-blue-400 font-semibold'
                             : 'text-gray-500 dark:text-gray-400'
                         }`}
                       >
@@ -370,7 +370,7 @@ export function GenerateOfferLetterModal({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col items-center justify-center py-12"
               >
-                <Loader2 className="w-16 h-16 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
+                <Loader2 className="w-16 h-16 text-primary dark:text-blue-400 animate-spin mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   Sending Offer Letter...
                 </h3>
@@ -419,7 +419,7 @@ export function GenerateOfferLetterModal({
                   <button
                     onClick={handleGenerate}
                     disabled={generateMutation.isPending}
-                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generateMutation.isPending ? (
                       <>
@@ -438,7 +438,7 @@ export function GenerateOfferLetterModal({
                 {step === 'edit' && (
                   <button
                     onClick={() => setStep('preview')}
-                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg transition-colors"
                   >
                     <Eye className="w-4 h-4" />
                     Preview

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@assets/logo.png";
+import { useBranding } from "@/contexts/BrandingContext";
 
 interface NavSection {
   title: string;
@@ -73,6 +74,7 @@ const navSections: NavSection[] = [
 export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { logoUrl } = useBranding();
 
   const { data: organization } = useQuery<any>({
     queryKey: ["/api/organizations/current"],
@@ -112,7 +114,7 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
           className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
           onClick={() => handleNavigation("/hiring/overview")}
         >
-          <img src={logo} alt="Logo" className="h-8 w-auto flex-shrink-0" />
+          <img src={logoUrl || logo} alt="Logo" className="h-8 w-auto flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <h1 className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
               {organization?.companyName || "Hiring Dashboard"}
@@ -145,7 +147,7 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200",
                     isActive(item.id)
-                      ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
+                      ? "bg-primary text-primary-foreground shadow-lg"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}
                 >
@@ -200,9 +202,9 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               <span className="text-xs text-slate-600 dark:text-slate-400">
-                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                <span className="font-semibold text-primary">
                   {interviewCredits.toLocaleString()}
                 </span>{" "}
                 Int

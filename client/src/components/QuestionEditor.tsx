@@ -122,12 +122,12 @@ export function QuestionEditor({ question, onChange }: QuestionEditorProps) {
               onClick={() => handleTypeChange(value)}
               className={`p-3 rounded-lg border-2 text-left transition-all ${
                 question.type === value
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                  ? "border-primary bg-blue-50 dark:bg-blue-900/20"
                   : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
               }`}
             >
               <Icon className={`w-5 h-5 mb-1 ${
-                question.type === value ? "text-blue-600" : "text-slate-400"
+                question.type === value ? "text-primary" : "text-slate-400"
               }`} />
               <div className={`text-sm font-medium ${
                 question.type === value ? "text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"
@@ -324,7 +324,7 @@ export function QuestionEditor({ question, onChange }: QuestionEditorProps) {
                     onClick={() => toggleFileType(value)}
                     className={`px-3 py-1 rounded-full text-sm border transition-all ${
                       isSelected
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                        ? "border-primary bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
                         : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
                     }`}
                   >

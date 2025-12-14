@@ -37,7 +37,7 @@ import { HLSVideoPlayer } from "@/components/HLSVideoPlayer";
 const getFitScoreColor = (fit: string) => {
   switch (fit?.toUpperCase()) {
     case 'EXCELLENT': return 'bg-green-500';
-    case 'GOOD': return 'bg-blue-500';
+    case 'GOOD': return 'bg-primary';
     case 'FAIR': return 'bg-yellow-500';
     case 'POOR': return 'bg-orange-500';
     case 'NOT_FIT': return 'bg-red-500';
@@ -48,7 +48,7 @@ const getFitScoreColor = (fit: string) => {
 const getVerdictColor = (decision: string) => {
   switch (decision?.toUpperCase()) {
     case 'INTERVIEW': return 'bg-green-500 text-white border-green-600';
-    case 'CONSIDER': return 'bg-blue-500 text-white border-blue-600';
+    case 'CONSIDER': return 'bg-primary text-white border-primary';
     case 'REVIEW': return 'bg-yellow-500 text-white border-yellow-600';
     case 'NOT PASS': return 'bg-red-500 text-white border-red-600';
     default: return 'bg-gray-500 text-white border-gray-600';
@@ -76,7 +76,7 @@ const getRiskColor = (risk: string) => {
 
 const getScoreColorClass = (score: number) => {
   if (score >= 80) return 'text-green-600 dark:text-green-400';
-  if (score >= 60) return 'text-blue-600 dark:text-blue-400';
+  if (score >= 60) return 'text-primary dark:text-blue-400';
   if (score >= 40) return 'text-yellow-600 dark:text-yellow-400';
   return 'text-red-600 dark:text-red-400';
 };
@@ -170,7 +170,7 @@ export default function ApplicantDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -227,7 +227,7 @@ export default function ApplicantDetailsPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
+            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-semibold">
               {applicant.firstName?.[0] || applicant.email?.[0]?.toUpperCase() || "A"}
             </div>
             <div>
@@ -391,7 +391,7 @@ export default function ApplicantDetailsPage() {
                       <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                         <Badge className={`${
                           interviewMeta.interview_quality === 'EXCELLENT' ? 'bg-green-500' :
-                          interviewMeta.interview_quality === 'GOOD' ? 'bg-blue-500' :
+                          interviewMeta.interview_quality === 'GOOD' ? 'bg-primary' :
                           interviewMeta.interview_quality === 'ADEQUATE' ? 'bg-yellow-500' :
                           'bg-orange-500'
                         } text-white`}>
@@ -434,7 +434,7 @@ export default function ApplicantDetailsPage() {
                     <div className="flex items-center gap-3">
                       <Badge className={`text-lg px-4 py-2 font-bold ${
                         hiringGuidance.proceed_to_next_round === 'YES' ? 'bg-green-500 text-white' :
-                        hiringGuidance.proceed_to_next_round === 'LIKELY' ? 'bg-blue-500 text-white' :
+                        hiringGuidance.proceed_to_next_round === 'LIKELY' ? 'bg-primary text-white' :
                         hiringGuidance.proceed_to_next_round === 'MAYBE' ? 'bg-yellow-500 text-white' :
                         hiringGuidance.proceed_to_next_round === 'UNLIKELY' ? 'bg-orange-500 text-white' :
                         'bg-red-500 text-white'
@@ -664,7 +664,7 @@ export default function ApplicantDetailsPage() {
                             <div className="flex gap-1">
                               <Badge className={`text-xs ${
                                 resp.quality === 'EXCELLENT' ? 'bg-green-500' :
-                                resp.quality === 'GOOD' ? 'bg-blue-500' :
+                                resp.quality === 'GOOD' ? 'bg-primary' :
                                 resp.quality === 'ADEQUATE' ? 'bg-yellow-500' :
                                 'bg-orange-500'
                               } text-white`}>
@@ -699,7 +699,7 @@ export default function ApplicantDetailsPage() {
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <div className="text-xs text-blue-600 font-semibold mb-1">Thinking Style</div>
+                        <div className="text-xs text-primary font-semibold mb-1">Thinking Style</div>
                         <Badge variant="outline">{cognitivePatterns.thinking_style}</Badge>
                         {cognitivePatterns.thinking_style_evidence && (
                           <p className="text-xs text-blue-700 mt-2 italic">"{cognitivePatterns.thinking_style_evidence}"</p>
@@ -902,7 +902,7 @@ export default function ApplicantDetailsPage() {
                       <span className="text-sm text-slate-600 dark:text-slate-400">Authenticity Score:</span>
                       <Badge className={`text-sm ${
                         authenticityAssessment.authenticity_score >= 80 ? 'bg-green-500' :
-                        authenticityAssessment.authenticity_score >= 60 ? 'bg-blue-500' :
+                        authenticityAssessment.authenticity_score >= 60 ? 'bg-primary' :
                         authenticityAssessment.authenticity_score >= 40 ? 'bg-yellow-500' :
                         'bg-red-500'
                       } text-white`}>

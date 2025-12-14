@@ -80,7 +80,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
 
   const getMatchScoreColor = (score: number) => {
     if (score >= 90) return "text-green-600 dark:text-green-400";
-    if (score >= 80) return "text-blue-600 dark:text-blue-400";
+    if (score >= 80) return "text-primary dark:text-blue-400";
     if (score >= 70) return "text-yellow-600 dark:text-yellow-400";
     if (score >= 60) return "text-orange-600 dark:text-orange-400";
     return "text-red-600 dark:text-red-400";
@@ -158,7 +158,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       </div>
                       {selectedCandidate.matchScore && (
                         <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4 text-blue-500" />
+                          <Target className="w-4 h-4 text-primary" />
                           <span className={`font-medium ${getMatchScoreColor(selectedCandidate.matchScore)}`}>
                             {selectedCandidate.matchScore}% Match
                           </span>
@@ -180,7 +180,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                 {selectedCandidate.matchReasoning && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6">
                     <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-blue-500" />
+                      <Star className="w-5 h-5 text-primary" />
                       AI Match Analysis
                     </h4>
                     <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
@@ -265,7 +265,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
           <div className="p-6">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                 <span className="ml-3 text-slate-600 dark:text-slate-400">Loading candidates...</span>
               </div>
             ) : filteredCandidates.length === 0 ? (
@@ -375,7 +375,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                       
                       <Button
                         onClick={() => handleViewProfile(candidate.id)}
-                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm transition-colors duration-200"
+                        className="bg-primary hover:bg-blue-700 dark:bg-primary dark:hover:bg-primary text-white px-6 py-2 rounded-lg text-sm transition-colors duration-200"
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         View Profile

@@ -745,7 +745,7 @@ export function InterviewManagementModal({
         <div className="relative">
           <Button
             onClick={() => setShowCreateForm(true)}
-            className="absolute bottom-4 right-4 z-50 shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
+            className="absolute bottom-4 right-4 z-50 shadow-lg bg-primary hover:bg-blue-700 text-white"
             size="sm"
           >
             <Plus className="h-4 w-4 mr-2" />

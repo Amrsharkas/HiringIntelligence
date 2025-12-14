@@ -796,7 +796,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <MapPin className="w-4 h-4 text-primary" />
                   Location
                 </Label>
                 <Input
@@ -1061,7 +1061,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                       <Badge key={skill} variant="secondary" className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                         {skill}
                         <X 
-                          className="w-3 h-3 cursor-pointer hover:text-blue-600" 
+                          className="w-3 h-3 cursor-pointer hover:text-primary" 
                           onClick={() => {
                             const newSkills = selectedSoftSkills.filter(s => s !== skill);
                             setSelectedSoftSkills(newSkills);
@@ -1125,8 +1125,8 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   </div>
                   {isExtractingSkills && (
                     <div className="flex items-center justify-center pt-2">
-                      <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                      <span className="text-xs text-blue-500 ml-2">AI analyzing skills...</span>
+                      <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                      <span className="text-xs text-primary ml-2">AI analyzing skills...</span>
                     </div>
                   )}
                   {!isExtractingSkills && dynamicTechnicalSkills.length === 0 && (form.watch("title") || form.watch("description")) && (
@@ -1195,7 +1195,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                     setSelectedLanguages(newLanguages);
                     form.setValue("languagesRequired", newLanguages);
                   }}
-                  className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900"
+                  className="w-full border-dashed border-blue-300 text-primary hover:bg-blue-50 dark:hover:bg-blue-900"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Language Requirement
@@ -1260,7 +1260,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
 
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-start gap-3">
-                      <Sparkles className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
                           Tips for Effective AI Prompts

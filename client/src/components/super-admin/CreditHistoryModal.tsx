@@ -98,7 +98,7 @@ export function CreditHistoryModal({ isOpen, onClose, organization }: CreditHist
         <div className="overflow-y-auto max-h-[500px]">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : data && data.length > 0 ? (
             <Table>

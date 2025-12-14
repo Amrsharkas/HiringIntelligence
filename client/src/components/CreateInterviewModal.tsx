@@ -176,7 +176,7 @@ export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: 
         >
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-3">
-              <Calendar className="w-6 h-6 text-blue-600" />
+              <Calendar className="w-6 h-6 text-primary" />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Create New Interview
               </h3>
@@ -361,7 +361,7 @@ export function CreateInterviewModal({ isOpen, onClose, preSelectedApplicant }: 
             <button
               onClick={handleSubmit}
               disabled={createInterviewMutation.isPending || !selectedApplicant || !interviewData.scheduledDate || !interviewData.scheduledTime}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {createInterviewMutation.isPending && <Clock className="w-4 h-4 animate-spin" />}
               <span>{createInterviewMutation.isPending ? 'Scheduling...' : 'Schedule Interview'}</span>

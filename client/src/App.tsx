@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { usePendingInvitation } from "@/hooks/usePendingInvitation";
+import { BrandingProvider } from "@/contexts/BrandingContext";
 import Landing from "@/pages/landing";
 import OrganizationSetup from "@/pages/organization-setup";
 import ResumeProfiles from "@/pages/resume-profiles";
@@ -124,10 +125,12 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ThemeProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
+            <BrandingProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </BrandingProvider>
           </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>

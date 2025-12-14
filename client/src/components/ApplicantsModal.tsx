@@ -93,7 +93,7 @@ interface ApplicantsModalProps {
 // Helper functions for structured profile rendering (following ResumeProfilesList pattern)
 const getScoreColorClass = (score: number) => {
   if (score >= 80) return 'text-green-600 dark:text-green-400';
-  if (score >= 60) return 'text-blue-600 dark:text-blue-400';
+  if (score >= 60) return 'text-primary dark:text-blue-400';
   if (score >= 40) return 'text-yellow-600 dark:text-yellow-400';
   return 'text-red-600 dark:text-red-400';
 };
@@ -108,7 +108,7 @@ const getScoreBgClass = (score: number) => {
 const getVerdictColor = (decision: string) => {
   switch (decision?.toUpperCase()) {
     case 'INTERVIEW': return 'bg-green-500 text-white border-green-600';
-    case 'CONSIDER': return 'bg-blue-500 text-white border-blue-600';
+    case 'CONSIDER': return 'bg-primary text-white border-primary';
     case 'REVIEW': return 'bg-yellow-500 text-white border-yellow-600';
     case 'NOT PASS': return 'bg-red-500 text-white border-red-600';
     default: return 'bg-gray-500 text-white border-gray-600';
@@ -118,7 +118,7 @@ const getVerdictColor = (decision: string) => {
 const getFitScoreColor = (fit: string) => {
   switch (fit?.toUpperCase()) {
     case 'EXCELLENT': return 'bg-green-500';
-    case 'GOOD': return 'bg-blue-500';
+    case 'GOOD': return 'bg-primary';
     case 'FAIR': return 'bg-yellow-500';
     case 'POOR': return 'bg-orange-500';
     case 'NOT_FIT': return 'bg-red-500';
@@ -467,7 +467,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <div className="text-center">
-                <Clock className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-600" />
+                <Clock className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
                 <p className="text-slate-600 dark:text-slate-400">Loading applicants...</p>
               </div>
             </div>
@@ -527,7 +527,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                           size="sm"
                           onClick={() => handleShortlist(applicant.id)}
                           disabled={shortlistMutation.isPending}
-                          className="border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 text-xs px-3 py-1.5 h-8"
+                          className="border-blue-200 text-primary hover:bg-blue-50 dark:border-primary dark:text-blue-400 dark:hover:bg-blue-900/20 text-xs px-3 py-1.5 h-8"
                         >
                           <Star className="w-3 h-3 mr-1" />
                           Shortlist
@@ -748,7 +748,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                                   (selectedUserProfile.structuredProfile?.executive_summary?.hiring_urgency ||
                                    selectedUserProfile.structuredProfile?.executive_summary?.hiring_urgency) === 'EXPEDITE' ? 'bg-green-600' :
                                   (selectedUserProfile.structuredProfile?.executive_summary?.hiring_urgency ||
-                                   selectedUserProfile.structuredProfile?.executive_summary?.hiring_urgency) === 'STANDARD' ? 'bg-blue-600' :
+                                   selectedUserProfile.structuredProfile?.executive_summary?.hiring_urgency) === 'STANDARD' ? 'bg-primary' :
                                   (selectedUserProfile.structuredProfile?.executive_summary?.hiring_urgency ||
                                    selectedUserProfile.structuredProfile?.executive_summary?.hiring_urgency) === 'LOW_PRIORITY' ? 'bg-gray-600' :
                                   'bg-red-600'
@@ -882,7 +882,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                           <div className="flex items-center gap-3 mb-4">
                             <Badge className={`text-lg px-4 py-2 font-bold ${
                               selectedUserProfile.structuredProfile?.hiring_guidance?.proceed_to_next_round === 'YES' ? 'bg-green-500 text-white' :
-                              selectedUserProfile.structuredProfile?.hiring_guidance?.proceed_to_next_round === 'LIKELY' ? 'bg-blue-500 text-white' :
+                              selectedUserProfile.structuredProfile?.hiring_guidance?.proceed_to_next_round === 'LIKELY' ? 'bg-primary text-white' :
                               selectedUserProfile.structuredProfile?.hiring_guidance?.proceed_to_next_round === 'MAYBE' ? 'bg-yellow-500 text-white' :
                               selectedUserProfile.structuredProfile?.hiring_guidance?.proceed_to_next_round === 'UNLIKELY' ? 'bg-orange-500 text-white' :
                               'bg-red-500 text-white'
@@ -1262,7 +1262,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                             {/* V4: New Information */}
                             {selectedUserProfile.structuredProfile?.cross_reference_analysis?.new_information?.length > 0 && (
                               <div>
-                                <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">New Information (Not in Resume)</div>
+                                <div className="text-xs font-medium text-primary dark:text-blue-400 mb-1">New Information (Not in Resume)</div>
                                 <div className="flex flex-wrap gap-1">
                                   {selectedUserProfile.structuredProfile?.cross_reference_analysis?.new_information.map((info: string, i: number) => (
                                     <Badge key={i} className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
@@ -1795,7 +1795,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                               <div className="flex items-center gap-2 mb-2">
                                 <Badge className={`text-sm ${
                                   selectedUserProfile.structuredProfile?.job_match_analysis?.recommendation === 'STRONGLY_RECOMMEND' ? 'bg-green-500 text-white' :
-                                  selectedUserProfile.structuredProfile?.job_match_analysis?.recommendation === 'RECOMMEND' ? 'bg-blue-500 text-white' :
+                                  selectedUserProfile.structuredProfile?.job_match_analysis?.recommendation === 'RECOMMEND' ? 'bg-primary text-white' :
                                   selectedUserProfile.structuredProfile?.job_match_analysis?.recommendation === 'CONSIDER' ? 'bg-yellow-500 text-white' :
                                   selectedUserProfile.structuredProfile?.job_match_analysis?.recommendation === 'HESITANT' ? 'bg-orange-500 text-white' :
                                   'bg-red-500 text-white'
@@ -1850,7 +1850,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                               <div className="flex items-center justify-between">
                                 <Badge className={`text-sm ${
                                   selectedUserProfile.structuredProfile?.job_match?.hire_recommendation === 'strong_match' ? 'bg-green-500 text-white' :
-                                  selectedUserProfile.structuredProfile?.job_match?.hire_recommendation === 'good_match' ? 'bg-blue-500 text-white' :
+                                  selectedUserProfile.structuredProfile?.job_match?.hire_recommendation === 'good_match' ? 'bg-primary text-white' :
                                   selectedUserProfile.structuredProfile?.job_match?.hire_recommendation === 'potential_match' ? 'bg-yellow-500 text-white' :
                                   'bg-red-500 text-white'
                                 }`}>
@@ -2170,7 +2170,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                               )}
                               {selectedUserProfile.structuredProfile?.skills_and_capabilities.skill_depth_analysis.proficient_level?.length > 0 && (
                                 <div>
-                                  <div className="text-xs font-medium text-blue-600 mb-1">Proficient Level</div>
+                                  <div className="text-xs font-medium text-primary mb-1">Proficient Level</div>
                                   <div className="flex flex-wrap gap-1">
                                     {selectedUserProfile.structuredProfile?.skills_and_capabilities.skill_depth_analysis.proficient_level.map((skill: string, i: number) => (
                                       <Badge key={i} className="text-xs bg-blue-100 text-blue-800">{skill}</Badge>
@@ -2328,7 +2328,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                                 href={response.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                                className="inline-flex items-center gap-2 text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                               >
                                 <Download className="w-4 h-4" />
                                 View uploaded file

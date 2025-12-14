@@ -140,7 +140,7 @@ export default function ResumeDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -288,7 +288,7 @@ export default function ResumeDetailsPage() {
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50 dark:hover:bg-slate-700">
                 <div className="flex items-center justify-between w-full pr-2">
                   <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-blue-600" />
+                    <Award className="h-4 w-4 text-primary" />
                     <span className="font-medium">Section A: Technical Skills</span>
                   </div>
                   <Badge className={getScoreBgColor((fullResponse.sectionA / 30) * 100)}>
@@ -312,7 +312,7 @@ export default function ResumeDetailsPage() {
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50 dark:hover:bg-slate-700">
                 <div className="flex items-center justify-between w-full pr-2">
                   <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-blue-600" />
+                    <Briefcase className="h-4 w-4 text-primary" />
                     <span className="font-medium">Section B: Experience</span>
                   </div>
                   <Badge className={getScoreBgColor((fullResponse.sectionB / 25) * 100)}>
@@ -336,7 +336,7 @@ export default function ResumeDetailsPage() {
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50 dark:hover:bg-slate-700">
                 <div className="flex items-center justify-between w-full pr-2">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    <TrendingUp className="h-4 w-4 text-primary" />
                     <span className="font-medium">Section C: Impact & Achievements</span>
                   </div>
                   <Badge className={getScoreBgColor((fullResponse.sectionC / 20) * 100)}>
@@ -359,7 +359,7 @@ export default function ResumeDetailsPage() {
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50 dark:hover:bg-slate-700">
                 <div className="flex items-center justify-between w-full pr-2">
                   <div className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4 text-blue-600" />
+                    <GraduationCap className="h-4 w-4 text-primary" />
                     <span className="font-medium">Section D: Qualifications</span>
                   </div>
                   <Badge className={getScoreBgColor((fullResponse.sectionD / 10) * 100)}>
@@ -382,7 +382,7 @@ export default function ResumeDetailsPage() {
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50 dark:hover:bg-slate-700">
                 <div className="flex items-center justify-between w-full pr-2">
                   <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-blue-600" />
+                    <Target className="h-4 w-4 text-primary" />
                     <span className="font-medium">Section E: Logistics & Compatibility</span>
                   </div>
                   <Badge className={getScoreBgColor((fullResponse.sectionE / 10) * 100)}>
@@ -561,7 +561,7 @@ export default function ResumeDetailsPage() {
                       <ul className="space-y-1">
                         {fullResponse.interviewRecommendations.technicalValidation.map((item: string, i: number) => (
                           <li key={i} className="text-sm flex items-start gap-2">
-                            <span className="text-blue-500">✓</span>
+                            <span className="text-primary">✓</span>
                             <span>{item}</span>
                           </li>
                         ))}

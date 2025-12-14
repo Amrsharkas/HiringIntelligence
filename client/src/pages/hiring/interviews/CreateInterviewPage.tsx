@@ -174,7 +174,7 @@ export default function CreateInterviewPage() {
         </Button>
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <Calendar className="w-6 h-6 text-primary dark:text-blue-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
@@ -191,7 +191,7 @@ export default function CreateInterviewPage() {
       <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-600" />
+            <Calendar className="w-5 h-5 text-primary" />
             Interview Details
           </CardTitle>
         </CardHeader>
@@ -200,7 +200,7 @@ export default function CreateInterviewPage() {
             {/* Job Selection */}
             <div>
               <Label className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-blue-600" />
+                <Briefcase className="w-4 h-4 text-primary" />
                 Select Job Position *
               </Label>
               <Select value={selectedJob} onValueChange={setSelectedJob}>
@@ -358,7 +358,7 @@ export default function CreateInterviewPage() {
                   !interviewData.scheduledDate ||
                   !interviewData.scheduledTime
                 }
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                className="bg-primary "
               >
                 {createInterviewMutation.isPending ? (
                   <>

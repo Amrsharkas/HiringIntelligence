@@ -269,7 +269,7 @@ export function RegionalPricingModal({ isOpen, onClose, plan }: RegionalPricingM
                 {pricingLoading ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8">
-                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : pricing?.length === 0 ? (

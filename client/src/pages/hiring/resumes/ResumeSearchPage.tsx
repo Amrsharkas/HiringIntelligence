@@ -222,25 +222,25 @@ export default function ResumeSearchPage() {
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.overallScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Overall</div>
+                      <div className="text-primary dark:text-blue-400">Overall</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.technicalSkillsScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Technical</div>
+                      <div className="text-primary dark:text-blue-400">Technical</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.experienceScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Experience</div>
+                      <div className="text-primary dark:text-blue-400">Experience</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                         {selectedResume.existingScore.culturalFitScore}%
                       </div>
-                      <div className="text-blue-600 dark:text-blue-400">Culture</div>
+                      <div className="text-primary dark:text-blue-400">Culture</div>
                     </div>
                   </div>
                 </CardContent>
@@ -456,7 +456,7 @@ export default function ResumeSearchPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <FileText className="w-6 h-6 text-primary dark:text-blue-400" />
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
                   1. Analyze Job Requirements
@@ -620,7 +620,7 @@ export default function ResumeSearchPage() {
                           onClick={() => setSelectedResume(match)}
                           variant="outline"
                           size="sm"
-                          className="whitespace-nowrap hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-700"
+                          className="whitespace-nowrap hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-primary dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-700"
                         >
                           <ExternalLink className="h-4 w-4 mr-2" />
                           View Profile

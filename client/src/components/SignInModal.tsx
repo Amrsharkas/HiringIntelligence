@@ -103,7 +103,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
               {/* Invite Code Tip */}
               {inviteCode && (
                 <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 mb-6">
-                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <Info className="h-4 w-4 text-primary dark:text-blue-400" />
                   <AlertDescription className="text-sm text-blue-800 dark:text-blue-300">
                     <strong>You've been invited!</strong> Sign in with your existing account to join the team.
                     If you don't have an account yet, please{" "}
@@ -168,7 +168,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
                     type="button"
                     variant="ghost"
                     onClick={() => setShowForgotPassword(true)}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    className="text-primary hover:text-blue-800 text-sm"
                   >
                     Forgot your password?
                   </Button>
@@ -195,7 +195,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToSignUp }: SignI
                   Don't have an account?{" "}
                   <button
                     onClick={onSwitchToSignUp}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium hover:underline"
+                    className="text-primary hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium hover:underline"
                   >
                     Sign up here
                   </button>

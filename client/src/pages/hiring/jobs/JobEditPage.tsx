@@ -33,7 +33,7 @@ export default function JobEditPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -73,7 +73,7 @@ export default function JobEditPage() {
         </Button>
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <Briefcase className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <Briefcase className="w-6 h-6 text-primary dark:text-blue-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">

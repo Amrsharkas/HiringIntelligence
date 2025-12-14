@@ -135,7 +135,7 @@ const LiveActivityStats = () => {
         description: `${jobCounts.active} active job posting${jobCounts.active !== 1 ? 's' : ''} currently live`,
         timestamp: new Date(currentTime.getTime() - 30 * 60000).toISOString(), // 30 min ago
         icon: <Briefcase className="w-4 h-4" />,
-        color: 'text-blue-600',
+        color: 'text-primary',
         bgColor: 'bg-blue-100'
       });
     }
@@ -221,11 +221,11 @@ const LiveActivityStats = () => {
           animate={{ scale: 1, opacity: 1 }}
           className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center"
         >
-          <Briefcase className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <Briefcase className="w-8 h-8 text-primary dark:text-blue-400 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-primary dark:text-blue-400">
             {jobCounts.active}
           </div>
-          <div className="text-sm text-blue-600/80 dark:text-blue-400/80">
+          <div className="text-sm text-primary/80 dark:text-blue-400/80">
             Active Jobs
           </div>
         </motion.div>

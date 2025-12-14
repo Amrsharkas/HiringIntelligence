@@ -55,7 +55,7 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
       title: "Active Jobs",
       value: jobCounts.active,
       icon: Briefcase,
-      color: "text-blue-600 dark:text-blue-400",
+      color: "text-primary dark:text-blue-400",
       bgColor: "bg-blue-100 dark:bg-blue-900/30",
       change: jobTrend.change,
       trend: jobTrend.trend
@@ -141,7 +141,7 @@ export function AnalyticsModal({ isOpen, onClose }: AnalyticsModalProps) {
                 </div>
                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
                     <span className="text-sm">Interviews scheduled this week</span>
                   </div>
                   <span className="text-sm font-medium">{interviewsCount.count}</span>

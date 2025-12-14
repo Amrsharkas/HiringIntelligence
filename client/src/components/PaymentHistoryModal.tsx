@@ -229,7 +229,7 @@ export const PaymentHistoryModal = React.memo<PaymentHistoryModalProps>(({
             <DialogHeader>
               <div className="flex items-center justify-between">
                 <DialogTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <CreditCard className="w-6 h-6 text-blue-600" />
+                  <CreditCard className="w-6 h-6 text-primary" />
                   Payment History
                 </DialogTitle>
                 <div className="flex items-center gap-2">
@@ -306,7 +306,7 @@ export const PaymentHistoryModal = React.memo<PaymentHistoryModalProps>(({
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 mb-1">
+                <div className="flex items-center gap-2 text-sm text-primary dark:text-blue-400 mb-1">
                   <RefreshCw className="w-4 h-4" />
                   Refunded
                 </div>
@@ -350,7 +350,7 @@ export const PaymentHistoryModal = React.memo<PaymentHistoryModalProps>(({
               <TabsContent value={activeTab} className="mt-4">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+                    <RefreshCw className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 ) : error ? (
                   <div className="text-center py-12">
@@ -391,7 +391,7 @@ export const PaymentHistoryModal = React.memo<PaymentHistoryModalProps>(({
                                 {transaction.status}
                               </Badge>
                               {transaction.refundedAmount > 0 && (
-                                <Badge variant="outline" className="text-blue-600">
+                                <Badge variant="outline" className="text-primary">
                                   Refunded
                                 </Badge>
                               )}
@@ -422,7 +422,7 @@ export const PaymentHistoryModal = React.memo<PaymentHistoryModalProps>(({
                             {transaction.currency.toUpperCase()}
                           </div>
                           {transaction.refundedAmount > 0 && (
-                            <div className="text-sm text-blue-600">
+                            <div className="text-sm text-primary">
                               Refunded: ${(transaction.refundedAmount / 100).toFixed(2)}
                             </div>
                           )}

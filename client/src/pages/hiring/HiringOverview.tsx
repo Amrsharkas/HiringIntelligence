@@ -146,7 +146,7 @@ export default function HiringOverview() {
           title="Active Jobs"
           value={jobCounts.active || 0}
           icon={Briefcase}
-          color="bg-gradient-to-br from-blue-500 to-blue-600"
+          color="bg-primary"
           onClick={() => navigate("/hiring/jobs")}
         />
         <StatCard
@@ -182,7 +182,7 @@ export default function HiringOverview() {
             title="Post a New Job"
             description="Create and publish a new job posting"
             icon={Plus}
-            gradient="bg-gradient-to-r from-blue-500 to-blue-600"
+            gradient="bg-primary"
             onClick={() => navigate("/hiring/jobs/new")}
           />
           <QuickActionCard

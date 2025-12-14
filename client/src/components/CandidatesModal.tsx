@@ -103,7 +103,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
 
   const getMatchScoreColor = (score: number) => {
     if (score >= 90) return "text-green-600 dark:text-green-400";
-    if (score >= 80) return "text-blue-600 dark:text-blue-400";
+    if (score >= 80) return "text-primary dark:text-blue-400";
     if (score >= 70) return "text-yellow-600 dark:text-yellow-400";
     if (score >= 60) return "text-orange-600 dark:text-orange-400";
     return "text-red-600 dark:text-red-400";
@@ -354,7 +354,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                       </div>
                       {selectedCandidate.matchScore && (
                         <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4 text-blue-500" />
+                          <Target className="w-4 h-4 text-primary" />
                           <span className={`font-medium ${getMatchScoreColor(selectedCandidate.matchScore)}`}>
                             {selectedCandidate.matchScore}% Match
                           </span>
@@ -376,7 +376,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                 {selectedCandidate.matchReasoning && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6">
                     <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-blue-500" />
+                      <Star className="w-5 h-5 text-primary" />
                       AI Match Analysis
                     </h4>
                     <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-4">
@@ -465,7 +465,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
               <div className="p-6">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     <span className="ml-3 text-slate-600 dark:text-slate-400">Loading jobs...</span>
                   </div>
                 ) : jobs.length === 0 ? (
@@ -516,7 +516,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                           <div className="ml-6">
                             <Button
                               onClick={() => handleViewCandidates(job.id)}
-                              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm transition-colors duration-200"
+                              className="bg-primary hover:bg-blue-700 dark:bg-primary dark:hover:bg-primary text-white px-6 py-2 rounded-lg text-sm transition-colors duration-200"
                             >
                               <Users className="w-4 h-4 mr-2" />
                               View Candidates
@@ -549,8 +549,8 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                       </h2>
                       <div className="flex items-center gap-3 mt-1">
                         {isFetching && (
-                          <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                          <div className="flex items-center gap-2 text-xs text-primary dark:text-blue-400">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                             <span>Checking for new candidates...</span>
                           </div>
                         )}
@@ -597,7 +597,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
               <div className="p-6">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     <span className="ml-3 text-slate-600 dark:text-slate-400">Loading candidates...</span>
                   </div>
                 ) : filteredCandidates.length === 0 ? (
@@ -614,8 +614,8 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                         : "The system automatically monitors your Airtable database and checks for new candidates every minute."}
                     </p>
                     {!searchTerm && (
-                      <div className="mt-4 flex items-center justify-center gap-2 text-sm text-blue-600 dark:text-blue-400">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <div className="mt-4 flex items-center justify-center gap-2 text-sm text-primary dark:text-blue-400">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                         <span>Monitoring for new applicants...</span>
                       </div>
                     )}
@@ -723,7 +723,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                           <div className="flex flex-col gap-2">
                             <Button
                               onClick={() => handleViewProfile(candidate.id)}
-                              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                              className="bg-primary hover:bg-blue-700 dark:bg-primary dark:hover:bg-primary text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
                             >
                               <Eye className="w-4 h-4 mr-2" />
                               View Profile
@@ -937,7 +937,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
           >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Info className="w-5 h-5 text-blue-500" />
+                <Info className="w-5 h-5 text-primary" />
                 Candidate Rating Criteria
               </h3>
               <Button
@@ -956,7 +956,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
               </div>
 
               <div className="space-y-4">
-                <div className="border-l-4 border-blue-500 pl-4">
+                <div className="border-l-4 border-primary pl-4">
                   <h4 className="font-semibold text-slate-900 dark:text-white">Technical Skills (30%)</h4>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
                     Relevance and proficiency in required programming languages, frameworks, and tools
@@ -1001,7 +1001,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">75-84%:</span>
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">Strong Match</span>
+                    <span className="text-primary dark:text-blue-400 font-medium">Strong Match</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">60-74%:</span>

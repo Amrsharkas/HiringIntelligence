@@ -72,6 +72,9 @@ export const organizations = pgTable("organizations", {
   subscriptionStatus: varchar("subscription_status").default("inactive"), // active, inactive, trial, past_due, canceled
   currentSubscriptionId: varchar("current_subscription_id"),
   jobPostsUsed: integer("job_posts_used").notNull().default(0),
+  // White label branding fields
+  brandLogoPath: varchar("brand_logo_path"),
+  brandPrimaryColor: varchar("brand_primary_color"), // HSL format: "207, 90%, 54%"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -61,7 +61,7 @@ export default function JobApplicantsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -128,7 +128,7 @@ export default function JobApplicantsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
                         {applicant.firstName?.[0] || applicant.email?.[0]?.toUpperCase() || "A"}
                       </div>
                       <div>
