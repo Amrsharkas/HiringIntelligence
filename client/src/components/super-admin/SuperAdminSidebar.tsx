@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Home, Building2, CreditCard, Package, Users, X, ArrowLeft, Shield } from "lucide-react";
+import { Home, Building2, CreditCard, Package, Users, X, ArrowLeft, Shield, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@assets/logo.png";
 
@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { id: "users", label: "Users", icon: Users },
   { id: "subscription-plans", label: "Plans", icon: CreditCard },
   { id: "credit-packages", label: "Packages", icon: Package },
+  { id: "tutorial-slides", label: "Tutorial Slides", icon: BookOpen },
 ];
 
 export function SuperAdminSidebar({ activePage, onNavigate, isOpen, onClose }: SuperAdminSidebarProps) {

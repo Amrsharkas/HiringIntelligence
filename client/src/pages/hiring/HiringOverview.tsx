@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -12,7 +12,9 @@ import {
   Search,
   BarChart3,
   ArrowRight,
+  BookOpen,
 } from "lucide-react";
+import { TutorialSlideshow, useTutorial } from "@/components/TutorialSlideshow";
 
 // Stat Card Component
 const StatCard = memo(({
@@ -97,6 +99,15 @@ QuickActionCard.displayName = "QuickActionCard";
 
 export default function HiringOverview() {
   const navigate = useNavigate();
+  const { shouldShow: shouldShowTutorial } = useTutorial('hiring');
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+
+  // Show tutorial on first visit if not completed
+  useEffect(() => {
+    if (shouldShowTutorial) {
+      setIsTutorialOpen(true);
+    }
+  }, [shouldShowTutorial]);
 
   const { data: organization } = useQuery<any>({
     queryKey: ["/api/organizations/current"],
@@ -130,14 +141,23 @@ export default function HiringOverview() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-8 flex justify-between items-start"
       >
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200">
-          Welcome back{organization?.companyName ? `, ${organization.companyName}` : ""}!
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
-          Here's an overview of your hiring activities
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200">
+            Welcome back{organization?.companyName ? `, ${organization.companyName}` : ""}!
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">
+            Here's an overview of your hiring activities
+          </p>
+        </div>
+        <button
+          onClick={() => setIsTutorialOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+        >
+          <BookOpen className="w-4 h-4" />
+          Show Tutorial
+        </button>
       </motion.div>
 
       {/* Stats Grid */}
@@ -208,6 +228,13 @@ export default function HiringOverview() {
           />
         </div>
       </div>
+
+      {/* Tutorial Slideshow */}
+      <TutorialSlideshow
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        audience="hiring"
+      />
 
     </div>
   );

@@ -8,6 +8,7 @@ import { SuperAdminCompanies } from "./SuperAdminCompanies";
 import { SuperAdminUsers } from "./SuperAdminUsers";
 import { SuperAdminSubscriptionPlans } from "./SuperAdminSubscriptionPlans";
 import { SuperAdminCreditPackages } from "./SuperAdminCreditPackages";
+import SuperAdminTutorialSlides from "./SuperAdminTutorialSlides";
 
 export default function SuperAdminDashboard() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -57,6 +58,8 @@ export default function SuperAdminDashboard() {
         return <SuperAdminSubscriptionPlans />;
       case "credit-packages":
         return <SuperAdminCreditPackages />;
+      case "tutorial-slides":
+        return <SuperAdminTutorialSlides />;
       case "welcome":
       default:
         return <SuperAdminWelcome onNavigate={setActivePage} />;

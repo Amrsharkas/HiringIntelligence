@@ -1164,3 +1164,30 @@ export const cache = pgTable("cache", {
 
 export type Cache = typeof cache.$inferSelect;
 export type InsertCache = typeof cache.$inferInsert;
+
+// Tutorial slides table for onboarding
+export const tutorialSlides = pgTable("tutorial_slides", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url"),
+  order: integer("order").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  targetAudience: varchar("target_audience").notNull().default("hiring"), // 'hiring', 'applicant', 'all'
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_tutorial_slides_order").on(table.order),
+  index("idx_tutorial_slides_audience").on(table.targetAudience),
+  index("idx_tutorial_slides_active").on(table.isActive),
+]);
+
+export type TutorialSlide = typeof tutorialSlides.$inferSelect;
+export type InsertTutorialSlide = typeof tutorialSlides.$inferInsert;
+
+export const insertTutorialSlideSchema = createInsertSchema(tutorialSlides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
