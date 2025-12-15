@@ -1719,8 +1719,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : applicant.generatedProfile;
       }
 
-      // Get interview video URL from application's session
+      // Get interview video URL and transcription from application's session
       let interviewVideoUrl = null;
+      let interviewTranscription = null;
       if (applicant.sessionId) {
         try {
           const { interviewSessions } = await import('@shared/schema');
@@ -1731,8 +1732,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (session?.interviewVideoUrl) {
             interviewVideoUrl = session.interviewVideoUrl;
           }
+
+          // Extract transcription from session data
+          if (session?.sessionData?.responses) {
+            interviewTranscription = session.sessionData.responses;
+          } else if (session?.sessionData?.conversation) {
+            // Handle different data structure
+            interviewTranscription = session.sessionData.conversation;
+          }
         } catch (videoError) {
-          console.warn('Could not fetch interview video:', videoError);
+          console.warn('Could not fetch interview video or transcription:', videoError);
         }
       }
 
@@ -1772,8 +1781,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Detailed analysis (if available from resume profile)
         fullResponse: fullResponse,
 
-        // Interview video URL
+        // Interview video URL and transcription
         interviewVideoUrl: interviewVideoUrl,
+        interviewTranscription: interviewTranscription,
       };
 
       res.json(enrichedApplicant);
