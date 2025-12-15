@@ -252,6 +252,59 @@ export class LocalDatabaseService {
     }
   }
 
+  // Fetch job applications filtered by job IDs, single jobId, status and optional pagination
+  async getJobApplicationsFiltered(options: {
+    jobIds?: string[];
+    jobId?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+    organizationId?: string;
+  }): Promise<AirtableJobApplication[]> {
+    try {
+      let query = db.select().from(schema.airtableJobApplications);
+
+      const { jobIds, jobId, status, limit, offset, organizationId } = options;
+
+      // If organizationId provided, fetch job IDs for that organization and use them
+      let resolvedJobIds = jobIds;
+      if (organizationId) {
+        try {
+          const orgJobs = await db.select({ id: schema.jobs.id }).from(schema.jobs).where(eq(schema.jobs.organizationId, organizationId));
+          resolvedJobIds = orgJobs.map(j => String(j.id));
+        } catch (e) {
+          console.error('Error fetching jobs for organization in getJobApplicationsFiltered:', e);
+          resolvedJobIds = [];
+        }
+      }
+
+      if (jobId) {
+        query = query.where(eq(schema.airtableJobApplications.jobId, jobId));
+      } else if (resolvedJobIds && resolvedJobIds.length > 0) {
+        query = query.where(inArray(schema.airtableJobApplications.jobId, resolvedJobIds));
+      }
+
+      if (status) {
+        query = query.where(eq(schema.airtableJobApplications.status, status));
+      }
+
+      query = query.orderBy(desc(schema.airtableJobApplications.applicationDate));
+
+      if (typeof limit === 'number') {
+        // drizzle orm supports limit/offset chaining
+        query = query.limit(limit);
+      }
+      if (typeof offset === 'number') {
+        query = query.offset(offset);
+      }
+
+      return await query;
+    } catch (error) {
+      console.error('Error getting filtered job applications:', error);
+      throw error;
+    }
+  }
+
   // Job Matches Operations
   async createJobMatch(data: InsertAirtableJobMatch): Promise<AirtableJobMatch> {
     try {
