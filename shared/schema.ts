@@ -762,6 +762,32 @@ export const openaiRequests = pgTable("openai_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Voice calls table
+export const voiceCalls = pgTable("voice_calls", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  toPhoneNumber: varchar("to_phone_number").notNull(),
+  fromPhoneNumber: varchar("from_phone_number").notNull(),
+  status: varchar("status").notNull().default("initiated"), // initiated, ringing, in-progress, completed, failed
+  durationSeconds: integer("duration_seconds").notNull().default(0),
+  costCents: integer("cost_cents").notNull().default(0),
+  openaiSessionId: varchar("openai_session_id"),
+  twilioCallSid: varchar("twilio_call_sid").unique(),
+  transcript: text("transcript"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Voice call events table for detailed logging
+export const voiceCallEvents = pgTable("voice_call_events", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  voiceCallId: varchar("voice_call_id").references(() => voiceCalls.id),
+  eventType: varchar("event_type").notNull(), // call.started, call.ended, audio.received, transcript.generated, etc.
+  eventData: jsonb("event_data"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
 // Schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -842,6 +868,10 @@ export type InsertInterviewSession = z.infer<typeof insertInterviewSessionSchema
 export type InterviewRecording = typeof interviewRecordings.$inferSelect;
 export type InsertInterviewRecording = z.infer<typeof insertInterviewRecordingSchema>;
 export type OpenAIRequest = typeof openaiRequests.$inferSelect;
+export type VoiceCall = typeof voiceCalls.$inferSelect;
+export type InsertVoiceCall = typeof voiceCalls.$inferInsert;
+export type VoiceCallEvent = typeof voiceCallEvents.$inferSelect;
+export type InsertVoiceCallEvent = typeof voiceCallEvents.$inferInsert;
 
 // Additional type definitions for HiringIntelligence compatibility
 export type UpsertUser = InsertUser;

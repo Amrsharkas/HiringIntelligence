@@ -7,6 +7,7 @@ import { matchingService } from './matchingService';
 import { fileStorageService } from './fileStorageService';
 import { ragIndexingService } from './ragIndexingService';
 import { localDatabaseService } from './localDatabaseService';
+import { twilioVoiceService } from './services/twilioVoiceService';
 
 // Check Redis connection health
 const checkRedisHealth = async () => {
@@ -425,6 +426,51 @@ const candidateMatchingWorker = new Worker(
   }
 );
 
+// Voice call worker
+const voiceCallWorker = new Worker(
+  'voice-calls',
+  async (job) => {
+    const { toPhoneNumber, organizationId, systemPrompt, voice } = job.data;
+
+    console.log(`Initiating voice call to ${toPhoneNumber} for organization ${organizationId}`);
+
+    try {
+      const result = await twilioVoiceService.initiateCall({
+        toPhoneNumber,
+        organizationId,
+        systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation.",
+        voice: voice || "alloy",
+      });
+
+      if (result.success) {
+        console.log(`Successfully initiated voice call: ${result.callId} (SID: ${result.twilioCallSid})`);
+        return result;
+      } else {
+        console.error(`Failed to initiate voice call: ${result.error}`);
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error(`Error initiating voice call to ${toPhoneNumber}:`, error);
+      throw error;
+    }
+  },
+  {
+    connection: redisConnection,
+    concurrency: 5, // Limit concurrent voice calls
+    settings: {
+      lockDuration: 300000, // 5 minutes
+      maxStalledCount: 2,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    },
+    jobOptions: {
+      timeout: 600000, // 10 minutes timeout
+    }
+  }
+);
+
 // Handle worker events
 const setupWorkerEvents = (worker: Worker, workerName: string) => {
   worker.on('completed', (job) => {
@@ -444,6 +490,7 @@ setupWorkerEvents(resumeProcessingWorker, 'Resume Processing Worker');
 setupWorkerEvents(emailWorker, 'Email Worker');
 setupWorkerEvents(interviewInvitationWorker, 'Interview Invitation Worker');
 setupWorkerEvents(candidateMatchingWorker, 'Candidate Matching Worker');
+setupWorkerEvents(voiceCallWorker, 'Voice Call Worker');
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
@@ -453,6 +500,7 @@ process.on('SIGINT', async () => {
     emailWorker.close(),
     interviewInvitationWorker.close(),
     candidateMatchingWorker.close(),
+    voiceCallWorker.close(),
   ]);
   await closeRedisConnection();
   process.exit(0);
@@ -465,6 +513,7 @@ process.on('SIGTERM', async () => {
     emailWorker.close(),
     interviewInvitationWorker.close(),
     candidateMatchingWorker.close(),
+    voiceCallWorker.close(),
   ]);
   await closeRedisConnection();
   process.exit(0);

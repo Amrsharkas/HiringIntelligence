@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import express from "express";
 import fetch from "node-fetch";
 import crypto from "crypto";
+import { createVoiceStreamServer } from "./websocket/voiceStreamServer";
 import { storage } from "./storage";
 import { setupAuth, requireAuth, requireVerifiedAuth, requireAuthOrService } from "./auth";
 import { requireCredits, deductCredits, attachCreditBalance } from "./creditMiddleware";
@@ -29,6 +30,7 @@ import { setupCreditPackages } from "./setupCreditPackages";
 import { setupRegionalPricing } from "./setupRegionalPricing";
 import { geoService } from "./geoService";
 import superAdminRoutes from "./routes/superAdmin";
+import voiceRoutes from "./routes/twilioVoice.routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -39,6 +41,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount Super Admin routes
   app.use('/api/super-admin', superAdminRoutes);
+
+  // Mount Voice API routes
+  app.use('/api/voice', voiceRoutes);
 
   // Get user's organization route
   app.get('/api/organizations/current', requireVerifiedAuth, async (req: any, res) => {
@@ -7528,5 +7533,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   });
 
   const httpServer = createServer(app);
+
+  // Setup voice stream WebSocket server
+  console.log('🔊 Setting up voice stream WebSocket server...');
+  const voiceStreamServer = createVoiceStreamServer(httpServer, process.env.VOICE_WS_PATH || "/voice-stream");
+  console.log(`✅ Voice stream server ready at: ${process.env.VOICE_WS_PATH || "/voice-stream"}`);
+
   return httpServer;
 }

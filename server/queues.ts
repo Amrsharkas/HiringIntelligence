@@ -41,12 +41,26 @@ export const candidateMatchingQueue = new Queue('candidate-matching', {
   },
 });
 
+export const voiceCallQueue = new Queue('voice-calls', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 50,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+  },
+});
+
 // Close queues and Redis connection
 export const closeQueues = async () => {
   await Promise.all([
     resumeProcessingQueue.close(),
     emailQueue.close(),
     candidateMatchingQueue.close(),
+    voiceCallQueue.close(),
   ]);
   await closeRedisConnection();
 };
