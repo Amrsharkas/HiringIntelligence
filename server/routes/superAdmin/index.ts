@@ -4,6 +4,7 @@ import subscriptionPlansRoutes from './subscriptionPlans.routes';
 import creditPackagesRoutes from './creditPackages.routes';
 import usersRoutes from './users.routes';
 import tutorialSlidesRoutes from './tutorialSlides.routes';
+import settingsRoutes from './settings.routes';
 
 const router = Router();
 
@@ -21,5 +22,8 @@ router.use('/', usersRoutes);
 
 // Mount tutorial slides management routes
 router.use('/', tutorialSlidesRoutes);
+
+// Mount settings management routes
+router.use('/', settingsRoutes);
 
 export default router;

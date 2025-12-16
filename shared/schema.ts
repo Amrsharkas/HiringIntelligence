@@ -788,6 +788,19 @@ export const voiceCallEvents = pgTable("voice_call_events", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// System settings table for global app-level settings
+export const systemSettings = pgTable("system_settings", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  category: varchar("category").notNull(), // e.g., 'twilio', 'openai', 'email'
+  key: varchar("key").notNull(),
+  value: text("value"), // Plain text value
+  encryptedValue: text("encrypted_value"), // For sensitive data like auth tokens
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -872,6 +885,8 @@ export type VoiceCall = typeof voiceCalls.$inferSelect;
 export type InsertVoiceCall = typeof voiceCalls.$inferInsert;
 export type VoiceCallEvent = typeof voiceCallEvents.$inferSelect;
 export type InsertVoiceCallEvent = typeof voiceCallEvents.$inferInsert;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 
 // Additional type definitions for HiringIntelligence compatibility
 export type UpsertUser = InsertUser;

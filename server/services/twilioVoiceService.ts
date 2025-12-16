@@ -3,6 +3,7 @@ import { db } from "../db.js";
 import { voiceCalls, voiceCallEvents, organizations } from "../../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import WebSocket from "ws";
+import { systemSettingsService } from "./systemSettingsService.js";
 
 export interface VoiceCallOptions {
   toPhoneNumber: string;
@@ -19,12 +20,23 @@ export interface VoiceCallResult {
   error?: string;
 }
 
+export interface TwilioConnectionStatus {
+  connected: boolean;
+  source: 'database' | 'environment' | 'none';
+  phoneNumber: string | null;
+  accountSid: string | null;
+  error?: string;
+}
+
 export class TwilioVoiceService {
-  private twilioClient: twilio.Twilio;
+  private twilioClient: twilio.Twilio | null = null;
   private openaiApiKey: string;
-  private twilioPhoneNumber: string;
+  private twilioPhoneNumber: string = "";
+  private twilioAccountSid: string = "";
   private domain: string;
   private voiceWsPath: string;
+  private initialized: boolean = false;
+  private credentialSource: 'database' | 'environment' | 'none' = 'none';
 
   // Constants for voice calls
   private readonly SYSTEM_MESSAGE = 'You are an AI recruitment assistant from the Hiring Intelligence platform. Your task is to remind candidates about their pending job interview invitation. Be professional, friendly, and encouraging. Keep the conversation focused on getting them to complete their interview.';
@@ -44,26 +56,123 @@ export class TwilioVoiceService {
   ];
 
   constructor() {
-    // Validate environment variables
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    this.openaiApiKey = process.env.OPENAI_REALTIME_API_KEY || process.env.OPENAI_API_KEY;
-    this.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || "";
-    let rawDomain = process.env.DOMAIN || "localhost:3005";
+    // Initialize non-Twilio settings from environment
+    this.openaiApiKey = process.env.OPENAI_REALTIME_API_KEY || process.env.OPENAI_API_KEY || "";
+    const rawDomain = process.env.DOMAIN || "localhost:3005";
     this.voiceWsPath = process.env.VOICE_WS_PATH || "/voice-stream";
 
+    // Clean domain (remove protocol/trailing slashes) - same as HiringPhone
+    this.domain = rawDomain.replace(/^(\w+:|^)\/\//, '').replace(/\/+$/, '');
+
+    // Note: Twilio credentials are loaded lazily via initializeClient()
+  }
+
+  /**
+   * Initialize the Twilio client with credentials from database or environment
+   */
+  private async initializeClient(): Promise<void> {
+    if (this.initialized && this.twilioClient) {
+      return;
+    }
+
+    let accountSid: string = "";
+    let authToken: string = "";
+
+    try {
+      // Try database settings first
+      const dbSettings = await systemSettingsService.getTwilioSettings();
+
+      if (dbSettings.isConfigured) {
+        accountSid = dbSettings.accountSid;
+        authToken = dbSettings.authToken;
+        this.twilioPhoneNumber = dbSettings.phoneNumber;
+        this.credentialSource = 'database';
+        console.log('📞 Twilio credentials loaded from database');
+      }
+    } catch (error) {
+      console.log('⚠️ Could not load Twilio settings from database, falling back to environment');
+    }
+
+    // Fall back to environment variables if database settings not available
     if (!accountSid || !authToken) {
-      throw new Error("Twilio credentials not configured");
+      accountSid = process.env.TWILIO_ACCOUNT_SID || "";
+      authToken = process.env.TWILIO_AUTH_TOKEN || "";
+      this.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || "";
+      this.credentialSource = accountSid && authToken ? 'environment' : 'none';
+    }
+
+    if (!accountSid || !authToken) {
+      throw new Error("Twilio credentials not configured. Please configure via Super Admin settings or environment variables.");
     }
 
     if (!this.openaiApiKey) {
       throw new Error("OpenAI API key not configured");
     }
 
-    // Clean domain (remove protocol/trailing slashes) - same as HiringPhone
-    this.domain = rawDomain.replace(/^(\w+:|^)\/\//, '').replace(/\/+$/, '');
-
+    this.twilioAccountSid = accountSid;
     this.twilioClient = twilio(accountSid, authToken);
+    this.initialized = true;
+  }
+
+  /**
+   * Reinitialize the Twilio client with fresh credentials
+   * Call this after updating settings in the database
+   */
+  async reinitialize(): Promise<void> {
+    this.initialized = false;
+    this.twilioClient = null;
+    this.credentialSource = 'none';
+    systemSettingsService.clearCategoryCache('twilio');
+    await this.initializeClient();
+  }
+
+  /**
+   * Get the current connection status of Twilio
+   */
+  async getConnectionStatus(): Promise<TwilioConnectionStatus> {
+    try {
+      await this.initializeClient();
+
+      if (!this.twilioClient) {
+        return {
+          connected: false,
+          source: 'none',
+          phoneNumber: null,
+          accountSid: null,
+          error: 'Twilio client not initialized',
+        };
+      }
+
+      // Test connection by fetching account info
+      const account = await this.twilioClient.api.accounts(this.twilioAccountSid).fetch();
+
+      return {
+        connected: account.status === 'active',
+        source: this.credentialSource,
+        phoneNumber: this.twilioPhoneNumber,
+        accountSid: this.twilioAccountSid,
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        source: this.credentialSource,
+        phoneNumber: this.twilioPhoneNumber || null,
+        accountSid: this.twilioAccountSid || null,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Check if the service is configured (has credentials)
+   */
+  async isConfigured(): Promise<boolean> {
+    try {
+      await this.initializeClient();
+      return this.initialized && this.twilioClient !== null;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -156,6 +265,16 @@ export class TwilioVoiceService {
    */
   async initiateCall(options: VoiceCallOptions): Promise<VoiceCallResult> {
     try {
+      // Initialize client if not already done
+      await this.initializeClient();
+
+      if (!this.twilioClient) {
+        return {
+          success: false,
+          error: "Twilio client not initialized. Please configure Twilio credentials.",
+        };
+      }
+
       // Validate phone number
       if (!this.validatePhoneNumber(options.toPhoneNumber)) {
         return {
@@ -319,16 +438,19 @@ export class TwilioVoiceService {
     // If call is completed, get the recording URL
     if (status === "completed") {
       try {
-        const recordings = await this.twilioClient.recordings.list({
-          callSid,
-          limit: 1
-        });
-
-        if (recordings.length > 0) {
-          const recordingUrl = `https://api.twilio.com${recordings[0].uri}.mp3`;
-          await this.updateCallStatus(call.id, "recording_available", {
-            recordingUrl,
+        await this.initializeClient();
+        if (this.twilioClient) {
+          const recordings = await this.twilioClient.recordings.list({
+            callSid,
+            limit: 1
           });
+
+          if (recordings.length > 0) {
+            const recordingUrl = `https://api.twilio.com${recordings[0].uri}.mp3`;
+            await this.updateCallStatus(call.id, "recording_available", {
+              recordingUrl,
+            });
+          }
         }
       } catch (error) {
         console.error("Failed to fetch call recording:", error);
