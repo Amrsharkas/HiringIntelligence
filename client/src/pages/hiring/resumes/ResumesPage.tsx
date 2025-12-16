@@ -555,6 +555,7 @@ export default function ResumesPage() {
 
   const getStatusBadge = (status: string | null, hasJob: boolean) => {
     switch (status) {
+      case "invited":
       case "sent":
         return (
           <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
@@ -979,7 +980,7 @@ export default function ResumesPage() {
                           {/* Invite/Resend buttons - only show when there's a job match and not disqualified */}
                           {row.jobId && !row.disqualified && (
                             <>
-                              {row.invitationStatus === "sent" || row.invitationStatus === "accepted" ? (
+                              {row.invitationStatus === "invited" || row.invitationStatus === "sent" || row.invitationStatus === "accepted" ? (
                                 <DropdownMenuItem
                                   onClick={() => resendInvitationMutation.mutate({
                                     profileId: row.profileId,
