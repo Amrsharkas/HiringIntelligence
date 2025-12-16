@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -74,13 +75,11 @@ import {
   CheckCircle,
   Download,
   Phone,
-  PhoneCall,
   CalendarClock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ResumeSearcherModal } from "@/components/ResumeSearcherModal";
 import { ProfilesSummaryPDF } from "@/components/ProfilesSummaryPDF";
 import { ProfilePDF } from "@/components/ProfilePDF";
 
@@ -114,7 +113,6 @@ export default function ResumesPage() {
   const [selectedJobFilter, setSelectedJobFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [exportingAll, setExportingAll] = useState(false);
   const [exportingProfileId, setExportingProfileId] = useState<string | null>(null);
   const [callDialogOpen, setCallDialogOpen] = useState(false);
@@ -149,6 +147,41 @@ export default function ResumesPage() {
   const { data: jobs = [] } = useQuery<any[]>({
     queryKey: ["/api/job-postings"],
   });
+
+  // Fetch active resume processing jobs
+  const { data: activeJobsData } = useQuery<{
+    totalFiles: number;
+    completedFiles: number;
+    overallProgress: number;
+    activeJobsCount: number;
+    waitingJobsCount: number;
+    activeJobDetails: Array<{
+      fileName: string;
+      fileCount: number;
+      progress: number;
+    }>;
+    hasActiveJobs: boolean;
+  }>({
+    queryKey: ["/api/resume-processing/active-jobs"],
+    queryFn: async () => {
+      const response = await fetch("/api/resume-processing/active-jobs", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch active jobs");
+      }
+      return response.json();
+    },
+    refetchInterval: 2000, // Poll every 2 seconds
+    refetchIntervalInBackground: true,
+  });
+
+  // Refresh profiles when active jobs complete
+  useEffect(() => {
+    if (activeJobsData && !activeJobsData.hasActiveJobs) {
+      queryClient.invalidateQueries({ queryKey: ["/api/resume-profiles"] });
+    }
+  }, [activeJobsData]);
 
   // Fetch resume profiles with pagination
   const { data: profilesResponse, isLoading } = useQuery<{
@@ -373,9 +406,15 @@ export default function ResumesPage() {
     try {
       const fileName = `resume_profiles_summary_${new Date().toISOString().split('T')[0]}.pdf`;
 
+      // Map profiles to ensure jobScores is always defined
+      const profilesWithScores = profiles.map(p => ({
+        ...p,
+        jobScores: p.jobScores || [],
+      }));
+
       const blob = await pdf(
         <ProfilesSummaryPDF
-          profiles={profiles}
+          profiles={profilesWithScores as any}
           jobs={jobs}
           selectedJobId={selectedJobFilter !== 'all' ? selectedJobFilter : undefined}
         />
@@ -602,7 +641,7 @@ export default function ResumesPage() {
           </Button>
           <Button
             className=""
-            onClick={() => setIsUploadModalOpen(true)}
+            onClick={() => navigate("/hiring/resumes/upload")}
           >
             <Upload className="w-4 h-4 mr-2" />
             Upload Resumes
@@ -610,11 +649,32 @@ export default function ResumesPage() {
         </div>
       </div>
 
-      {/* Upload Modal */}
-      <ResumeSearcherModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-      />
+      {/* Active Jobs Progress Indicator */}
+      <AnimatePresence>
+        {activeJobsData && activeJobsData.hasActiveJobs && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Progress value={activeJobsData.overallProgress} className="h-1.5 flex-1" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400 tabular-nums w-8">
+                    {activeJobsData.overallProgress}%
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Processing {activeJobsData.completedFiles}/{activeJobsData.totalFiles} resumes
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Schedule Call Dialog */}
       <Dialog open={callDialogOpen} onOpenChange={(open) => {
@@ -819,7 +879,7 @@ export default function ResumesPage() {
                   : "Upload resumes to build your candidate database"}
               </p>
               {!debouncedSearch && (
-                <Button onClick={() => setIsUploadModalOpen(true)}>
+                <Button onClick={() => navigate("/hiring/resumes/upload")}>
                   <Upload className="w-4 h-4 mr-2" />
                   Upload Resumes
                 </Button>

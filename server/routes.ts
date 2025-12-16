@@ -5874,10 +5874,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
 
       // Get active and waiting jobs from the queue
-      const [activeJobs, waitingJobs] = await Promise.all([
+      const [allActiveJobs, allWaitingJobs] = await Promise.all([
         resumeProcessingQueue.getActive(),
         resumeProcessingQueue.getWaiting()
       ]);
+
+      // Filter jobs by organization ID
+      const activeJobs = allActiveJobs.filter((job: any) => {
+        const jobData = job.data || {};
+        return jobData.organizationId === organization.id;
+      });
+
+      const waitingJobs = allWaitingJobs.filter((job: any) => {
+        const jobData = job.data || {};
+        return jobData.organizationId === organization.id;
+      });
 
       // Calculate total files and progress
       let totalFiles = 0;

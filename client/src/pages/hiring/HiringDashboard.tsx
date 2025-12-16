@@ -20,6 +20,7 @@ import ApplicantDetailsPage from "./applicants/ApplicantDetailsPage";
 import ResumesPage from "./resumes/ResumesPage";
 import ResumeSearchPage from "./resumes/ResumeSearchPage";
 import ResumeDetailsPage from "./resumes/ResumeDetailsPage";
+import ResumeUploadPage from "./resumes/ResumeUploadPage";
 import InterviewsPage from "./interviews/InterviewsPage";
 import CreateInterviewPage from "./interviews/CreateInterviewPage";
 import AnalyticsPage from "./AnalyticsPage";
@@ -111,6 +112,7 @@ export default function HiringDashboard() {
 
         {/* Resumes routes */}
         <Route path="resumes" element={<ResumesPage />} />
+        <Route path="resumes/upload" element={<ResumeUploadPage />} />
         <Route path="resumes/search" element={<ResumeSearchPage />} />
         <Route path="resumes/:resumeId" element={<ResumeDetailsPage />} />
 
