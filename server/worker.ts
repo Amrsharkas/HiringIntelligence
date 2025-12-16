@@ -460,7 +460,7 @@ const candidateMatchingWorker = new Worker(
 const voiceCallWorker = new Worker(
   'voice-calls',
   async (job) => {
-    const { toPhoneNumber, organizationId, systemPrompt, voice } = job.data;
+    const { toPhoneNumber, organizationId, systemPrompt, voice, greetingMessage } = job.data;
 
     console.log(`Initiating voice call to ${toPhoneNumber} for organization ${organizationId}`);
 
@@ -470,6 +470,7 @@ const voiceCallWorker = new Worker(
         organizationId,
         systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation.",
         voice: voice || "alloy",
+        greetingMessage,
       });
 
       if (result.success) {

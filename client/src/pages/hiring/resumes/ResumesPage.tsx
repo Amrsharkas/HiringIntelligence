@@ -75,7 +75,9 @@ import {
   Download,
   Phone,
   PhoneCall,
+  CalendarClock,
 } from "lucide-react";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ResumeSearcherModal } from "@/components/ResumeSearcherModal";
@@ -124,6 +126,8 @@ export default function ResumesPage() {
     jobTitle: string;
   } | null>(null);
   const [callPhoneNumber, setCallPhoneNumber] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
   const debounceRef = useRef<NodeJS.Timeout>();
 
   // Phone validation helper (E.164 format)
@@ -274,28 +278,31 @@ export default function ResumesPage() {
     },
   });
 
-  // Call candidate mutation
+  // Schedule call mutation
   const callCandidateMutation = useMutation({
-    mutationFn: async ({ toPhoneNumber, profileId, jobId }: { toPhoneNumber: string; profileId: string; jobId: string }) => {
+    mutationFn: async ({ toPhoneNumber, profileId, jobId, scheduledAt }: { toPhoneNumber: string; profileId: string; jobId: string; scheduledAt: string }) => {
       const response = await apiRequest("POST", "/api/voice/call-candidate", {
         toPhoneNumber,
         profileId,
         jobId,
+        scheduledAt,
       });
       return response.json();
     },
     onSuccess: (data) => {
       toast({
-        title: "Call Initiated",
-        description: `Calling candidate for ${data.data?.jobTitle || 'the position'}...`,
+        title: "Call Scheduled",
+        description: `Call scheduled for ${data.data?.scheduledAt ? format(new Date(data.data.scheduledAt), "PPp") : 'the selected time'}`,
       });
       setCallDialogOpen(false);
       setCallTarget(null);
       setCallPhoneNumber("");
+      setScheduledDate("");
+      setScheduledTime("");
     },
     onError: (error: Error) => {
       toast({
-        title: "Call Failed",
+        title: "Scheduling Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -316,9 +323,9 @@ export default function ResumesPage() {
     setCallDialogOpen(true);
   };
 
-  // Handle call submission
+  // Handle call scheduling
   const handleCall = () => {
-    if (!callTarget || !callPhoneNumber) return;
+    if (!callTarget || !callPhoneNumber || !scheduledDate || !scheduledTime) return;
 
     if (!isValidE164(callPhoneNumber)) {
       toast({
@@ -329,10 +336,24 @@ export default function ResumesPage() {
       return;
     }
 
+    // Combine date and time into ISO 8601 string
+    const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+
+    // Validate scheduled time is in the future
+    if (new Date(scheduledAt) <= new Date()) {
+      toast({
+        title: "Invalid Schedule Time",
+        description: "Please select a future date and time",
+        variant: "destructive",
+      });
+      return;
+    }
+
     callCandidateMutation.mutate({
       toPhoneNumber: callPhoneNumber,
       profileId: callTarget.profileId,
       jobId: callTarget.jobId,
+      scheduledAt,
     });
   };
 
@@ -595,24 +616,26 @@ export default function ResumesPage() {
         onClose={() => setIsUploadModalOpen(false)}
       />
 
-      {/* Call Dialog */}
+      {/* Schedule Call Dialog */}
       <Dialog open={callDialogOpen} onOpenChange={(open) => {
         setCallDialogOpen(open);
         if (!open) {
           setCallTarget(null);
           setCallPhoneNumber("");
+          setScheduledDate("");
+          setScheduledTime("");
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <PhoneCall className="w-5 h-5 text-green-600" />
-              Call Candidate
+              <CalendarClock className="w-5 h-5 text-green-600" />
+              Schedule Call
             </DialogTitle>
             <DialogDescription>
               {callTarget && (
                 <>
-                  Call <span className="font-medium">{callTarget.name}</span> about the{" "}
+                  Schedule a call with <span className="font-medium">{callTarget.name}</span> about the{" "}
                   <span className="font-medium">{callTarget.jobTitle}</span> position.
                 </>
               )}
@@ -639,6 +662,25 @@ export default function ResumesPage() {
                 </p>
               )}
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="callDate">Date</Label>
+              <Input
+                id="callDate"
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="callTime">Time</Label>
+              <Input
+                id="callTime"
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -649,18 +691,18 @@ export default function ResumesPage() {
             </Button>
             <Button
               onClick={handleCall}
-              disabled={!callPhoneNumber || !isValidE164(callPhoneNumber) || callCandidateMutation.isPending}
+              disabled={!callPhoneNumber || !isValidE164(callPhoneNumber) || !scheduledDate || !scheduledTime || callCandidateMutation.isPending}
               className="bg-green-600 hover:bg-green-700"
             >
               {callCandidateMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Calling...
+                  Scheduling...
                 </>
               ) : (
                 <>
-                  <Phone className="w-4 h-4 mr-2" />
-                  Start Call
+                  <CalendarClock className="w-4 h-4 mr-2" />
+                  Schedule Call
                 </>
               )}
             </Button>
@@ -915,7 +957,7 @@ export default function ResumesPage() {
                             </>
                           )}
                           {/* Call button - only show for invited candidates */}
-                          {row.jobId && row.invitationStatus === "sent" && (
+                          {row.jobId  && (
                             <DropdownMenuItem
                               onClick={() => openCallDialog(row)}
                               className="text-green-600 dark:text-green-400"

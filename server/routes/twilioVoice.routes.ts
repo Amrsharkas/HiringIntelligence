@@ -3,6 +3,7 @@ import { twilioVoiceService } from "../services/twilioVoiceService.js";
 import { db } from "../db.js";
 import { voiceCalls, jobs, organizations, resumeProfiles } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
+import { scheduleVoiceCallJob } from "../jobProducers.js";
 
 const router = Router();
 
@@ -128,7 +129,7 @@ router.post("/call", async (req: Request, res: Response) => {
 
 /**
  * POST /api/voice/call-candidate
- * Initiate a voice call to a candidate with job-specific context
+ * Schedule a voice call to a candidate with job-specific context
  */
 router.post("/call-candidate", async (req: Request, res: Response) => {
   try {
@@ -137,7 +138,7 @@ router.post("/call-candidate", async (req: Request, res: Response) => {
     // @ts-ignore - Organization is attached by authentication middleware
     const organization = req.organization;
 
-    const { toPhoneNumber, profileId, jobId } = req.body;
+    const { toPhoneNumber, profileId, jobId, scheduledAt } = req.body;
 
     // Validate required fields
     if (!toPhoneNumber) {
@@ -154,6 +155,13 @@ router.post("/call-candidate", async (req: Request, res: Response) => {
       });
     }
 
+    if (!scheduledAt) {
+      return res.status(400).json({
+        success: false,
+        error: "Scheduled time is required",
+      });
+    }
+
     // Validate phone number format
     if (!toPhoneNumber.startsWith("+")) {
       return res.status(400).json({
@@ -161,6 +169,19 @@ router.post("/call-candidate", async (req: Request, res: Response) => {
         error: "Invalid phone number. Must include country code (e.g., +1234567890)",
       });
     }
+
+    // Validate scheduled time is in the future
+    const scheduledDate = new Date(scheduledAt);
+    const now = new Date();
+    if (scheduledDate <= now) {
+      return res.status(400).json({
+        success: false,
+        error: "Scheduled time must be in the future",
+      });
+    }
+
+    // Calculate delay in milliseconds
+    const delayMs = scheduledDate.getTime() - now.getTime();
 
     // Fetch job details
     const jobResults = await db
@@ -198,34 +219,28 @@ router.post("/call-candidate", async (req: Request, res: Response) => {
 
     const greetingMessage = `Hi! This is Plato calling on behalf of ${companyName}. You were recently invited to interview for our ${job.title} position. Do you have a moment to chat about this opportunity?`;
 
-    console.log(`User ${user?.id || 'anonymous'} initiating candidate call to: ${toPhoneNumber} for job: ${job.title}`);
+    console.log(`User ${user?.id || 'anonymous'} scheduling candidate call to: ${toPhoneNumber} for job: ${job.title} at ${scheduledAt}`);
 
-    const result = await twilioVoiceService.initiateCall({
+    // Schedule the voice call job
+    const queueJob = await scheduleVoiceCallJob({
       toPhoneNumber,
       organizationId: organization?.id,
       systemPrompt,
       voice: "marin",
       greetingMessage,
-    });
+    }, delayMs);
 
-    if (result.success) {
-      res.json({
-        success: true,
-        message: "Voice call initiated successfully",
-        data: {
-          callId: result.callId,
-          twilioCallSid: result.twilioCallSid,
-          toPhoneNumber,
-          jobTitle: job.title,
-          companyName,
-        },
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        error: result.error,
-      });
-    }
+    res.json({
+      success: true,
+      message: "Voice call scheduled successfully",
+      data: {
+        queueJobId: queueJob.id,
+        scheduledAt,
+        toPhoneNumber,
+        jobTitle: job.title,
+        companyName,
+      },
+    });
   } catch (error) {
     console.error("Error in call-candidate endpoint:", error);
     res.status(500).json({

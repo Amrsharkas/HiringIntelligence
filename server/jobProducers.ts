@@ -1,4 +1,4 @@
-import { resumeProcessingQueue, emailQueue, candidateMatchingQueue } from './queues';
+import { resumeProcessingQueue, emailQueue, candidateMatchingQueue, voiceCallQueue } from './queues';
 import { InterviewEmailData } from './emailService';
 
 // Resume processing job producer
@@ -201,4 +201,18 @@ export const cancelScheduledReminderJob = async (jobId: string) => {
     console.error(`Error cancelling reminder job ${jobId}:`, error);
     return false;
   }
+};
+
+// Schedule a voice call job with delay
+export const scheduleVoiceCallJob = async (
+  data: {
+    toPhoneNumber: string;
+    organizationId?: string;
+    systemPrompt: string;
+    voice: string;
+    greetingMessage: string;
+  },
+  delay: number
+) => {
+  return await voiceCallQueue.add('voice-call', data, { delay });
 };

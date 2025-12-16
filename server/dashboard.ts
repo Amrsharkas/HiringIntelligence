@@ -1,7 +1,7 @@
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
-import { resumeProcessingQueue, emailQueue, candidateMatchingQueue } from './queues';
+import { resumeProcessingQueue, emailQueue, candidateMatchingQueue, voiceCallQueue, interviewReminderQueue } from './queues';
 
 export function setupBullDashboard(app: any) {
   const serverAdapter = new ExpressAdapter();
@@ -12,6 +12,8 @@ export function setupBullDashboard(app: any) {
       new BullMQAdapter(resumeProcessingQueue),
       new BullMQAdapter(emailQueue),
       new BullMQAdapter(candidateMatchingQueue),
+      new BullMQAdapter(voiceCallQueue),
+      new BullMQAdapter(interviewReminderQueue),
     ],
     serverAdapter: serverAdapter,
   });
