@@ -54,6 +54,19 @@ export const voiceCallQueue = new Queue('voice-calls', {
   },
 });
 
+export const interviewReminderQueue = new Queue('interview-reminders', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 50,
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 5000,
+    },
+  },
+});
+
 // Close queues and Redis connection
 export const closeQueues = async () => {
   await Promise.all([
@@ -61,6 +74,7 @@ export const closeQueues = async () => {
     emailQueue.close(),
     candidateMatchingQueue.close(),
     voiceCallQueue.close(),
+    interviewReminderQueue.close(),
   ]);
   await closeRedisConnection();
 };

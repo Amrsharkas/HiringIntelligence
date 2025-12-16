@@ -8,6 +8,7 @@ import { fileStorageService } from './fileStorageService';
 import { ragIndexingService } from './ragIndexingService';
 import { localDatabaseService } from './localDatabaseService';
 import { twilioVoiceService } from './services/twilioVoiceService';
+import { interviewReminderQueue } from './queues';
 
 // Check Redis connection health
 const checkRedisHealth = async () => {
@@ -199,6 +200,35 @@ const resumeProcessingWorker = new Worker(
               matchScore: overall,
               matchSummary: jobScore.matchSummary,
             }).catch(err => console.warn('📧 Invitation email failed (non-blocking):', err));
+
+            // Schedule 2-day voice call reminder (only if phone number is available)
+            if (processedResume.phone) {
+              try {
+                const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+                const reminderJob = await interviewReminderQueue.add(
+                  'interview-call-reminder',
+                  {
+                    matchId: savedProfile.id.toString(),
+                    profileId: savedProfile.id,
+                    jobId: targetJob.id,
+                    jobTitle: targetJob.title,
+                    companyName,
+                    applicantName: processedResume.name || processedResume.email,
+                    applicantPhone: processedResume.phone,
+                    token: token,
+                  },
+                  {
+                    delay: TWO_DAYS_MS,
+                    jobId: `reminder-${savedProfile.id}-${targetJob.id}`,
+                  }
+                );
+                console.log(`⏰ Scheduled voice call reminder for 2 days: job ${reminderJob.id}`);
+              } catch (reminderErr) {
+                console.error('Error scheduling voice call reminder (non-blocking):', reminderErr);
+              }
+            } else {
+              console.log(`📵 No phone number for ${processedResume.name || processedResume.email}, skipping voice call reminder scheduling`);
+            }
           }
 
           job.updateProgress(90);
@@ -471,6 +501,79 @@ const voiceCallWorker = new Worker(
   }
 );
 
+// Interview call reminder worker - calls candidates 2 days after invitation if they haven't started
+const interviewReminderWorker = new Worker(
+  'interview-reminders',
+  async (job) => {
+    if (job.name === 'interview-call-reminder') {
+      const { matchId, profileId, jobId, jobTitle, companyName, applicantName, applicantPhone, token } = job.data;
+
+      console.log(`📞 Processing interview call reminder for ${applicantName} (${jobTitle})`);
+
+      try {
+        // Check if interview has started
+        const match = await localDatabaseService.getJobMatch(matchId);
+
+        if (!match) {
+          console.log(`Match ${matchId} not found, skipping call`);
+          return { success: false, reason: 'match_not_found' };
+        }
+
+        // Only call if status is still 'invited'
+        if (match.status !== 'invited') {
+          console.log(`Match ${matchId} status is '${match.status}', skipping call`);
+          return { success: false, reason: 'interview_already_started' };
+        }
+
+        // Check if phone number is available
+        if (!applicantPhone) {
+          console.log(`No phone number for ${applicantName}, skipping call`);
+          return { success: false, reason: 'no_phone_number' };
+        }
+
+        // Build prompts with job context
+        const systemPrompt = `You are an AI recruitment assistant. The candidate was invited to interview for the ${jobTitle} position at ${companyName} 2 days ago but hasn't started yet. Your goal is to remind them about this opportunity and encourage them to complete their interview. Be professional, friendly, and create urgency without being pushy.`;
+
+        const greetingMessage = `Hi! This is Plato calling on behalf of ${companyName}. You were invited to interview for our ${jobTitle} position a couple of days ago. I wanted to check in and see if you had any questions about the opportunity!`;
+
+        // Initiate the call
+        const result = await twilioVoiceService.initiateCall({
+          toPhoneNumber: applicantPhone,
+          systemPrompt,
+          voice: 'marin',
+          greetingMessage,
+        });
+
+        if (result.success) {
+          console.log(`✅ Interview reminder call initiated: ${result.callId}`);
+          return { success: true, callId: result.callId };
+        } else {
+          console.error(`❌ Failed to initiate reminder call: ${result.error}`);
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error(`Error processing interview reminder for ${applicantName}:`, error);
+        throw error;
+      }
+    }
+  },
+  {
+    connection: redisConnection,
+    concurrency: 3, // Limit concurrent reminder calls
+    settings: {
+      lockDuration: 300000, // 5 minutes
+      maxStalledCount: 2,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    },
+    jobOptions: {
+      timeout: 600000, // 10 minutes timeout
+    }
+  }
+);
+
 // Handle worker events
 const setupWorkerEvents = (worker: Worker, workerName: string) => {
   worker.on('completed', (job) => {
@@ -491,6 +594,7 @@ setupWorkerEvents(emailWorker, 'Email Worker');
 setupWorkerEvents(interviewInvitationWorker, 'Interview Invitation Worker');
 setupWorkerEvents(candidateMatchingWorker, 'Candidate Matching Worker');
 setupWorkerEvents(voiceCallWorker, 'Voice Call Worker');
+setupWorkerEvents(interviewReminderWorker, 'Interview Reminder Worker');
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
@@ -501,6 +605,7 @@ process.on('SIGINT', async () => {
     interviewInvitationWorker.close(),
     candidateMatchingWorker.close(),
     voiceCallWorker.close(),
+    interviewReminderWorker.close(),
   ]);
   await closeRedisConnection();
   process.exit(0);
@@ -514,6 +619,7 @@ process.on('SIGTERM', async () => {
     interviewInvitationWorker.close(),
     candidateMatchingWorker.close(),
     voiceCallWorker.close(),
+    interviewReminderWorker.close(),
   ]);
   await closeRedisConnection();
   process.exit(0);

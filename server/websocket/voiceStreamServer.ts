@@ -5,11 +5,11 @@ import { db } from "../db.js";
 import { voiceCalls, voiceCallEvents } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
-// Constants from HiringPhone
-const SYSTEM_MESSAGE = 'You are a helpful and bubbly AI assistant who loves to chat and offer facts. Stay positive and sprinkle in light humor when suitable. Start the conversation with a warm greeting and ask how you can help today.';
+// Constants for voice calls
+const SYSTEM_MESSAGE = 'You are an AI recruitment assistant from the Hiring Intelligence platform. Your task is to remind candidates about their pending job interview invitation. Be professional, friendly, and encouraging. Keep the conversation focused on getting them to complete their interview.';
 const VOICE = 'marin'; // Use the same voice as ApplicantTracker
 const TEMPERATURE = 0.8;
-const DEFAULT_GREETING_MESSAGE = 'Hello there! I\'m Plato, your AI assistant from the Hiring Intelligence platform. How can I help you today?';
+const DEFAULT_GREETING_MESSAGE = 'Hi! This is Plato from Hiring Intelligence. I\'m calling about your job interview opportunity. Do you have a moment to discuss it?';
 const LOG_EVENT_TYPES = [
   'error',
   'response.content.done',

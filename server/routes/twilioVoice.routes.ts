@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
 import { twilioVoiceService } from "../services/twilioVoiceService.js";
 import { db } from "../db.js";
-import { voiceCalls } from "../../shared/schema.js";
+import { voiceCalls, jobs, organizations, resumeProfiles } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -119,6 +119,115 @@ router.post("/call", async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error("Error in voice call endpoint:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+
+/**
+ * POST /api/voice/call-candidate
+ * Initiate a voice call to a candidate with job-specific context
+ */
+router.post("/call-candidate", async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore - User is attached by authentication middleware
+    const user = req.user;
+    // @ts-ignore - Organization is attached by authentication middleware
+    const organization = req.organization;
+
+    const { toPhoneNumber, profileId, jobId } = req.body;
+
+    // Validate required fields
+    if (!toPhoneNumber) {
+      return res.status(400).json({
+        success: false,
+        error: "Phone number is required",
+      });
+    }
+
+    if (!profileId || !jobId) {
+      return res.status(400).json({
+        success: false,
+        error: "Profile ID and Job ID are required",
+      });
+    }
+
+    // Validate phone number format
+    if (!toPhoneNumber.startsWith("+")) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid phone number. Must include country code (e.g., +1234567890)",
+      });
+    }
+
+    // Fetch job details
+    const jobResults = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, parseInt(jobId)))
+      .limit(1);
+
+    if (!jobResults.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Job not found",
+      });
+    }
+
+    const job = jobResults[0];
+
+    // Get company name - prefer job.company, then organization name
+    let companyName = job.company || "";
+    if (!companyName && job.organizationId) {
+      const orgResults = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, job.organizationId))
+        .limit(1);
+
+      if (orgResults.length) {
+        companyName = orgResults[0].companyName || "the company";
+      }
+    }
+    companyName = companyName || "the company";
+
+    // Build custom prompts with job context
+    const systemPrompt = `You are an AI recruitment assistant. The candidate was invited to interview for the ${job.title} position at ${companyName}. Your goal is to remind them about this opportunity and encourage them to complete their interview. Be professional, friendly, and helpful. If they have questions about the position, provide general encouragement but suggest they check their email for the interview link and details.`;
+
+    const greetingMessage = `Hi! This is Plato calling on behalf of ${companyName}. You were recently invited to interview for our ${job.title} position. Do you have a moment to chat about this opportunity?`;
+
+    console.log(`User ${user?.id || 'anonymous'} initiating candidate call to: ${toPhoneNumber} for job: ${job.title}`);
+
+    const result = await twilioVoiceService.initiateCall({
+      toPhoneNumber,
+      organizationId: organization?.id,
+      systemPrompt,
+      voice: "marin",
+      greetingMessage,
+    });
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: "Voice call initiated successfully",
+        data: {
+          callId: result.callId,
+          twilioCallSid: result.twilioCallSid,
+          toPhoneNumber,
+          jobTitle: job.title,
+          companyName,
+        },
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error in call-candidate endpoint:", error);
     res.status(500).json({
       success: false,
       error: "Internal server error",

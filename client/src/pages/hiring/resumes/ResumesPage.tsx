@@ -50,6 +50,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   Search,
   FileText,
   Loader2,
@@ -64,6 +73,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Download,
+  Phone,
+  PhoneCall,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -104,7 +115,19 @@ export default function ResumesPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [exportingAll, setExportingAll] = useState(false);
   const [exportingProfileId, setExportingProfileId] = useState<string | null>(null);
+  const [callDialogOpen, setCallDialogOpen] = useState(false);
+  const [callTarget, setCallTarget] = useState<{
+    profileId: string;
+    jobId: string;
+    name: string;
+    phone: string;
+    jobTitle: string;
+  } | null>(null);
+  const [callPhoneNumber, setCallPhoneNumber] = useState("");
   const debounceRef = useRef<NodeJS.Timeout>();
+
+  // Phone validation helper (E.164 format)
+  const isValidE164 = (phone: string) => /^\+[1-9]\d{1,14}$/.test(phone);
 
   // Debounce search input
   useEffect(() => {
@@ -250,6 +273,68 @@ export default function ResumesPage() {
       });
     },
   });
+
+  // Call candidate mutation
+  const callCandidateMutation = useMutation({
+    mutationFn: async ({ toPhoneNumber, profileId, jobId }: { toPhoneNumber: string; profileId: string; jobId: string }) => {
+      const response = await apiRequest("POST", "/api/voice/call-candidate", {
+        toPhoneNumber,
+        profileId,
+        jobId,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Call Initiated",
+        description: `Calling candidate for ${data.data?.jobTitle || 'the position'}...`,
+      });
+      setCallDialogOpen(false);
+      setCallTarget(null);
+      setCallPhoneNumber("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Call Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Open call dialog
+  const openCallDialog = (row: any) => {
+    const phoneFromProfile = row.phone || row.profile?.phone || "";
+    setCallTarget({
+      profileId: row.profileId,
+      jobId: row.jobId.toString(),
+      name: row.name || "Candidate",
+      phone: phoneFromProfile,
+      jobTitle: row.jobTitle || "the position",
+    });
+    setCallPhoneNumber(phoneFromProfile);
+    setCallDialogOpen(true);
+  };
+
+  // Handle call submission
+  const handleCall = () => {
+    if (!callTarget || !callPhoneNumber) return;
+
+    if (!isValidE164(callPhoneNumber)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number with country code (e.g., +1234567890)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    callCandidateMutation.mutate({
+      toPhoneNumber: callPhoneNumber,
+      profileId: callTarget.profileId,
+      jobId: callTarget.jobId,
+    });
+  };
 
   // Export all profiles as PDF
   const exportAllProfiles = async () => {
@@ -510,6 +595,79 @@ export default function ResumesPage() {
         onClose={() => setIsUploadModalOpen(false)}
       />
 
+      {/* Call Dialog */}
+      <Dialog open={callDialogOpen} onOpenChange={(open) => {
+        setCallDialogOpen(open);
+        if (!open) {
+          setCallTarget(null);
+          setCallPhoneNumber("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PhoneCall className="w-5 h-5 text-green-600" />
+              Call Candidate
+            </DialogTitle>
+            <DialogDescription>
+              {callTarget && (
+                <>
+                  Call <span className="font-medium">{callTarget.name}</span> about the{" "}
+                  <span className="font-medium">{callTarget.jobTitle}</span> position.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                placeholder="+1234567890"
+                value={callPhoneNumber}
+                onChange={(e) => setCallPhoneNumber(e.target.value)}
+                className={!callPhoneNumber || isValidE164(callPhoneNumber) ? "" : "border-red-500"}
+              />
+              {callPhoneNumber && !isValidE164(callPhoneNumber) && (
+                <p className="text-sm text-red-500">
+                  Enter a valid phone number with country code (e.g., +1234567890)
+                </p>
+              )}
+              {!callTarget?.phone && (
+                <p className="text-sm text-amber-600">
+                  No phone number found in profile. Please enter one.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCallDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCall}
+              disabled={!callPhoneNumber || !isValidE164(callPhoneNumber) || callCandidateMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {callCandidateMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Calling...
+                </>
+              ) : (
+                <>
+                  <Phone className="w-4 h-4 mr-2" />
+                  Start Call
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters */}
       <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60">
         <CardContent className="p-4">
@@ -755,6 +913,16 @@ export default function ResumesPage() {
                                 </DropdownMenuItem>
                               )}
                             </>
+                          )}
+                          {/* Call button - only show for invited candidates */}
+                          {row.jobId && row.invitationStatus === "sent" && (
+                            <DropdownMenuItem
+                              onClick={() => openCallDialog(row)}
+                              className="text-green-600 dark:text-green-400"
+                            >
+                              <Phone className="w-4 h-4 mr-2" />
+                              Call Candidate
+                            </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
                             onClick={() => exportSingleProfile(row.profile, row.jobId)}
