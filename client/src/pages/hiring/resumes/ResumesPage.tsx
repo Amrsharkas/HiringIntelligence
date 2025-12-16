@@ -193,6 +193,7 @@ export default function ResumesPage() {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
+        sortBy: "date",
       });
 
       if (debouncedSearch) {
@@ -552,7 +553,7 @@ export default function ResumesPage() {
     return "text-red-600 bg-red-100 dark:bg-red-900/30";
   };
 
-  const getStatusBadge = (status: string | null) => {
+  const getStatusBadge = (status: string | null, hasJob: boolean) => {
     switch (status) {
       case "sent":
         return (
@@ -569,7 +570,11 @@ export default function ResumesPage() {
           </Badge>
         );
       default:
-        return null;
+        return hasJob ? (
+          <Badge variant="outline" className="text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600">
+            Not Invited
+          </Badge>
+        ) : null;
     }
   };
 
@@ -890,10 +895,10 @@ export default function ResumesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Candidate</TableHead>
-                  <TableHead>Skills</TableHead>
                   <TableHead>Job Match</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -919,20 +924,6 @@ export default function ResumesPage() {
                             {row.email}
                           </p>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {row.skills?.slice(0, 3).map((skill: string, idx: number) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {row.skills?.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{row.skills.length - 3}
-                          </Badge>
-                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -964,7 +955,12 @@ export default function ResumesPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(row.invitationStatus)}
+                      {getStatusBadge(row.invitationStatus, !!row.jobId)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        {row.profile?.createdAt ? format(new Date(row.profile.createdAt), "MMM d, yyyy") : "-"}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
