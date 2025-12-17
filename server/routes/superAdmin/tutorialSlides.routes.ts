@@ -4,29 +4,12 @@ import { db } from "../../db";
 import { tutorialSlides, insertTutorialSlideSchema } from "../../../shared/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { requireSuperAdmin } from "../../middleware/superAdmin.middleware";
+import { requireAuth } from "../../auth";
 
 const router = Router();
 
-// All admin routes require super admin authentication
-router.use(requireSuperAdmin);
-
-// Get all tutorial slides (for super-admin management)
-router.get("/slides", async (req, res, next) => {
-  try {
-
-    const slides = await db
-      .select()
-      .from(tutorialSlides)
-      .orderBy(asc(tutorialSlides.order));
-
-    res.json(slides);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Get active tutorial slides for specific audience (public endpoint for hiring app)
-router.get("/slides/active", async (req, res, next) => {
+// Get active tutorial slides for specific audience (available to any authenticated user)
+router.get("/slides/active", requireAuth, async (req, res, next) => {
   try {
     const { audience = "hiring" } = req.query;
 
@@ -39,6 +22,24 @@ router.get("/slides/active", async (req, res, next) => {
           eq(tutorialSlides.targetAudience, audience as string)
         )
       )
+      .orderBy(asc(tutorialSlides.order));
+
+    res.json(slides);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// All routes below require super admin authentication
+router.use(requireSuperAdmin);
+
+// Get all tutorial slides (for super-admin management)
+router.get("/slides", async (req, res, next) => {
+  try {
+
+    const slides = await db
+      .select()
+      .from(tutorialSlides)
       .orderBy(asc(tutorialSlides.order));
 
     res.json(slides);
