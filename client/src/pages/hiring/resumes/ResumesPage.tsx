@@ -354,6 +354,14 @@ export default function ResumesPage() {
       jobTitle: row.jobTitle || "the position",
     });
     setCallPhoneNumber(phoneFromProfile);
+
+    // Set current date and time
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+    setScheduledDate(currentDate);
+    setScheduledTime(currentTime);
+
     setCallDialogOpen(true);
   };
 

@@ -1,8 +1,8 @@
 import { Request, Response, Router } from "express";
 import { twilioVoiceService } from "../services/twilioVoiceService.js";
 import { db } from "../db.js";
-import { voiceCalls, jobs, organizations, resumeProfiles } from "../../shared/schema.js";
-import { eq } from "drizzle-orm";
+import { voiceCalls, jobs, organizations, resumeProfiles, resumeJobScores } from "../../shared/schema.js";
+import { eq, and } from "drizzle-orm";
 import { scheduleVoiceCallJob } from "../jobProducers.js";
 
 const router = Router();
@@ -199,6 +199,36 @@ router.post("/call-candidate", async (req: Request, res: Response) => {
 
     const job = jobResults[0];
 
+    // Fetch resume profile data
+    const profileResults = await db
+      .select()
+      .from(resumeProfiles)
+      .where(eq(resumeProfiles.id, profileId))
+      .limit(1);
+
+    if (!profileResults.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Resume profile not found",
+      });
+    }
+
+    const profile = profileResults[0];
+
+    // Fetch job score/match analysis (optional but helpful for context)
+    const scoreResults = await db
+      .select()
+      .from(resumeJobScores)
+      .where(
+        and(
+          eq(resumeJobScores.profileId, profileId),
+          eq(resumeJobScores.jobId, parseInt(jobId))
+        )
+      )
+      .limit(1);
+
+    const jobScore = scoreResults.length > 0 ? scoreResults[0] : null;
+
     // Get company name - prefer job.company, then organization name
     let companyName = job.company || "";
     if (!companyName && job.organizationId) {
@@ -214,10 +244,100 @@ router.post("/call-candidate", async (req: Request, res: Response) => {
     }
     companyName = companyName || "the company";
 
-    // Build custom prompts with job context
-    const systemPrompt = `You are an AI recruitment assistant. The candidate was invited to interview for the ${job.title} position at ${companyName}. Your goal is to remind them about this opportunity and encourage them to complete their interview. Be professional, friendly, and helpful. If they have questions about the position, provide general encouragement but suggest they check their email for the interview link and details.`;
+    // Build comprehensive system prompt with full context
+    let systemPrompt = `You are an AI recruitment assistant for ${companyName}. You are calling ${profile.name} regarding the ${job.title} position they were invited to interview for.
 
-    const greetingMessage = `Hi! This is Plato calling on behalf of ${companyName}. You were recently invited to interview for our ${job.title} position. Do you have a moment to chat about this opportunity?`;
+CANDIDATE INFORMATION:
+- Name: ${profile.name}
+- Email: ${profile.email || 'Not provided'}
+- Phone: ${profile.phone || 'Not provided'}`;
+
+    if (profile.summary) {
+      systemPrompt += `\n- Professional Summary: ${profile.summary}`;
+    }
+
+    if (profile.skills && profile.skills.length > 0) {
+      systemPrompt += `\n- Skills: ${profile.skills.join(', ')}`;
+    }
+
+    if (profile.experience && profile.experience.length > 0) {
+      systemPrompt += `\n- Experience: ${profile.experience.join('; ')}`;
+    }
+
+    if (profile.education && profile.education.length > 0) {
+      systemPrompt += `\n- Education: ${profile.education.join('; ')}`;
+    }
+
+    if (profile.certifications && profile.certifications.length > 0) {
+      systemPrompt += `\n- Certifications: ${profile.certifications.join(', ')}`;
+    }
+
+    if (profile.languages && profile.languages.length > 0) {
+      systemPrompt += `\n- Languages: ${profile.languages.join(', ')}`;
+    }
+
+    systemPrompt += `
+
+JOB DETAILS:
+- Position: ${job.title}
+- Company: ${companyName}
+- Location: ${job.location || 'Not specified'}
+- Employment Type: ${job.employmentType}
+- Workplace Type: ${job.workplaceType}
+- Seniority Level: ${job.seniorityLevel}`;
+
+    if (job.salaryRange) {
+      systemPrompt += `\n- Salary Range: ${job.salaryRange}`;
+    } else if (job.salaryMin && job.salaryMax) {
+      systemPrompt += `\n- Salary Range: $${job.salaryMin} - $${job.salaryMax}`;
+    }
+
+    if (job.industry) {
+      systemPrompt += `\n- Industry: ${job.industry}`;
+    }
+
+    systemPrompt += `\n\nJOB DESCRIPTION:\n${job.description}`;
+
+    systemPrompt += `\n\nJOB REQUIREMENTS:\n${job.requirements}`;
+
+    if (job.technicalSkills && job.technicalSkills.length > 0) {
+      systemPrompt += `\n\nTechnical Skills Required: ${job.technicalSkills.join(', ')}`;
+    }
+
+    if (job.softSkills && job.softSkills.length > 0) {
+      systemPrompt += `\n\nSoft Skills Required: ${job.softSkills.join(', ')}`;
+    }
+
+    if (job.certifications) {
+      systemPrompt += `\n\nCertifications: ${job.certifications}`;
+    }
+
+    if (job.benefits) {
+      systemPrompt += `\n\nBenefits: ${job.benefits}`;
+    }
+
+    // Add match analysis if available
+    if (jobScore) {
+      systemPrompt += `\n\nMATCH ANALYSIS:`;
+      systemPrompt += `\n- Overall Score: ${jobScore.overallScore}/100`;
+
+      if (jobScore.matchSummary) {
+        systemPrompt += `\n- Match Summary: ${jobScore.matchSummary}`;
+      }
+
+      if (jobScore.strengthsHighlights && jobScore.strengthsHighlights.length > 0) {
+        systemPrompt += `\n- Candidate Strengths: ${jobScore.strengthsHighlights.join('; ')}`;
+      }
+
+      if (jobScore.improvementAreas && jobScore.improvementAreas.length > 0) {
+        systemPrompt += `\n- Areas for Discussion: ${jobScore.improvementAreas.join('; ')}`;
+      }
+    }
+
+    systemPrompt += `\n\nYOUR ROLE:
+Your goal is to remind ${profile.name} about this opportunity and encourage them to complete their interview. Be professional, friendly, and helpful. You have full context about their background and the job requirements, so you can have an informed conversation about why they're a good fit and answer basic questions about the role. If they have detailed questions about the application process or technical interview details, suggest they check their email for the interview link and additional information.`;
+
+    const greetingMessage = `Hi ${profile.name}! This is Plato calling on behalf of ${companyName}. You were recently invited to interview for our ${job.title} position. Do you have a moment to chat about this opportunity?`;
 
     console.log(`User ${user?.id || 'anonymous'} scheduling candidate call to: ${toPhoneNumber} for job: ${job.title} at ${scheduledAt}`);
 
