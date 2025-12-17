@@ -2,35 +2,12 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../../db";
 import { tutorialSlides, insertTutorialSlideSchema } from "../../../shared/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { requireSuperAdmin } from "../../middleware/superAdmin.middleware";
-import { requireAuth } from "../../auth";
 
 const router = Router();
 
-// Get active tutorial slides for specific audience (available to any authenticated user)
-router.get("/slides/active", requireAuth, async (req, res, next) => {
-  try {
-    const { audience = "hiring" } = req.query;
-
-    const slides = await db
-      .select()
-      .from(tutorialSlides)
-      .where(
-        and(
-          eq(tutorialSlides.isActive, true),
-          eq(tutorialSlides.targetAudience, audience as string)
-        )
-      )
-      .orderBy(asc(tutorialSlides.order));
-
-    res.json(slides);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// All routes below require super admin authentication
+// All routes require super admin authentication
 router.use(requireSuperAdmin);
 
 // Get all tutorial slides (for super-admin management)

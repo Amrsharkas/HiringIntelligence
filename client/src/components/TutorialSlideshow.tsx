@@ -57,7 +57,7 @@ export const TutorialSlideshow: React.FC<TutorialSlideshowProps> = ({
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/super-admin/slides/active?audience=${audience}`);
+        const response = await fetch(`/api/tutorial/slides/active?audience=${audience}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch tutorial slides');

@@ -31,6 +31,7 @@ import { setupRegionalPricing } from "./setupRegionalPricing";
 import { geoService } from "./geoService";
 import superAdminRoutes from "./routes/superAdmin";
 import voiceRoutes from "./routes/twilioVoice.routes";
+import tutorialRoutes from "./routes/tutorial.routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -44,6 +45,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount Voice API routes
   app.use('/api/voice', voiceRoutes);
+
+  // Mount Tutorial routes (authenticated users)
+  app.use('/api/tutorial', tutorialRoutes);
 
   // Get user's organization route
   app.get('/api/organizations/current', requireVerifiedAuth, async (req: any, res) => {
