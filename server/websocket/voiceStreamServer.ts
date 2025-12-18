@@ -3,13 +3,13 @@ import { IncomingMessage } from "http";
 import { URL } from "url";
 import { db } from "../db.js";
 import { voiceCalls, voiceCallEvents } from "../../shared/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 
 // Constants for voice calls
-const SYSTEM_MESSAGE = 'You are an AI recruitment assistant from the Hiring Intelligence platform. Your task is to remind candidates about their pending job interview invitation. Be professional, friendly, and encouraging. Keep the conversation focused on getting them to complete their interview.';
+const SYSTEM_MESSAGE = 'You are Plato, an AI assistant from Hiring Intelligence. Remind candidates about their interview invitation briefly and professionally.';
 const VOICE = 'marin'; // Use the same voice as ApplicantTracker
 const TEMPERATURE = 0.8;
-const DEFAULT_GREETING_MESSAGE = 'Hi! This is Plato from Hiring Intelligence. I\'m calling about your job interview opportunity. Do you have a moment to discuss it?';
+const DEFAULT_GREETING_MESSAGE = 'Hi! This is Plato from Hiring Intelligence calling about your interview. Do you have a moment?';
 const LOG_EVENT_TYPES = [
   'error',
   'response.content.done',
@@ -74,37 +74,95 @@ export class VoiceStreamServer {
       try {
         console.log('🛰️ Twilio media stream connected');
 
-        // Extract call information from URL query parameters
-        const url = new URL(req.url || "", `http://${req.headers.host}`);
-        const callSid = url.searchParams.get("callSid");
-
-        // Find the call in database to get custom system prompt, voice, and greeting
+        // We'll get call information from Twilio's "start" event, not URL params
+        // According to Twilio Media Streams docs, call info is sent in the start event
         let voiceCall = null;
         let systemPrompt = SYSTEM_MESSAGE; // default
         let voice = VOICE; // default
         let greetingMessage = DEFAULT_GREETING_MESSAGE; // default
+        let callInfoReceived = false;
 
-        if (callSid) {
-          const calls = await db
-            .select()
-            .from(voiceCalls)
-            .where(eq(voiceCalls.twilioCallSid, callSid))
-            .limit(1);
+        // Function to look up call and configure system based on call details
+        const lookupCallAndConfigure = async (callSid: string | null, fromNumber: string | null, toNumber: string | null) => {
+          console.log('📞 Call information received from Twilio start event:', { callSid, fromNumber, toNumber });
 
-          if (calls.length > 0) {
-            voiceCall = calls[0];
-            // Extract custom system prompt, voice, and greeting from metadata
-            if (voiceCall.metadata) {
-              systemPrompt = voiceCall.metadata.systemPrompt || SYSTEM_MESSAGE;
-              voice = voiceCall.metadata.voice || VOICE;
-              greetingMessage = voiceCall.metadata.greetingMessage || DEFAULT_GREETING_MESSAGE;
+          // Try to find the call by callSid first
+          if (callSid) {
+            const calls = await db
+              .select()
+              .from(voiceCalls)
+              .where(eq(voiceCalls.twilioCallSid, callSid))
+              .limit(1);
+
+            if (calls.length > 0) {
+              voiceCall = calls[0];
+              console.log(`✅ Found call by callSid: ${voiceCall.id}`);
             }
           }
-        }
 
-        console.log(`🎙️ Using system prompt: ${systemPrompt.substring(0, 100)}...`);
-        console.log(`🔊 Using voice: ${voice}`);
-        console.log(`👋 Using greeting: ${greetingMessage.substring(0, 80)}...`);
+          // If callSid is null or not found, try to get the most recent call by phone number
+          if (!voiceCall && (fromNumber || toNumber)) {
+            console.log('🔍 callSid not found, searching by phone number...');
+
+            const conditions = [];
+            if (toNumber) {
+              conditions.push(eq(voiceCalls.toPhoneNumber, toNumber));
+            }
+            if (fromNumber) {
+              conditions.push(eq(voiceCalls.fromPhoneNumber, fromNumber));
+            }
+
+            const calls = await db
+              .select()
+              .from(voiceCalls)
+              .where(or(...conditions))
+              .orderBy(desc(voiceCalls.createdAt))
+              .limit(1);
+
+            if (calls.length > 0) {
+              voiceCall = calls[0];
+              session.callId = voiceCall.id;
+              console.log(`✅ Found most recent call for phone number: ${voiceCall.id}`);
+            } else {
+              console.log('⚠️ No call found for phone numbers:', { fromNumber, toNumber });
+            }
+          }
+
+          // Extract custom system prompt, voice, and greeting from metadata
+          if (voiceCall?.metadata) {
+            systemPrompt = voiceCall.metadata.systemPrompt || SYSTEM_MESSAGE;
+            voice = voiceCall.metadata.voice || VOICE;
+            greetingMessage = voiceCall.metadata.greetingMessage || DEFAULT_GREETING_MESSAGE;
+
+            console.log(`🎙️ Using custom system prompt: ${systemPrompt.substring(0, 100)}...`);
+            console.log(`🔊 Using custom voice: ${voice}`);
+            console.log(`👋 Using custom greeting: ${greetingMessage.substring(0, 80)}...`);
+
+            // Update OpenAI session with custom configuration
+            if (session.openAiSocketReady && openAiWs.readyState === WebSocket.OPEN) {
+              try {
+                const sessionUpdate = {
+                  type: 'session.update',
+                  session: {
+                    instructions: systemPrompt,
+                    voice: voice,
+                  },
+                };
+                openAiWs.send(JSON.stringify(sessionUpdate));
+                console.log('✅ Updated OpenAI session with custom configuration');
+              } catch (err) {
+                console.error('❌ Failed to update OpenAI session:', err);
+              }
+            }
+          }
+
+          callInfoReceived = true;
+
+          // Update call status to in-progress
+          if (voiceCall) {
+            await this.updateCallStatus(voiceCall.id, "in-progress");
+          }
+        };
 
         // Track connection readiness and stream ID - same as HiringPhone
         let session: VoiceStreamSession = {
@@ -288,7 +346,16 @@ export class VoiceStreamServer {
 
             // Handle speech detection like ApplicantTracker
             if (msg.type === 'input_audio_buffer.speech_started') {
-              console.log('👂 User started speaking');
+              console.log('👂 User started speaking - interrupting AI if speaking');
+              // Cancel any ongoing AI response to allow user to interrupt
+              if (session.openAiSocketReady && openAiWs.readyState === WebSocket.OPEN) {
+                try {
+                  openAiWs.send(JSON.stringify({ type: 'response.cancel' }));
+                  console.log('🛑 Cancelled ongoing AI response due to user interruption');
+                } catch (err) {
+                  console.error('❌ Failed to cancel AI response:', err);
+                }
+              }
             } else if (msg.type === 'input_audio_buffer.speech_stopped') {
               console.log('👂 User stopped speaking - triggering AI response');
               // Trigger AI response after user stops speaking (like ApplicantTracker)
@@ -297,9 +364,6 @@ export class VoiceStreamServer {
                   console.log('🤖 Sending response trigger to AI');
                   const responseCreate = {
                     type: 'response.create',
-                    response: {
-                      modalities: ['text', 'audio']
-                    }
                   };
                   openAiWs.send(JSON.stringify(responseCreate));
                 }
@@ -332,10 +396,27 @@ export class VoiceStreamServer {
                 break;
               case 'start':
                 console.log('📞 Stream started');
+                console.log('📋 Start event data:', JSON.stringify(twilioMsg, null, 2));
+
                 // Capture streamSid on start event if available
                 if (twilioMsg.streamSid) {
                   session.streamSid = twilioMsg.streamSid;
                   console.log(`📡 Stream started with streamSid: ${session.streamSid.substring(0, 8)}...`);
+                }
+
+                // Extract call information from start event
+                // According to Twilio docs, the start event contains: start.callSid, start.customParameters, etc.
+                const startData = twilioMsg.start;
+                if (startData && !callInfoReceived) {
+                  const callSid = startData.callSid || null;
+                  const customParams = startData.customParameters || {};
+                  const fromNumber = customParams.From || null;
+                  const toNumber = customParams.To || null;
+
+                  // Look up call and configure system
+                  lookupCallAndConfigure(callSid, fromNumber, toNumber).catch(err => {
+                    console.error('❌ Failed to lookup and configure call:', err);
+                  });
                 }
                 break;
               case 'stop':
@@ -393,11 +474,6 @@ export class VoiceStreamServer {
           session.isOpenAIConnected = false;
           ws.close(1000, 'OpenAI connection error');
         });
-
-        // Update call status to in-progress
-        if (voiceCall) {
-          await this.updateCallStatus(voiceCall.id, "in-progress");
-        }
 
         console.log(`Voice stream session created: ${sessionId}`);
       } catch (error) {
