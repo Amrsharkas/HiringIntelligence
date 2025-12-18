@@ -5,6 +5,16 @@ import { db } from "../db.js";
 import { voiceCalls, voiceCallEvents } from "../../shared/schema.js";
 import { eq, desc, or } from "drizzle-orm";
 
+/**
+ * Voice Stream Server - Handles real-time voice conversations with OpenAI
+ *
+ * Key Features:
+ * - Immediate AI interruption: When user starts speaking, AI response is immediately cancelled
+ * - Server-side VAD: Voice Activity Detection configured with optimized thresholds
+ * - Clean audio buffer management: Clears buffer on interruption, commits before response
+ * - Responsive conversation flow: 500ms delay for natural turn-taking
+ */
+
 // Constants for voice calls
 const SYSTEM_MESSAGE = 'You are Plato, an AI assistant from Hiring Intelligence. Remind candidates about their interview invitation briefly and professionally.';
 const VOICE = 'marin'; // Use the same voice as ApplicantTracker
@@ -15,9 +25,11 @@ const LOG_EVENT_TYPES = [
   'response.content.done',
   'rate_limits.updated',
   'response.done',
+  'response.cancelled',
   'input_audio_buffer.committed',
   'input_audio_buffer.speech_stopped',
   'input_audio_buffer.speech_started',
+  'input_audio_buffer.cleared',
   'session.created',
   'session.updated',
 ];
@@ -33,6 +45,7 @@ export interface VoiceStreamSession {
   streamSid: string | null;
   twilioSocketReady: boolean;
   openAiSocketReady: boolean;
+  isAiSpeaking: boolean;
 }
 
 export class VoiceStreamServer {
@@ -176,6 +189,7 @@ export class VoiceStreamServer {
           streamSid: null,
           twilioSocketReady: true,
           openAiSocketReady: false,
+          isAiSpeaking: false,
         };
 
         console.log('✅ Twilio socket ready for audio forwarding');
@@ -292,6 +306,14 @@ export class VoiceStreamServer {
               console.error('🛑 OpenAI error event:', JSON.stringify(msg, null, 2));
             }
 
+            // Track when AI starts speaking
+            if (msg.type === 'response.audio.delta' || msg.type === 'response.output_audio.delta') {
+              if (!session.isAiSpeaking) {
+                session.isAiSpeaking = true;
+                console.log('🗣️ AI started speaking');
+              }
+            }
+
             // Forward synthesized audio deltas back to Twilio (handle all possible event types)
             const isAudioDelta = (
               msg.type === 'response.output_audio.delta' ||
@@ -341,33 +363,54 @@ export class VoiceStreamServer {
 
             // Log response completion
             if (msg.type === 'response.done') {
+              session.isAiSpeaking = false;
               console.log('✅ AI response completed');
             }
 
-            // Handle speech detection like ApplicantTracker
+            // Track response cancellation
+            if (msg.type === 'response.cancelled') {
+              session.isAiSpeaking = false;
+              console.log('🛑 AI response cancelled');
+            }
+
+            // Handle speech detection - immediate interruption
             if (msg.type === 'input_audio_buffer.speech_started') {
-              console.log('👂 User started speaking - interrupting AI if speaking');
-              // Cancel any ongoing AI response to allow user to interrupt
+              console.log('👂 User started speaking - IMMEDIATELY interrupting AI');
+
+              // IMMEDIATELY cancel any ongoing AI response
               if (session.openAiSocketReady && openAiWs.readyState === WebSocket.OPEN) {
                 try {
+                  // Send cancel command
                   openAiWs.send(JSON.stringify({ type: 'response.cancel' }));
-                  console.log('🛑 Cancelled ongoing AI response due to user interruption');
+
+                  // Also clear the input audio buffer to ensure clean interruption
+                  openAiWs.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+
+                  session.isAiSpeaking = false;
+                  console.log('🛑 Cancelled ongoing AI response and cleared buffer due to user interruption');
                 } catch (err) {
                   console.error('❌ Failed to cancel AI response:', err);
                 }
               }
             } else if (msg.type === 'input_audio_buffer.speech_stopped') {
-              console.log('👂 User stopped speaking - triggering AI response');
-              // Trigger AI response after user stops speaking (like ApplicantTracker)
+              console.log('👂 User stopped speaking - preparing AI response');
+
+              // Commit the audio buffer first, then trigger response
               setTimeout(() => {
                 if (session.openAiSocketReady && openAiWs.readyState === WebSocket.OPEN) {
-                  console.log('🤖 Sending response trigger to AI');
-                  const responseCreate = {
-                    type: 'response.create',
-                  };
-                  openAiWs.send(JSON.stringify(responseCreate));
+                  try {
+                    console.log('🤖 Committing audio buffer and triggering AI response');
+
+                    // Commit the audio buffer
+                    openAiWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+
+                    // Then trigger the response
+                    openAiWs.send(JSON.stringify({ type: 'response.create' }));
+                  } catch (err) {
+                    console.error('❌ Failed to trigger AI response:', err);
+                  }
                 }
-              }, 800); // Optimized delay like ApplicantTracker
+              }, 500); // Reduced delay for more responsive conversation
             }
           } catch (err) {
             console.error('🛑 OpenAI message parse error', err);
@@ -386,10 +429,14 @@ export class VoiceStreamServer {
               case 'media':
                 // Only forward to OpenAI if socket is ready
                 if (session.openAiSocketReady && openAiWs.readyState === WebSocket.OPEN) {
-                  openAiWs.send(JSON.stringify({
-                    type: 'input_audio_buffer.append',
-                    audio: twilioMsg.media.payload
-                  }));
+                  try {
+                    openAiWs.send(JSON.stringify({
+                      type: 'input_audio_buffer.append',
+                      audio: twilioMsg.media.payload
+                    }));
+                  } catch (err) {
+                    console.error('❌ Failed to forward audio to OpenAI:', err);
+                  }
                 } else {
                   console.log('⏳ OpenAI socket not ready, dropping audio packet');
                 }
