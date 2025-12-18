@@ -4854,6 +4854,62 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Regenerate AI profile for an applicant
+  app.post('/api/applicants/:id/regenerate-profile', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+
+      // Call ApplicantTracker service to regenerate profile
+      const APPLICANT_TRACKER_URL = process.env.APPLICANTS_APP_URL || 'http://localhost:3000';
+      const SERVICE_API_KEY = process.env.SERVICE_API_KEY;
+
+      console.log('🔍 Regeneration request details:');
+      console.log('  - Applicant ID:', applicantId);
+      console.log('  - ApplicantTracker URL:', APPLICANT_TRACKER_URL);
+      console.log('  - SERVICE_API_KEY present:', SERVICE_API_KEY ? 'Yes' : 'No');
+
+      if (!SERVICE_API_KEY) {
+        console.error('❌ SERVICE_API_KEY not configured');
+        return res.status(500).json({ message: "Service API key not configured" });
+      }
+
+      const targetUrl = `${APPLICANT_TRACKER_URL}/api/job-applications/${applicantId}/regenerate-profile`;
+      console.log(`🔄 Calling ApplicantTracker at: ${targetUrl}`);
+
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SERVICE_API_KEY}`
+        }
+      });
+
+      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ ApplicantTracker returned error:', errorText);
+        console.error('   Status:', response.status);
+        return res.status(response.status).json({
+          message: "Failed to regenerate profile",
+          details: errorText
+        });
+      }
+
+      const result = await response.json();
+      console.log(`✅ Profile regenerated successfully for applicant ${applicantId}`);
+      res.json(result);
+
+    } catch (error) {
+      console.error('❌ Error calling ApplicantTracker:', error);
+      console.error('   Error details:', (error as Error).message);
+      res.status(500).json({
+        message: "Failed to regenerate profile",
+        error: (error as Error).message
+      });
+    }
+  });
+
   // Interview Management Endpoints
   app.get('/api/interviews/count', requireAuth, async (req: any, res) => {
     try {

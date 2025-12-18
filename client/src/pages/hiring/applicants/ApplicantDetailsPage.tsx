@@ -286,6 +286,19 @@ export default function ApplicantDetailsPage() {
     },
   });
 
+  const regenerateProfileMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/applicants/${applicantId}/regenerate-profile`);
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch applicant data with new profile
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants/detail", applicantId] });
+    },
+    onError: (error) => {
+      console.error("Failed to regenerate profile:", error);
+    },
+  });
+
   const getScoreColor = (score: number) => {
     if (score >= 70) return "text-green-600 dark:text-green-400";
     if (score >= 50) return "text-yellow-600 dark:text-yellow-400";
@@ -425,6 +438,18 @@ export default function ApplicantDetailsPage() {
           >
             <Calendar className="w-4 h-4 mr-2" />
             Schedule Interview
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => regenerateProfileMutation.mutate()}
+            disabled={regenerateProfileMutation.isPending}
+          >
+            {regenerateProfileMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Brain className="w-4 h-4 mr-2" />
+            )}
+            Regenerate Profile
           </Button>
           {applicant.status === "shortlisted" && (
             <Button
