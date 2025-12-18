@@ -330,6 +330,11 @@ export default function ApplicantDetailsPage() {
   // Extract profile data from the V6 structure
   const profile = applicant.brutallyHonestProfile;
 
+  // Check for insufficient interview data
+  const hasInsufficientData = profile?.error ||
+    applicant.summary?.includes("insufficient responses") ||
+    applicant.summary?.includes("Candidate provided insufficient");
+
   // V6 specific fields
   const execSummary = profile?.executive_summary;
   const interviewMeta = profile?.interview_metadata;
@@ -603,8 +608,51 @@ export default function ApplicantDetailsPage() {
                 AI Candidate Analysis
               </h4>
 
+              {/* Insufficient Data Warning */}
+              {hasInsufficientData && (
+                <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-amber-100 dark:bg-amber-800/50 rounded-lg">
+                        <AlertCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h5 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2">
+                          Insufficient Interview Data
+                        </h5>
+                        <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                          {profile?.reason || applicant.summary || "The candidate did not provide sufficient responses during the interview to generate a comprehensive assessment."}
+                        </p>
+                        <div className="bg-white/50 dark:bg-slate-800/50 rounded-lg p-4 space-y-2">
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Possible reasons:
+                          </p>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-slate-600 dark:text-slate-400">
+                            <li>Candidate exited the interview early</li>
+                            <li>Minimal or no responses provided to interview questions</li>
+                            <li>Technical issues during the interview session</li>
+                            <li>Interview was not completed</li>
+                          </ul>
+                        </div>
+                        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                          <div className="flex items-center gap-2 mb-1">
+                            <XOctagon className="w-4 h-4 text-red-600 dark:text-red-400" />
+                            <span className="text-sm font-semibold text-red-900 dark:text-red-100">
+                              Recommendation: DO NOT RECOMMEND
+                            </span>
+                          </div>
+                          <p className="text-xs text-red-700 dark:text-red-300">
+                            Consider scheduling a new interview or requesting additional information from the candidate.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Executive Summary Banner */}
-              {execSummary && (
+              {execSummary && !hasInsufficientData && (
                 <div className="p-5 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex-1">
@@ -646,7 +694,7 @@ export default function ApplicantDetailsPage() {
               )}
 
               {/* Interview Metadata */}
-              {interviewMeta && (
+              {interviewMeta && !hasInsufficientData && (
                 <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base text-slate-800 dark:text-slate-200">Interview Metadata</CardTitle>
@@ -692,7 +740,7 @@ export default function ApplicantDetailsPage() {
               )}
 
               {/* V6 Hiring Recommendation */}
-              {hiringRecommendation && (
+              {hiringRecommendation && !hasInsufficientData && (
                 <Card className="bg-white dark:bg-slate-900 border-2 border-indigo-200 dark:border-indigo-700">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
