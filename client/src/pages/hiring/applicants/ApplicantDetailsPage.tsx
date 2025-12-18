@@ -31,6 +31,14 @@ import {
   ClipboardCheck,
   Heart,
   Eye,
+  CheckCircle2,
+  AlertCircle,
+  XOctagon,
+  TrendingDown,
+  Info,
+  Clock,
+  Lightbulb,
+  BookOpen,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -1244,62 +1252,6 @@ export default function ApplicantDetailsPage() {
                 </Card>
               )}
 
-              {/* V6 Skill Taxonomy Mapping - Updated */}
-              {skillTaxonomyMapping && (
-                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                      <Target className="h-4 w-4" /> Skills Mapping
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Required Skills</h5>
-                        <div className="space-y-2">
-                          <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
-                            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Technical Skills</div>
-                            <div className="flex flex-wrap gap-1">
-                              {skillTaxonomyMapping.required_skills?.technical?.map((skill: string, i: number) => (
-                                <Badge key={i} variant="secondary" className="text-xs">{skill}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
-                            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Soft Skills</div>
-                            <div className="flex flex-wrap gap-1">
-                              {skillTaxonomyMapping.required_skills?.soft?.map((skill: string, i: number) => (
-                                <Badge key={i} variant="outline" className="text-xs">{skill}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Preferred Skills</h5>
-                        <div className="space-y-2">
-                          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded">
-                            <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">Technical Skills</div>
-                            <div className="flex flex-wrap gap-1">
-                              {skillTaxonomyMapping.preferred_skills?.technical?.map((skill: string, i: number) => (
-                                <Badge key={i} className="text-xs bg-green-100 text-green-800 border-green-200">{skill}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                            <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">Soft Skills</div>
-                            <div className="flex flex-wrap gap-1">
-                              {skillTaxonomyMapping.preferred_skills?.soft?.map((skill: string, i: number) => (
-                                <Badge key={i} className="text-xs bg-blue-100 text-blue-800 border-blue-200">{skill}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* V6 Predictive Assessment */}
               {predictiveAssessment && (
@@ -1829,54 +1781,419 @@ export default function ApplicantDetailsPage() {
                 </Card>
               )}
 
-              {/* V6 Skill Taxonomy Mapping */}
+              {/* V6 Skill Taxonomy Mapping - Enhanced */}
               {skillTaxonomyMapping && (
-                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                      <Target className="h-4 w-4" /> Skills Mapping
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {skillTaxonomyMapping.required_skills && (
-                      <div>
-                        <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Required Skills</h5>
-                        <div className="space-y-2">
-                          {skillTaxonomyMapping.required_skills.demonstrated?.length > 0 && (
-                            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                              <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Demonstrated</div>
-                              <div className="flex flex-wrap gap-1">
-                                {skillTaxonomyMapping.required_skills.demonstrated.map((skill: string, i: number) => (
-                                  <Badge key={i} variant="secondary" className="text-xs">{skill}</Badge>
-                                ))}
-                              </div>
+                <div className="space-y-4">
+                  {/* Skills Summary Overview */}
+                  {skillTaxonomyMapping.skills_summary && (
+                    <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-300 dark:border-slate-700">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                          <Target className="h-5 w-5" /> Skills Analysis Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Required Skills Coverage</div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-bold text-slate-800 dark:text-slate-200">
+                                {skillTaxonomyMapping.skills_summary.required_skills_coverage || 0}%
+                              </span>
                             </div>
-                          )}
-                          {skillTaxonomyMapping.required_skills.partially_demonstrated?.length > 0 && (
-                            <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                              <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">Partially Demonstrated</div>
-                              <div className="flex flex-wrap gap-1">
-                                {skillTaxonomyMapping.required_skills.partially_demonstrated.map((skill: string, i: number) => (
-                                  <Badge key={i} variant="outline" className="text-xs border-yellow-300">{skill}</Badge>
-                                ))}
-                              </div>
+                            <Progress value={skillTaxonomyMapping.skills_summary.required_skills_coverage || 0} className="mt-2 h-2" />
+                            <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+                              {skillTaxonomyMapping.skills_summary.matched_required_count || 0} of {skillTaxonomyMapping.skills_summary.total_required_skills || 0} matched
                             </div>
-                          )}
-                          {skillTaxonomyMapping.required_skills.not_demonstrated?.length > 0 && (
-                            <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded">
-                              <div className="text-xs font-semibold text-slate-700 dark:text-slate-400 mb-1">Not Demonstrated</div>
-                              <div className="flex flex-wrap gap-1">
-                                {skillTaxonomyMapping.required_skills.not_demonstrated.map((skill: string, i: number) => (
-                                  <Badge key={i} variant="secondary" className="text-xs">{skill}</Badge>
-                                ))}
-                              </div>
+                          </div>
+                          <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Preferred Skills Coverage</div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-bold text-slate-800 dark:text-slate-200">
+                                {skillTaxonomyMapping.skills_summary.preferred_skills_coverage || 0}%
+                              </span>
                             </div>
-                          )}
+                            <Progress value={skillTaxonomyMapping.skills_summary.preferred_skills_coverage || 0} className="mt-2 h-2" />
+                            <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+                              {skillTaxonomyMapping.skills_summary.matched_preferred_count || 0} of {skillTaxonomyMapping.skills_summary.total_preferred_skills || 0} matched
+                            </div>
+                          </div>
+                          <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Overall Match Score</div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-bold text-slate-800 dark:text-slate-200">
+                                {skillTaxonomyMapping.skills_summary.overall_skill_match || 0}%
+                              </span>
+                            </div>
+                            <Progress value={skillTaxonomyMapping.skills_summary.overall_skill_match || 0} className="mt-2 h-2" />
+                            {skillTaxonomyMapping.skills_summary.critical_gaps_count > 0 && (
+                              <div className="mt-2 flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+                                <AlertCircle className="h-3 w-3" />
+                                {skillTaxonomyMapping.skills_summary.critical_gaps_count} critical gaps
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        {skillTaxonomyMapping.skills_summary.competitive_advantages?.length > 0 && (
+                          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Award className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              <span className="text-xs font-semibold text-green-700 dark:text-green-400">Competitive Advantages</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {skillTaxonomyMapping.skills_summary.competitive_advantages.map((advantage: string, i: number) => (
+                                <Badge key={i} className="bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-300 dark:border-green-700">
+                                  {advantage}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Required Skills - Matched */}
+                  {skillTaxonomyMapping.required_skills?.matched_skills?.length > 0 && (
+                    <Card className="bg-white dark:bg-slate-900 border-2 border-green-200 dark:border-green-800">
+                      <CardHeader className="pb-3 bg-green-50 dark:bg-green-900/20">
+                        <CardTitle className="text-base text-green-800 dark:text-green-300 flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5" /> Matched Required Skills
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-4">
+                          {skillTaxonomyMapping.required_skills.matched_skills.map((skill: any, i: number) => (
+                            <div key={i} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{skill.skill_name}</h4>
+                                    <Badge variant="outline" className="text-xs">
+                                      {skill.category}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-2">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                                        {skill.proficiency_level}
+                                      </span>
+                                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                                        ({skill.proficiency_score}/100)
+                                      </span>
+                                    </div>
+                                    <Badge
+                                      className={`text-xs ${
+                                        skill.demonstration_quality === 'STRONG'
+                                          ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                                          : skill.demonstration_quality === 'MODERATE'
+                                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                          : 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300'
+                                      }`}
+                                    >
+                                      {skill.demonstration_quality} demonstration
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <Progress value={skill.proficiency_score} className="w-24 h-2" />
+                              </div>
+
+                              {skill.evidence?.length > 0 && (
+                                <div className="mb-3">
+                                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <Info className="h-3 w-3" />
+                                    Evidence
+                                  </div>
+                                  <ul className="space-y-1 ml-4">
+                                    {skill.evidence.slice(0, 2).map((evidence: string, j: number) => (
+                                      <li key={j} className="text-xs text-slate-700 dark:text-slate-300 list-disc">
+                                        {evidence}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {skill.application_context && (
+                                <div className="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
+                                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Application Context</div>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">{skill.application_context}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Required Skills - Partially Matched */}
+                  {skillTaxonomyMapping.required_skills?.partially_matched_skills?.length > 0 && (
+                    <Card className="bg-white dark:bg-slate-900 border-2 border-yellow-200 dark:border-yellow-800">
+                      <CardHeader className="pb-3 bg-yellow-50 dark:bg-yellow-900/20">
+                        <CardTitle className="text-base text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                          <AlertCircle className="h-5 w-5" /> Partially Matched Required Skills
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-4">
+                          {skillTaxonomyMapping.required_skills.partially_matched_skills.map((skill: any, i: number) => (
+                            <div key={i} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{skill.skill_name}</h4>
+                                    <Badge variant="outline" className="text-xs">{skill.category}</Badge>
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-2">
+                                    <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
+                                      {skill.proficiency_level} ({skill.proficiency_score}/100)
+                                    </span>
+                                  </div>
+                                </div>
+                                <Progress value={skill.proficiency_score} className="w-24 h-2" />
+                              </div>
+
+                              {skill.gap_description && (
+                                <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                                  <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">Gap Analysis</div>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">{skill.gap_description}</p>
+                                </div>
+                              )}
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {skill.development_potential && (
+                                  <div className="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Development Potential</span>
+                                    </div>
+                                    <p className="text-xs text-slate-700 dark:text-slate-300">{skill.development_potential}</p>
+                                  </div>
+                                )}
+                                {skill.bridging_timeline && (
+                                  <div className="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Timeline to Proficiency</span>
+                                    </div>
+                                    <p className="text-xs text-slate-700 dark:text-slate-300">{skill.bridging_timeline}</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {skill.suggested_training?.length > 0 && (
+                                <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                                  <div className="flex items-center gap-1 mb-2">
+                                    <BookOpen className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                    <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">Suggested Training</span>
+                                  </div>
+                                  <ul className="space-y-1 ml-4">
+                                    {skill.suggested_training.map((training: string, j: number) => (
+                                      <li key={j} className="text-xs text-slate-700 dark:text-slate-300 list-disc">{training}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Required Skills - Missing */}
+                  {skillTaxonomyMapping.required_skills?.missing_skills?.length > 0 && (
+                    <Card className="bg-white dark:bg-slate-900 border-2 border-red-200 dark:border-red-800">
+                      <CardHeader className="pb-3 bg-red-50 dark:bg-red-900/20">
+                        <CardTitle className="text-base text-red-800 dark:text-red-300 flex items-center gap-2">
+                          <XOctagon className="h-5 w-5" /> Missing Required Skills
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-4">
+                          {skillTaxonomyMapping.required_skills.missing_skills.map((skill: any, i: number) => (
+                            <div
+                              key={i}
+                              className={`p-4 rounded-lg border-2 ${
+                                skill.criticality === 'CRITICAL'
+                                  ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800'
+                                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{skill.skill_name}</h4>
+                                    <Badge variant="outline" className="text-xs">{skill.category}</Badge>
+                                    <Badge
+                                      className={`text-xs ${
+                                        skill.criticality === 'CRITICAL'
+                                          ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                          : skill.criticality === 'HIGH'
+                                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300'
+                                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                      }`}
+                                    >
+                                      {skill.criticality} Priority
+                                    </Badge>
+                                    {skill.red_flag_indicator && (
+                                      <Badge className="bg-red-600 text-white text-xs">
+                                        <Flag className="h-3 w-3 mr-1" />
+                                        Red Flag
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                {skill.impact_on_role && (
+                                  <div className="p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
+                                    <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Impact on Role</div>
+                                    <p className="text-xs text-slate-700 dark:text-slate-300">{skill.impact_on_role}</p>
+                                  </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                  {skill.gap_severity && (
+                                    <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                                      <div className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">Gap Severity</div>
+                                      <p className="text-xs text-slate-700 dark:text-slate-300">{skill.gap_severity}</p>
+                                    </div>
+                                  )}
+                                  {skill.development_difficulty && (
+                                    <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
+                                      <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-1">Development Difficulty</div>
+                                      <p className="text-xs text-slate-700 dark:text-slate-300">{skill.development_difficulty}</p>
+                                    </div>
+                                  )}
+                                  {skill.learning_curve_estimate && (
+                                    <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                                      <div className="flex items-center gap-1 mb-1">
+                                        <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                        <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">Learning Curve</span>
+                                      </div>
+                                      <p className="text-xs text-slate-700 dark:text-slate-300">{skill.learning_curve_estimate}</p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {skill.compensating_factors?.length > 0 && (
+                                  <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                                    <div className="flex items-center gap-1 mb-2">
+                                      <Lightbulb className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                      <span className="text-xs font-semibold text-green-700 dark:text-green-400">Compensating Factors</span>
+                                    </div>
+                                    <ul className="space-y-1 ml-4">
+                                      {skill.compensating_factors.map((factor: string, j: number) => (
+                                        <li key={j} className="text-xs text-slate-700 dark:text-slate-300 list-disc">{factor}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {skill.mitigation_strategy && (
+                                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <Shield className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                      <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">Mitigation Strategy</span>
+                                    </div>
+                                    <p className="text-xs text-slate-700 dark:text-slate-300">{skill.mitigation_strategy}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Preferred Skills - Matched */}
+                  {skillTaxonomyMapping.preferred_skills?.matched_skills?.length > 0 && (
+                    <Card className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800">
+                      <CardHeader className="pb-3 bg-blue-50 dark:bg-blue-900/20">
+                        <CardTitle className="text-base text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                          <Award className="h-5 w-5" /> Matched Preferred Skills (Bonus)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-3">
+                          {skillTaxonomyMapping.preferred_skills.matched_skills.map((skill: any, i: number) => (
+                            <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{skill.skill_name}</h4>
+                                    <Badge variant="outline" className="text-xs">{skill.category}</Badge>
+                                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                      {skill.proficiency_level} ({skill.proficiency_score}/100)
+                                    </span>
+                                  </div>
+                                </div>
+                                <Progress value={skill.proficiency_score} className="w-24 h-2" />
+                              </div>
+                              {skill.competitive_advantage && (
+                                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800 mt-2">
+                                  <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Competitive Advantage</div>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">{skill.competitive_advantage}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Preferred Skills - Missing */}
+                  {skillTaxonomyMapping.preferred_skills?.missing_preferred_skills?.length > 0 && (
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                          <TrendingDown className="h-5 w-5" /> Missing Preferred Skills (Nice-to-Have)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-3">
+                          {skillTaxonomyMapping.preferred_skills.missing_preferred_skills.map((skill: any, i: number) => (
+                            <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{skill.skill_name}</h4>
+                                <Badge variant="outline" className="text-xs">{skill.category}</Badge>
+                                <Badge
+                                  className={`text-xs ${
+                                    skill.impact_level === 'HIGH'
+                                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300'
+                                      : skill.impact_level === 'MEDIUM'
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                      : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
+                                  }`}
+                                >
+                                  {skill.impact_level} Impact
+                                </Badge>
+                              </div>
+                              {skill.importance_to_role && (
+                                <p className="text-xs text-slate-700 dark:text-slate-300 mb-2">{skill.importance_to_role}</p>
+                              )}
+                              {skill.potential_indicators?.length > 0 && (
+                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                                  <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">Potential Indicators</div>
+                                  <ul className="space-y-1 ml-4">
+                                    {skill.potential_indicators.map((indicator: string, j: number) => (
+                                      <li key={j} className="text-xs text-slate-700 dark:text-slate-300 list-disc">{indicator}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               )}
 
               {/* V6 Predictive Assessment */}
