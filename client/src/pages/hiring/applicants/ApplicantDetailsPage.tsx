@@ -29,6 +29,7 @@ import {
   Briefcase,
   Users,
   Award,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -820,6 +821,407 @@ const InterviewProfileAnalysis = ({ profile }: { profile: any }) => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Interview Transcript Insights */}
+      {profile.interviewMetadata && (
+        <div className="p-3 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/50 dark:to-gray-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
+          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-slate-800 dark:text-slate-300">
+            <MessageSquare className="h-4 w-4" />
+            Interview Transcript Insights
+          </h5>
+
+          {/* Session Details */}
+          {profile.interviewMetadata.sessionDetails && (
+            <div className="mb-4">
+              <h6 className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Session Overview</h6>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
+                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                    {profile.interviewMetadata.sessionDetails.questionsAsked || 0}
+                  </div>
+                  <div className="text-xs text-gray-500">Questions Asked</div>
+                </div>
+                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
+                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                    {profile.interviewMetadata.sessionDetails.responsesProvided || 0}
+                  </div>
+                  <div className="text-xs text-gray-500">Responses</div>
+                </div>
+                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
+                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                    {profile.interviewMetadata.sessionDetails.totalResponseWords || 0}
+                  </div>
+                  <div className="text-xs text-gray-500">Total Words</div>
+                </div>
+                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
+                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                    {profile.interviewMetadata.sessionDetails.estimatedSpeakingTimeMinutes || 0}
+                  </div>
+                  <div className="text-xs text-gray-500">Minutes Speaking</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-gray-500">Interview Duration:</span>
+                <Badge variant="outline" className={`text-xs ${
+                  profile.interviewMetadata.sessionDetails.interviewDurationCategory === 'COMPREHENSIVE' ? 'bg-green-50 text-green-700 border-green-200' :
+                  profile.interviewMetadata.sessionDetails.interviewDurationCategory === 'STANDARD' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                  profile.interviewMetadata.sessionDetails.interviewDurationCategory === 'BRIEF' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                  'bg-red-50 text-red-700 border-red-200'
+                }`}>
+                  {profile.interviewMetadata.sessionDetails.interviewDurationCategory || 'N/A'}
+                </Badge>
+                {profile.interviewMetadata.sessionDetails.averageResponseLength && (
+                  <span className="text-xs text-gray-500 ml-2">
+                    Avg. Response: {profile.interviewMetadata.sessionDetails.averageResponseLength} chars
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Engagement & Quality Analysis */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Engagement Metrics */}
+            {profile.interviewMetadata.engagementMetrics && (
+              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <h6 className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  Engagement Analysis
+                </h6>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Engagement Level</span>
+                    <Badge variant="outline" className={`text-xs ${
+                      profile.interviewMetadata.engagementMetrics.engagementLevel === 'HIGH' ? 'bg-green-50 text-green-700 border-green-200' :
+                      profile.interviewMetadata.engagementMetrics.engagementLevel === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                      'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {profile.interviewMetadata.engagementMetrics.engagementLevel || 'N/A'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Response Style</span>
+                    <Badge variant="outline" className={`text-xs ${
+                      profile.interviewMetadata.engagementMetrics.responseProactiveness === 'PROACTIVE' ? 'bg-green-50 text-green-700 border-green-200' :
+                      profile.interviewMetadata.engagementMetrics.responseProactiveness === 'RESPONSIVE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      'bg-gray-50 text-gray-600 border-gray-200'
+                    }`}>
+                      {profile.interviewMetadata.engagementMetrics.responseProactiveness || 'N/A'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Preparation Level</span>
+                    <Badge variant="outline" className={`text-xs ${
+                      profile.interviewMetadata.engagementMetrics.preparationLevel === 'HIGH' ? 'bg-green-50 text-green-700 border-green-200' :
+                      profile.interviewMetadata.engagementMetrics.preparationLevel === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                      'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {profile.interviewMetadata.engagementMetrics.preparationLevel || 'N/A'}
+                    </Badge>
+                  </div>
+                  {profile.interviewMetadata.engagementMetrics.enthusiasmIndicators && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-xs text-gray-500">Enthusiasm: </span>
+                      <span className="text-xs text-gray-700 dark:text-gray-300">
+                        {profile.interviewMetadata.engagementMetrics.enthusiasmIndicators}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Transcript Quality */}
+            {profile.interviewMetadata.transcriptQuality && (
+              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <h6 className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  Response Quality
+                </h6>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Content Depth</span>
+                    <Badge variant="outline" className={`text-xs ${
+                      profile.interviewMetadata.transcriptQuality.contentDepth === 'DEEP' ? 'bg-green-50 text-green-700 border-green-200' :
+                      profile.interviewMetadata.transcriptQuality.contentDepth === 'MODERATE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      profile.interviewMetadata.transcriptQuality.contentDepth === 'SURFACE' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                      'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {profile.interviewMetadata.transcriptQuality.contentDepth || 'N/A'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Analysis Quality</span>
+                    <Badge variant="outline" className={`text-xs ${
+                      profile.interviewMetadata.transcriptQuality.analysisQuality === 'EXCELLENT' ? 'bg-green-50 text-green-700 border-green-200' :
+                      profile.interviewMetadata.transcriptQuality.analysisQuality === 'GOOD' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      profile.interviewMetadata.transcriptQuality.analysisQuality === 'ADEQUATE' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                      'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {profile.interviewMetadata.transcriptQuality.analysisQuality || 'N/A'}
+                    </Badge>
+                  </div>
+                  {profile.interviewMetadata.transcriptQuality.exampleQuality && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-xs text-gray-500">Example Quality: </span>
+                      <span className="text-xs text-gray-700 dark:text-gray-300">
+                        {profile.interviewMetadata.transcriptQuality.exampleQuality}
+                      </span>
+                    </div>
+                  )}
+                  {profile.interviewMetadata.transcriptQuality.authenticityIndicators && (
+                    <div className="mt-1">
+                      <span className="text-xs text-gray-500">Authenticity: </span>
+                      <span className="text-xs text-gray-700 dark:text-gray-300">
+                        {profile.interviewMetadata.transcriptQuality.authenticityIndicators}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Assessment Confidence */}
+          {profile.interviewMetadata.assessmentConfidence && (
+            <div className="mt-3 p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+              <h6 className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2 flex items-center gap-1">
+                <Target className="h-3 w-3" />
+                Assessment Confidence
+              </h6>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge variant="outline" className={`text-xs ${
+                  profile.interviewMetadata.assessmentConfidence.overallConfidence === 'VERY_HIGH' ||
+                  profile.interviewMetadata.assessmentConfidence.overallConfidence === 'HIGH' ? 'bg-green-50 text-green-700 border-green-200' :
+                  profile.interviewMetadata.assessmentConfidence.overallConfidence === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                  'bg-red-50 text-red-700 border-red-200'
+                }`}>
+                  {profile.interviewMetadata.assessmentConfidence.overallConfidence?.replace('_', ' ') || 'N/A'} Confidence
+                </Badge>
+                <Badge variant="outline" className={`text-xs ${
+                  profile.interviewMetadata.assessmentConfidence.dataSufficiency === 'SUFFICIENT' ? 'bg-green-50 text-green-700 border-green-200' :
+                  profile.interviewMetadata.assessmentConfidence.dataSufficiency === 'ADEQUATE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                  profile.interviewMetadata.assessmentConfidence.dataSufficiency === 'LIMITED' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                  'bg-red-50 text-red-700 border-red-200'
+                }`}>
+                  Data: {profile.interviewMetadata.assessmentConfidence.dataSufficiency || 'N/A'}
+                </Badge>
+              </div>
+              {profile.interviewMetadata.assessmentConfidence.dataLimitations &&
+               profile.interviewMetadata.assessmentConfidence.dataLimitations.length > 0 && (
+                <div className="mt-2">
+                  <span className="text-xs font-medium text-orange-600 dark:text-orange-400">Data Limitations:</span>
+                  <ul className="mt-1 space-y-1">
+                    {profile.interviewMetadata.assessmentConfidence.dataLimitations.map((limitation: string, i: number) => (
+                      <li key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1">
+                        <span className="text-orange-500">⚠</span>
+                        {limitation}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {profile.interviewMetadata.assessmentConfidence.confidenceEnhancers &&
+               profile.interviewMetadata.assessmentConfidence.confidenceEnhancers.length > 0 && (
+                <div className="mt-2">
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">Confidence Enhancers:</span>
+                  <ul className="mt-1 space-y-1">
+                    {profile.interviewMetadata.assessmentConfidence.confidenceEnhancers.map((enhancer: string, i: number) => (
+                      <li key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1">
+                        <span className="text-green-500">✓</span>
+                        {enhancer}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Behavioral & Psychological Insights */}
+      {(profile.behavioralIndicators || profile.psycholinguisticAnalysis) && (
+        <div className="p-3 bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 rounded-lg border border-indigo-200 dark:border-indigo-700">
+          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
+            <Brain className="h-4 w-4" />
+            Behavioral & Psychological Insights
+          </h5>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Emotional Intelligence */}
+            {profile.behavioralIndicators?.emotionalIntelligence && (
+              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <h6 className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Emotional Intelligence</h6>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">EQ Score</span>
+                    <span className={`text-sm font-bold ${getScoreColor(profile.behavioralIndicators.emotionalIntelligence.score || 0)}`}>
+                      {profile.behavioralIndicators.emotionalIntelligence.score || 0}/100
+                    </span>
+                  </div>
+                  {profile.behavioralIndicators.emotionalIntelligence.selfAwareness && (
+                    <div className="text-xs">
+                      <span className="text-gray-500">Self-Awareness:</span>
+                      <span className="text-gray-700 dark:text-gray-300 ml-1">
+                        {profile.behavioralIndicators.emotionalIntelligence.selfAwareness}
+                      </span>
+                    </div>
+                  )}
+                  {profile.behavioralIndicators.emotionalIntelligence.empathy && (
+                    <div className="text-xs">
+                      <span className="text-gray-500">Empathy:</span>
+                      <span className="text-gray-700 dark:text-gray-300 ml-1">
+                        {profile.behavioralIndicators.emotionalIntelligence.empathy}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Work Style */}
+            {profile.behavioralIndicators?.workStyle && (
+              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <h6 className="text-xs font-semibold text-violet-700 dark:text-violet-400 mb-2">Work Style Preferences</h6>
+                <div className="space-y-2">
+                  {profile.behavioralIndicators.workStyle.preferredEnvironment &&
+                   profile.behavioralIndicators.workStyle.preferredEnvironment !== 'Not assessed.' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Environment</span>
+                      <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">
+                        {profile.behavioralIndicators.workStyle.preferredEnvironment}
+                      </Badge>
+                    </div>
+                  )}
+                  {profile.behavioralIndicators.workStyle.collaborationStyle &&
+                   profile.behavioralIndicators.workStyle.collaborationStyle !== 'Not assessed.' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Collaboration</span>
+                      <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">
+                        {profile.behavioralIndicators.workStyle.collaborationStyle}
+                      </Badge>
+                    </div>
+                  )}
+                  {profile.behavioralIndicators.workStyle.stressHandling &&
+                   profile.behavioralIndicators.workStyle.stressHandling !== 'Not assessed.' && (
+                    <div className="text-xs">
+                      <span className="text-gray-500">Stress Handling:</span>
+                      <span className="text-gray-700 dark:text-gray-300 ml-1">
+                        {profile.behavioralIndicators.workStyle.stressHandling}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Personality Indicators (Big Five) */}
+            {profile.psycholinguisticAnalysis?.personalityIndicators && (
+              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 md:col-span-2">
+                <h6 className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Personality Indicators (Big Five)</h6>
+                <div className="grid grid-cols-5 gap-2">
+                  {['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'].map((trait) => {
+                    const traitData = profile.psycholinguisticAnalysis.personalityIndicators[trait];
+                    if (!traitData) return null;
+                    return (
+                      <div key={trait} className="text-center p-2 bg-gray-50 dark:bg-gray-900/50 rounded">
+                        <div className={`text-sm font-bold ${getScoreColor(traitData.score || 0)}`}>
+                          {traitData.score || 0}
+                        </div>
+                        <div className="text-xs text-gray-500 capitalize">{trait.slice(0, 4)}.</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Cognitive Style */}
+            {profile.psycholinguisticAnalysis?.cognitiveStyle && (
+              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <h6 className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 mb-2">Cognitive Style</h6>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Analytical</span>
+                    <span className={`text-sm font-bold ${getScoreColor(profile.psycholinguisticAnalysis.cognitiveStyle.analyticalThinking || 0)}`}>
+                      {profile.psycholinguisticAnalysis.cognitiveStyle.analyticalThinking || 0}/100
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Creative</span>
+                    <span className={`text-sm font-bold ${getScoreColor(profile.psycholinguisticAnalysis.cognitiveStyle.creativeThinking || 0)}`}>
+                      {profile.psycholinguisticAnalysis.cognitiveStyle.creativeThinking || 0}/100
+                    </span>
+                  </div>
+                  {profile.psycholinguisticAnalysis.cognitiveStyle.decisionMaking &&
+                   profile.psycholinguisticAnalysis.cognitiveStyle.decisionMaking !== 'N/A' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Decision Making</span>
+                      <Badge variant="outline" className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200">
+                        {profile.psycholinguisticAnalysis.cognitiveStyle.decisionMaking}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Authenticity */}
+            {profile.psycholinguisticAnalysis?.authenticity && (
+              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <h6 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">Response Authenticity</h6>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Authenticity Score</span>
+                    <span className={`text-sm font-bold ${getScoreColor(profile.psycholinguisticAnalysis.authenticity.score || 0)}`}>
+                      {profile.psycholinguisticAnalysis.authenticity.score || 0}/100
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Genuine Responses</span>
+                    <span className={`text-xs ${profile.psycholinguisticAnalysis.authenticity.genuineResponses ? 'text-green-600' : 'text-red-600'}`}>
+                      {profile.psycholinguisticAnalysis.authenticity.genuineResponses ? '✓ Yes' : '✗ No'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Consistent Answers</span>
+                    <span className={`text-xs ${profile.psycholinguisticAnalysis.authenticity.consistencyAcrossAnswers ? 'text-green-600' : 'text-red-600'}`}>
+                      {profile.psycholinguisticAnalysis.authenticity.consistencyAcrossAnswers ? '✓ Yes' : '✗ No'}
+                    </span>
+                  </div>
+                  {profile.psycholinguisticAnalysis.authenticity.contradictions &&
+                   profile.psycholinguisticAnalysis.authenticity.contradictions.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-xs font-medium text-red-600">Contradictions Detected:</span>
+                      <ul className="mt-1">
+                        {profile.psycholinguisticAnalysis.authenticity.contradictions.map((c: string, i: number) => (
+                          <li key={i} className="text-xs text-gray-600 dark:text-gray-400">• {c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Motivation Drivers */}
+          {profile.behavioralIndicators?.motivationDrivers &&
+           profile.behavioralIndicators.motivationDrivers.length > 0 && (
+            <div className="mt-3 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-indigo-100 dark:border-indigo-800">
+              <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">Motivation Drivers:</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {profile.behavioralIndicators.motivationDrivers.map((driver: string, i: number) => (
+                  <Badge key={i} variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
+                    {driver}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
