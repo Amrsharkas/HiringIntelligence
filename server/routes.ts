@@ -1455,7 +1455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Real Applicants routes - from platojobapplications table
-  app.get('/api/real-applicants/:jobId?', requireAuth, async (req: any, res) => {
+  app.get('/api/real-applicants{/:jobId}', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
