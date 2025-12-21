@@ -32,7 +32,7 @@ router.post("/test-call/:phoneNumber", async (req: Request, res: Response) => {
 
     const result = await twilioVoiceService.initiateCall({
       toPhoneNumber: phoneNumber,
-      systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation.",
+      systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation. IMPORTANT: You must speak Egyptian Arabic dialect only. All your responses must be in Egyptian Arabic, not formal Arabic or any other dialect. Use common Egyptian expressions and phrases that Egyptians use in daily conversation.",
       voice: voice || "alloy",
       greetingMessage: greetingMessage,
     });
@@ -96,7 +96,7 @@ router.post("/call", async (req: Request, res: Response) => {
     const result = await twilioVoiceService.initiateCall({
       toPhoneNumber,
       organizationId: organization?.id,
-      systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation.",
+      systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation. IMPORTANT: You must speak Egyptian Arabic dialect only. All your responses must be in Egyptian Arabic, not formal Arabic or any other dialect. Use common Egyptian expressions and phrases that Egyptians use in daily conversation.",
       voice: voice || "alloy",
       greetingMessage: greetingMessage,
     });
@@ -249,13 +249,15 @@ router.post("/call-candidate", async (req: Request, res: Response) => {
 
 You're calling ${profile.name} about the ${job.title} position. ${profile.email ? `Their email: ${profile.email}` : ''}
 
-First, confirm identity: "Am I speaking with ${profile.name}?"
+CRITICAL LANGUAGE REQUIREMENT: You must speak Egyptian Arabic dialect ONLY. All responses must be in Egyptian Arabic, not formal Arabic or any other dialect. Use common Egyptian expressions and phrases that Egyptians use in daily conversation.
 
-If yes: Remind them about the interview invitation for ${job.title} at ${companyName}. Keep it brief and encourage them to complete the interview. If they need the link, tell them to check their email${profile.email ? ` at ${profile.email}` : ''}.
+First, confirm identity in Egyptian Arabic: "ممكن أتكلم مع ${profile.name}؟"
 
-If no: Apologize and end the call.`;
+If yes: Remind them in Egyptian Arabic about the interview invitation for ${job.title} at ${companyName}. Keep it brief and encourage them to complete the interview. If they need the link, tell them to check their email${profile.email ? ` at ${profile.email}` : ''}.
 
-    const greetingMessage = `Hi! This is Plato from ${companyName}.`;
+If no: Apologize in Egyptian Arabic and end the call.`;
+
+    const greetingMessage = `اهلاً! أنا بلاتو من ${companyName}.`;
 
     console.log(`User ${user?.id || 'anonymous'} scheduling candidate call to: ${toPhoneNumber} for job: ${job.title} at ${scheduledAt}`);
 

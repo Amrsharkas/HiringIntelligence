@@ -468,7 +468,7 @@ const voiceCallWorker = new Worker(
       const result = await twilioVoiceService.initiateCall({
         toPhoneNumber,
         organizationId,
-        systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation.",
+        systemPrompt: systemPrompt || "You are a helpful AI assistant having a phone conversation. IMPORTANT: You must speak Egyptian Arabic dialect only. All your responses must be in Egyptian Arabic, not formal Arabic or any other dialect. Use common Egyptian expressions and phrases that Egyptians use in daily conversation.",
         voice: voice || "alloy",
         greetingMessage,
       });
@@ -533,9 +533,11 @@ const interviewReminderWorker = new Worker(
         }
 
         // Build prompts with job context
-        const systemPrompt = `You are an AI recruitment assistant. The candidate was invited to interview for the ${jobTitle} position at ${companyName} 2 days ago but hasn't started yet. Your goal is to remind them about this opportunity and encourage them to complete their interview. Be professional, friendly, and create urgency without being pushy.`;
+        const systemPrompt = `You are an AI recruitment assistant. The candidate was invited to interview for the ${jobTitle} position at ${companyName} 2 days ago but hasn't started yet. Your goal is to remind them about this opportunity and encourage them to complete their interview. Be professional, friendly, and create urgency without being pushy.
 
-        const greetingMessage = `Hi! This is Plato calling on behalf of ${companyName}. You were invited to interview for our ${jobTitle} position a couple of days ago. I wanted to check in and see if you had any questions about the opportunity!`;
+CRITICAL LANGUAGE REQUIREMENT: You must speak Egyptian Arabic dialect ONLY. All responses must be in Egyptian Arabic, not formal Arabic or any other dialect. Use common Egyptian expressions and phrases that Egyptians use in daily conversation.`;
+
+        const greetingMessage = `اهلاً! أنا بلاتو بتكلم بالنيابة عن ${companyName}. اتم دعيتك للمقابلة بتاعة وظيفة ${jobTitle} قبل يومين. عاوز أتأكد لو عندك أي أسئلة عن الفرصة دي!`;
 
         // Initiate the call
         const result = await twilioVoiceService.initiateCall({

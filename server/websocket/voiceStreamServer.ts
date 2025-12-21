@@ -16,10 +16,10 @@ import { eq, desc, or } from "drizzle-orm";
  */
 
 // Constants for voice calls
-const SYSTEM_MESSAGE = 'You are Plato, an AI assistant from Hiring Intelligence. Remind candidates about their interview invitation briefly and professionally.';
+const SYSTEM_MESSAGE = 'You are Plato, an AI assistant from Hiring Intelligence. Remind candidates about their interview invitation briefly and professionally. IMPORTANT: You must speak Egyptian Arabic dialect only. All your responses must be in Egyptian Arabic, not formal Arabic or any other dialect. Use common Egyptian expressions and phrases that Egyptians use in daily conversation.';
 const VOICE = 'marin'; // Use the same voice as ApplicantTracker
 const TEMPERATURE = 0.8;
-const DEFAULT_GREETING_MESSAGE = 'Hi! This is Plato from Hiring Intelligence calling about your interview. Do you have a moment?';
+const DEFAULT_GREETING_MESSAGE = 'اهلاً! أنا بلاتو من التوظيف الذكي بتكلمك بخصوص المقابلة بتاعتك. عندك دقيقة؟';
 const LOG_EVENT_TYPES = [
   'error',
   'response.content.done',
