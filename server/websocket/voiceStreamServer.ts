@@ -322,6 +322,12 @@ export class VoiceStreamServer {
             );
 
             if (isAudioDelta && msg.delta) {
+              // Only forward audio if AI is supposed to be speaking
+              if (!session.isAiSpeaking) {
+                console.log('⏳ Skipping audio delta forwarding - AI is not speaking (possibly interrupted)');
+                return;
+              }
+
               if (session.twilioSocketReady && session.twilioWs && typeof session.twilioWs.send === 'function') {
                 try {
                   // Twilio Media Stream expects audio in base64 format
@@ -385,6 +391,15 @@ export class VoiceStreamServer {
 
                   // Also clear the input audio buffer to ensure clean interruption
                   openAiWs.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+
+                  // Clear Twilio buffer to stop any queued audio from playing
+                  if (session.twilioSocketReady && session.twilioWs && session.streamSid) {
+                    session.twilioWs.send(JSON.stringify({
+                      event: 'clear',
+                      streamSid: session.streamSid
+                    }));
+                    console.log('🗑️ Sent clear event to Twilio for stream:', session.streamSid);
+                  }
 
                   session.isAiSpeaking = false;
                   console.log('🛑 Cancelled ongoing AI response and cleared buffer due to user interruption');
