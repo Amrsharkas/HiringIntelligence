@@ -288,10 +288,10 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`bg-gradient-to-r ${getMatchScoreBg(candidate.matchScore || 75)} rounded-xl p-6 border flex items-center gap-6`}
+                    className={`bg-linear-to-r ${getMatchScoreBg(candidate.matchScore || 75)} rounded-xl p-6 border flex items-center gap-6`}
                   >
                     {/* Left side - Avatar and basic info */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="flex items-center gap-4 shrink-0">
                       <div className="w-16 h-16 bg-slate-200 dark:bg-slate-600 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-lg">
                         {candidate.name?.split(' ').map((n: string) => n.charAt(0)).join('') || 'C'}
                       </div>
@@ -361,7 +361,7 @@ export function CandidatesModal({ isOpen, onClose, jobId }: CandidatesModalProps
                     </div>
 
                     {/* Right side - Match score and actions */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="flex items-center gap-4 shrink-0">
                       {(candidate.matchScore || jobId) && (
                         <div className="text-center">
                           <div className={`text-3xl font-bold ${getMatchScoreColor(candidate.matchScore || 75)}`}>

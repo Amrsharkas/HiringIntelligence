@@ -159,7 +159,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`p-2 rounded-lg bg-gradient-to-r ${getPackageColor(pkg.creditAmount)} text-white`}>
+                    <div className={`p-2 rounded-lg bg-linear-to-r ${getPackageColor(pkg.creditAmount)} text-white`}>
                       {getPackageIcon(pkg.creditAmount)}
                     </div>
                     {isSelected && (
@@ -276,7 +276,7 @@ export const CreditPackageSelector = React.memo<CreditPackageSelectorProps>(({
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div
-                        className={`p-3 rounded-lg bg-gradient-to-br ${getPackageColor(pkg.creditAmount)}`}
+                        className={`p-3 rounded-lg bg-linear-to-br ${getPackageColor(pkg.creditAmount)}`}
                       >
                         {getPackageIcon(pkg.creditAmount)}
                       </div>

@@ -69,7 +69,7 @@ export function SuperAdminHeader({ onMenuClick }: SuperAdminHeaderProps) {
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600 text-white text-sm">
+                  <AvatarFallback className="bg-linear-to-br from-purple-500 to-pink-600 text-white text-sm">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>

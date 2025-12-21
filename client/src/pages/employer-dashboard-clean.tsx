@@ -146,14 +146,14 @@ export default function EmployerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
@@ -179,14 +179,14 @@ export default function EmployerDashboard() {
           <InteractiveCard
             index={0}
             onClick={() => setIsJobModalOpen(true)}
-            className="bg-gradient-to-br from-blue-500/10 via-blue-400/5 to-transparent"
+            className="bg-linear-to-br from-blue-500/10 via-blue-400/5 to-transparent"
           >
             <div className="p-4 sm:p-6 h-full flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Post New Job</h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Create and publish job openings</p>
               </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0">
                 <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
@@ -195,14 +195,14 @@ export default function EmployerDashboard() {
           <InteractiveCard
             index={1}
             onClick={() => setIsActiveJobsModalOpen(true)}
-            className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
+            className="bg-linear-to-br from-green-500/10 via-green-400/5 to-transparent"
           >
             <div className="p-4 sm:p-6 h-full flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">View Active Jobs</h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Manage your job listings</p>
               </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0">
                 <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
@@ -211,14 +211,14 @@ export default function EmployerDashboard() {
           <InteractiveCard
             index={2}
             onClick={() => setIsRecentActivityModalOpen(true)}
-            className="bg-gradient-to-br from-purple-500/10 via-purple-400/5 to-transparent"
+            className="bg-linear-to-br from-purple-500/10 via-purple-400/5 to-transparent"
           >
             <div className="p-4 sm:p-6 h-full flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Recent Activity</h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View latest updates</p>
               </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0">
                 <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
@@ -261,7 +261,7 @@ export default function EmployerDashboard() {
               key={stat.label}
               index={index + 3}
               onClick={stat.onClick}
-              className={`bg-gradient-to-br from-${stat.color}-500/10 via-${stat.color}-400/5 to-transparent`}
+              className={`bg-linear-to-br from-${stat.color}-500/10 via-${stat.color}-400/5 to-transparent`}
             >
               <div className="p-4 sm:p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-4">

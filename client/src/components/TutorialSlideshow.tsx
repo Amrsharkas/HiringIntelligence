@@ -181,7 +181,7 @@ export const TutorialSlideshow: React.FC<TutorialSlideshowProps> = ({
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-xl flex items-center justify-center z-[100]">
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-xl flex items-center justify-center z-100">
         <div className="text-center">
           <div className="relative">
             <div className="w-16 h-16 border border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
@@ -194,7 +194,7 @@ export const TutorialSlideshow: React.FC<TutorialSlideshowProps> = ({
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-xl flex items-center justify-center z-[100] p-8">
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-xl flex items-center justify-center z-100 p-8">
         <div className="max-w-md w-full text-center">
           <X className="h-12 w-12 text-gray-500 mx-auto mb-4" />
           <h3 className="text-xl font-light text-gray-900 mb-2">Something went wrong</h3>
@@ -218,10 +218,10 @@ export const TutorialSlideshow: React.FC<TutorialSlideshowProps> = ({
   const isLastSlide = currentSlideIndex === slides.length - 1;
 
   return (
-    <div className="fixed inset-0 bg-white/70 backdrop-blur-2xl text-gray-900 z-[100] overflow-hidden">
+    <div className="fixed inset-0 bg-white/70 backdrop-blur-2xl text-gray-900 z-100 overflow-hidden">
       {/* Subtle animated background */}
       <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-200 via-pink-100 to-blue-200 animate-pulse" />
+        <div className="absolute inset-0 bg-linear-to-br from-purple-200 via-pink-100 to-blue-200 animate-pulse" />
       </div>
       {/* Add blur overlay for the content behind */}
       <div className="absolute inset-0 backdrop-blur-sm" />
@@ -302,16 +302,16 @@ export const TutorialSlideshow: React.FC<TutorialSlideshowProps> = ({
               {/* Visual content - now takes 2 columns */}
               <div className="lg:col-span-2 relative">
                 {currentSlide.imageUrl ? (
-                  <div className="relative aspect-video lg:aspect-[4/3] rounded-3xl overflow-hidden bg-gray-900/50 shadow-2xl">
+                  <div className="relative aspect-video lg:aspect-4/3 rounded-3xl overflow-hidden bg-gray-900/50 shadow-2xl">
                     <img
                       src={currentSlide.imageUrl}
                       alt={currentSlide.title}
                       className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
                   </div>
                 ) : (
-                  <div className="aspect-video lg:aspect-[4/3] rounded-3xl bg-gradient-to-br from-gray-100 via-gray-50 to-white flex items-center justify-center relative overflow-hidden border border-gray-200 shadow-2xl">
+                  <div className="aspect-video lg:aspect-4/3 rounded-3xl bg-linear-to-br from-gray-100 via-gray-50 to-white flex items-center justify-center relative overflow-hidden border border-gray-200 shadow-2xl">
                     {/* Abstract geometric decoration */}
                     <div className="absolute inset-0 opacity-30">
                       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-200 rounded-full filter blur-3xl animate-pulse" />

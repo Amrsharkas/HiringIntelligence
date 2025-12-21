@@ -708,7 +708,7 @@ export function ResumeProfilesList() {
       <div className="p-4 space-y-4 bg-white">
         {/* Executive Summary - Quick Scan Section */}
         {fullResponse.executiveSummary && (
-          <div className="p-3 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+          <div className="p-3 rounded-lg bg-linear-to-r from-slate-900 to-slate-800 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-lg font-bold">{fullResponse.executiveSummary.oneLiner || 'Candidate Analysis'}</span>
@@ -742,7 +742,7 @@ export function ResumeProfilesList() {
 
         {/* Verdict & Recommendation - Most Important Section */}
         {fullResponse.verdict && (
-          <div className="p-4 rounded-lg border-2 border-gray-300 bg-gradient-to-r from-gray-50 to-white">
+          <div className="p-4 rounded-lg border-2 border-gray-300 bg-linear-to-r from-gray-50 to-white">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(fullResponse.verdict.decision)}`}>
@@ -1066,7 +1066,7 @@ export function ResumeProfilesList() {
         {/* Strengths & Gaps Comparison */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Strengths Column */}
-          <div className="p-3 bg-gradient-to-b from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <div className="p-3 bg-linear-to-b from-green-50 to-emerald-50 rounded-lg border border-green-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800">
               <CheckCircle className="h-4 w-4" />
               Strengths ({fullResponse.strengthsHighlights?.length || 0})
@@ -1108,7 +1108,7 @@ export function ResumeProfilesList() {
           </div>
 
           {/* Gaps Column */}
-          <div className="p-3 bg-gradient-to-b from-red-50 to-orange-50 rounded-lg border border-red-200">
+          <div className="p-3 bg-linear-to-b from-red-50 to-orange-50 rounded-lg border border-red-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800">
               <AlertTriangle className="h-4 w-4" />
               Gaps & Areas for Concern ({fullResponse.improvementAreas?.length || 0})
@@ -1188,7 +1188,7 @@ export function ResumeProfilesList() {
 
         {/* Domain Analysis */}
         {fullResponse.domainAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+          <div className="p-3 bg-linear-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800">
               <Briefcase className="h-4 w-4" />
               Domain Match Analysis
@@ -1462,7 +1462,7 @@ export function ResumeProfilesList() {
 
         {/* Skill Analysis Summary */}
         {fullResponse.skillAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <div className="p-3 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800">
               <Star className="h-4 w-4" />
               Skill Depth Analysis
@@ -1546,7 +1546,7 @@ export function ResumeProfilesList() {
 
         {/* Experience Analysis */}
         {fullResponse.experienceAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+          <div className="p-3 bg-linear-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800">
               <User className="h-4 w-4" />
               Experience & Career Analysis
@@ -1820,7 +1820,7 @@ export function ResumeProfilesList() {
 
         {/* Quantified Achievements */}
         {fullResponse.quantifiedAchievements && fullResponse.quantifiedAchievements.length > 0 && (
-          <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+          <div className="p-3 bg-linear-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800">
               <Star className="h-4 w-4" />
               Quantified Achievements ({fullResponse.quantifiedAchievements.length})
@@ -1854,7 +1854,7 @@ export function ResumeProfilesList() {
 
         {/* Enhanced Red Flags */}
         {fullResponse.redFlags && fullResponse.redFlags.length > 0 && (
-          <div className="p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
+          <div className="p-3 bg-linear-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800">
               <AlertTriangle className="h-4 w-4" />
               Red Flags ({fullResponse.redFlags.length})
@@ -1888,7 +1888,7 @@ export function ResumeProfilesList() {
 
         {/* Interview Recommendations - supports both old array and new structured format */}
         {fullResponse.interviewRecommendations && (
-          <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
+          <div className="p-3 bg-linear-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800">
               <Users className="h-4 w-4" />
               Interview Preparation Guide
@@ -2409,7 +2409,7 @@ export function ResumeProfilesList() {
                       <TableRow key={`${row.profileId}-${row.jobId}-${index}`}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <User className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                            <User className="h-5 w-5 text-muted-foreground shrink-0" />
                             <div className="min-w-0">
                               <div className="font-semibold truncate">{row.name}</div>
                               <div className="text-sm text-muted-foreground truncate">{row.email}</div>
@@ -2419,7 +2419,7 @@ export function ResumeProfilesList() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="font-medium truncate">{row.jobTitle}</span>
                           </div>
                         </TableCell>

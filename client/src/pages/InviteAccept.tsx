@@ -106,7 +106,7 @@ export default function InviteAccept() {
   // Loading state
   if (inviteStatus === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="p-8 text-center">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -123,7 +123,7 @@ export default function InviteAccept() {
   // Processing state
   if (inviteStatus === 'processing') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="p-8 text-center">
             <UserPlus className="h-12 w-12 mx-auto mb-4 text-blue-600 animate-pulse" />
@@ -141,7 +141,7 @@ export default function InviteAccept() {
   // Success state
   if (inviteStatus === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="p-8 text-center">
             <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-500" />
@@ -160,7 +160,7 @@ export default function InviteAccept() {
             </div>
             <Button 
               onClick={() => setLocation('/')}
-              className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+              className="w-full bg-linear-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
             >
               Go to Dashboard Now
             </Button>
@@ -172,7 +172,7 @@ export default function InviteAccept() {
 
   // Error state
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center">
+    <div className="min-h-screen bg-linear-to-br from-red-50 via-white to-orange-50 flex items-center justify-center">
       <Card className="w-full max-w-md mx-4">
         <CardContent className="p-8 text-center">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />

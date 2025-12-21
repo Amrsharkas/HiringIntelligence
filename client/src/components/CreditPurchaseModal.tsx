@@ -233,7 +233,7 @@ export const CreditPurchaseModal = React.memo<CreditPurchaseModalProps>(({
             {/* Security Notice */}
             <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <Shield className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
                 <div className="text-sm text-slate-600 dark:text-slate-400">
                   <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">
                     Secure Payment Processing

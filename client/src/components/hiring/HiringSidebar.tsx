@@ -109,12 +109,12 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
       )}
     >
       {/* Logo & Org Header */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 flex-shrink-0">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 shrink-0">
         <div
           className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
           onClick={() => handleNavigation("/hiring/overview")}
         >
-          <img src={logoUrl || logo} alt="Logo" className="h-8 w-auto flex-shrink-0" />
+          <img src={logoUrl || logo} alt="Logo" className="h-8 w-auto shrink-0" />
           <div className="min-w-0 flex-1">
             <h1 className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
               {organization?.companyName || "Hiring Dashboard"}
@@ -161,14 +161,14 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
       </nav>
 
       {/* Plan & Credits Footer */}
-      <div className="p-4 border-t border-slate-200/60 dark:border-slate-700/60 flex-shrink-0 space-y-3">
+      <div className="p-4 border-t border-slate-200/60 dark:border-slate-700/60 shrink-0 space-y-3">
         {/* Super Admin Button */}
         {isSuperAdmin && (
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleNavigation("/super-admin")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300 dark:hover:border-purple-600 transition-all"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-linear-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300 dark:hover:border-purple-600 transition-all"
           >
             <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             <span className="font-medium text-purple-700 dark:text-purple-300">
@@ -179,7 +179,7 @@ export function HiringSidebar({ activePage, isOpen, onClose }: HiringSidebarProp
 
         {/* Current Plan */}
         <div
-          className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 cursor-pointer hover:shadow-md transition-shadow"
+          className="p-3 rounded-xl bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => handleNavigation("/hiring/billing")}
         >
           <div className="flex items-center justify-between mb-2">

@@ -195,7 +195,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                         key={candidate.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`bg-gradient-to-br ${getMatchScoreBg(candidate.matchScore || 0)} border rounded-xl p-6 hover:shadow-lg transition-all duration-200 cursor-pointer`}
+                        className={`bg-linear-to-br ${getMatchScoreBg(candidate.matchScore || 0)} border rounded-xl p-6 hover:shadow-lg transition-all duration-200 cursor-pointer`}
                         onClick={() => setSelectedCandidate(candidate)}
                       >
                         <div className="flex items-start justify-between mb-4">

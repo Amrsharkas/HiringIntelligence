@@ -185,7 +185,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
           <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xl">
             <CardHeader className="space-y-1 pb-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <CardTitle className="text-2xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Create Account
                 </CardTitle>
                 <Button
@@ -385,7 +385,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToSignIn }: SignU
                       registerMutation.isPending ||
                       (currentStep === 1 ? !isStepOneValid : !passwordMatch || !formData.acceptedTerms)
                     }
-                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                    className="w-full h-12 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
                   >
                     {currentStep === 1
                       ? "Continue"

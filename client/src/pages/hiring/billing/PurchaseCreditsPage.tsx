@@ -149,8 +149,8 @@ export default function PurchaseCreditsPage() {
             <div
               className={`p-4 rounded-xl ${
                 type === "cv"
-                  ? "bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30"
-                  : "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30"
+                  ? "bg-linear-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30"
+                  : "bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30"
               }`}
             >
               <div className="flex items-baseline gap-2">
@@ -190,7 +190,7 @@ export default function PurchaseCreditsPage() {
             <Button
               className={`w-full ${
                 isHighlighted
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  ? "bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                   : type === "cv"
                   ? "bg-emerald-600 hover:bg-emerald-700"
                   : "bg-primary hover:bg-blue-700"
@@ -233,7 +233,7 @@ export default function PurchaseCreditsPage() {
       </motion.div>
 
       {/* Current Balance */}
-      <Card className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border-0">
+      <Card className="bg-linear-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border-0">
         <CardContent className="py-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <div className="flex items-center gap-3">

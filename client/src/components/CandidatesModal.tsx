@@ -635,10 +635,10 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                           delay: removingCandidates.has(candidate.id) ? 0 : index * 0.1,
                           duration: removingCandidates.has(candidate.id) ? 0.3 : 0.3
                         }}
-                        className={`bg-gradient-to-r ${getMatchScoreBg(candidate.matchScore || 75)} rounded-xl p-6 border flex items-center gap-6`}
+                        className={`bg-linear-to-r ${getMatchScoreBg(candidate.matchScore || 75)} rounded-xl p-6 border flex items-center gap-6`}
                       >
                         {/* Left side - Avatar and basic info */}
-                        <div className="flex items-center gap-4 flex-shrink-0">
+                        <div className="flex items-center gap-4 shrink-0">
                           <div className="w-16 h-16 bg-slate-200 dark:bg-slate-600 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-lg">
                             {candidate.name?.split(' ').map((n: string) => n.charAt(0)).join('') || 'C'}
                           </div>
@@ -708,7 +708,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
                         </div>
 
                         {/* Right side - Match score and actions */}
-                        <div className="flex items-center gap-4 flex-shrink-0">
+                        <div className="flex items-center gap-4 shrink-0">
                           {(candidate.matchScore || jobId) && (
                             <div className="text-center">
                               <div className={`text-3xl font-bold ${getMatchScoreColor(candidate.matchScore || 75)}`}>
@@ -809,7 +809,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
 
       {/* Interview Scheduling Modal */}
       {scheduleInterviewCandidate && (
-        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-100 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -928,7 +928,7 @@ export function CandidatesModal({ isOpen, onClose }: CandidatesModalProps) {
 
       {/* Rating Criteria Modal */}
       {showRatingCriteria && (
-        <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-110 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

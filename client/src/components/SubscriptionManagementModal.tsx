@@ -139,7 +139,7 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
               {hasSubscription ? (
                 <>
                   {/* Current Subscription */}
-                  <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-6">
+                  <div className="rounded-lg border bg-linear-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -237,7 +237,7 @@ export const SubscriptionManagementModal: React.FC<SubscriptionManagementModalPr
               )}
 
               {/* Current Credits */}
-              <div className="rounded-lg border bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950 dark:to-cyan-950 p-6">
+              <div className="rounded-lg border bg-linear-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950 dark:to-cyan-950 p-6">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                   <Sparkles className="w-5 h-5 text-emerald-600" />
                   Current Balance

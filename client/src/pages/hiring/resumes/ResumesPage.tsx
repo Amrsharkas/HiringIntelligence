@@ -673,7 +673,7 @@ export default function ResumesPage() {
             transition={{ duration: 0.2 }}
           >
             <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
+              <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Progress value={activeJobsData.overallProgress} className="h-1.5 flex-1" />
@@ -922,7 +922,7 @@ export default function ResumesPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                           {row.name?.[0]?.toUpperCase() || row.email?.[0]?.toUpperCase() || "R"}
                         </div>
                         <div>

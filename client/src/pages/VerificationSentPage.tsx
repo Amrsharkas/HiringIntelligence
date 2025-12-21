@@ -51,15 +51,15 @@ export default function VerificationSentPage() {
 
           <div className="space-y-3">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
               <span>Check your email inbox</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
               <span>Click verification link in email</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
               <span>Start using Plato Hiring</span>
             </div>
           </div>

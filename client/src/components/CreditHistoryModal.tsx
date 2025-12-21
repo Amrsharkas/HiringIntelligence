@@ -172,7 +172,7 @@ const TransactionList = () => {
           >
             {/* Icon */}
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                 isDeduction
                   ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                   : 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
@@ -320,7 +320,7 @@ const UsageStats = () => {
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-6 border border-blue-200 dark:border-blue-800"
+          className="bg-linear-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-6 border border-blue-200 dark:border-blue-800"
         >
           <div className="flex items-center justify-between">
             <div>

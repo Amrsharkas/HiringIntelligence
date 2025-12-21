@@ -29,7 +29,7 @@ const SubscriptionSuccessPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -42,7 +42,7 @@ const SubscriptionSuccessPage: React.FC = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
+              className="w-20 h-20 bg-linear-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
             >
               <CheckCircle className="w-10 h-10 text-white" />
             </motion.div>
@@ -86,15 +86,15 @@ const SubscriptionSuccessPage: React.FC = () => {
 
               <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                   <span>Your subscription is now active</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                   <span>Credits have been added to your account</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                   <span>You can start using premium features immediately</span>
                 </div>
               </div>

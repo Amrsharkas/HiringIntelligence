@@ -234,7 +234,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
 
               <Card className={`relative h-full ${isPopular ? 'ring-2 ring-blue-500 shadow-xl scale-105' : ''}`}>
                 <CardHeader>
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${getPlanColor(plan.name)} text-white flex items-center justify-center mb-4`}>
+                  <div className={`w-12 h-12 rounded-lg bg-linear-to-r ${getPlanColor(plan.name)} text-white flex items-center justify-center mb-4`}>
                     {getPlanIcon(plan.name)}
                   </div>
                   
@@ -274,27 +274,27 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                     // Enterprise plan - show custom features only
                     <div className="space-y-3 py-4">
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm">Custom credit allocation</span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm">Unlimited job posts</span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm">Dedicated account manager</span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm">Priority support</span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm">Custom integrations</span>
                       </div>
                     </div>
@@ -302,35 +302,35 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
                     // Standard plans - show detailed credits
                     <div className="space-y-3 py-4">
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                         <span className="text-sm">
                           {plan.monthlyCvCredits || plan.monthlyCredits} CV Processing Credits/month
                         </span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                         <span className="text-sm">
                           {plan.monthlyInterviewCredits || 0} Interview Credits/month
                         </span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm">
                           ~{Math.floor((plan.monthlyCvCredits || plan.monthlyCredits) / 5)} engaged candidates/month
                         </span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm">
                           {plan.jobPostsLimit === null ? 'Unlimited' : plan.jobPostsLimit} Job Posts
                         </span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm capitalize">
                           {plan.supportLevel} Support
                         </span>
@@ -338,7 +338,7 @@ export const SubscriptionPlanSelector: React.FC<SubscriptionPlanSelectorProps> =
 
                       {plan.features?.dedicatedManager && (
                         <div className="flex items-start gap-2">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                           <span className="text-sm">Dedicated Manager</span>
                         </div>
                       )}

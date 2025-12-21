@@ -652,7 +652,7 @@ export function JobPostingForm({ editJob, onSuccess, onCancel }: JobPostingFormP
 
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                <Sparkles className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                 <div>
                   <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Tips for Effective AI Prompts</h4>
                   <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">

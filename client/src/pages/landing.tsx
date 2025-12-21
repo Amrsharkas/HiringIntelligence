@@ -163,7 +163,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30 overflow-x-hidden">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30 overflow-x-hidden">
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
@@ -199,7 +199,7 @@ export default function Landing() {
               </Button>
               <Button
                 onClick={() => setShowSignUp(true)}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="px-6 py-2 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
                 Get Started
               </Button>
@@ -234,7 +234,7 @@ export default function Landing() {
           >
             <h1 className="text-6xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
               Hiring is{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Broken
               </span>
               .<br />
@@ -248,7 +248,7 @@ export default function Landing() {
               <Button
                 onClick={() => setShowSignUp(true)}
                 size="lg"
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                className="px-8 py-4 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
               >
                 Get Started
               </Button>
@@ -512,7 +512,7 @@ export default function Landing() {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
               whileHover={{ scale: 1.02, rotateY: 5 }}
-              className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
               style={{ transformStyle: "preserve-3d" }}
             >
               <div className="w-20 h-20 bg-blue-600 dark:bg-blue-500 rounded-2xl flex items-center justify-center mb-6">
@@ -550,7 +550,7 @@ export default function Landing() {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
               whileHover={{ scale: 1.02, rotateY: -5 }}
-              className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-linear-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
               style={{ transformStyle: "preserve-3d" }}
             >
               <div className="w-20 h-20 bg-purple-600 dark:bg-purple-500 rounded-2xl flex items-center justify-center mb-6">
@@ -585,7 +585,7 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-900 dark:via-blue-900/30 dark:to-purple-900/20">
+      <section className="py-20 bg-linear-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-900 dark:via-blue-900/30 dark:to-purple-900/20">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -685,7 +685,7 @@ export default function Landing() {
                     )}
 
                     {/* Plan Icon */}
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${getPlanColor(plan.name)} text-white flex items-center justify-center mb-6`}>
+                    <div className={`w-16 h-16 rounded-2xl bg-linear-to-r ${getPlanColor(plan.name)} text-white flex items-center justify-center mb-6`}>
                       {getPlanIcon(plan.name)}
                     </div>
 
@@ -727,28 +727,28 @@ export default function Landing() {
                     {/* Features */}
                     <div className="space-y-3 mb-8">
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm text-slate-700 dark:text-slate-300">
                           {plan.monthlyCredits} AI Credits/month
                         </span>
                       </div>
                       
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm text-slate-700 dark:text-slate-300">
                           ~{Math.floor(plan.monthlyCredits / 5)} engaged candidates/month
                         </span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm text-slate-700 dark:text-slate-300">
                           {plan.jobPostsLimit === null ? 'Unlimited' : plan.jobPostsLimit} Job Posts
                         </span>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm text-slate-700 dark:text-slate-300 capitalize">
                           {plan.supportLevel} Support
                         </span>
@@ -756,7 +756,7 @@ export default function Landing() {
 
                       {plan.features?.dedicatedManager && (
                         <div className="flex items-start gap-2">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                           <span className="text-sm text-slate-700 dark:text-slate-300">
                             Dedicated Manager
                           </span>
@@ -769,7 +769,7 @@ export default function Landing() {
                       onClick={() => setShowSignUp(true)}
                       className={`w-full ${
                         isPopular
-                          ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                          ? 'bg-linear-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
                           : 'bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600'
                       } text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300`}
                     >
@@ -805,7 +805,7 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+      <section className="py-20 bg-linear-to-r from-blue-600 to-purple-600">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

@@ -635,7 +635,7 @@ export default function ApplicantDetailsPage() {
 
               {/* Insufficient Data Warning */}
               {hasInsufficientData && (
-                <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700">
+                <Card className="bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700">
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-amber-100 dark:bg-amber-800/50 rounded-lg">
@@ -678,7 +678,7 @@ export default function ApplicantDetailsPage() {
 
               {/* Executive Summary Banner */}
               {execSummary && !hasInsufficientData && (
-                <div className="p-5 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+                <div className="p-5 rounded-xl bg-linear-to-r from-slate-900 to-slate-800 text-white">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex-1">
                       <h5 className="text-lg font-bold mb-1">{profile.candidate_name}</h5>
@@ -997,7 +997,7 @@ export default function ApplicantDetailsPage() {
                 {(psycholinguisticAnalysis || technicalPhilosophy || leadershipDynamics || adaptabilityResilience) && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {psycholinguisticAnalysis?.personality_traits?.big_five_assessment?.conscientiousness && (
-                      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-700">
+                      <Card className="bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-700">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
                             {psycholinguisticAnalysis.personality_traits.big_five_assessment.conscientiousness.score}
@@ -1008,7 +1008,7 @@ export default function ApplicantDetailsPage() {
                       </Card>
                     )}
                     {technicalPhilosophy && (
-                      <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-200 dark:border-emerald-700">
+                      <Card className="bg-linear-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-200 dark:border-emerald-700">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{technicalPhilosophy.score}</div>
                           <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Technical Philosophy</div>
@@ -1017,7 +1017,7 @@ export default function ApplicantDetailsPage() {
                       </Card>
                     )}
                     {leadershipDynamics && (
-                      <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 border-indigo-200 dark:border-indigo-700">
+                      <Card className="bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 border-indigo-200 dark:border-indigo-700">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{leadershipDynamics.score}</div>
                           <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Leadership Dynamics</div>
@@ -1026,7 +1026,7 @@ export default function ApplicantDetailsPage() {
                       </Card>
                     )}
                     {adaptabilityResilience && (
-                      <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-700">
+                      <Card className="bg-linear-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-700">
                         <CardContent className="p-4 text-center">
                           <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{adaptabilityResilience.score}</div>
                           <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">Adaptability & Resilience</div>
@@ -1859,7 +1859,7 @@ export default function ApplicantDetailsPage() {
                 <div className="space-y-4">
                   {/* Skills Summary Overview */}
                   {skillTaxonomyMapping.skills_summary && (
-                    <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-300 dark:border-slate-700">
+                    <Card className="bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-2 border-slate-300 dark:border-slate-700">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
                           <Target className="h-5 w-5" /> Skills Analysis Summary

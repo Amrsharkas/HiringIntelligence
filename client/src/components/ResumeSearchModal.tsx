@@ -215,7 +215,7 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
                   <Button
                     onClick={handleSearch}
                     disabled={!selectedJobId || isSearching}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6"
+                    className="bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6"
                   >
                     <Search className="h-4 w-4 mr-2" />
                     {isSearching ? "Searching..." : "Search"}
@@ -283,7 +283,7 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
                               </h4>
                               <Badge
                                 variant={getScoreBadgeVariant(match.matchScore)}
-                                className="flex items-center gap-1 flex-shrink-0"
+                                className="flex items-center gap-1 shrink-0"
                               >
                                 <Star className="h-3 w-3" />
                                 {match.matchScore}% Match
@@ -374,7 +374,7 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
                           </div>
 
                           {/* Actions */}
-                          <div className="flex-shrink-0">
+                          <div className="shrink-0">
                             <Button
                               onClick={() => handleViewProfile(match.resume.id)}
                               variant="outline"
@@ -398,7 +398,7 @@ export function ResumeSearchModal({ isOpen, onClose, preSelectedJobId }: ResumeS
 
       {/* Profile View Overlay - separate fixed element */}
       {selectedResume && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

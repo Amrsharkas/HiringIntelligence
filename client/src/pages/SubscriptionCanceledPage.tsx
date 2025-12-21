@@ -17,7 +17,7 @@ const SubscriptionCanceledPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-red-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-red-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -30,7 +30,7 @@ const SubscriptionCanceledPage: React.FC = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="w-20 h-20 bg-gradient-to-r from-red-400 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4"
+              className="w-20 h-20 bg-linear-to-r from-red-400 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4"
             >
               <XCircle className="w-10 h-10 text-white" />
             </motion.div>
@@ -69,15 +69,15 @@ const SubscriptionCanceledPage: React.FC = () => {
 
               <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 <div className="flex items-start gap-2">
-                  <ArrowLeft className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <ArrowLeft className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                   <span>Try the subscription again</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Home className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <Home className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                   <span>Return to your dashboard</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CreditCard className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <CreditCard className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                   <span>Choose a different plan</span>
                 </div>
               </div>

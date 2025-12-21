@@ -157,7 +157,7 @@ const CreditBalanceDisplay = memo(({
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded"
           >
-            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+            <AlertTriangle className="w-3 h-3 shrink-0" />
             <span>
               {isVeryLowCvCredits || isVeryLowInterviewCredits
                 ? "Very low credits! Consider purchasing more."

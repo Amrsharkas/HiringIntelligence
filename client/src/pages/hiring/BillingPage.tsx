@@ -149,7 +149,7 @@ export default function BillingPage() {
           transition={{ delay: 0.2 }}
         >
           <Card
-            className="bg-gradient-to-br from-emerald-500 to-cyan-600 text-white border-0 cursor-pointer hover:shadow-xl transition-all hover:scale-[1.02]"
+            className="bg-linear-to-br from-emerald-500 to-cyan-600 text-white border-0 cursor-pointer hover:shadow-xl transition-all hover:scale-[1.02]"
             onClick={() => navigate("/hiring/billing/credits")}
           >
             <CardContent className="p-6">
@@ -187,7 +187,7 @@ export default function BillingPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* CV Credits */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30">
+              <div className="p-4 rounded-xl bg-linear-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
@@ -216,7 +216,7 @@ export default function BillingPage() {
               </div>
 
               {/* Interview Credits */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+              <div className="p-4 rounded-xl bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
@@ -369,7 +369,7 @@ export default function BillingPage() {
                 {/* Cancellation Notice */}
                 {subscription.cancelAtPeriodEnd && (
                   <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-amber-800 dark:text-amber-200">
                         Subscription Canceling

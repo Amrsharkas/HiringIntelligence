@@ -98,7 +98,7 @@ const HeaderCreditsAndPlan = memo(({ onManageClick }: { onManageClick: () => voi
       {/* CV Credits Display - Clickable */}
       <button
         onClick={onManageClick}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200/50 dark:border-emerald-700/50 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all duration-200 hover:scale-105 cursor-pointer"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-linear-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200/50 dark:border-emerald-700/50 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all duration-200 hover:scale-105 cursor-pointer"
         title="CV Processing Credits"
       >
         <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -111,7 +111,7 @@ const HeaderCreditsAndPlan = memo(({ onManageClick }: { onManageClick: () => voi
       {/* Interview Credits Display - Clickable */}
       <button
         onClick={onManageClick}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200/50 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 hover:scale-105 cursor-pointer"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-linear-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200/50 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 hover:scale-105 cursor-pointer"
         title="Interview Credits"
       >
         <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -124,7 +124,7 @@ const HeaderCreditsAndPlan = memo(({ onManageClick }: { onManageClick: () => voi
       {/* Plan Display with Manage Button */}
       <button
         onClick={onManageClick}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/50 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 hover:scale-105"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/50 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 hover:scale-105"
       >
         <Crown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
         <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
@@ -484,7 +484,7 @@ export default function EmployerDashboard() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30">
+      <div className="h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600 dark:text-slate-300">Loading...</p>
@@ -494,7 +494,7 @@ export default function EmployerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900/30">
       {/* Modern Header */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
@@ -516,7 +516,7 @@ export default function EmployerDashboard() {
               />
             </motion.button>
             
-            <div className="hidden md:flex items-center gap-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 px-4 py-2 rounded-xl border border-blue-200/50 dark:border-blue-700/50">
+            <div className="hidden md:flex items-center gap-3 bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 px-4 py-2 rounded-xl border border-blue-200/50 dark:border-blue-700/50">
               <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Member of <LiveOrganizationName />
@@ -531,7 +531,7 @@ export default function EmployerDashboard() {
             {isAdminOrOwner && (
               <button
                 onClick={() => setIsInviteTeamMembersModalOpen(true)}
-                className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium transition-all duration-200 will-change-transform hover:scale-105"
+                className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-linear-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium transition-all duration-200 will-change-transform hover:scale-105"
                 style={{
                   transformOrigin: 'center',
                   transform: 'translateZ(0)'
@@ -560,7 +560,7 @@ export default function EmployerDashboard() {
             {user?.isSuperAdmin && (
               <button
                 onClick={() => setLocation('/super-admin')}
-                className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium transition-all duration-200 will-change-transform hover:scale-105"
+                className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium transition-all duration-200 will-change-transform hover:scale-105"
                 style={{
                   transformOrigin: 'center',
                   transform: 'translateZ(0)'
@@ -572,7 +572,7 @@ export default function EmployerDashboard() {
             )}
             <button
               onClick={handleLogout}
-              className="px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium cursor-pointer transition-all duration-200 will-change-transform hover:scale-105"
+              className="px-3 sm:px-4 py-2 rounded-xl bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium cursor-pointer transition-all duration-200 will-change-transform hover:scale-105"
               style={{
                 transformOrigin: 'center',
                 transform: 'translateZ(0)'
@@ -597,14 +597,14 @@ export default function EmployerDashboard() {
             <InteractiveCard
               index={0}
               onClick={() => setIsJobModalOpen(true)}
-              className="bg-gradient-to-br from-blue-500/10 via-blue-400/5 to-transparent"
+              className="bg-linear-to-br from-blue-500/10 via-blue-400/5 to-transparent"
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Post New Job</h3>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Create job posting</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 dark:bg-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0">
                   <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
@@ -613,14 +613,14 @@ export default function EmployerDashboard() {
             <InteractiveCard
               index={1}
               onClick={() => setIsApplicantsModalOpen(true)}
-              className="bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-transparent"
+              className="bg-linear-to-br from-orange-500/10 via-orange-400/5 to-transparent"
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Applicants</h3>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Review applications</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/20 dark:bg-orange-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/20 dark:bg-orange-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0">
                   <Users className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
                 </div>
               </div>
@@ -629,14 +629,14 @@ export default function EmployerDashboard() {
             <InteractiveCard
               index={2}
               onClick={() => setIsResumeSearchModalOpen(true)}
-              className="bg-gradient-to-br from-teal-500/10 via-teal-400/5 to-transparent"
+              className="bg-linear-to-br from-teal-500/10 via-teal-400/5 to-transparent"
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Source Candidates</h3>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Find perfect matches</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-teal-500/20 dark:bg-teal-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-teal-500/20 dark:bg-teal-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0">
                   <Target className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600 dark:text-teal-400" />
                 </div>
               </div>
@@ -645,14 +645,14 @@ export default function EmployerDashboard() {
             <InteractiveCard
               index={3}
               onClick={() => setIsShortlistedApplicantsModalOpen(true)}
-              className="bg-gradient-to-br from-green-500/10 via-green-400/5 to-transparent"
+              className="bg-linear-to-br from-green-500/10 via-green-400/5 to-transparent"
             >
               <div className="p-4 sm:p-6 h-full flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1 text-sm sm:text-base">Shortlisted</h3>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">View your favorites</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shrink-0">
                   <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
@@ -696,7 +696,7 @@ export default function EmployerDashboard() {
                 key={stat.label}
                 index={index + 4}
                 onClick={stat.onClick}
-                className={`bg-gradient-to-br from-${stat.color}-500/10 via-${stat.color}-400/5 to-transparent`}
+                className={`bg-linear-to-br from-${stat.color}-500/10 via-${stat.color}-400/5 to-transparent`}
               >
                 <div className="p-4 sm:p-6 h-full flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-4">
@@ -719,7 +719,7 @@ export default function EmployerDashboard() {
 
           {/* Quick Actions Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <Card className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-800 border-slate-200/60 dark:border-slate-700/60">
+            <Card className="bg-linear-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-800 border-slate-200/60 dark:border-slate-700/60">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Rocket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -796,7 +796,7 @@ export default function EmployerDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-800 border-slate-200/60 dark:border-slate-700/60">
+            <Card className="bg-linear-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-800 border-slate-200/60 dark:border-slate-700/60">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Coffee className="w-5 h-5 text-slate-600 dark:text-slate-400" />

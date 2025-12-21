@@ -173,21 +173,21 @@ export default function HiringOverview() {
           title="Total Applicants"
           value={applicantsCount.count || 0}
           icon={Users}
-          color="bg-gradient-to-br from-emerald-500 to-emerald-600"
+          color="bg-linear-to-br from-emerald-500 to-emerald-600"
           onClick={() => navigate("/hiring/applicants")}
         />
         <StatCard
           title="Resume Profiles"
           value={resumesCount.count || 0}
           icon={FileText}
-          color="bg-gradient-to-br from-purple-500 to-purple-600"
+          color="bg-linear-to-br from-purple-500 to-purple-600"
           onClick={() => navigate("/hiring/resumes")}
         />
         <StatCard
           title="Scheduled Interviews"
           value={interviewsCount.count || 0}
           icon={Calendar}
-          color="bg-gradient-to-br from-amber-500 to-amber-600"
+          color="bg-linear-to-br from-amber-500 to-amber-600"
           onClick={() => navigate("/hiring/interviews")}
         />
       </div>
@@ -209,21 +209,21 @@ export default function HiringOverview() {
             title="Search Resumes"
             description="Find candidates with AI-powered search"
             icon={Search}
-            gradient="bg-gradient-to-r from-purple-500 to-purple-600"
+            gradient="bg-linear-to-r from-purple-500 to-purple-600"
             onClick={() => navigate("/hiring/resumes/search")}
           />
           <QuickActionCard
             title="View Applicants"
             description="Review and manage your applicants"
             icon={Users}
-            gradient="bg-gradient-to-r from-emerald-500 to-emerald-600"
+            gradient="bg-linear-to-r from-emerald-500 to-emerald-600"
             onClick={() => navigate("/hiring/applicants")}
           />
           <QuickActionCard
             title="View Analytics"
             description="See your hiring performance metrics"
             icon={BarChart3}
-            gradient="bg-gradient-to-r from-amber-500 to-amber-600"
+            gradient="bg-linear-to-r from-amber-500 to-amber-600"
             onClick={() => navigate("/hiring/analytics")}
           />
         </div>

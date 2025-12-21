@@ -254,7 +254,7 @@ export default function OrganizationSetup() {
   }, [urlValue]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -412,7 +412,7 @@ export default function OrganizationSetup() {
                       urlStatus === 'checking' ||
                       urlStatus === 'taken'
                     }
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    className="w-full bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   >
                     {createOrgMutation.isPending && (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -466,7 +466,7 @@ export default function OrganizationSetup() {
                   <Button
                     type="submit"
                     disabled={joinOrgMutation.isPending}
-                    className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
+                    className="w-full bg-linear-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
                   >
                     {joinOrgMutation.isPending && (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />

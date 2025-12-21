@@ -44,10 +44,10 @@ export function SuperAdminSidebar({ activePage, onNavigate, isOpen, onClose }: S
       )}
     >
       {/* Logo & Header */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 flex-shrink-0">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 shrink-0">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Plato Logo" className="h-8 w-auto" />
-          <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200/50 dark:border-purple-700/50">
+          <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-linear-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200/50 dark:border-purple-700/50">
             <Shield className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
             <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
               Super Admin
@@ -85,7 +85,7 @@ export function SuperAdminSidebar({ activePage, onNavigate, isOpen, onClose }: S
       </nav>
 
       {/* Footer - Back to Dashboard */}
-      <div className="p-4 border-t border-slate-200/60 dark:border-slate-700/60 flex-shrink-0">
+      <div className="p-4 border-t border-slate-200/60 dark:border-slate-700/60 shrink-0">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}

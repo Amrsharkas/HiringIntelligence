@@ -292,7 +292,7 @@ const LiveActivityStats = () => {
               transition={{ delay: index * 0.1 }}
               className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
             >
-              <div className={`w-8 h-8 ${activity.bgColor} dark:${activity.bgColor}/20 rounded-full flex items-center justify-center flex-shrink-0`}>
+              <div className={`w-8 h-8 ${activity.bgColor} dark:${activity.bgColor}/20 rounded-full flex items-center justify-center shrink-0`}>
                 <div className={activity.color}>{activity.icon}</div>
               </div>
               <div className="flex-1 min-w-0">
@@ -300,7 +300,7 @@ const LiveActivityStats = () => {
                   <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
                     {activity.title}
                   </h4>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0 ml-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0 ml-2">
                     {formatTimeAgo(activity.timestamp)}
                   </span>
                 </div>

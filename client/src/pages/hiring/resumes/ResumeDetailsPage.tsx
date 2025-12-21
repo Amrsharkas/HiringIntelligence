@@ -409,7 +409,7 @@ export default function ResumeDetailsPage() {
       <div className="p-4 space-y-4 bg-white dark:bg-slate-900">
         {/* Executive Summary - Quick Scan Section */}
         {fullResponse.executiveSummary && (
-          <div className="p-3 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white">
+          <div className="p-3 rounded-lg bg-linear-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-lg font-bold">{fullResponse.executiveSummary.oneLiner || 'Candidate Analysis'}</span>
@@ -443,7 +443,7 @@ export default function ResumeDetailsPage() {
 
         {/* Verdict & Recommendation - Most Important Section */}
         {fullResponse.verdict && (
-          <div className="p-4 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-900">
+          <div className="p-4 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-linear-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-900">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(fullResponse.verdict.decision)}`}>
@@ -767,7 +767,7 @@ export default function ResumeDetailsPage() {
         {/* Strengths & Gaps Comparison */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Strengths Column */}
-          <div className="p-3 bg-gradient-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
+          <div className="p-3 bg-linear-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
               <CheckCircle className="h-4 w-4" />
               Strengths ({fullResponse.strengthsHighlights?.length || 0})
@@ -809,7 +809,7 @@ export default function ResumeDetailsPage() {
           </div>
 
           {/* Gaps Column */}
-          <div className="p-3 bg-gradient-to-b from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg border border-red-200 dark:border-red-700">
+          <div className="p-3 bg-linear-to-b from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg border border-red-200 dark:border-red-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800 dark:text-red-300">
               <AlertTriangle className="h-4 w-4" />
               Gaps & Areas for Concern ({fullResponse.improvementAreas?.length || 0})
@@ -889,7 +889,7 @@ export default function ResumeDetailsPage() {
 
         {/* Domain Analysis */}
         {fullResponse.domainAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-lg border border-indigo-200 dark:border-indigo-700">
+          <div className="p-3 bg-linear-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-lg border border-indigo-200 dark:border-indigo-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
               <Briefcase className="h-4 w-4" />
               Domain Match Analysis
@@ -1163,7 +1163,7 @@ export default function ResumeDetailsPage() {
 
         {/* Skill Analysis Summary */}
         {fullResponse.skillAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
+          <div className="p-3 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
               <Star className="h-4 w-4" />
               Skill Depth Analysis
@@ -1247,7 +1247,7 @@ export default function ResumeDetailsPage() {
 
         {/* Experience Analysis */}
         {fullResponse.experienceAnalysis && (
-          <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+          <div className="p-3 bg-linear-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300">
               <User className="h-4 w-4" />
               Experience & Career Analysis
@@ -1521,7 +1521,7 @@ export default function ResumeDetailsPage() {
 
         {/* Quantified Achievements */}
         {fullResponse.quantifiedAchievements && fullResponse.quantifiedAchievements.length > 0 && (
-          <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
+          <div className="p-3 bg-linear-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
               <Star className="h-4 w-4" />
               Quantified Achievements ({fullResponse.quantifiedAchievements.length})
@@ -1555,7 +1555,7 @@ export default function ResumeDetailsPage() {
 
         {/* Interview Recommendations */}
         {fullResponse.interviewRecommendations && (
-          <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-lg border border-teal-200 dark:border-teal-700">
+          <div className="p-3 bg-linear-to-r from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-lg border border-teal-200 dark:border-teal-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800 dark:text-teal-300">
               <Users className="h-4 w-4" />
               Interview Preparation Guide
@@ -1604,7 +1604,7 @@ export default function ResumeDetailsPage() {
 
         {/* Red Flags */}
         {fullResponse.redFlags && fullResponse.redFlags.length > 0 && (
-          <div className="p-3 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 rounded-lg border border-red-200 dark:border-red-700">
+          <div className="p-3 bg-linear-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 rounded-lg border border-red-200 dark:border-red-700">
             <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800 dark:text-red-300">
               <AlertTriangle className="h-4 w-4" />
               Red Flags ({fullResponse.redFlags.length})
@@ -1704,7 +1704,7 @@ export default function ResumeDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
+                <div className="w-16 h-16 bg-linear-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
                   {profile.name?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || "R"}
                 </div>
                 <div>

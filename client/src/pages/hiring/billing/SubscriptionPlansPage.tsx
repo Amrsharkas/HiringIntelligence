@@ -191,7 +191,7 @@ export default function SubscriptionPlansPage() {
       </motion.div>
 
       {/* Billing Toggle & Country */}
-      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-0">
+      <Card className="bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-0">
         <CardContent className="py-6">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             {/* Billing Cycle Toggle */}
@@ -254,7 +254,7 @@ export default function SubscriptionPlansPage() {
             >
               {isPopular && (
                 <div className="absolute -top-4 left-0 right-0 flex justify-center z-10">
-                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 shadow-lg">
+                  <Badge className="bg-linear-to-r from-purple-500 to-pink-500 text-white px-4 py-1 shadow-lg">
                     Most Popular
                   </Badge>
                 </div>
@@ -271,7 +271,7 @@ export default function SubscriptionPlansPage() {
               >
                 {/* Gradient Header */}
                 <div
-                  className={`bg-gradient-to-r ${getPlanGradient(plan.name)} p-6 text-white`}
+                  className={`bg-linear-to-r ${getPlanGradient(plan.name)} p-6 text-white`}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -359,23 +359,23 @@ export default function SubscriptionPlansPage() {
                     ) : (
                       <>
                         <div className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                          <Check className="w-5 h-5 text-green-500 shrink-0" />
                           <span className="text-sm">Custom credit allocation</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                          <Check className="w-5 h-5 text-green-500 shrink-0" />
                           <span className="text-sm">Unlimited job posts</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                          <Check className="w-5 h-5 text-green-500 shrink-0" />
                           <span className="text-sm">Dedicated account manager</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                          <Check className="w-5 h-5 text-green-500 shrink-0" />
                           <span className="text-sm">Priority 24/7 support</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                          <Check className="w-5 h-5 text-green-500 shrink-0" />
                           <span className="text-sm">Custom integrations & API</span>
                         </div>
                       </>
@@ -386,9 +386,9 @@ export default function SubscriptionPlansPage() {
                   <Button
                     className={`w-full ${
                       isPopular
-                        ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                        ? "bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                         : isEnterprise
-                        ? "bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700"
+                        ? "bg-linear-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700"
                         : "bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
                     }`}
                     onClick={() => handleSubscribe(plan)}

@@ -49,7 +49,7 @@ export function SuperAdminWelcome({ onNavigate }: SuperAdminWelcomeProps) {
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-2xl p-8 border border-purple-200/50 dark:border-purple-700/50">
+      <div className="bg-linear-to-r from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-2xl p-8 border border-purple-200/50 dark:border-purple-700/50">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200 mb-2">
           Welcome to Super Admin Dashboard
         </h1>
@@ -70,7 +70,7 @@ export function SuperAdminWelcome({ onNavigate }: SuperAdminWelcomeProps) {
             transition={{ delay: index * 0.1 }}
           >
             <Card
-              className={`cursor-pointer hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 bg-gradient-to-br ${action.gradient} bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm`}
+              className={`cursor-pointer hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 bg-linear-to-br ${action.gradient} bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm`}
               onClick={() => onNavigate(action.id)}
             >
               <CardHeader className="pb-2">

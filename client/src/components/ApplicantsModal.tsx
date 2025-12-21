@@ -438,7 +438,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
           <div className="flex items-center justify-between mb-3">
             <DialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
               Job Applicants ({pagination.totalCount})
@@ -492,7 +492,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                           <h3 className="font-semibold text-base text-slate-800 dark:text-slate-200 truncate">
                             {applicant.name}
                           </h3>
-                          <Badge className={`${getStatusColor(applicant.status || 'pending')} border-0 text-xs flex-shrink-0`}>
+                          <Badge className={`${getStatusColor(applicant.status || 'pending')} border-0 text-xs shrink-0`}>
                             {formatStatus(applicant.status || 'pending')}
                           </Badge>
                         </div>
@@ -501,10 +501,10 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
                         </p>
                         <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-3">
                           <div className="flex items-center gap-1">
-                            <Mail className="w-3 h-3 flex-shrink-0" />
+                            <Mail className="w-3 h-3 shrink-0" />
                             <span className="truncate">{applicant.email}</span>
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1 shrink-0">
                             <Calendar className="w-3 h-3" />
                             <span>Applied {applicant.appliedDate ? new Date(applicant.appliedDate).toLocaleDateString() : 'Recently'}</span>
                           </div>
@@ -512,7 +512,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
                       </div>
                       
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      <div className="flex items-center gap-2 shrink-0 ml-4">
                         <Button
                           variant="outline"
                           size="sm"
@@ -716,7 +716,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
                       {/* Executive Summary Banner - Supports V3 and V4 */}
                       {(selectedUserProfile.structuredProfile?.executive_summary || selectedUserProfile.structuredProfile?.executive_summary) && (
-                        <div className="p-4 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 text-white mb-4">
+                        <div className="p-4 rounded-lg bg-linear-to-r from-slate-900 to-slate-800 text-white mb-4">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <span className="text-lg font-bold">
@@ -796,7 +796,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
                       {/* Verdict & Recommendation Section */}
                       {selectedUserProfile.structuredProfile?.verdict && (
-                        <div className="p-4 rounded-lg border-2 border-gray-300 dark:border-slate-600 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-900 mb-4">
+                        <div className="p-4 rounded-lg border-2 border-gray-300 dark:border-slate-600 bg-linear-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-900 mb-4">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                               <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(selectedUserProfile.structuredProfile?.verdict?.decision)}`}>
@@ -875,7 +875,7 @@ export function ApplicantsModal({ isOpen, onClose }: ApplicantsModalProps) {
 
                       {/* V4: Hiring Guidance Section */}
                       {selectedUserProfile.structuredProfile?.hiring_guidance && (
-                        <div className="p-4 rounded-lg border-2 border-indigo-300 dark:border-indigo-600 bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900/20 dark:to-slate-900 mb-4">
+                        <div className="p-4 rounded-lg border-2 border-indigo-300 dark:border-indigo-600 bg-linear-to-r from-indigo-50 to-white dark:from-indigo-900/20 dark:to-slate-900 mb-4">
                           <h4 className="font-semibold text-indigo-700 dark:text-indigo-400 mb-3 flex items-center gap-2">
                             <TrendingUp className="h-4 w-4" /> Hiring Guidance
                           </h4>

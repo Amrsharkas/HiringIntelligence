@@ -988,7 +988,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   type="button"
                   onClick={generateDescription}
                   disabled={isGeneratingDescription}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg"
+                  className="px-4 py-2 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg"
                 >
                   {isGeneratingDescription ? (
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -1017,7 +1017,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
                   type="button"
                   onClick={generateRequirements}
                   disabled={isGeneratingRequirements}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg"
+                  className="px-4 py-2 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm rounded-lg"
                 >
                   {isGeneratingRequirements ? (
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -1260,7 +1260,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
 
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-start gap-3">
-                      <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <Sparkles className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
                           Tips for Effective AI Prompts
@@ -1290,7 +1290,7 @@ export function JobPostingModal({ isOpen, onClose, editJob }: JobPostingModalPro
               <Button
                 type="submit"
                 disabled={createJobMutation.isPending || updateJobMutation.isPending}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg"
+                className="px-6 py-2 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg"
               >
                 {(createJobMutation.isPending || updateJobMutation.isPending) && (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

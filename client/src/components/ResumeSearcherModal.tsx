@@ -356,7 +356,7 @@ export function ResumeSearcherModal({ isOpen, onClose }: ResumeSearcherModalProp
                       {recentRules.map((rule) => (
                         <SelectItem key={rule.id} value={rule.id}>
                           <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
                             <span className="truncate max-w-[300px]">
                               {rule.rulesText.slice(0, 60)}{rule.rulesText.length > 60 ? '...' : ''}
                             </span>

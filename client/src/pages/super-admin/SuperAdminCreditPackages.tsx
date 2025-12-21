@@ -284,7 +284,7 @@ export function SuperAdminCreditPackages() {
       {/* Summary Cards */}
       {packages && packages.length > 0 && (
         <div className="grid grid-cols-2 gap-4">
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 border-emerald-200 dark:border-emerald-800">
+          <Card className="bg-linear-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 border-emerald-200 dark:border-emerald-800">
             <CardContent className="p-4">
               <h3 className="font-semibold text-emerald-800 dark:text-emerald-300">CV Processing Packages</h3>
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{cvPackages.length}</p>
@@ -293,7 +293,7 @@ export function SuperAdminCreditPackages() {
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200 dark:border-blue-800">
+          <Card className="bg-linear-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200 dark:border-blue-800">
             <CardContent className="p-4">
               <h3 className="font-semibold text-blue-800 dark:text-blue-300">Interview Packages</h3>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{interviewPackages.length}</p>

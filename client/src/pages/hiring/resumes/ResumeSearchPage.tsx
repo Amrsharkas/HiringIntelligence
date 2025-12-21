@@ -162,7 +162,7 @@ export default function ResumeSearchPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
+                  <div className="w-16 h-16 bg-linear-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
                     {selectedResume.resume.name?.split(' ').map(n => n.charAt(0)).join('') || 'C'}
                   </div>
                   <div>
@@ -418,7 +418,7 @@ export default function ResumeSearchPage() {
             <Button
               onClick={handleSearch}
               disabled={!selectedJobId || isSearching}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              className="bg-linear-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
             >
               <Target className="w-4 h-4 mr-2" />
               {isSearching ? "Searching..." : "Search Matching Resumes"}
@@ -537,7 +537,7 @@ export default function ResumeSearchPage() {
                       <div className="flex-1 min-w-0">
                         {/* Header */}
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          <div className="w-12 h-12 bg-linear-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
                             {match.resume.name?.[0] || "C"}
                           </div>
                           <div>
@@ -555,7 +555,7 @@ export default function ResumeSearchPage() {
                           </div>
                           <Badge
                             variant={getScoreBadgeVariant(match.matchScore)}
-                            className="flex items-center gap-1 flex-shrink-0 ml-auto"
+                            className="flex items-center gap-1 shrink-0 ml-auto"
                           >
                             <Star className="h-3 w-3" />
                             {match.matchScore}% Match
@@ -615,7 +615,7 @@ export default function ResumeSearchPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <Button
                           onClick={() => setSelectedResume(match)}
                           variant="outline"
