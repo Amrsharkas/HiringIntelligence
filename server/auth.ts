@@ -523,7 +523,6 @@ export function setupAuth(app: Express) {
     "/auth/google/callback",
     passport.authenticate("google", {
       failureRedirect: "/signin?error=google-auth-failed",
-      failureFlash: true,
     }),
     (req, res) => {
       // Successful authentication
