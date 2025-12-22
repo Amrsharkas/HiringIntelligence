@@ -421,15 +421,6 @@
     outline-offset: 2px;
   }
 
-  /* Better selection styles */
-  ::selection {
-    background-color: hsl(var(--primary) / 0.3);
-  }
-
-  .dark ::selection {
-    background-color: hsl(var(--primary) / 0.5);
-  }
-
   /* Primary color gradient utilities */
 }
 
