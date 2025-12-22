@@ -7535,21 +7535,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const { session_id } = req.query;
 
       if (!session_id) {
-        return res.redirect('/dashboard?payment=error');
+        return res.redirect('/hiring/overview?payment=error');
       }
 
       // You could fetch session details here for additional confirmation
       // but the webhook handles the actual credit addition
 
-      res.redirect('/dashboard?payment=success');
+      res.redirect('/hiring/overview?payment=success');
     } catch (error) {
       console.error("Error handling payment success:", error);
-      res.redirect('/dashboard?payment=error');
+      res.redirect('/hiring/overview?payment=error');
     }
   });
 
   app.get('/payment/canceled', requireVerifiedAuth, async (req: any, res) => {
-    res.redirect('/dashboard?payment=canceled');
+    res.redirect('/hiring/overview?payment=canceled');
   });
 
   // Test endpoint for webhook processing (for development)

@@ -537,8 +537,8 @@ export function setupAuth(app: Express) {
             return res.redirect("/signin?error=session-save-failed");
           }
 
-          console.log("✅ Session saved successfully, redirecting to dashboard");
-          res.redirect("/dashboard");
+          console.log("✅ Session saved successfully, redirecting to hiring dashboard");
+          res.redirect("/hiring/overview");
         });
       } else {
         console.error("❌ Google OAuth failed: No user in request");

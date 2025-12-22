@@ -76,9 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Welcome back to Plato Hiring.",
       });
 
-      // Redirect to dashboard after successful login
+      // Redirect to hiring dashboard after successful login
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/hiring/overview';
       }, 500);
     },
     onError: (error: Error) => {

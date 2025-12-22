@@ -105,9 +105,9 @@ function Router() {
           {/* New Hiring Dashboard Routes - handles all /hiring/* routes */}
           <Route path="/hiring/*" element={<HiringDashboard />} />
 
-          {/* Legacy Routes - kept for backward compatibility */}
-          <Route path="/dashboard" element={<EmployerDashboard />} />
-          <Route path="/employer-dashboard" element={<EmployerDashboard />} />
+          {/* Legacy Routes - redirect to new hiring dashboard */}
+          <Route path="/dashboard" element={<Navigate to="/hiring/overview" replace />} />
+          <Route path="/employer-dashboard" element={<Navigate to="/hiring/overview" replace />} />
           <Route path="/resume-profiles" element={<ResumeProfiles />} />
           <Route path="/super-admin/*" element={<SuperAdminDashboard />} />
           <Route path="/organization-setup" element={<Navigate to="/hiring/overview" replace />} />
