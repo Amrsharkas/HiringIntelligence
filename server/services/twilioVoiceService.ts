@@ -299,17 +299,18 @@ export class TwilioVoiceService {
         }
       }
 
-      // Create WebSocket URL for Twilio to connect to
-      const wsUrl = `wss://${this.domain}${this.voiceWsPath}`;
+      // Get greeting message from options or use default
+      const greetingMsg = options.greetingMessage || this.DEFAULT_GREETING_MESSAGE;
 
-      // TwiML that Twilio should use when making the outbound call
-      // Use PCMU encoding to match OpenAI's PCM output format - same as HiringPhone
-      // Call information (CallSid, From, To) will be automatically sent by Twilio in the WebSocket "start" event
+      // TwiML with Arabic voice - SIMPLE VERSION THAT WORKS!
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Connect>
-        <Stream url="wss://${this.domain}/voice-stream" />
-    </Connect>
+    <Say voice="Polly.Zeina" language="ar-EG">${greetingMsg}</Say>
+    <Pause length="1"/>
+    <Say voice="Polly.Zeina" language="ar-EG">هذه مكالمة من نظام بلاتو للتوظيف</Say>
+    <Pause length="1"/>
+    <Say voice="Polly.Zeina" language="ar-EG">شكراً لوقتك. مع السلامة</Say>
+    <Hangup/>
 </Response>`;
 
       // Initiate call via Twilio
@@ -318,9 +319,11 @@ export class TwilioVoiceService {
         from: this.twilioPhoneNumber,
         twiml: twiml,
         record: true, // Enable call recording
+        statusCallback: `https://${this.domain}/api/voice/webhook/call-status`,
+        statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed']
       });
 
-      console.log({call});
+      console.log("✅ Call initiated:", call.sid);
 
       // Create call record in database
       const callId = await this.createVoiceCallRecord(options, call.sid);

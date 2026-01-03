@@ -409,12 +409,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       console.log("Creating organization for user:", userId);
       console.log("Request body:", req.body);
-      
+
       const orgData = insertOrganizationSchema.parse({
         ...req.body,
         ownerId: userId
       });
-      
+
       const normalizedUrl = orgData.url.trim();
       const existingOrganization = await storage.getOrganizationByUrl(normalizedUrl);
 
@@ -449,11 +449,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "No organization found" });
       }
-      
+
       res.json(organization);
     } catch (error) {
       console.error("Error fetching organization:", error);
@@ -841,8 +841,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         success: true,
-        message: immediate 
-          ? "Subscription canceled immediately" 
+        message: immediate
+          ? "Subscription canceled immediately"
           : "Subscription will be canceled at the end of the billing period"
       });
     } catch (error) {
@@ -932,11 +932,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json([]);
       }
-      
+
       const members = await storage.getOrganizationMembers(organization.id);
       res.json(members);
     } catch (error) {
@@ -949,9 +949,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/invitations/public/:token', async (req: any, res) => {
     try {
       const { token } = req.params;
-      
+
       console.log(`🔍 Looking up invitation token: "${token}"`);
-      
+
       if (!token) {
         console.log(`❌ No token provided`);
         return res.status(400).json({ message: "Token is required" });
@@ -965,7 +965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt: invitation.expiresAt,
         isExpired: new Date() > invitation.expiresAt
       } : 'null');
-      
+
       if (!invitation || invitation.status !== 'pending' || new Date() > invitation.expiresAt) {
         console.log(`❌ Invalid invitation: exists=${!!invitation}, status=${invitation?.status}, expired=${invitation ? new Date() > invitation.expiresAt : 'N/A'}`);
         return res.status(404).json({ message: "Invalid or expired invitation" });
@@ -973,7 +973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get organization details for the invitation
       const organization = await storage.getOrganizationById(invitation.organizationId);
-      
+
       res.json({
         invitation: {
           id: invitation.id,
@@ -994,7 +994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { token } = req.body;
-      
+
       if (!token) {
         return res.status(400).json({ message: "Invitation token is required" });
       }
@@ -1014,7 +1014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`ℹ️ User ${userId} is already a member of organization ${invitation.organizationId}`);
         // Mark invitation as accepted anyway
         await storage.updateInvitationStatus(invitation.id, 'accepted');
-        
+
         const organization = await storage.getOrganizationById(invitation.organizationId);
         return res.json({
           message: "You're already part of this team!",
@@ -1063,13 +1063,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { token } = req.params;
       const invitation = await storage.getInvitationByToken(token);
-      
+
       if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
         return res.status(404).json({ message: "Invitation not found or expired" });
       }
 
       const organization = await storage.getOrganizationById(invitation.organizationId);
-      
+
       res.json({
         invitation: {
           email: invitation.email,
@@ -1156,11 +1156,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json([]);
       }
-      
+
       const jobs = await storage.getJobsByOrganization(organization.id);
       res.json(jobs);
     } catch (error) {
@@ -1264,29 +1264,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.id);
       const userId = req.user.id;
-      
+
       console.log(`🗑️  User ${userId} attempting to delete job ${jobId}`);
-      
+
       // Validate job ID
       if (isNaN(jobId) || jobId <= 0) {
         console.error('Invalid job ID:', req.params.id);
         return res.status(400).json({ message: "Invalid job ID" });
       }
-      
+
       // Check if job exists and belongs to user's organization
       const job = await storage.getJobById(jobId);
       if (!job) {
         console.error('Job not found:', jobId);
         return res.status(404).json({ message: "Job not found" });
       }
-      
+
       // Verify user has permission to delete this job
       const organization = await storage.getOrganizationByUser(userId);
       if (!organization || job.organizationId !== organization.id) {
         console.error('User does not have permission to delete this job');
         return res.status(403).json({ message: "You don't have permission to delete this job" });
       }
-      
+
       console.log(`✅ Job ${jobId} found and user has permission. Proceeding with deletion...`);
 
       // Delete from database first (mark as inactive)
@@ -1327,14 +1327,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use local database service instead of Airtable
       const applicants = await localDatabaseService.getAllJobApplications();
-      
+
       // Filter to only show applicants for this organization's jobs AND exclude accepted applicants
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
-      const filteredApplicants = applicants.filter(app => 
+      const filteredApplicants = applicants.filter(app =>
         organizationJobIds.has(app.jobId) && app.status !== 'Accepted'
       );
-      
+
       res.json({ count: filteredApplicants.length });
     } catch (error) {
       console.error("Error counting applicants:", error);
@@ -1346,19 +1346,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json({ count: 0 });
       }
 
       // Count from job matches table (AI matched candidates)
       const matches = await localDatabaseService.getAllJobMatches();
-      
+
       // Filter for this organization's job matches
       const organizationJobs = await storage.getJobsByOrganization(organization.id);
       const organizationJobIds = new Set(organizationJobs.map(job => job.id.toString()));
       const organizationMatches = matches.filter(match => organizationJobIds.has(match.jobId));
-      
+
       res.json({ count: organizationMatches.length });
     } catch (error) {
       console.error("Error counting candidates:", error);
@@ -1371,7 +1371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json([]);
       }
@@ -1393,17 +1393,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate monthly data based on actual data
       const now = new Date();
       const monthsData = [];
-      
+
       for (let i = 5; i >= 0; i--) {
         const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthName = monthDate.toLocaleDateString('en-US', { month: 'short' });
-        
+
         // For demonstration, we'll use current data divided by 6 months
         // In real app, you'd filter by actual dates
         const applications = Math.floor(organizationApplicants.length / 6);
         const interviewsCount = Math.floor(organizationInterviews.length / 6);
         const hires = Math.floor(interviewsCount * 0.4); // 40% hire rate
-        
+
         monthsData.push({
           name: monthName,
           applications: applications + Math.floor(Math.random() * 5),
@@ -1423,7 +1423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json([]);
       }
@@ -1506,15 +1506,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // DYNAMIC AI SCORING SYSTEM - ALWAYS FRESH ANALYSIS
       if (applicants.length > 0) {
         console.log(`🤖 DYNAMIC AI SCORING: Processing ${applicants.length} applicants with fresh AI analysis`);
-        
+
         const applicantsWithScores: any[] = [];
-        
+
         // Process each applicant with fresh AI scoring every time
         for (const app of applicants) {
           if (app.userProfile && app.jobDescription) {
             try {
               console.log(`🔍 Fresh AI scoring for: ${app.applicantName} applying for: ${app.jobTitle}`);
-              
+
               // Use detailed AI scoring for completely fresh analysis
               const detailedScore = await applicantScoringService.scoreApplicantDetailed(
                 app.userProfile,
@@ -1523,14 +1523,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 app.jobDescription, // Using job description as requirements
                 [] // No specific skills list yet
               );
-              
+
               console.log(`📊 FRESH AI SCORES for ${app.applicantName}:`);
               console.log(`   Overall: ${detailedScore.overallMatch}%`);
               console.log(`   Technical: ${detailedScore.technicalSkills}%`);
               console.log(`   Experience: ${detailedScore.experience}%`);
               console.log(`   Cultural: ${detailedScore.culturalFit}%`);
               console.log(`   Summary: ${detailedScore.summary}`);
-              
+
               // Add to final list with fresh scores (no database caching)
               applicantsWithScores.push({
                 ...app,
@@ -1540,10 +1540,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 experienceScore: detailedScore.experience,
                 culturalFitScore: detailedScore.culturalFit
               });
-              
+
             } catch (scoringError) {
               console.error(`❌ SCORING ERROR for ${app.applicantName}:`, scoringError);
-              
+
               // Add with error score on failure
               applicantsWithScores.push({
                 ...app,
@@ -1567,11 +1567,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         }
-        
+
         // All applicants now have dynamic scores
         applicants = applicantsWithScores;
         console.log(`🎯 DYNAMIC RESULT: ${applicants.length} applicants with fresh AI scores`);
-        
+
         // Log fresh scoring status
         applicants.forEach(app => {
           console.log(`📊 ${app.applicantName}: Fresh AI score = ${app.matchScore}% (DYNAMIC ANALYSIS)`);
@@ -1720,13 +1720,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Could not fetch resume profile for detailed analysis:', e);
       }
 
-      // Parse generatedProfile if available
+      // Fetch applicant profile from applicant_profiles table to get comprehensiveProfile and honestProfile
+      let applicantProfileData: any = null;
+      let comprehensiveProfile: any = null;
+      let honestProfile: any = null;
+
+      try {
+        if (applicant.applicantUserId) {
+          const [profile] = await db.select()
+            .from(applicantProfiles)
+            .where(eq(applicantProfiles.userId, applicant.applicantUserId))
+            .limit(1);
+
+          if (profile) {
+            applicantProfileData = profile;
+            // Check for comprehensiveProfile - might be in aiProfile.comprehensiveProfile or aiProfile itself
+            // The comprehensiveProfile is stored with brutallyHonestProfile nested inside
+            const aiProfile = profile.aiProfile as any;
+
+            // Check multiple possible locations for comprehensiveProfile
+            if (aiProfile?.comprehensiveProfile) {
+              comprehensiveProfile = aiProfile.comprehensiveProfile;
+            } else if ((profile as any).comprehensiveProfile) {
+              // Check if comprehensiveProfile is stored as a direct field (dynamic field not in schema)
+              comprehensiveProfile = (profile as any).comprehensiveProfile;
+            } else if (aiProfile?.brutallyHonestProfile) {
+              // If comprehensiveProfile structure is not separate, use aiProfile.brutallyHonestProfile
+              comprehensiveProfile = aiProfile;
+            }
+
+            // Get honestProfile from the honestProfile field
+            honestProfile = profile.honestProfile as any;
+          }
+        }
+      } catch (profileError) {
+        console.warn('Could not fetch applicant profile:', profileError);
+      }
+
+      // Parse generatedProfile if available (from job application)
       let generatedProfile: any = null;
       if (applicant.generatedProfile) {
         generatedProfile = typeof applicant.generatedProfile === 'string'
           ? JSON.parse(applicant.generatedProfile)
           : applicant.generatedProfile;
       }
+
+      // Extract brutallyHonestProfile - prioritize comprehensiveProfile structure
+      // comprehensiveProfile has brutallyHonestProfile nested inside, or it might be the brutallyHonestProfile itself
+      let brutallyHonestProfile: any = null;
+
+      if (comprehensiveProfile) {
+        // comprehensiveProfile.brutallyHonestProfile is the nested structure
+        brutallyHonestProfile = comprehensiveProfile.brutallyHonestProfile || comprehensiveProfile;
+      } else if (generatedProfile) {
+        // Fallback to generatedProfile from job application
+        brutallyHonestProfile = generatedProfile?.brutallyHonestProfile || generatedProfile;
+      } else if (applicantProfileData?.aiProfile) {
+        // Fallback to aiProfile.brutallyHonestProfile
+        const aiProfile = applicantProfileData.aiProfile as any;
+        brutallyHonestProfile = aiProfile.brutallyHonestProfile || aiProfile;
+      }
+
+      // Extract scores from comprehensiveProfile, brutallyHonestProfile, or generatedProfile
+      // comprehensiveProfile has keyMetrics with scores, or scores directly in brutallyHonestProfile
+      const keyMetrics = comprehensiveProfile?.keyMetrics || {};
+      const profileScores = brutallyHonestProfile?.scores || keyMetrics?.scores || {};
+
+      // Extract scores with priority: comprehensiveProfile keyMetrics > brutallyHonestProfile scores > generatedProfile
+      const technicalScore = Math.round(
+        keyMetrics?.scores?.technicalSkillsScore ||
+        profileScores.technical_competence?.final_score ||
+        profileScores.technical_competence?.score ||
+        profileScores.technical_skills_score_0_100 ||
+        brutallyHonestProfile?.technicalSkillsScore ||
+        generatedProfile?.techSkillsPercentage || 0
+      );
+      const experienceScore = Math.round(
+        keyMetrics?.scores?.experienceScore ||
+        profileScores.experience_quality?.final_score ||
+        profileScores.experience_quality?.score ||
+        profileScores.experience_score_0_100 ||
+        brutallyHonestProfile?.experienceScore ||
+        generatedProfile?.experiencePercentage || 0
+      );
+      const culturalFitScore = Math.round(
+        keyMetrics?.scores?.culturalFitScore ||
+        profileScores.cultural_collaboration_fit?.final_score ||
+        profileScores.cultural_collaboration_fit?.score ||
+        profileScores.cultural_fit_score_0_100 ||
+        brutallyHonestProfile?.culturalFitScore ||
+        generatedProfile?.culturalFitPercentage || 0
+      );
+      const communicationScore = Math.round(
+        keyMetrics?.scores?.communicationScore ||
+        profileScores.communication_presence?.final_score ||
+        profileScores.communication_presence?.score ||
+        brutallyHonestProfile?.communicationScore || 0
+      );
+      const selfAwarenessScore = Math.round(
+        profileScores.self_awareness_growth?.final_score ||
+        profileScores.self_awareness_growth?.score || 0
+      );
+      const jobFitScore = Math.round(
+        profileScores.job_specific_fit?.final_score ||
+        profileScores.job_specific_fit?.score ||
+        profileScores.general_employability?.final_score ||
+        profileScores.general_employability?.score || 0
+      );
+      const overallScore = Math.round(
+        keyMetrics?.overallScore ||
+        keyMetrics?.scores?.overallScore ||
+        profileScores.overall_score?.value ||
+        brutallyHonestProfile?.overallScore ||
+        generatedProfile?.matchScorePercentage || 0
+      );
+
+      // Extract quality metrics from keyMetrics or brutallyHonestProfile
+      const gapSeverityScore = keyMetrics?.gapSeverityScore || brutallyHonestProfile?.gapSeverityScore;
+      const answerQualityScore = keyMetrics?.answerQualityScore || brutallyHonestProfile?.answerQualityScore;
+      const cvConsistencyScore = keyMetrics?.cvConsistencyScore || brutallyHonestProfile?.cvConsistencyScore;
 
       // Get interview video URL and transcription from application's session
       let interviewVideoUrl = null;
@@ -1770,22 +1882,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         certifications: parsedProfile.certifications,
         languages: parsedProfile.languages,
 
-        // Score data - prefer generatedProfile scores if available
-        matchScore: generatedProfile?.matchScorePercentage || scoredData?.matchScore || (applicant as any).matchScore,
+        // Score data - prefer V5 scores if available, fallback to legacy
+        matchScore: overallScore || scoredData?.matchScore || (applicant as any).matchScore,
         matchSummary: generatedProfile?.summary || scoredData?.matchSummary || (applicant as any).matchSummary,
-        technicalSkillsScore: generatedProfile?.techSkillsPercentage || scoredData?.technicalSkillsScore,
-        experienceScore: generatedProfile?.experiencePercentage || scoredData?.experienceScore,
-        culturalFitScore: generatedProfile?.culturalFitPercentage || scoredData?.culturalFitScore,
+        technicalSkillsScore: technicalScore || scoredData?.technicalSkillsScore,
+        experienceScore: experienceScore || scoredData?.experienceScore,
+        culturalFitScore: culturalFitScore || scoredData?.culturalFitScore,
+        communicationScore: communicationScore,
+        selfAwarenessScore: selfAwarenessScore,
+        jobFitScore: jobFitScore,
 
         // AI Generated Profile data
         generatedProfile: generatedProfile,
-        hireRecommendation: generatedProfile?.hireRecommendation,
-        strengths: generatedProfile?.strengths,
-        careerGoals: generatedProfile?.careerGoals,
-        workStyle: generatedProfile?.workStyle,
-        personality: generatedProfile?.personality,
-        jobMatch: generatedProfile?.jobMatch,
-        brutallyHonestProfile: generatedProfile?.brutallyHonestProfile,
+        hireRecommendation: brutallyHonestProfile?.hiring_guidance?.proceed_to_next_round ||
+          brutallyHonestProfile?.executive_summary?.fit_verdict ||
+          brutallyHonestProfile?.executiveSummary?.fitScore ||
+          comprehensiveProfile?.hireRecommendation ||
+          generatedProfile?.hireRecommendation,
+        strengths: comprehensiveProfile?.strengths || generatedProfile?.strengths,
+        careerGoals: comprehensiveProfile?.careerGoals || generatedProfile?.careerGoals,
+        workStyle: comprehensiveProfile?.workStyle || generatedProfile?.workStyle,
+        personality: comprehensiveProfile?.personality || generatedProfile?.personality,
+        jobMatch: comprehensiveProfile?.jobMatch || generatedProfile?.jobMatch,
+
+        // Include comprehensiveProfile and honestProfile for frontend
+        comprehensiveProfile: comprehensiveProfile,
+        honestProfile: honestProfile,
+        keyMetrics: keyMetrics,
+
+        // Pass the full V5 structure for frontend rendering
+        brutallyHonestProfile: {
+          ...brutallyHonestProfile,
+          // Ensure overallScore is available at root level for display
+          overallScore: overallScore,
+          technicalSkillsScore: technicalScore,
+          experienceScore: experienceScore,
+          culturalFitScore: culturalFitScore,
+          communicationScore: communicationScore,
+          selfAwarenessScore: selfAwarenessScore,
+          jobFitScore: jobFitScore,
+          // Include quality metrics if available
+          gapSeverityScore: gapSeverityScore,
+          answerQualityScore: answerQualityScore,
+          cvConsistencyScore: cvConsistencyScore,
+        },
 
         // Detailed analysis (if available from resume profile)
         fullResponse: fullResponse,
@@ -1865,18 +2005,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.params.userId;
       console.log(`🔍 Fetching detailed profile for user ID: ${userId}`);
-      
+
       // Get user profile from platouserprofiles table
       const { UserProfilesAirtableService } = await import('./userProfilesAirtableService');
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
       const userProfilesService = new UserProfilesAirtableService(AIRTABLE_API_KEY);
       const userProfile = await userProfilesService.getUserProfileByUserId(userId);
-      
+
       if (!userProfile) {
         console.log(`❌ User profile not found for ID: ${userId}`);
         return res.status(404).json({ message: "User profile not found" });
       }
-      
+
       console.log(`✅ Found user profile for ${userProfile.name || 'Unknown'}`);
       res.json(userProfile);
     } catch (error) {
@@ -2160,11 +2300,11 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
     try {
       const applicantId = req.params.id;
       const { matchScore, matchSummary, componentScores } = req.body;
-      
+
       console.log(`🔄 Updating applicant ${applicantId} with comprehensive analysis...`);
       console.log(`📊 Overall Score: ${matchScore}%`);
       console.log(`🔄 Request body:`, { matchScore, matchSummary: matchSummary?.substring(0, 50) + '...', componentScores });
-      
+
       // Update score using local database service instead of Airtable
       console.log(`🔄 Calling updateJobApplicationStatus with comprehensive data...`);
       // Note: We may need to extend the localDatabaseService to handle scoring updates
@@ -2179,11 +2319,11 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       } catch (error) {
         console.warn('⚠️ Could not update application with scoring data, this may require schema extension:', error);
       }
-      
+
       console.log(`✅ Successfully updated applicant ${applicantId} with all analysis data`);
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: "Applicant analysis updated successfully",
         matchScore,
         matchSummary,
@@ -2206,28 +2346,28 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
         body: req.body
       });
 
-      const { 
-        jobTitle, 
-        companyName, 
-        location, 
-        employmentType, 
-        workplaceType, 
-        seniorityLevel, 
-        industry, 
-        certifications, 
-        languagesRequired 
+      const {
+        jobTitle,
+        companyName,
+        location,
+        employmentType,
+        workplaceType,
+        seniorityLevel,
+        industry,
+        certifications,
+        languagesRequired
       } = req.body;
 
       if (!jobTitle) {
         return res.status(400).json({ message: "Job title is required" });
       }
-      
+
       console.log("🔄 Calling generateJobDescription with:", { jobTitle, companyName, location });
-      
+
       const description = await generateJobDescription(
-        jobTitle, 
-        companyName, 
-        location, 
+        jobTitle,
+        companyName,
+        location,
         {
           employmentType,
           workplaceType,
@@ -2237,7 +2377,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
           languagesRequired
         }
       );
-      
+
       console.log("✅ Generated description successfully");
       res.json({ description });
     } catch (error) {
@@ -2255,26 +2395,26 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
         body: req.body
       });
 
-      const { 
-        jobTitle, 
-        description, 
-        employmentType, 
-        workplaceType, 
-        seniorityLevel, 
-        industry, 
-        certifications, 
-        languagesRequired 
+      const {
+        jobTitle,
+        description,
+        employmentType,
+        workplaceType,
+        seniorityLevel,
+        industry,
+        certifications,
+        languagesRequired
       } = req.body;
 
       if (!jobTitle) {
         return res.status(400).json({ message: "Job title is required" });
       }
-      
+
       console.log("🔄 Calling generateJobRequirements with:", { jobTitle, description: description?.substring(0, 50) + "..." });
-      
+
       const requirements = await generateJobRequirements(
-        jobTitle, 
-        description, 
+        jobTitle,
+        description,
         {
           employmentType,
           workplaceType,
@@ -2284,7 +2424,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
           languagesRequired
         }
       );
-      
+
       console.log("✅ Generated requirements successfully");
       res.json({ requirements });
     } catch (error) {
@@ -2310,7 +2450,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
   app.post('/api/ai/generate-employer-questions', requireAuth, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription, requirements } = req.body;
-      
+
       if (!jobTitle) {
         return res.status(400).json({ message: "Job title is required" });
       }
@@ -2374,7 +2514,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       res.status(500).json({ message: "Failed to add to shortlist" });
     }
   });
-  
+
   app.get('/api/shortlisted-applicants', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -2431,7 +2571,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       res.status(500).json({ message: "Failed to fetch shortlisted applicants" });
     }
   });
-  
+
   app.delete('/api/shortlisted-applicants/:id', requireAuth, async (req: any, res) => {
     try {
       const { id } = req.params;
@@ -2442,7 +2582,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       res.status(500).json({ message: "Failed to remove from shortlist" });
     }
   });
-  
+
   app.get('/api/shortlisted-applicants/check/:applicantId/:jobId', requireAuth, async (req: any, res) => {
     try {
       const { applicantId } = req.params;
@@ -2467,7 +2607,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       }
 
       console.log(`🔄 Processing pending invitation:`, pendingInvitation);
-      
+
       const { token, organizationId, role } = pendingInvitation;
       const userId = req.user.id;
 
@@ -2521,12 +2661,12 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
     }
 
     const profile = typeof profileData === 'string' ? JSON.parse(profileData) : profileData;
-    
+
     // Check if this is a brutally honest profile with the new structure
     return formatBrutallyHonestProfile(profile.brutallyHonestProfile);
   }
 
-  const formatBrutallyHonestProfile = (profile: any): string =>  {
+  const formatBrutallyHonestProfile = (profile: any): string => {
     if (!profile) return 'No profile data available';
 
     // Check if this is version 2 format
@@ -3561,7 +3701,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
   app.get('/api/user-profile/:userId', requireAuth, async (req: any, res) => {
     try {
       const { userId } = req.params;
-      
+
       if (!userId) {
         console.log('❌ No user ID provided in request');
         return res.status(400).json({ message: "User ID is required" });
@@ -3570,34 +3710,34 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       console.log(`🔍 Fetching complete user profile for identifier: "${userId}"`);
       console.log(`👤 Authenticated user: ${req.user?.claims?.sub || 'unknown'}`);
       console.log(`🏢 Organization ID: ${req.user?.orgId || 'unknown'}`);
-      
+
       const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
-      
+
       // Step 1: Find the actual UserID from the job applications table
       console.log(`📋 Step 1: Finding UserID from job applications for: "${userId}"`);
       const applicationsBaseId = 'appEYs1fTytFXoJ7x';
       const applicationsTableName = 'platojobapplications';
-      
+
       // Search by name in applications table
       let applicationsUrl = `https://api.airtable.com/v0/${applicationsBaseId}/${applicationsTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${userId}"`)}`;
-      
+
       const applicationsResponse = await fetch(applicationsUrl, {
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!applicationsResponse.ok) {
         console.log(`❌ Failed to fetch applications: ${applicationsResponse.status} ${applicationsResponse.statusText}`);
         return res.status(500).json({ message: 'Failed to fetch application data' });
       }
-      
+
       const applicationsData = await applicationsResponse.json();
       console.log(`📋 Found ${applicationsData.records.length} applications matching name: "${userId}"`);
-      
+
       let actualUserId = userId; // Default to the provided identifier
-      
+
       if (applicationsData.records.length > 0) {
         const application = applicationsData.records[0];
         const userIdFromApplication = application.fields?.['UserID'] || application.fields?.['User ID'] || application.fields?.['userId'] || '';
@@ -3610,60 +3750,60 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       } else {
         console.log(`⚠️ No application found for name "${userId}", will try direct profile lookup`);
       }
-      
+
       // Step 2: Fetch the user profile using the actual UserID
       console.log(`👤 Step 2: Fetching user profile for UserID: "${actualUserId}"`);
       const profilesBaseId = 'app3tA4UpKQCT2s17';
       const profilesTableName = 'Table%201';
-      
+
       // Try by UserID field first
       let profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{UserID} = "${actualUserId}"`)}`;
-      
+
       let profilesResponse = await fetch(profilesUrl, {
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!profilesResponse.ok) {
         console.log(`❌ Failed to fetch profiles: ${profilesResponse.status} ${profilesResponse.statusText}`);
         return res.status(500).json({ message: 'Failed to fetch profile data' });
       }
-      
+
       let profilesData = await profilesResponse.json();
       console.log(`👤 Found ${profilesData.records.length} profiles matching UserID: "${actualUserId}"`);
-      
+
       // If no match by UserID, try by Name
       if (profilesData.records.length === 0) {
         console.log(`🔍 No UserID match, trying by Name: "${userId}"`);
         profilesUrl = `https://api.airtable.com/v0/${profilesBaseId}/${profilesTableName}?filterByFormula=${encodeURIComponent(`{Name} = "${userId}"`)}`;
-        
+
         profilesResponse = await fetch(profilesUrl, {
           headers: {
             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
             'Content-Type': 'application/json',
           },
         });
-        
+
         if (profilesResponse.ok) {
           profilesData = await profilesResponse.json();
           console.log(`👤 Found ${profilesData.records.length} profiles matching Name: "${userId}"`);
         }
       }
-      
+
       if (profilesData.records.length === 0) {
         console.log(`❌ No profile found for "${userId}" in either UserID or Name fields`);
         return res.status(404).json({ message: "User profile not found" });
       }
-      
+
       // Step 3: Extract and format the profile data
       const profileRecord = profilesData.records[0];
       const fields = profileRecord.fields;
-      
+
       console.log(`✅ Found profile! Available fields: ${Object.keys(fields).join(', ')}`);
       console.log(`🔍 Raw profile data for debugging:`, JSON.stringify(fields, null, 2));
-      
+
       const profile = {
         id: profileRecord.id,
         userId: actualUserId,
@@ -3703,7 +3843,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
       console.log(`✅ Profile data prepared for: ${profile.name}, User Profile length: ${profile.userProfile.length} characters`);
       console.log(`🔍 Profile data being sent to frontend:`, profile);
       res.json(profile);
-      
+
     } catch (error) {
       console.error('❌ Error fetching user profile:', error);
       res.status(500).json({ message: 'Failed to fetch user profile' });
@@ -3714,7 +3854,7 @@ This is a preliminary offer. A formal offer letter with complete terms will foll
   app.post('/api/ai/job-match-analysis', requireAuth, async (req: any, res) => {
     try {
       const { jobTitle, jobDescription, jobRequirements, userProfile } = req.body;
-      
+
       if (!jobTitle || !jobDescription || !userProfile) {
         return res.status(400).json({ message: "Job title, description, and user profile are required" });
       }
@@ -3822,15 +3962,15 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.post('/api/fix-recent-candidate-userid', requireAuth, async (req: any, res) => {
     try {
       console.log(`🔧 Fixing most recent accepted candidate User ID...`);
-      
+
       // Get the most recent job match from local database
       const jobMatches = await localDatabaseService.getAllJobMatches();
       const mostRecentMatch = jobMatches.length > 0 ? jobMatches[0] : null;
-      
+
       if (!mostRecentMatch) {
         return res.status(404).json({ message: "No job matches found" });
       }
-      
+
       console.log(`📋 Most recent job match:`, mostRecentMatch);
 
       const currentUserId = mostRecentMatch.userId;
@@ -3839,36 +3979,36 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       // Look for this candidate in job applications with "Accepted" status
       const allApplications = await localDatabaseService.getAllJobApplications();
-      
+
       // Find the accepted application for this candidate and job
       const matchingApplication = allApplications.find(app =>
         app.applicantName === candidateName &&
         app.jobTitle === jobTitle &&
         app.status === 'Accepted'
       );
-      
+
       if (!matchingApplication) {
-        return res.status(404).json({ 
-          message: `No matching accepted application found for ${candidateName} - ${jobTitle}` 
+        return res.status(404).json({
+          message: `No matching accepted application found for ${candidateName} - ${jobTitle}`
         });
       }
-      
+
       const correctUserId = matchingApplication.userId;
-      
+
       if (currentUserId === correctUserId) {
-        return res.json({ 
+        return res.json({
           message: "User ID is already correct",
           currentUserId,
           candidateName,
           jobTitle
         });
       }
-      
+
       // Update the job match with the correct User ID
       console.log(`🔄 Updating User ID from ${currentUserId} to ${correctUserId}`);
       await jobMatchesService.updateJobMatchUserId(mostRecentMatch.id, correctUserId);
-      
-      res.json({ 
+
+      res.json({
         message: "Successfully updated most recent candidate User ID",
         candidateName,
         jobTitle,
@@ -3876,10 +4016,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         newUserId: correctUserId,
         recordId: mostRecentMatch.id
       });
-      
+
     } catch (error) {
       console.error("❌ Error fixing candidate User ID:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fix candidate User ID",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -3890,9 +4030,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.post('/api/real-applicants/:id/undo-accept', requireAuth, async (req: any, res) => {
     try {
       const { applicantId, userId, applicantName, jobTitle, jobDescription, companyName } = req.body;
-      
+
       console.log(`⏪ Undoing accept for applicant ${applicantName}...`);
-      
+
       // Create record back in job applications using local database
       await localDatabaseService.createJobApplication({
         applicantName,
@@ -3904,7 +4044,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         status: 'applied',
         jobDescription
       });
-      
+
       // Delete from job matches using local database
       const jobMatches = await localDatabaseService.getJobMatchesByUser(userId);
       const matchToDelete = jobMatches.find(match =>
@@ -3916,7 +4056,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         await localDatabaseService.updateJobMatch(matchToDelete.id, { status: 'cancelled' });
         console.log(`🗑️ Cancelled job match for ${applicantName}`);
       }
-      
+
       // Remove from local accepted applicants storage
       const user = req.user.id;
       const organization = await storage.getOrganizationByUser(user);
@@ -3928,16 +4068,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           console.warn(`⚠️ Could not remove from local storage: ${error}`);
         }
       }
-      
+
       console.log(`✅ Successfully undid accept for applicant ${applicantName}`);
-      res.json({ 
+      res.json({
         message: "Accept action undone - applicant restored to applications",
         applicantName: applicantName
       });
-      
+
     } catch (error) {
       console.error("❌ Error undoing accept:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to undo accept action",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -3998,7 +4138,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json([]);
       }
@@ -4015,7 +4155,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/job-postings/:id/candidates', requireAuth, async (req: any, res) => {
     try {
       const jobId = parseInt(req.params.id);
-      
+
       // Fetch job matches from local database
       const jobMatches = await localDatabaseService.getJobMatchesByJob(jobId);
       const matchedCandidates = jobMatches.map(match => ({
@@ -4025,17 +4165,17 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         email: '', // Will need to be fetched from user profile
         score: match.matchScore || 0
       }));
-      
+
       // Filter out declined candidates
       const applications = await storage.getApplicationsByJob(jobId);
       const declinedCandidateIds = applications
         .filter(app => app.status === 'declined')
         .map(app => app.candidateId);
-      
+
       const filteredCandidates = matchedCandidates.filter(
         candidate => !declinedCandidateIds.includes(candidate.id)
       );
-      
+
       // Add application status to candidates
       const candidatesWithStatus = filteredCandidates.map(candidate => {
         const application = applications.find(app => app.candidateId === candidate.id);
@@ -4045,7 +4185,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           reviewedAt: application?.reviewedAt,
         };
       });
-      
+
       res.json(candidatesWithStatus);
     } catch (error) {
       console.error("Error fetching Airtable candidates for job:", error);
@@ -4059,25 +4199,25 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
       const userId = req.user.id;
-      
+
       // Get candidate info from request body
       const { candidateName, matchScore, matchReasoning } = req.body;
-      
+
       // Get job details to update Airtable
       const job = await storage.getJobById(jobId);
       if (!job) {
         return res.status(404).json({ message: "Job not found" });
       }
-      
+
       // Get organization details for company name
       const organization = await storage.getOrganizationByUser(userId);
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
-      
+
       // Check if application already exists
       let application = await storage.getApplication(jobId, candidateId);
-      
+
       if (application) {
         // Update existing application
         application = await storage.updateApplicationStatus(jobId, candidateId, 'accepted', userId);
@@ -4094,7 +4234,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           reviewedAt: new Date(),
         });
       }
-      
+
       // Create job match record in local database when candidate is accepted
       try {
         console.log(`Creating job match record for candidate ${candidateId} with job: ${job.title}`);
@@ -4120,7 +4260,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         console.error('❌ Failed to create local job match, but candidate was accepted:', localDbError);
         // Don't fail the entire operation if local database update fails
       }
-      
+
       res.json({ success: true, application });
     } catch (error) {
       console.error("Error accepting candidate:", error);
@@ -4134,13 +4274,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
       const userId = req.user.id;
-      
+
       // Get candidate info from request body
       const { candidateName, matchScore, matchReasoning } = req.body;
-      
+
       // Check if application already exists
       let application = await storage.getApplication(jobId, candidateId);
-      
+
       if (application) {
         // Update existing application
         application = await storage.updateApplicationStatus(jobId, candidateId, 'declined', userId);
@@ -4157,7 +4297,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           reviewedAt: new Date(),
         });
       }
-      
+
       res.json({ success: true, application });
     } catch (error) {
       console.error("Error declining candidate:", error);
@@ -4171,15 +4311,15 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const jobId = parseInt(req.params.jobId);
       const candidateId = req.params.candidateId;
       const userId = req.user.id;
-      
+
       const { candidateName, scheduledDate, scheduledTime, interviewType, meetingLink, notes } = req.body;
-      
+
       // Get the application
       const application = await storage.getApplication(jobId, candidateId);
       if (!application) {
         return res.status(404).json({ message: "Application not found" });
       }
-      
+
       // Create interview
       const interview = await storage.createInterview({
         applicationId: application.id,
@@ -4193,7 +4333,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         notes,
         createdBy: userId,
       });
-      
+
       res.json({ success: true, interview });
     } catch (error) {
       console.error("Error scheduling interview:", error);
@@ -4218,7 +4358,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
@@ -4233,10 +4373,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const { applicantScoringService } = await import('./applicantScoringService');
 
       console.log('Fetching enhanced candidates from platouserprofiles...');
-      
+
       // Get all candidates from local database
       const allCandidates = await localDatabaseService.getAllUserProfiles();
-      
+
       if (allCandidates.length === 0) {
         return res.json([]);
       }
@@ -4245,32 +4385,32 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       // Score each candidate against all active jobs to find their best match
       const candidatesWithScores = [];
-      
+
       for (const candidate of allCandidates) {
         if (!candidate.aiProfile) {
           continue;
         }
-        
+
         let bestScore = 0;
         let bestJobMatch = null;
         let bestSummary = '';
-        
+
         // Score against each job to find the best match
         for (const job of organizationJobs) {
           if (!job.description) continue;
-          
+
           const result = await applicantScoringService.scoreApplicant(
-            candidate.aiProfile, 
+            candidate.aiProfile,
             job.description
           );
-          
+
           if (result.score > bestScore) {
             bestScore = result.score;
             bestJobMatch = job;
             bestSummary = result.summary;
           }
         }
-        
+
         // Only include candidates with score > 85
         if (bestScore > 85 && bestJobMatch) {
           candidatesWithScores.push({
@@ -4284,7 +4424,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             }
           });
         }
-        
+
         // Small delay to respect rate limits
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -4293,7 +4433,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       candidatesWithScores.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
 
       console.log(`Found ${candidatesWithScores.length} high-scoring candidates (>85) out of ${allCandidates.length} total`);
-      
+
       res.json(candidatesWithScores);
     } catch (error) {
       console.error("Error fetching enhanced candidates:", error);
@@ -4305,11 +4445,11 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.json([]);
       }
-      
+
       const matches = await storage.getMatchesByOrganization(organization.id);
       res.json(matches);
     } catch (error) {
@@ -4323,7 +4463,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
@@ -4351,7 +4491,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const jobId = req.params.jobId;
       const { questions } = req.body;
-      
+
       if (!Array.isArray(questions)) {
         return res.status(400).json({ message: "Questions must be an array" });
       }
@@ -4370,13 +4510,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const applicantId = req.params.id;
       const userId = req.user.id;
       // Note: Airtable services removed - now using local database
-      
+
       console.log(`🔄 Accepting applicant ${applicantId}...`);
-      
+
       // Get application details first from local database
       const allApplications = await localDatabaseService.getAllJobApplications();
       const application = allApplications.find(app => app.id === applicantId);
-      
+
       if (!application) {
         console.log(`❌ Application ${applicantId} not found`);
         return res.status(404).json({ message: "Application not found" });
@@ -4583,7 +4723,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       };
 
       await storage.addToShortlist(shortlistedData);
-      
+
       console.log(`✅ DATABASE SHORTLIST SUCCESS: Applicant ${applicantId} added to database shortlist`);
 
       // Send shortlist email
@@ -4628,17 +4768,17 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const shortlistId = req.params.id;
       const userId = req.user?.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
       console.log(`✅ ACCEPT SHORTLISTED: User ${userId} accepting shortlisted applicant ${shortlistId}...`);
-      
+
       // Get shortlisted applicant details
       const shortlistedApplicants = await storage.getShortlistedApplicants(userId);
       const shortlistedApplicant = shortlistedApplicants.find(app => app.id === shortlistId);
-      
+
       if (!shortlistedApplicant) {
         return res.status(404).json({ message: "Shortlisted applicant not found" });
       }
@@ -4646,7 +4786,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Get full applicant details from local database
       // Use local database service instead of Airtable
       const applicantDetails = await localDatabaseService.getJobApplication(shortlistedApplicant.applicantId);
-      
+
       if (!applicantDetails) {
         return res.status(404).json({ message: "Applicant details not found" });
       }
@@ -4671,16 +4811,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       await storage.createRealInterview(interviewData);
-      
+
       // Remove from shortlist
       await storage.removeFromShortlist(shortlistId);
-      
+
       console.log(`✅ ACCEPT SUCCESS: Applicant ${shortlistedApplicant.applicantId} moved to interviews`);
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: "Candidate accepted and moved to interviews",
         interviewId: interviewData.id
       });
@@ -4809,16 +4949,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const shortlistId = req.params.id;
       const userId = req.user?.id;
-      
+
       console.log(`❌ DENY SHORTLISTED: User ${userId} denying shortlisted applicant ${shortlistId}...`);
-      
+
       // Simply remove from shortlist
       await storage.removeFromShortlist(shortlistId);
-      
+
       console.log(`✅ DENY SUCCESS: Applicant removed from shortlist`);
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: "Candidate removed from shortlist"
       });
     } catch (error) {
@@ -4841,10 +4981,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       } catch (error) {
         console.warn('⚠️ Could not update application status to pending:', error);
       }
-      
+
       console.log(`✅ Successfully removed applicant ${applicantId} from shortlist`);
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: "Candidate removed from shortlist successfully",
         status: 'pending'
       });
@@ -4915,7 +5055,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
@@ -4923,12 +5063,12 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const { realInterviews } = await import('@shared/schema');
       const { eq, count } = await import('drizzle-orm');
       const { db } = await import('./db');
-      
+
       const [{ count: interviewCount }] = await db
         .select({ count: count() })
         .from(realInterviews)
         .where(eq(realInterviews.organizationId, organization.id.toString()));
-      
+
       res.json({ count: interviewCount || 0 });
     } catch (error) {
       console.error("Error counting interviews:", error);
@@ -5003,7 +5143,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
@@ -5044,19 +5184,19 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
       // Send email notification to the candidate
       console.log(`📧 EMAIL DEBUG: candidateEmail='${candidateEmail}', candidateName='${candidateName}'`);
-      
+
       // Use provided email or fallback to a default for testing (if email is missing from Airtable)
       const finalEmail = candidateEmail && candidateEmail.trim() ? candidateEmail.trim() : 'faroukyasser705@gmail.com';
-      
+
       if (finalEmail) {
         try {
           console.log(`📧 SENDING EMAIL: Attempting to send interview notification to ${finalEmail}`);
           const { emailService } = await import('./emailService');
           const { formatDistanceToNow, format } = await import('date-fns');
-          
+
           // Format the date for display
           const formattedDate = format(new Date(scheduledDate), 'EEEE, MMMM do, yyyy');
-          
+
           const emailData = {
             applicantName: candidateName,
             applicantEmail: finalEmail,
@@ -5069,9 +5209,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
             timeZone: timeZone || 'UTC',
             notes: notes
           };
-          
+
           console.log(`📧 EMAIL DATA:`, emailData);
-          
+
           const emailSent = await emailService.sendInterviewScheduledEmail(emailData);
           if (emailSent) {
             console.log(`✅ Interview notification email sent successfully to ${finalEmail}`);
@@ -5092,13 +5232,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
         const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
         const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-        
+
         // Find the platojobmatches record to update
         const filterFormula = `AND({User ID}='${candidateId}', {Job ID}='${jobId}')`;
         const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-        
+
         console.log(`🔍 Searching for platojobmatches record: User ID=${candidateId}, Job ID=${jobId}`);
-        
+
         const searchResponse = await fetch(searchUrl, {
           headers: {
             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -5111,10 +5251,10 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           if (searchData.records && searchData.records.length > 0) {
             const recordId = searchData.records[0].id;
             console.log(`📝 Found record ID: ${recordId}, updating with interview details...`);
-            
+
             // Create combined date & time string for Airtable with timezone
             const interviewDateTime = timeZone ? `${scheduledDate} at ${scheduledTime} (${timeZone})` : `${scheduledDate} at ${scheduledTime}`;
-            
+
             // Update the record with interview details using correct field names
             const updateData = {
               fields: {
@@ -5163,21 +5303,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
       const interviewId = req.params.id;
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
 
       const { scheduledDate, scheduledTime, timeZone, interviewType, meetingLink, notes, status } = req.body;
-      
+
       const { realInterviews } = await import('@shared/schema');
       const { eq, and } = await import('drizzle-orm');
       const { db } = await import('./db');
-      
+
       const updateData: any = {
         updatedAt: new Date(),
       };
-      
+
       if (scheduledDate !== undefined) updateData.scheduledDate = scheduledDate;
       if (scheduledTime !== undefined) updateData.scheduledTime = scheduledTime;
       if (timeZone !== undefined) updateData.timeZone = timeZone;
@@ -5192,7 +5332,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       }
 
       console.log(`🔄 Updating interview ${interviewId} with data:`, updateData);
-      
+
       const [updatedInterview] = await db.update(realInterviews)
         .set(updateData)
         .where(and(
@@ -5200,7 +5340,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
           eq(realInterviews.organizationId, organization.id.toString())
         ))
         .returning();
-      
+
       console.log(`✅ Interview updated successfully:`, updatedInterview);
 
       if (!updatedInterview) {
@@ -5210,21 +5350,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Auto-update Airtable whenever any interview field is updated
       try {
         console.log('🔄 Auto-updating Airtable platojobmatches for interview changes...');
-        
+
         const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
         const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
         const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-        
+
         // Search for the record using User ID and Job title
         const filterFormula = `AND({User ID}='${updatedInterview.candidateId}',{Job title}='${updatedInterview.jobTitle}')`;
         const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-        
+
         console.log('🔍 Searching for Airtable record to update:', {
           userId: updatedInterview.candidateId,
           jobTitle: updatedInterview.jobTitle,
           filterFormula: filterFormula
         });
-        
+
         const searchResponse = await fetch(searchUrl, {
           headers: {
             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -5240,7 +5380,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
         const searchData = await searchResponse.json();
         console.log('🔍 Airtable search results:', JSON.stringify(searchData, null, 2));
-        
+
         if (!searchData.records || searchData.records.length === 0) {
           console.error(`❌ No matching record found in Airtable for User ID "${updatedInterview.candidateId}" and Job title "${updatedInterview.jobTitle}"`);
           return; // Exit gracefully without failing the interview update
@@ -5248,12 +5388,12 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
         const recordId = searchData.records[0].id;
         console.log(`✅ Found matching Airtable record: ${recordId}`);
-        
+
         // Format datetime with timezone for Airtable
-        const interviewDateTime = updatedInterview.timeZone ? 
-          `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime} (${updatedInterview.timeZone})` : 
+        const interviewDateTime = updatedInterview.timeZone ?
+          `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime} (${updatedInterview.timeZone})` :
           `${updatedInterview.scheduledDate} at ${updatedInterview.scheduledTime}`;
-        
+
         const airtableUpdateData = {
           fields: {
             'Interview date&time': interviewDateTime,
@@ -5280,7 +5420,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
         const updatedRecord = await updateResponse.json();
         console.log(`✅ Successfully updated Airtable platojobmatches record:`, JSON.stringify(updatedRecord, null, 2));
-        
+
       } catch (airtableError) {
         console.error('❌ Failed to auto-update Airtable platojobmatches:', airtableError);
         // Don't fail the whole request if Airtable update fails, but log the error
@@ -5299,7 +5439,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const userId = req.user.id;
       const organization = await storage.getOrganizationByUser(userId);
       const interviewId = req.params.id;
-      
+
       if (!organization) {
         return res.status(404).json({ message: "Organization not found" });
       }
@@ -5307,7 +5447,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       const { realInterviews } = await import('@shared/schema');
       const { eq, and } = await import('drizzle-orm');
       const { db } = await import('./db');
-      
+
       const [deletedInterview] = await db.delete(realInterviews)
         .where(and(
           eq(realInterviews.id, interviewId),
@@ -5322,21 +5462,21 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       // Auto-clear interview details from Airtable platojobmatches when interview is deleted
       try {
         console.log('🔄 Auto-clearing interview details from Airtable platojobmatches...');
-        
+
         const AIRTABLE_API_KEY = 'pat770a3TZsbDther.a2b72657b27da4390a5215e27f053a3f0a643d66b43168adb6817301ad5051c0';
         const MATCHES_BASE_ID = 'app1u4N2W46jD43mP';
         const matchesUrl = `https://api.airtable.com/v0/${MATCHES_BASE_ID}/Table%201`;
-        
+
         // Search for the record using candidateId and jobTitle
         const filterFormula = `AND({User ID}='${deletedInterview.candidateId}',{Job title}='${deletedInterview.jobTitle}')`;
         const searchUrl = `${matchesUrl}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-        
+
         console.log('🔍 Searching for Airtable record to clear interview details:', {
           userId: deletedInterview.candidateId,
           jobTitle: deletedInterview.jobTitle,
           filterFormula: filterFormula
         });
-        
+
         const searchResponse = await fetch(searchUrl, {
           headers: {
             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -5352,7 +5492,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
         const searchData = await searchResponse.json();
         console.log('🔍 Airtable search results for deletion:', JSON.stringify(searchData, null, 2));
-        
+
         if (!searchData.records || searchData.records.length === 0) {
           console.log(`⚠️ No matching record found in platojobmatches for User ID "${deletedInterview.candidateId}" and Job title "${deletedInterview.jobTitle}"`);
           return; // Exit gracefully without failing the interview deletion
@@ -5360,7 +5500,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
         const recordId = searchData.records[0].id;
         console.log(`✅ Found matching Airtable record for deletion: ${recordId}`);
-        
+
         // Clear interview fields in Airtable
         const clearData = {
           fields: {
@@ -5388,7 +5528,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
 
         const clearedRecord = await updateResponse.json();
         console.log(`✅ Successfully cleared interview details from Airtable platojobmatches:`, JSON.stringify(clearedRecord, null, 2));
-        
+
       } catch (airtableError) {
         console.error('❌ Failed to auto-clear Airtable platojobmatches during interview deletion:', airtableError);
         // Don't fail the whole request if Airtable update fails, but log the error
@@ -5545,13 +5685,13 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const { token } = req.params;
       const invitation = await storage.getInvitationByToken(token);
-      
+
       if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
         return res.status(404).json({ message: "Invalid or expired invitation link" });
       }
 
       const organization = await storage.getOrganizationById(invitation.organizationId);
-      
+
       res.json({
         invitation: {
           id: invitation.id,
@@ -5579,9 +5719,9 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const { token, orgId, inviteCode } = req.body;
       const userId = req.user.id;
-      
+
       let invitation;
-      
+
       // Support multiple invitation types
       if (token) {
         invitation = await storage.getInvitationByToken(token);
@@ -5594,7 +5734,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       } else {
         return res.status(400).json({ message: "Either token or inviteCode is required" });
       }
-      
+
       if (!invitation || invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
         return res.status(404).json({ message: "Invalid or expired invitation" });
       }
@@ -5617,7 +5757,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
       await storage.updateInvitationStatus(invitation.id, 'accepted');
 
       const organization = await storage.getOrganizationById(invitation.organizationId);
-      
+
       console.log(`✅ User ${userId} joined organization ${invitation.organizationId} as ${invitation.role}`);
 
       res.json({
@@ -5641,46 +5781,46 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const { orgId, inviteCode } = req.body;
       const userId = req.user.id;
-      
+
       console.log(`🔄 Processing invite code acceptance: ${inviteCode} for user: ${userId} with org ID: ${orgId}`);
-      
+
       // Validate required parameters
       if (!orgId || !inviteCode) {
         return res.status(400).json({ message: "Both orgId and inviteCode are required" });
       }
-      
+
       // Find invitation by invite code
       const invitation = await storage.getInvitationByCode(inviteCode);
-      
+
       if (!invitation) {
         console.log(`❌ Invalid invite code: ${inviteCode}`);
         return res.status(400).json({ message: "Invalid invite code" });
       }
-      
+
       // Verify organization ID matches
       if (invitation.organizationId !== orgId) {
         console.log(`❌ Organization ID mismatch: expected ${invitation.organizationId}, got ${orgId}`);
         return res.status(400).json({ message: "Organization ID does not match invite code" });
       }
-      
+
       // Check invitation status and expiry
       if (invitation.status !== 'pending') {
         console.log(`❌ Invite code already used: ${inviteCode}`);
         return res.status(400).json({ message: "Invite code has already been used" });
       }
-      
+
       if (invitation.expiresAt < new Date()) {
         console.log(`❌ Invite code expired: ${inviteCode}`);
         return res.status(400).json({ message: "Invite code has expired" });
       }
-      
+
       // Check if user is already a member
       const existingMember = await storage.getTeamMemberByUserAndOrg(userId, invitation.organizationId);
       if (existingMember) {
         console.log(`❌ User ${userId} already member of organization: ${orgId}`);
         return res.status(400).json({ message: "You are already a member of this organization" });
       }
-      
+
       // Add user to organization
       await storage.addTeamMember({
         organizationId: invitation.organizationId,
@@ -5688,16 +5828,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         role: invitation.role,
         joinedAt: new Date(),
       });
-      
+
       // Mark invitation as accepted
       await storage.updateInvitationStatus(invitation.id, 'accepted');
-      
+
       // Get organization details
       const organization = await storage.getOrganizationById(invitation.organizationId);
-      
+
       console.log(`✅ Successfully accepted invite code: ${inviteCode} for user: ${userId}`);
-      
-      res.json({ 
+
+      res.json({
         success: true,
         message: `Welcome to ${organization?.companyName}!`,
         organization: {
@@ -5706,7 +5846,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         },
         role: invitation.role
       });
-      
+
     } catch (error) {
       console.error("Error accepting invite code:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
@@ -5718,14 +5858,14 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     try {
       const userId = req.user.id;
       const { token } = req.body;
-      
+
       console.log(`🔗 Processing magic link invitation acceptance for user: ${userId}, token: ${token}`);
-      
+
       if (!token) {
         console.log(`❌ No token provided in request body`);
         return res.status(400).json({ message: "Invitation token is required" });
       }
-      
+
       // Find invitation by token
       console.log(`🔍 Looking up invitation by token: ${token}`);
       const invitation = await storage.getInvitationByToken(token);
@@ -5736,30 +5876,30 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         expiresAt: invitation.expiresAt,
         organizationId: invitation.organizationId
       } : 'null');
-      
+
       if (!invitation) {
         console.log(`❌ Invalid token: ${token}`);
         return res.status(404).json({ message: "Invalid or expired invitation token" });
       }
-      
+
       // Check invitation status and expiry
       if (invitation.status !== 'pending') {
         console.log(`❌ Token already used: ${token}`);
         return res.status(400).json({ message: "Invitation has already been used" });
       }
-      
+
       if (invitation.expiresAt < new Date()) {
         console.log(`❌ Token expired: ${token}`);
         return res.status(400).json({ message: "Invitation has expired" });
       }
-      
+
       // Check if user is already a member
       const existingMember = await storage.getTeamMemberByUserAndOrg(userId, invitation.organizationId);
       if (existingMember) {
         console.log(`❌ User ${userId} already member of organization: ${invitation.organizationId}`);
         return res.status(400).json({ message: "You are already a member of this organization" });
       }
-      
+
       // Add user to organization
       await storage.addTeamMember({
         organizationId: invitation.organizationId,
@@ -5767,16 +5907,16 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         role: invitation.role,
         joinedAt: new Date(),
       });
-      
+
       // Mark invitation as accepted
       await storage.updateInvitationStatus(invitation.id, 'accepted');
-      
+
       // Get organization details
       const organization = await storage.getOrganizationById(invitation.organizationId);
-      
+
       console.log(`✅ Successfully accepted magic link invitation: ${token} for user: ${userId}`);
-      
-      res.json({ 
+
+      res.json({
         success: true,
         message: `Welcome to ${organization?.companyName}!`,
         organization: {
@@ -5785,7 +5925,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         },
         role: invitation.role
       });
-      
+
     } catch (error) {
       console.error("Error accepting magic link invitation:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
@@ -6781,7 +6921,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
-  
+
   // Delete resume profile
   app.delete('/api/resume-profiles/:id', requireAuth, async (req: any, res) => {
     try {
@@ -7398,7 +7538,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         console.warn('Invalid webhook signature');
         // return res.status(400).json({ message: 'Invalid webhook signature' });
       }
-      
+
       console.log(`📨 Processing webhook event: ${event.type}`);
 
       switch (event.type) {
