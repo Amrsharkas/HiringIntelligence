@@ -1,3 +1,4 @@
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -1712,8 +1713,319 @@ export default function ApplicantDetailsPage() {
 
           <Separator />
 
-          {/* Interview Video and Transcription Section */}
-          {applicant.interviewVideoUrl && (
+          {/* Check if applicant has completed interview or not */}
+          {(() => {
+            const status = applicant.status?.toLowerCase();
+            // Check if interview is completed - if generatedProfile exists, interview is done
+            const hasCompletedInterview = applicant.generatedProfile || applicant.interviewVideoUrl || status === 'interview_completed';
+            // Pre-interview statuses
+            const isPreInterview = ['applied', 'shortlisted', 'denied', 'declined'].includes(status || '');
+
+            // Helper function to render field value dynamically
+            const renderFieldValue = (key: string, value: any): React.ReactNode => {
+              if (value === null || value === undefined || value === '') {
+                return null;
+              }
+
+              // Handle arrays
+              if (Array.isArray(value)) {
+                if (value.length === 0) return null;
+
+                // Special handling for workExperience array
+                if (key === 'workExperience' || key === 'work_experience') {
+                  return (
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-slate-800 dark:text-slate-200">Work Experience</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {value.map((exp: any, index: number) => (
+                          <div key={index} className="border-l-2 border-primary pl-4 py-2">
+                            <div className="flex items-start justify-between mb-1">
+                              <div>
+                                <h4 className="font-semibold text-slate-800 dark:text-slate-200">
+                                  {exp.position || exp.title || 'Position'} {exp.company && `at ${exp.company}`}
+                                </h4>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                  {exp.startDate || exp.start_date} - {exp.current ? 'Present' : exp.endDate || exp.end_date || 'N/A'}
+                                  {exp.location && ` • ${exp.location}`}
+                                </p>
+                              </div>
+                              {exp.current && (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                            {exp.responsibilities && (
+                              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 whitespace-pre-wrap">
+                                {exp.responsibilities}
+                              </p>
+                            )}
+                            {exp.employmentType && (
+                              <Badge variant="outline" className="mt-2 text-xs">
+                                {exp.employmentType}
+                              </Badge>
+                            )}
+                            {exp.yearsAtPosition && (
+                              <Badge variant="outline" className="mt-2 ml-2 text-xs">
+                                {exp.yearsAtPosition}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                // Special handling for education array
+                if (key === 'education') {
+                  return (
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-slate-800 dark:text-slate-200">Education</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {value.map((edu: any, index: number) => (
+                          <div key={index} className="border-l-2 border-blue-200 pl-4 py-2">
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-200">
+                              {edu.degree} {edu.field && `in ${edu.field}`}
+                            </h4>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {edu.institution}
+                              {edu.location && ` • ${edu.location}`}
+                            </p>
+                            {edu.startDate && (
+                              <p className="text-xs text-slate-400 mt-1">
+                                {edu.startDate} - {edu.current ? 'Present' : edu.endDate || 'N/A'}
+                              </p>
+                            )}
+                            {edu.gpa && (
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                GPA: {edu.gpa}
+                              </Badge>
+                            )}
+                            {edu.honors && (
+                              <Badge variant="outline" className="mt-1 ml-2 text-xs">
+                                {edu.honors}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                // Special handling for skills array
+                if (key === 'skills') {
+                  return (
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-slate-800 dark:text-slate-200">Skills</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {value.map((skill: string, index: number) => (
+                            <Badge key={index} variant="outline" className="text-sm">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                // Special handling for projects array
+                if (key === 'projects' || key === 'projectExperience' || key === 'project_experience') {
+                  return (
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-slate-800 dark:text-slate-200">Projects</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {value.map((project: any, index: number) => (
+                          <div key={index} className="border-l-2 border-purple-200 pl-4 py-2">
+                            <div className="flex items-start justify-between mb-1">
+                              <div>
+                                <h4 className="font-semibold text-slate-800 dark:text-slate-200">
+                                  {project.name || project.title || project.projectName || 'Project'}
+                                </h4>
+                                {project.company && (
+                                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    {project.company}
+                                  </p>
+                                )}
+                                {(project.startDate || project.start_date) && (
+                                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    {project.startDate || project.start_date} - {project.current ? 'Present' : project.endDate || project.end_date || 'N/A'}
+                                  </p>
+                                )}
+                              </div>
+                              {project.current && (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                            {project.description && (
+                              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 whitespace-pre-wrap">
+                                {project.description}
+                              </p>
+                            )}
+                            {project.technologies && Array.isArray(project.technologies) && project.technologies.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {project.technologies.map((tech: string, techIndex: number) => (
+                                  <Badge key={techIndex} variant="outline" className="text-xs">
+                                    {tech}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            {project.url && (
+                              <a
+                                href={project.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-block"
+                              >
+                                View Project →
+                              </a>
+                            )}
+                            {project.githubUrl && (
+                              <a
+                                href={project.githubUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 ml-4 inline-block"
+                              >
+                                GitHub →
+                              </a>
+                            )}
+                            {project.responsibilities && (
+                              <div className="mt-2">
+                                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Responsibilities:</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                                  {project.responsibilities}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                // Generic array handling
+                return (
+                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-slate-800 dark:text-slate-200 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="list-disc list-inside space-y-1">
+                        {value.map((item: any, index: number) => (
+                          <li key={index} className="text-sm text-slate-600 dark:text-slate-400">
+                            {typeof item === 'object' ? JSON.stringify(item, null, 2) : String(item)}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              // Handle objects
+              if (typeof value === 'object' && value !== null) {
+                return (
+                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-slate-800 dark:text-slate-200 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap overflow-auto">
+                        {JSON.stringify(value, null, 2)}
+                      </pre>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              // Handle strings and numbers
+              return (
+                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-slate-800 dark:text-slate-200 capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                      {String(value)}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            };
+
+            // Pre-Interview View: Display userProfile data
+            if (isPreInterview && !hasCompletedInterview) {
+              let userProfile = applicant.userProfile;
+              // Parse if it's a string
+              if (typeof userProfile === 'string') {
+                try {
+                  userProfile = JSON.parse(userProfile);
+                } catch (e) {
+                  console.error('Error parsing userProfile:', e);
+                  userProfile = null;
+                }
+              }
+
+              if (!userProfile) {
+                return (
+                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <CardContent className="p-6">
+                      <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+                        <p className="text-sm">No profile information available.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              // Get all keys from userProfile and render them dynamically
+              const profileKeys = Object.keys(userProfile);
+
+              // Priority order for display (most important first)
+              const priorityKeys = ['professionalSummary', 'workExperience', 'projects', 'education', 'skills', 'location', 'experienceLevel', 'name', 'email', 'phone'];
+              const sortedKeys = [
+                ...priorityKeys.filter(key => profileKeys.includes(key)),
+                ...profileKeys.filter(key => !priorityKeys.includes(key))
+              ];
+
+              return (
+                <>
+                  {sortedKeys.map((key) => {
+                    const value = userProfile[key];
+                    return <React.Fragment key={key}>{renderFieldValue(key, value)}</React.Fragment>;
+                  })}
+                </>
+              );
+            }
+
+            // Post-Interview View: Continue with existing interview analysis
+            return null;
+          })()}
+
+          {/* Interview Video and Transcription Section - Only show if generatedProfile exists */}
+          {applicant.generatedProfile && applicant.interviewVideoUrl && (
             <>
               <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                 <CardHeader>
@@ -1839,15 +2151,18 @@ export default function ApplicantDetailsPage() {
             </>
           )}
 
-          {/* Interview Profile Analysis Section */}
-          {(() => {
+          {/* Interview Profile Analysis Section - Only show if generatedProfile exists */}
+          {applicant.generatedProfile && (() => {
             // Prioritize comprehensiveProfile.brutallyHonestProfile, then brutallyHonestProfile, then generatedProfile
             const profileToDisplay = applicant.comprehensiveProfile?.brutallyHonestProfile ||
               applicant.brutallyHonestProfile ||
               applicant.comprehensiveProfile ||
               applicant.generatedProfile;
 
-            if (!profileToDisplay) return null;
+            // If no interview profile exists, don't show anything
+            if (!profileToDisplay) {
+              return null;
+            }
 
             return (
               <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
@@ -1884,8 +2199,8 @@ export default function ApplicantDetailsPage() {
             );
           })()}
 
-          {/* Honest Profile Section - Display separately if available */}
-          {applicant.honestProfile && (
+          {/* Honest Profile Section - Only show if generatedProfile exists */}
+          {applicant.generatedProfile && applicant.honestProfile && (
             <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
@@ -1975,8 +2290,8 @@ export default function ApplicantDetailsPage() {
             </Card>
           )}
 
-          {/* Score Cards (if profile has dimension scores) - Support V5 and legacy structures */}
-          {(() => {
+          {/* Score Cards (if profile has dimension scores) - Only show if generatedProfile exists */}
+          {applicant.generatedProfile && (() => {
             const profile = applicant.comprehensiveProfile?.brutallyHonestProfile ||
               applicant.brutallyHonestProfile ||
               applicant.comprehensiveProfile ||

@@ -279,7 +279,10 @@ export class LocalDatabaseService {
       }
 
       if (jobId) {
-        query = query.where(eq(schema.airtableJobApplications.jobId, jobId));
+        // Convert jobId to string for comparison since jobId in database is varchar
+        // Handle both string and number jobId from URL params
+        const jobIdStr = String(jobId);
+        query = query.where(eq(schema.airtableJobApplications.jobId, jobIdStr));
       } else if (resolvedJobIds && resolvedJobIds.length > 0) {
         query = query.where(inArray(schema.airtableJobApplications.jobId, resolvedJobIds));
       }

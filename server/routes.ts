@@ -1642,12 +1642,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
+      // Log for debugging
+      if (jobId) {
+        console.log(`🔍 Filtering applicants by jobId: ${jobId} (type: ${typeof jobId})`);
+      }
+
       let applicants = await localDatabaseService.getJobApplicationsFiltered({
         organizationId: organization.id,
-        jobId: jobId as string | undefined,
+        jobId: jobId ? String(jobId) : undefined, // Ensure jobId is string
         status: status as string | undefined
       });
 
+      console.log(`📊 Found ${applicants.length} applicants for jobId: ${jobId || 'all'}`);
       res.json(applicants);
     } catch (error) {
       console.error("Error fetching applicants:", error);
@@ -1763,6 +1769,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generatedProfile = typeof applicant.generatedProfile === 'string'
           ? JSON.parse(applicant.generatedProfile)
           : applicant.generatedProfile;
+        console.log('📋 Found generatedProfile in application:', {
+          hasStrengths: !!generatedProfile?.strengths,
+          hasGaps: !!generatedProfile?.improvementAreas,
+          hasSkills: !!generatedProfile?.skills,
+          overallScore: generatedProfile?.overallScore || generatedProfile?.matchScorePercentage
+        });
+      } else {
+        console.log('⚠️ No generatedProfile found in application for applicant:', applicantId);
       }
 
       // Extract brutallyHonestProfile - prioritize comprehensiveProfile structure
@@ -1933,6 +1947,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Interview video URL and transcription
         interviewVideoUrl: interviewVideoUrl,
         interviewTranscription: interviewTranscription,
+
+        // Include userProfile for pre-interview display
+        userProfile: applicant.userProfile || parsedProfile,
       };
 
       res.json(enrichedApplicant);
