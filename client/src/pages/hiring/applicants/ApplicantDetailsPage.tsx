@@ -1492,6 +1492,360 @@ const InterviewProfileAnalysis = ({ profile }: { profile: any }) => {
             )}
         </div>
       )}
+
+      {/* Match Summary */}
+      {profile.matchSummary && (
+        <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+          <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-blue-800 dark:text-blue-300">
+            <FileText className="h-4 w-4" />
+            Match Summary
+          </h5>
+          <p className="text-sm text-slate-700 dark:text-slate-300">{profile.matchSummary}</p>
+        </div>
+      )}
+
+      {/* Recommendation & Reason */}
+      {(profile.recommendation || profile.recommendationReason) && (
+        <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
+          <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+            <Target className="h-4 w-4" />
+            Recommendation
+          </h5>
+          {profile.recommendation && (
+            <Badge className={`mb-2 ${getRecommendationColor(profile.recommendation)}`}>
+              {profile.recommendation.replace('_', ' ')}
+            </Badge>
+          )}
+          {profile.recommendationReason && (
+            <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">{profile.recommendationReason}</p>
+          )}
+        </div>
+      )}
+
+      {/* Follow-up Questions */}
+      {profile.followUpQuestions && (
+        <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
+          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-purple-800 dark:text-purple-300">
+            <MessageSquare className="h-4 w-4" />
+            Follow-up Questions for Final Interview
+          </h5>
+          <div className="space-y-3">
+            {profile.followUpQuestions.technical && profile.followUpQuestions.technical.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Technical Questions</div>
+                <ul className="space-y-1">
+                  {profile.followUpQuestions.technical.map((q: string, i: number) => (
+                    <li key={i} className="text-sm flex items-start gap-2">
+                      <span className="text-blue-600">•</span>
+                      <span>{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {profile.followUpQuestions.behavioral && profile.followUpQuestions.behavioral.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1">Behavioral Questions</div>
+                <ul className="space-y-1">
+                  {profile.followUpQuestions.behavioral.map((q: string, i: number) => (
+                    <li key={i} className="text-sm flex items-start gap-2">
+                      <span className="text-purple-600">•</span>
+                      <span>{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {profile.followUpQuestions.leadership && profile.followUpQuestions.leadership.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1">Leadership Questions</div>
+                <ul className="space-y-1">
+                  {profile.followUpQuestions.leadership.map((q: string, i: number) => (
+                    <li key={i} className="text-sm flex items-start gap-2">
+                      <span className="text-emerald-600">•</span>
+                      <span>{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {profile.followUpQuestions.cultural && profile.followUpQuestions.cultural.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-teal-700 dark:text-teal-300 mb-1">Cultural Fit Questions</div>
+                <ul className="space-y-1">
+                  {profile.followUpQuestions.cultural.map((q: string, i: number) => (
+                    <li key={i} className="text-sm flex items-start gap-2">
+                      <span className="text-teal-600">•</span>
+                      <span>{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {profile.followUpQuestions.clarification && profile.followUpQuestions.clarification.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">Clarification Questions</div>
+                <ul className="space-y-1">
+                  {profile.followUpQuestions.clarification.map((q: string, i: number) => (
+                    <li key={i} className="text-sm flex items-start gap-2">
+                      <span className="text-amber-600">•</span>
+                      <span>{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hiring Recommendation - Next Steps */}
+      {profile.hiringRecommendation?.nextSteps && profile.hiringRecommendation.nextSteps.length > 0 && (
+        <div className="p-3 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
+          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+            <Target className="h-4 w-4" />
+            Recommended Next Steps
+          </h5>
+          <ul className="space-y-1">
+            {profile.hiringRecommendation.nextSteps.map((step: string, i: number) => (
+              <li key={i} className="text-sm flex items-start gap-2">
+                <span className="text-emerald-600">→</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Leadership Assessment */}
+      {profile.leadershipAssessment && (
+        <div className="p-3 bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 rounded-lg border border-indigo-200 dark:border-indigo-700">
+          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
+            <TrendingUp className="h-4 w-4" />
+            Leadership Assessment
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {profile.leadershipAssessment.score !== undefined && (
+              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className={`text-2xl font-bold ${getScoreColor(profile.leadershipAssessment.score)}`}>
+                  {profile.leadershipAssessment.score}%
+                </div>
+                <div className="text-xs text-gray-500">Leadership Score</div>
+              </div>
+            )}
+            {profile.leadershipAssessment.currentLevel && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs text-gray-500 mb-1">Current Level</div>
+                <Badge variant="outline" className="text-xs">{profile.leadershipAssessment.currentLevel}</Badge>
+              </div>
+            )}
+            {profile.leadershipAssessment.potentialLevel && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs text-gray-500 mb-1">Potential Level</div>
+                <Badge variant="outline" className="text-xs">{profile.leadershipAssessment.potentialLevel}</Badge>
+              </div>
+            )}
+            {profile.leadershipAssessment.readinessForPromotion && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs text-gray-500 mb-1">Promotion Readiness</div>
+                <Badge variant="outline" className="text-xs">{profile.leadershipAssessment.readinessForPromotion.replace('_', ' ')}</Badge>
+              </div>
+            )}
+          </div>
+          {profile.leadershipAssessment.strengths && profile.leadershipAssessment.strengths.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Strengths</div>
+              <ul className="space-y-1">
+                {profile.leadershipAssessment.strengths.map((s: string, i: number) => (
+                  <li key={i} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {profile.leadershipAssessment.developmentAreas && profile.leadershipAssessment.developmentAreas.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-1">Development Areas</div>
+              <ul className="space-y-1">
+                {profile.leadershipAssessment.developmentAreas.map((area: string, i: number) => (
+                  <li key={i} className="text-sm text-orange-700 dark:text-orange-300 flex items-start gap-2">
+                    <span className="text-orange-600">→</span>
+                    <span>{area}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {profile.leadershipAssessment.mentorshipCapability && (
+            <div className="mt-3 p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Mentorship Capability</span>
+                <span className={`text-sm font-bold ${getScoreColor(profile.leadershipAssessment.mentorshipCapability.score || 0)}`}>
+                  {profile.leadershipAssessment.mentorshipCapability.score || 0}%
+                </span>
+              </div>
+              {profile.leadershipAssessment.mentorshipCapability.evidence && (
+                <div className="text-xs text-gray-500 mt-1">{profile.leadershipAssessment.mentorshipCapability.evidence}</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cultural Fit Analysis - Detailed */}
+      {profile.culturalFitAnalysis && (
+        <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-lg border border-teal-200 dark:border-teal-700">
+          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800 dark:text-teal-300">
+            <Users className="h-4 w-4" />
+            Cultural Fit Analysis
+          </h5>
+          {profile.culturalFitAnalysis.score !== undefined && (
+            <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 mb-3">
+              <div className={`text-3xl font-bold ${getScoreColor(profile.culturalFitAnalysis.score)}`}>
+                {profile.culturalFitAnalysis.score}%
+              </div>
+              <div className="text-xs text-gray-500">Cultural Fit Score</div>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {profile.culturalFitAnalysis.valueAlignment && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs font-semibold text-teal-700 dark:text-teal-400 mb-2">Value Alignment</div>
+                {profile.culturalFitAnalysis.valueAlignment.score !== undefined && (
+                  <div className={`text-lg font-bold ${getScoreColor(profile.culturalFitAnalysis.valueAlignment.score)} mb-2`}>
+                    {profile.culturalFitAnalysis.valueAlignment.score}%
+                  </div>
+                )}
+                {profile.culturalFitAnalysis.valueAlignment.alignedValues && profile.culturalFitAnalysis.valueAlignment.alignedValues.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {profile.culturalFitAnalysis.valueAlignment.alignedValues.map((value: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        {value}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {profile.culturalFitAnalysis.valueAlignment.potentialConflicts && profile.culturalFitAnalysis.valueAlignment.potentialConflicts.length > 0 && (
+                  <div>
+                    <div className="text-xs font-medium text-orange-600 mb-1">Potential Conflicts</div>
+                    <ul className="space-y-1">
+                      {profile.culturalFitAnalysis.valueAlignment.potentialConflicts.map((conflict: string, i: number) => (
+                        <li key={i} className="text-xs text-orange-700">• {conflict}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            {profile.culturalFitAnalysis.teamDynamics && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs font-semibold text-teal-700 dark:text-teal-400 mb-2">Team Dynamics</div>
+                {profile.culturalFitAnalysis.teamDynamics.score !== undefined && (
+                  <div className={`text-lg font-bold ${getScoreColor(profile.culturalFitAnalysis.teamDynamics.score)} mb-2`}>
+                    {profile.culturalFitAnalysis.teamDynamics.score}%
+                  </div>
+                )}
+                {profile.culturalFitAnalysis.teamDynamics.collaborationStyle && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    Collaboration: <span className="font-medium">{profile.culturalFitAnalysis.teamDynamics.collaborationStyle}</span>
+                  </div>
+                )}
+                {profile.culturalFitAnalysis.teamDynamics.teamRolePreference && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    Role Preference: <span className="font-medium">{profile.culturalFitAnalysis.teamDynamics.teamRolePreference}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {profile.culturalFitAnalysis.workEnvironmentFit && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 md:col-span-2">
+                <div className="text-xs font-semibold text-teal-700 dark:text-teal-400 mb-2">Work Environment Fit</div>
+                {profile.culturalFitAnalysis.workEnvironmentFit.score !== undefined && (
+                  <div className={`text-lg font-bold ${getScoreColor(profile.culturalFitAnalysis.workEnvironmentFit.score)} mb-2`}>
+                    {profile.culturalFitAnalysis.workEnvironmentFit.score}%
+                  </div>
+                )}
+                <div className="flex gap-4">
+                  {profile.culturalFitAnalysis.workEnvironmentFit.preferredPace && (
+                    <div className="text-xs">
+                      <span className="text-gray-500">Pace: </span>
+                      <span className="font-medium">{profile.culturalFitAnalysis.workEnvironmentFit.preferredPace}</span>
+                    </div>
+                  )}
+                  {profile.culturalFitAnalysis.workEnvironmentFit.structurePreference && (
+                    <div className="text-xs">
+                      <span className="text-gray-500">Structure: </span>
+                      <span className="font-medium">{profile.culturalFitAnalysis.workEnvironmentFit.structurePreference}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Predictive Assessment */}
+      {profile.predictiveAssessment && (
+        <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
+          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
+            <TrendingUp className="h-4 w-4" />
+            Predictive Assessment
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {profile.predictiveAssessment.performanceTrajectory && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Performance Trajectory</div>
+                {profile.predictiveAssessment.performanceTrajectory.score !== undefined && (
+                  <div className={`text-2xl font-bold ${getScoreColor(profile.predictiveAssessment.performanceTrajectory.score)} mb-1`}>
+                    {profile.predictiveAssessment.performanceTrajectory.score}%
+                  </div>
+                )}
+                {profile.predictiveAssessment.performanceTrajectory.rampUpWeeks && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Ramp-up: {profile.predictiveAssessment.performanceTrajectory.rampUpWeeks}</div>
+                )}
+                {profile.predictiveAssessment.performanceTrajectory.peakPerformanceMonths && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Peak: {profile.predictiveAssessment.performanceTrajectory.peakPerformanceMonths}</div>
+                )}
+              </div>
+            )}
+            {profile.predictiveAssessment.retentionRisk && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Retention Risk</div>
+                {profile.predictiveAssessment.retentionRisk.score !== undefined && (
+                  <div className={`text-2xl font-bold ${getScoreColor(profile.predictiveAssessment.retentionRisk.score)} mb-1`}>
+                    {profile.predictiveAssessment.retentionRisk.score}%
+                  </div>
+                )}
+                {profile.predictiveAssessment.retentionRisk.riskFactors && profile.predictiveAssessment.retentionRisk.riskFactors.length > 0 && (
+                  <div className="text-xs text-red-600 mb-1">Risk Factors: {profile.predictiveAssessment.retentionRisk.riskFactors.length}</div>
+                )}
+                {profile.predictiveAssessment.retentionRisk.retentionDrivers && profile.predictiveAssessment.retentionRisk.retentionDrivers.length > 0 && (
+                  <div className="text-xs text-green-600">Drivers: {profile.predictiveAssessment.retentionRisk.retentionDrivers.length}</div>
+                )}
+              </div>
+            )}
+            {profile.predictiveAssessment.growthPotential && (
+              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
+                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Growth Potential</div>
+                {profile.predictiveAssessment.growthPotential.score !== undefined && (
+                  <div className={`text-2xl font-bold ${getScoreColor(profile.predictiveAssessment.growthPotential.score)} mb-1`}>
+                    {profile.predictiveAssessment.growthPotential.score}%
+                  </div>
+                )}
+                {profile.predictiveAssessment.growthPotential.trajectory12Months && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{profile.predictiveAssessment.growthPotential.trajectory12Months}</div>
+                )}
+                {profile.predictiveAssessment.growthPotential.leadershipTimeline && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Leadership: {profile.predictiveAssessment.growthPotential.leadershipTimeline}</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1508,7 +1862,23 @@ export default function ApplicantDetailsPage() {
     queryFn: async () => {
       const response = await fetch(`/api/applicants/detail/${applicantId}`);
       if (!response.ok) throw new Error("Failed to fetch applicant");
-      return response.json();
+      const data = await response.json();
+
+      // Debug: Log the data structure to see what we're getting
+      console.log('📋 Applicant Data Received:', {
+        hasComprehensiveProfile: !!data.comprehensiveProfile,
+        hasHonestProfile: !!data.honestProfile,
+        hasKeyMetrics: !!data.keyMetrics,
+        comprehensiveProfileKeys: data.comprehensiveProfile ? Object.keys(data.comprehensiveProfile) : [],
+        keyMetricsKeys: data.keyMetrics ? Object.keys(data.keyMetrics) : [],
+        honestProfileKeys: data.honestProfile ? Object.keys(data.honestProfile) : [],
+        overallScore: data.keyMetrics?.overallScore || data.comprehensiveProfile?.brutallyHonestProfile?.overallScore,
+        gapSeverityScore: data.keyMetrics?.gapSeverityScore,
+        answerQualityScore: data.keyMetrics?.answerQualityScore,
+        cvConsistencyScore: data.keyMetrics?.cvConsistencyScore,
+      });
+
+      return data;
     },
   });
 
@@ -2151,6 +2521,133 @@ export default function ApplicantDetailsPage() {
             </>
           )}
 
+          {/* Comprehensive Profile Summary Section - Show basic info from comprehensiveProfile */}
+          {applicant.comprehensiveProfile && (() => {
+            const compProfile = applicant.comprehensiveProfile;
+            const hasBasicInfo = compProfile.summary || compProfile.skills?.length > 0 || compProfile.strengths?.length > 0 ||
+              compProfile.personality || compProfile.careerGoals || compProfile.workStyle ||
+              compProfile.matchScorePercentage !== undefined || compProfile.experiencePercentage !== undefined ||
+              compProfile.techSkillsPercentage !== undefined || compProfile.culturalFitPercentage !== undefined;
+
+            if (!hasBasicInfo) return null;
+
+            return (
+              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                    <FileText className="w-5 h-5 text-blue-500" />
+                    Comprehensive Profile Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {compProfile.summary && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Summary</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.summary}</p>
+                    </div>
+                  )}
+
+                  {(compProfile.matchScorePercentage !== undefined || compProfile.experiencePercentage !== undefined ||
+                    compProfile.techSkillsPercentage !== undefined || compProfile.culturalFitPercentage !== undefined) && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {compProfile.matchScorePercentage !== undefined && (
+                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.matchScorePercentage)}`}>
+                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.matchScorePercentage)}`}>
+                              {compProfile.matchScorePercentage}%
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Overall Match</div>
+                          </div>
+                        )}
+                        {compProfile.techSkillsPercentage !== undefined && (
+                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.techSkillsPercentage)}`}>
+                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.techSkillsPercentage)}`}>
+                              {compProfile.techSkillsPercentage}%
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Technical Skills</div>
+                          </div>
+                        )}
+                        {compProfile.experiencePercentage !== undefined && (
+                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.experiencePercentage)}`}>
+                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.experiencePercentage)}`}>
+                              {compProfile.experiencePercentage}%
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Experience</div>
+                          </div>
+                        )}
+                        {compProfile.culturalFitPercentage !== undefined && (
+                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.culturalFitPercentage)}`}>
+                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.culturalFitPercentage)}`}>
+                              {compProfile.culturalFitPercentage}%
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Cultural Fit</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  {compProfile.skills && compProfile.skills.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Skills</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {compProfile.skills.map((skill: string, i: number) => (
+                          <Badge key={i} variant="outline" className="text-xs">{skill}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {compProfile.strengths && compProfile.strengths.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">Strengths</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {compProfile.strengths.map((strength: string, i: number) => (
+                          <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{strength}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {compProfile.personality && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Personality</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.personality}</p>
+                    </div>
+                  )}
+
+                  {compProfile.careerGoals && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Career Goals</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.careerGoals}</p>
+                    </div>
+                  )}
+
+                  {compProfile.workStyle && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Work Style</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.workStyle}</p>
+                    </div>
+                  )}
+
+                  {compProfile.experience && compProfile.experience.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Experience</h4>
+                      <div className="space-y-2">
+                        {compProfile.experience.map((exp: any, i: number) => (
+                          <div key={i} className="p-2 bg-gray-50 dark:bg-slate-800 rounded border dark:border-gray-600">
+                            {exp.role && <div className="text-sm font-medium">{exp.role}</div>}
+                            {exp.company && <div className="text-xs text-gray-600 dark:text-gray-400">{exp.company}</div>}
+                            {exp.duration && <div className="text-xs text-gray-500">{exp.duration}</div>}
+                            {exp.description && <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{exp.description}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Interview Profile Analysis Section - Only show if generatedProfile exists */}
           {applicant.generatedProfile && (() => {
             // Prioritize comprehensiveProfile.brutallyHonestProfile, then brutallyHonestProfile, then generatedProfile
@@ -2242,6 +2739,13 @@ export default function ApplicantDetailsPage() {
                   <div>
                     <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Skill Assessment</h4>
                     <p className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.skillAssessment}</p>
+                  </div>
+                )}
+
+                {applicant.honestProfile.experienceVerification && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Experience Verification</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.experienceVerification}</p>
                   </div>
                 )}
 

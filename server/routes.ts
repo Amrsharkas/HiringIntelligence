@@ -1730,6 +1730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let applicantProfileData: any = null;
       let comprehensiveProfile: any = null;
       let honestProfile: any = null;
+      let keyMetrics: any = null;
 
       try {
         if (applicant.applicantUserId) {
@@ -1744,39 +1745,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // The comprehensiveProfile is stored with brutallyHonestProfile nested inside
             const aiProfile = profile.aiProfile as any;
 
+            console.log('📋 Applicant Profile Data:', {
+              hasAiProfile: !!aiProfile,
+              aiProfileKeys: aiProfile ? Object.keys(aiProfile) : [],
+              hasComprehensiveProfile: !!aiProfile?.comprehensiveProfile,
+              hasBrutallyHonestProfile: !!aiProfile?.brutallyHonestProfile,
+              hasHonestProfile: !!profile.honestProfile
+            });
+
             // Check multiple possible locations for comprehensiveProfile
             if (aiProfile?.comprehensiveProfile) {
               comprehensiveProfile = aiProfile.comprehensiveProfile;
+              console.log('✅ Found comprehensiveProfile in aiProfile.comprehensiveProfile');
             } else if ((profile as any).comprehensiveProfile) {
               // Check if comprehensiveProfile is stored as a direct field (dynamic field not in schema)
               comprehensiveProfile = (profile as any).comprehensiveProfile;
+              console.log('✅ Found comprehensiveProfile as direct field');
             } else if (aiProfile?.brutallyHonestProfile) {
               // If comprehensiveProfile structure is not separate, use aiProfile.brutallyHonestProfile
               comprehensiveProfile = aiProfile;
+              console.log('✅ Using aiProfile as comprehensiveProfile');
+            }
+
+            // Extract keyMetrics from comprehensiveProfile if available
+            if (comprehensiveProfile?.keyMetrics) {
+              keyMetrics = comprehensiveProfile.keyMetrics;
+              console.log('✅ Found keyMetrics in comprehensiveProfile');
             }
 
             // Get honestProfile from the honestProfile field
             honestProfile = profile.honestProfile as any;
+            if (honestProfile) {
+              console.log('✅ Found honestProfile');
+            }
+          } else {
+            console.log('⚠️ No applicant profile found for userId:', applicant.applicantUserId);
           }
+        } else {
+          console.log('⚠️ No applicantUserId found in applicant:', applicantId);
         }
       } catch (profileError) {
         console.warn('Could not fetch applicant profile:', profileError);
       }
 
-      // Parse generatedProfile if available (from job application)
+      // Parse generatedProfile if available (from job application - airtable_job_applications table)
       let generatedProfile: any = null;
       if (applicant.generatedProfile) {
         generatedProfile = typeof applicant.generatedProfile === 'string'
           ? JSON.parse(applicant.generatedProfile)
           : applicant.generatedProfile;
-        console.log('📋 Found generatedProfile in application:', {
+        console.log('📋 Found generatedProfile in application (airtable_job_applications):', {
           hasStrengths: !!generatedProfile?.strengths,
           hasGaps: !!generatedProfile?.improvementAreas,
           hasSkills: !!generatedProfile?.skills,
-          overallScore: generatedProfile?.overallScore || generatedProfile?.matchScorePercentage
+          hasComprehensiveProfile: !!generatedProfile?.comprehensiveProfile,
+          hasHonestProfile: !!generatedProfile?.honestProfile,
+          hasKeyMetrics: !!generatedProfile?.keyMetrics,
+          overallScore: generatedProfile?.overallScore || generatedProfile?.matchScorePercentage || generatedProfile?.keyMetrics?.overallScore
         });
+
+        // Extract comprehensiveProfile, honestProfile, and keyMetrics from generatedProfile if they exist
+        // The test endpoint stores these in generatedProfile
+        if (generatedProfile.comprehensiveProfile && !comprehensiveProfile) {
+          comprehensiveProfile = generatedProfile.comprehensiveProfile;
+          console.log('✅ Found comprehensiveProfile in generatedProfile from airtable_job_applications');
+        }
+        // Check for honestProfile in generatedProfile (from airtable_job_applications)
+        if (generatedProfile.honestProfile && !honestProfile) {
+          honestProfile = generatedProfile.honestProfile;
+          console.log('✅ Found honestProfile in generatedProfile from airtable_job_applications');
+        }
+        // Also check if honestProfile is nested inside comprehensiveProfile
+        if (!honestProfile && comprehensiveProfile?.honestProfile) {
+          honestProfile = comprehensiveProfile.honestProfile;
+          console.log('✅ Found honestProfile in comprehensiveProfile');
+        }
+        // Also check if honestProfile is at root level of generatedProfile (legacy structure)
+        if (!honestProfile && generatedProfile.honestProfile) {
+          honestProfile = generatedProfile.honestProfile;
+          console.log('✅ Found honestProfile at root of generatedProfile');
+        }
+        if (generatedProfile.keyMetrics && !keyMetrics) {
+          keyMetrics = generatedProfile.keyMetrics;
+          console.log('✅ Found keyMetrics in generatedProfile from airtable_job_applications');
+        }
       } else {
-        console.log('⚠️ No generatedProfile found in application for applicant:', applicantId);
+        console.log('⚠️ No generatedProfile found in application (airtable_job_applications) for applicant:', applicantId);
       }
 
       // Extract brutallyHonestProfile - prioritize comprehensiveProfile structure
@@ -1786,23 +1840,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (comprehensiveProfile) {
         // comprehensiveProfile.brutallyHonestProfile is the nested structure
         brutallyHonestProfile = comprehensiveProfile.brutallyHonestProfile || comprehensiveProfile;
+        console.log('✅ Using brutallyHonestProfile from comprehensiveProfile');
+      } else if (generatedProfile?.comprehensiveProfile?.brutallyHonestProfile) {
+        // Check if generatedProfile has comprehensiveProfile.brutallyHonestProfile (from airtable_job_applications)
+        brutallyHonestProfile = generatedProfile.comprehensiveProfile.brutallyHonestProfile;
+        console.log('✅ Using brutallyHonestProfile from generatedProfile.comprehensiveProfile.brutallyHonestProfile');
+      } else if (generatedProfile?.brutallyHonestProfile) {
+        // Fallback to generatedProfile.brutallyHonestProfile
+        brutallyHonestProfile = generatedProfile.brutallyHonestProfile;
+        console.log('✅ Using brutallyHonestProfile from generatedProfile.brutallyHonestProfile');
       } else if (generatedProfile) {
-        // Fallback to generatedProfile from job application
-        brutallyHonestProfile = generatedProfile?.brutallyHonestProfile || generatedProfile;
+        // Fallback to generatedProfile itself if it has the structure
+        brutallyHonestProfile = generatedProfile;
+        console.log('✅ Using generatedProfile as brutallyHonestProfile');
       } else if (applicantProfileData?.aiProfile) {
         // Fallback to aiProfile.brutallyHonestProfile
         const aiProfile = applicantProfileData.aiProfile as any;
         brutallyHonestProfile = aiProfile.brutallyHonestProfile || aiProfile;
+        console.log('✅ Using brutallyHonestProfile from aiProfile');
       }
 
       // Extract scores from comprehensiveProfile, brutallyHonestProfile, or generatedProfile
       // comprehensiveProfile has keyMetrics with scores, or scores directly in brutallyHonestProfile
-      const keyMetrics = comprehensiveProfile?.keyMetrics || {};
-      const profileScores = brutallyHonestProfile?.scores || keyMetrics?.scores || {};
+      // Use keyMetrics from profile if available, otherwise create from comprehensiveProfile
+      if (!keyMetrics && comprehensiveProfile?.keyMetrics) {
+        keyMetrics = comprehensiveProfile.keyMetrics;
+      }
+      // Also check generatedProfile for keyMetrics (from airtable_job_applications)
+      if (!keyMetrics && generatedProfile?.keyMetrics) {
+        keyMetrics = generatedProfile.keyMetrics;
+        console.log('✅ Using keyMetrics from generatedProfile (airtable_job_applications)');
+      }
+      const finalKeyMetrics = keyMetrics || {};
+      const profileScores = brutallyHonestProfile?.scores || finalKeyMetrics?.scores || {};
+
+      console.log('📊 Final Key Metrics:', {
+        hasKeyMetrics: !!finalKeyMetrics && Object.keys(finalKeyMetrics).length > 0,
+        overallScore: finalKeyMetrics?.overallScore,
+        gapSeverityScore: finalKeyMetrics?.gapSeverityScore,
+        answerQualityScore: finalKeyMetrics?.answerQualityScore,
+        cvConsistencyScore: finalKeyMetrics?.cvConsistencyScore,
+        scoresKeys: finalKeyMetrics?.scores ? Object.keys(finalKeyMetrics.scores) : []
+      });
 
       // Extract scores with priority: comprehensiveProfile keyMetrics > brutallyHonestProfile scores > generatedProfile
       const technicalScore = Math.round(
-        keyMetrics?.scores?.technicalSkillsScore ||
+        finalKeyMetrics?.scores?.technicalScore ||
+        finalKeyMetrics?.scores?.technicalSkillsScore ||
         profileScores.technical_competence?.final_score ||
         profileScores.technical_competence?.score ||
         profileScores.technical_skills_score_0_100 ||
@@ -1810,7 +1894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generatedProfile?.techSkillsPercentage || 0
       );
       const experienceScore = Math.round(
-        keyMetrics?.scores?.experienceScore ||
+        finalKeyMetrics?.scores?.experienceScore ||
         profileScores.experience_quality?.final_score ||
         profileScores.experience_quality?.score ||
         profileScores.experience_score_0_100 ||
@@ -1818,7 +1902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generatedProfile?.experiencePercentage || 0
       );
       const culturalFitScore = Math.round(
-        keyMetrics?.scores?.culturalFitScore ||
+        finalKeyMetrics?.scores?.culturalFitScore ||
         profileScores.cultural_collaboration_fit?.final_score ||
         profileScores.cultural_collaboration_fit?.score ||
         profileScores.cultural_fit_score_0_100 ||
@@ -1826,7 +1910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generatedProfile?.culturalFitPercentage || 0
       );
       const communicationScore = Math.round(
-        keyMetrics?.scores?.communicationScore ||
+        finalKeyMetrics?.scores?.communicationScore ||
         profileScores.communication_presence?.final_score ||
         profileScores.communication_presence?.score ||
         brutallyHonestProfile?.communicationScore || 0
@@ -1842,17 +1926,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileScores.general_employability?.score || 0
       );
       const overallScore = Math.round(
-        keyMetrics?.overallScore ||
-        keyMetrics?.scores?.overallScore ||
+        finalKeyMetrics?.overallScore ||
+        finalKeyMetrics?.scores?.overallScore ||
         profileScores.overall_score?.value ||
         brutallyHonestProfile?.overallScore ||
         generatedProfile?.matchScorePercentage || 0
       );
 
       // Extract quality metrics from keyMetrics or brutallyHonestProfile
-      const gapSeverityScore = keyMetrics?.gapSeverityScore || brutallyHonestProfile?.gapSeverityScore;
-      const answerQualityScore = keyMetrics?.answerQualityScore || brutallyHonestProfile?.answerQualityScore;
-      const cvConsistencyScore = keyMetrics?.cvConsistencyScore || brutallyHonestProfile?.cvConsistencyScore;
+      const gapSeverityScore = finalKeyMetrics?.gapSeverityScore || brutallyHonestProfile?.gapSeverityScore;
+      const answerQualityScore = finalKeyMetrics?.answerQualityScore || brutallyHonestProfile?.answerQualityScore;
+      const cvConsistencyScore = finalKeyMetrics?.cvConsistencyScore || brutallyHonestProfile?.cvConsistencyScore;
 
       // Get interview video URL and transcription from application's session
       let interviewVideoUrl = null;
@@ -1922,7 +2006,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Include comprehensiveProfile and honestProfile for frontend
         comprehensiveProfile: comprehensiveProfile,
         honestProfile: honestProfile,
-        keyMetrics: keyMetrics,
+        keyMetrics: finalKeyMetrics,
 
         // Pass the full V5 structure for frontend rendering
         brutallyHonestProfile: {
