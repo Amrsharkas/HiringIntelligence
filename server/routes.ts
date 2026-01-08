@@ -5151,6 +5151,67 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
     }
   });
 
+  // Get generated profile from airtable_job_applications table
+  app.get('/api/applicants/:id/generated-profile', requireAuth, async (req: any, res) => {
+    try {
+      const applicantId = req.params.id;
+      const userId = req.user.id;
+      const organization = await storage.getOrganizationByUser(userId);
+
+      if (!organization) {
+        return res.status(403).json({ message: "Organization not found" });
+      }
+
+      // Import schema
+      const { airtableJobApplications } = await import('@shared/schema');
+
+      // Get the job application from airtable_job_applications table
+      const [application] = await db
+        .select()
+        .from(airtableJobApplications)
+        .where(eq(airtableJobApplications.id, applicantId))
+        .limit(1);
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      // Parse generatedProfile if available
+      let generatedProfile: any = null;
+      if (application.generatedProfile) {
+        generatedProfile = typeof application.generatedProfile === 'string'
+          ? JSON.parse(application.generatedProfile)
+          : application.generatedProfile;
+      }
+
+      if (!generatedProfile) {
+        return res.status(404).json({
+          message: "Generated profile not found for this application",
+          applicationId: applicantId
+        });
+      }
+
+      console.log('✅ Retrieved generatedProfile from airtable_job_applications:', {
+        applicationId: applicantId,
+        hasGeneratedProfile: !!generatedProfile,
+        profileKeys: generatedProfile ? Object.keys(generatedProfile) : []
+      });
+
+      res.json({
+        applicationId: applicantId,
+        generatedProfile: generatedProfile,
+        retrievedAt: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('❌ Error fetching generated profile:', error);
+      res.status(500).json({
+        message: "Failed to fetch generated profile",
+        error: (error as Error).message
+      });
+    }
+  });
+
   // Interview Management Endpoints
   app.get('/api/interviews/count', requireAuth, async (req: any, res) => {
     try {

@@ -1,1860 +1,1908 @@
 import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  ArrowLeft,
+  Loader2,
+  Play,
+  User,
+  MessageSquare,
+  ChevronDown,
+  ChevronRight,
+  Star,
+  AlertTriangle,
+  TrendingUp,
+  Brain,
+  DollarSign,
+  Code,
+  Briefcase,
+  Target,
+  Users,
+  Award,
+  MapPin,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  Info,
+  Lightbulb,
+  TrendingDown,
+  BarChart3,
+  FileText,
+  Shield,
+  Zap,
+  BookOpen,
+  Heart,
+  Building2,
+  Rocket,
+} from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  ArrowLeft,
-  Star,
-  CheckCircle,
-  XCircle,
-  Calendar,
-  Loader2,
-  Play,
-  User,
-  Brain,
-  MessageSquare,
-  Target,
-  TrendingUp,
-  AlertTriangle,
-  Briefcase,
-  Users,
-  Award,
-  FileText,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { HLSVideoPlayer } from "@/components/HLSVideoPlayer";
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "shortlisted":
-      return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Shortlisted</Badge>;
-    case "denied":
-      return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Denied</Badge>;
-    case "accepted":
-      return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Accepted</Badge>;
-    default:
-      return <Badge variant="secondary">New</Badge>;
+// ============================================================================
+// HR-Focused Profile Processing Utilities
+// ============================================================================
+
+type AnyObject = Record<string, any>;
+
+function isEmpty(value: any): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string" && value.trim() === "") return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return false;
+}
+
+function deepClean<T>(input: T): T {
+  if (Array.isArray(input)) {
+    const cleanedArray = input
+      .map(deepClean)
+      .filter(item => !isEmpty(item));
+    return cleanedArray as T;
   }
+
+  if (typeof input === "object" && input !== null) {
+    const cleanedObject: AnyObject = {};
+
+    for (const [key, value] of Object.entries(input)) {
+      const cleanedValue = deepClean(value);
+      if (!isEmpty(cleanedValue)) {
+        cleanedObject[key] = cleanedValue;
+      }
+    }
+
+    return cleanedObject as T;
+  }
+
+  return input;
+}
+
+type GroupMap = {
+  [groupName: string]: (key: string) => boolean;
 };
 
-// Helper functions for score colors
-const getScoreColor = (score: number) => {
-  if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
-  if (score >= 60) return "text-amber-600 dark:text-amber-400";
-  return "text-rose-600 dark:text-rose-400";
+const HR_GROUPS: GroupMap = {
+  "🧠 Executive Summary": key =>
+    ["summary", "profileSummary", "one_line_summary", "headline", "executive_summary", "oneSentence", "oneLiner", "key_impression"].some(k =>
+      key.toLowerCase().includes(k.toLowerCase())
+    ),
+
+  "💼 Skills & Technical Capability": key =>
+    key.toLowerCase().includes("skill") ||
+    key.toLowerCase().includes("tech") ||
+    key.toLowerCase().includes("tools") ||
+    key.toLowerCase().includes("competenc") ||
+    key.toLowerCase().includes("proficien"),
+
+  "📊 Scores & Evaluation": key =>
+    key.toLowerCase().includes("score") ||
+    key.toLowerCase().includes("percentage") ||
+    key.toLowerCase().includes("rating") ||
+    key.toLowerCase().includes("metric"),
+
+  "🧑‍💻 Experience & Background": key =>
+    ["experience", "career_story", "years_of_experience", "background", "work_experience", "achievements", "projects"].some(k =>
+      key.toLowerCase().includes(k.toLowerCase())
+    ),
+
+  "🧠 Personality & Culture Fit": key =>
+    ["personality", "workstyle", "culture", "values", "behavioral", "soft_skills", "communication"].some(k =>
+      key.toLowerCase().includes(k.toLowerCase())
+    ),
+
+  "🚩 Risks, Gaps & Red Flags": key =>
+    ["redflags", "gaps", "concerns", "weakness", "improvement", "dealbreakers", "risk"].some(k =>
+      key.toLowerCase().includes(k.toLowerCase())
+    ),
+
+  "🎯 Career Direction & Motivation": key =>
+    ["career", "goals", "motivation", "direction", "aspirations", "objectives"].some(k =>
+      key.toLowerCase().includes(k.toLowerCase())
+    ),
+
+  "🧾 Metadata & Admin": key =>
+    ["metadata", "noticeperiod", "salary", "location", "timestamp", "created", "updated", "session"].some(k =>
+      key.toLowerCase().includes(k.toLowerCase())
+    )
 };
 
-const getScoreBgColor = (score: number) => {
+function groupForHRReview(input: AnyObject): AnyObject {
+  const cleaned = deepClean(input);
+  const grouped: AnyObject = {};
+
+  for (const [key, value] of Object.entries(cleaned)) {
+    let assigned = false;
+
+    for (const [groupName, matcher] of Object.entries(HR_GROUPS)) {
+      if (matcher(key)) {
+        grouped[groupName] ??= {};
+        grouped[groupName][key] = value;
+        assigned = true;
+        break;
+      }
+    }
+
+    if (!assigned) {
+      grouped["📦 Other Relevant Data"] ??= {};
+      grouped["📦 Other Relevant Data"][key] = value;
+    }
+  }
+
+  return grouped;
+}
+
+// Helper to get score color
+function getScoreColor(score: number): string {
+  if (score >= 80) return "text-green-600 dark:text-green-400";
+  if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
+  return "text-red-600 dark:text-red-400";
+}
+
+function getScoreBgColor(score: number): string {
   if (score >= 80) return "bg-green-100 dark:bg-green-900/30";
   if (score >= 60) return "bg-yellow-100 dark:bg-yellow-900/30";
   return "bg-red-100 dark:bg-red-900/30";
-};
+}
 
-// Helper function for Gap Severity Score (higher = worse, inverted logic)
-const getGapSeverityColor = (score: number) => {
-  if (score >= 76) return "text-red-600 dark:text-red-400"; // High risk
-  if (score >= 51) return "text-orange-600 dark:text-orange-400"; // Serious risk
-  if (score >= 21) return "text-yellow-600 dark:text-yellow-400"; // Manageable risk
-  return "text-green-600 dark:text-green-400"; // Low risk
-};
+// Normalize score key to identify duplicates (same meaning, different names)
+function normalizeScoreKey(key: string): string {
+  const lower = key.toLowerCase();
 
-const getGapSeverityBgColor = (score: number) => {
-  if (score >= 76) return "bg-red-100 dark:bg-red-900/30"; // High risk
-  if (score >= 51) return "bg-orange-100 dark:bg-orange-900/30"; // Serious risk
-  if (score >= 21) return "bg-yellow-100 dark:bg-yellow-900/30"; // Manageable risk
-  return "bg-green-100 dark:bg-green-900/30"; // Low risk
-};
-
-const getSectionScoreColor = (score: number, maxScore: number) => {
-  const percentage = (score / maxScore) * 100;
-  if (percentage >= 80) return 'text-green-600 bg-green-50';
-  if (percentage >= 60) return 'text-yellow-600 bg-yellow-50';
-  return 'text-red-600 bg-red-50';
-};
-
-const getVerdictColor = (decision: string) => {
-  switch (decision?.toUpperCase()) {
-    case 'INTERVIEW': return 'bg-green-500 text-white border-green-600';
-    case 'CONSIDER': return 'bg-primary text-white border-primary';
-    case 'REVIEW': return 'bg-yellow-500 text-white border-yellow-600';
-    case 'NOT PASS': return 'bg-red-500 text-white border-red-600';
-    default: return 'bg-gray-500 text-white border-gray-600';
+  // Map variations to standard names
+  if (lower.includes('experience') && (lower.includes('score') || lower.includes('percentage'))) {
+    return 'experience_score';
   }
-};
-
-const getRecommendationColor = (rec: string) => {
-  switch (rec?.toUpperCase()) {
-    case 'STRONG_YES': return 'bg-green-100 text-green-800 border-green-300';
-    case 'YES': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-    case 'MAYBE': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    case 'NO': return 'bg-orange-100 text-orange-800 border-orange-300';
-    case 'STRONG_NO': return 'bg-red-100 text-red-800 border-red-300';
-    default: return 'bg-gray-100 text-gray-800 border-gray-300';
+  if (lower.includes('technical') || lower.includes('tech') && (lower.includes('score') || lower.includes('percentage'))) {
+    return 'technical_skills_score';
   }
-};
-
-const getSkillDepthColor = (depth: string) => {
-  switch (depth?.toUpperCase()) {
-    case 'EXPERT': return 'bg-green-100 text-green-700 border-green-300';
-    case 'PROFICIENT': return 'bg-blue-100 text-blue-700 border-blue-300';
-    case 'FAMILIAR': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-    case 'LISTED': case 'LISTED_ONLY': return 'bg-gray-100 text-gray-600 border-gray-300';
-    default: return 'bg-gray-100 text-gray-600 border-gray-300';
+  if (lower.includes('cultural') && (lower.includes('score') || lower.includes('percentage'))) {
+    return 'cultural_fit_score';
   }
-};
-
-const getProgressionColor = (progression: string) => {
-  switch (progression?.toUpperCase()) {
-    case 'ASCENDING': return 'bg-green-100 text-green-700';
-    case 'STABLE': return 'bg-blue-100 text-blue-700';
-    case 'MIXED': return 'bg-yellow-100 text-yellow-700';
-    case 'DESCENDING': return 'bg-red-100 text-red-700';
-    default: return 'bg-gray-100 text-gray-700';
+  if (lower.includes('quality') && lower.includes('score')) {
+    return 'quality_score';
   }
-};
-
-// Interview Profile Analysis Component
-const InterviewProfileAnalysis = ({ profile }: { profile: any }) => {
-  if (!profile) {
-    return (
-      <div className="text-center py-4 text-slate-500 dark:text-slate-400">
-        <p className="text-sm">No interview profile analysis available.</p>
-        <p className="text-xs mt-1">Profile will be generated after the interview is analyzed.</p>
-      </div>
-    );
+  if (lower.includes('hirability') && lower.includes('score')) {
+    return 'hirability_score';
   }
 
-  const renderSubsectionItem = (label: string, data: any, maxScore?: number) => {
-    if (!data) return null;
-    const score = data.score;
-    const hasScore = score !== undefined && maxScore !== undefined;
+  // For other scores, normalize by removing numbers and extra spaces
+  return lower
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\d+/g, '')
+    .trim();
+}
 
-    return (
-      <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded border border-gray-200 dark:border-gray-700">
-        <div className="flex items-start justify-between mb-2">
-          <span className="text-sm font-medium flex-1">{label}</span>
-          {hasScore && (
-            <span className={`text-xs font-bold px-2 py-1 rounded ${getSectionScoreColor(score, maxScore)}`}>
-              {score}/{maxScore} pts
-            </span>
-          )}
-        </div>
-        {data.evidence && (
-          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{data.evidence}</div>
-        )}
-        {data.demonstratedSkills && data.demonstratedSkills.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {data.demonstratedSkills.map((skill: string, i: number) => (
-              <Badge key={i} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                {skill}
-              </Badge>
-            ))}
-          </div>
-        )}
-        {data.matchedSoftSkills && data.matchedSoftSkills.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {data.matchedSoftSkills.map((skill: string, i: number) => (
-              <Badge key={i} variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
-                {skill}
-              </Badge>
-            ))}
-          </div>
-        )}
-        {data.approach && (
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{data.approach}</div>
-        )}
-        {data.articulation && (
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Articulation: {data.articulation}</div>
-        )}
-        {data.progression && (
-          <Badge variant="outline" className={`text-xs mt-1 ${getProgressionColor(data.progression)}`}>
-            {data.progression}
-          </Badge>
-        )}
-      </div>
-    );
-  };
+// Recursively extract all scores from nested objects (with deduplication)
+function extractAllScores(obj: any, path = ''): Array<{ key: string; value: number; path: string; normalizedKey: string }> {
+  const seenValues = new Map<string, { key: string; value: number; path: string }>(); // normalizedKey+value -> best score entry
 
-  // Support both V5 structure (executive_summary) and legacy structure (executiveSummary)
-  const executiveSummary = profile.executive_summary || profile.executiveSummary;
-  const fitVerdict = executiveSummary?.fit_verdict || executiveSummary?.fitScore;
-  const oneSentence = executiveSummary?.one_sentence || executiveSummary?.oneLiner || executiveSummary?.key_impression;
-  const standoutPositive = executiveSummary?.standout_positive;
+  function searchScores(currentObj: any, currentPath: string) {
+    if (!currentObj || typeof currentObj !== 'object') return;
 
+    for (const [key, value] of Object.entries(currentObj)) {
+      const fullPath = currentPath ? `${currentPath}.${key}` : key;
+
+      // Check if key indicates a score and value is a number
+      if (
+        (key.toLowerCase().includes('score') ||
+          key.toLowerCase().includes('percentage') ||
+          key.toLowerCase().startsWith('section')) &&
+        typeof value === 'number' &&
+        value >= 0 &&
+        value <= 100
+      ) {
+        const normalizedKey = normalizeScoreKey(key);
+        // Use normalizedKey + value as unique identifier to avoid duplicates with same value
+        const uniqueId = `${normalizedKey}_${value}`;
+        const existing = seenValues.get(uniqueId);
+
+        // Keep the most descriptive key (prefer shorter, clearer names, avoid "0 100" suffix)
+        const isBetterKey = !existing ||
+          key.length < existing.key.length ||
+          (!key.includes('0') && !key.includes('100') && existing.key.includes('0')) ||
+          key.toLowerCase().includes('overall');
+
+        if (isBetterKey) {
+          seenValues.set(uniqueId, { key, value, path: fullPath });
+        }
+      }
+
+      // Recursively search nested objects (but skip already processed comprehensiveProfile/brutallyHonestProfile)
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // Skip nested comprehensiveProfile/brutallyHonestProfile to avoid duplicates
+        if (key !== 'comprehensiveProfile' && key !== 'brutallyHonestProfile' && key !== 'honestProfile') {
+          searchScores(value, fullPath);
+        }
+      }
+    }
+  }
+
+  searchScores(obj, path);
+
+  // Convert to array with normalizedKey, but remove duplicates with same normalizedKey and value
+  const finalScores = new Map<string, { key: string; value: number; path: string; normalizedKey: string }>();
+  Array.from(seenValues.values()).forEach(entry => {
+    const normalizedKey = normalizeScoreKey(entry.key);
+    const uniqueId = `${normalizedKey}_${entry.value}`;
+
+    if (!finalScores.has(uniqueId)) {
+      finalScores.set(uniqueId, {
+        ...entry,
+        normalizedKey
+      });
+    }
+  });
+
+  return Array.from(finalScores.values());
+}
+
+// Extract overall score with priority
+function extractOverallScore(profile: AnyObject): number | null {
+  // Priority order: overall_weighted_score > overallScore > matchScorePercentage
   return (
-    <div className="p-4 space-y-4 bg-white dark:bg-slate-900">
-      {/* Executive Summary - V5 or Legacy */}
-      {executiveSummary && (
-        <div className="p-3 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-bold">{oneSentence || 'Candidate Analysis'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {fitVerdict && (
-                <Badge className={`text-xs ${fitVerdict === 'EXCELLENT' || fitVerdict === 'STRONGLY_RECOMMEND' ? 'bg-green-500' :
-                  fitVerdict === 'GOOD' || fitVerdict === 'RECOMMEND' ? 'bg-primary' :
-                    fitVerdict === 'FAIR' || fitVerdict === 'CONSIDER' ? 'bg-yellow-500' :
-                      fitVerdict === 'POOR' || fitVerdict === 'HESITANT' ? 'bg-orange-500' :
-                        fitVerdict === 'DO_NOT_RECOMMEND' ? 'bg-red-500' :
-                          'bg-gray-500'
-                  }`}>
-                  {fitVerdict.replace(/_/g, ' ')}
-                </Badge>
-              )}
-              {executiveSummary.hiringUrgency && (
-                <Badge className={`text-xs ${executiveSummary.hiringUrgency === 'EXPEDITE' ? 'bg-green-600' :
-                  executiveSummary.hiringUrgency === 'STANDARD' ? 'bg-primary' :
-                    executiveSummary.hiringUrgency === 'LOW_PRIORITY' ? 'bg-gray-600' :
-                      'bg-red-600'
-                  }`}>
-                  {executiveSummary.hiringUrgency.replace('_', ' ')}
-                </Badge>
-              )}
-            </div>
-          </div>
-          {standoutPositive && (
-            <p className="text-sm text-gray-300 mt-2">{standoutPositive}</p>
-          )}
-          {executiveSummary.uniqueValueProposition && (
-            <p className="text-sm text-gray-300 mt-2">{executiveSummary.uniqueValueProposition}</p>
-          )}
-        </div>
-      )}
+    profile?.comprehensiveProfile?.brutallyHonestProfile?.scores?.overall_weighted_score_0_100 ||
+    profile?.brutallyHonestProfile?.scores?.overall_weighted_score_0_100 ||
+    profile?.scores?.overall_weighted_score_0_100 ||
+    profile?.overallScore ||
+    profile?.overall_score ||
+    profile?.scores?.overallScore ||
+    profile?.scores?.overall_score?.value ||
+    profile?.scores?.overall_score?.score ||
+    profile?.keyMetrics?.overallScore ||
+    profile?.matchScorePercentage ||
+    null
+  );
+}
 
-      {/* Hiring Guidance / Verdict & Recommendation - V5 or Legacy */}
-      {(profile.hiring_guidance || profile.verdict) && (
-        <div className="p-4 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-900">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {/* V5 structure uses hiring_guidance.proceed_to_next_round */}
-              {profile.hiring_guidance?.proceed_to_next_round && (
-                <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(profile.hiring_guidance.proceed_to_next_round)}`}>
-                  {profile.hiring_guidance.proceed_to_next_round === 'YES' ? '✓ PROCEED TO HIRE' :
-                    profile.hiring_guidance.proceed_to_next_round === 'LIKELY' ? '✓ LIKELY PROCEED' :
-                      profile.hiring_guidance.proceed_to_next_round === 'MAYBE' ? '? CONSIDER' :
-                        profile.hiring_guidance.proceed_to_next_round === 'UNLIKELY' ? '⚠ UNLIKELY' :
-                          '✗ NOT SUITABLE'}
-                </Badge>
-              )}
-              {/* Legacy structure uses verdict.decision */}
-              {profile.verdict?.decision && (
-                <Badge className={`text-lg px-4 py-2 font-bold ${getVerdictColor(profile.verdict.decision)}`}>
-                  {profile.verdict.decision === 'INTERVIEW' ? '✓ PROCEED TO HIRE' :
-                    profile.verdict.decision === 'CONSIDER' ? '? CONSIDER' :
-                      profile.verdict.decision === 'REVIEW' ? '⚠ NEEDS REVIEW' :
-                        '✗ NOT SUITABLE'}
-                </Badge>
-              )}
-              {profile.verdict?.confidence && (
-                <span className={`text-xs font-medium px-2 py-1 rounded ${profile.verdict.confidence === 'HIGH' ? 'bg-green-100 text-green-700' :
-                  profile.verdict.confidence === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                  {profile.verdict.confidence} Confidence
-                </span>
-              )}
-              {profile.verdict?.riskLevel && (
-                <span className={`text-xs font-medium px-2 py-1 rounded ${profile.verdict.riskLevel === 'LOW' ? 'bg-green-100 text-green-700' :
-                  profile.verdict.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-                    profile.verdict.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700' :
-                      'bg-red-100 text-red-700'
-                  }`}>
-                  {profile.verdict.riskLevel} Risk
-                </span>
-              )}
-            </div>
-            {profile.recommendation && (
-              <Badge className={`px-3 py-1 ${getRecommendationColor(profile.recommendation)}`}>
-                {profile.recommendation.replace('_', ' ')}
-              </Badge>
-            )}
-          </div>
+// Extract AI opinion from multiple possible locations
+function extractAIOpinion(profile: AnyObject): string | null {
+  return (
+    profile?.executive_summary?.one_sentence ||
+    profile?.executive_summary?.oneSentence ||
+    profile?.executive_summary?.oneLiner ||
+    profile?.executive_summary?.key_impression ||
+    profile?.executiveSummary?.oneSentence ||
+    profile?.comprehensiveProfile?.brutallyHonestProfile?.meta_profile_overview?.one_line_summary ||
+    profile?.brutallyHonestProfile?.meta_profile_overview?.one_line_summary ||
+    profile?.summary ||
+    profile?.profileSummary ||
+    null
+  );
+}
 
-          {profile.hiring_guidance?.reasoning && (
-            <p className="text-base font-medium text-gray-800 dark:text-gray-200 mb-3">
-              {profile.hiring_guidance.reasoning}
-            </p>
-          )}
-          {profile.verdict?.summary && (
-            <p className="text-base font-medium text-gray-800 dark:text-gray-200 mb-3">
-              {profile.verdict.summary}
-            </p>
-          )}
+// Extract array data (strengths, red flags, gaps) from multiple locations
+function extractArrayData(profile: AnyObject, keys: string[]): any[] {
+  const result: any[] = [];
+  const seen = new Set<string>();
 
-          <div className="grid grid-cols-2 gap-4">
-            {profile.verdict?.topStrength && (
-              <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-700">
-                <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3" /> TOP STRENGTH
-                </div>
-                <div className="text-sm text-green-800 dark:text-green-300">{profile.verdict.topStrength}</div>
-              </div>
-            )}
-            {profile.verdict?.topConcern && profile.verdict.topConcern !== 'None identified' && (
-              <div className="p-3 bg-orange-50 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-700">
-                <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-1 flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" /> TOP CONCERN
-                </div>
-                <div className="text-sm text-orange-800 dark:text-orange-300">{profile.verdict.topConcern}</div>
-              </div>
-            )}
-          </div>
+  function searchInObject(obj: any, depth = 0) {
+    if (depth > 5 || !obj || typeof obj !== 'object') return;
 
-          {profile.verdict?.dealbreakers && profile.verdict.dealbreakers.length > 0 && (
-            <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-700">
-              <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">DEALBREAKERS</div>
-              <ul className="text-sm text-red-800 dark:text-red-300">
-                {profile.verdict.dealbreakers.map((item: string, i: number) => (
-                  <li key={i} className="flex items-start gap-1">
-                    <span className="text-red-500">✗</span> {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+    for (const [key, value] of Object.entries(obj)) {
+      const lowerKey = key.toLowerCase();
 
-          {profile.hiring_guidance?.suggested_follow_up_questions && profile.hiring_guidance.suggested_follow_up_questions.length > 0 && (
-            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-              <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">Suggested Follow-up Questions</div>
-              <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-                {profile.hiring_guidance.suggested_follow_up_questions.map((item: string, i: number) => (
-                  <li key={i} className="flex items-start gap-1">
-                    <span className="text-blue-500">→</span> {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {profile.recommendationReason && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 italic border-t border-gray-200 dark:border-gray-700 pt-3">
-              {profile.recommendationReason}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Job Match Analysis - V5 structure */}
-      {profile.job_match_analysis && (
-        <div className="p-4 rounded-lg border-2 border-blue-300 dark:border-blue-600 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/30 dark:to-slate-900">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300">
-            <Target className="h-4 w-4" />
-            Job Match Analysis
-            {profile.job_match_analysis.job_title && (
-              <span className="text-xs text-gray-500">({profile.job_match_analysis.job_title})</span>
-            )}
-          </h5>
-
-          {profile.job_match_analysis.recommendation_reasoning && (
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-              {profile.job_match_analysis.recommendation_reasoning}
-            </p>
-          )}
-
-          {profile.job_match_analysis.requirements_assessment && profile.job_match_analysis.requirements_assessment.length > 0 && (
-            <div className="space-y-2 mb-3">
-              <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Requirements Assessment</div>
-              {profile.job_match_analysis.requirements_assessment.map((req: any, i: number) => (
-                <div key={i} className={`p-2 rounded border ${req.met_status === 'CLEARLY_MET' ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700' :
-                  req.met_status === 'PARTIALLY_MET' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-700' :
-                    'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-700'
-                  }`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium">{req.requirement}</span>
-                    <Badge variant="outline" className={`text-xs ${req.met_status === 'CLEARLY_MET' ? 'bg-green-100 text-green-700' :
-                      req.met_status === 'PARTIALLY_MET' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                      {req.met_status.replace(/_/g, ' ')}
-                    </Badge>
-                  </div>
-                  {req.evidence && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Evidence: {req.evidence}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {profile.job_match_analysis.strongest_alignments && profile.job_match_analysis.strongest_alignments.length > 0 && (
-            <div className="mb-3">
-              <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">Strongest Alignments</div>
-              <div className="flex flex-wrap gap-1">
-                {profile.job_match_analysis.strongest_alignments.map((alignment: string, i: number) => (
-                  <Badge key={i} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                    {alignment}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {profile.job_match_analysis.critical_gaps && profile.job_match_analysis.critical_gaps.length > 0 && (
-            <div>
-              <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">Critical Gaps</div>
-              <div className="flex flex-wrap gap-1">
-                {profile.job_match_analysis.critical_gaps.map((gap: string, i: number) => (
-                  <Badge key={i} variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                    {gap}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Section Scores Summary */}
-      {(profile.sectionA !== undefined || profile.sectionB !== undefined) && (
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-          <h5 className="font-medium text-sm mb-3 text-blue-800 dark:text-blue-300">Score Breakdown by Section</h5>
-          <Accordion type="multiple" className="space-y-2">
-            {/* Section A: Technical */}
-            {profile.detailedBreakdown?.sectionA && (
-              <AccordionItem value="sectionA" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
-                <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Section A: Technical Competency</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-blue-700">{profile.sectionA ?? '-'}<span className="text-xs font-normal text-gray-500">/30</span></span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    {profile.detailedBreakdown.sectionA.A1_technicalKnowledge && renderSubsectionItem('A1: Technical Knowledge', profile.detailedBreakdown.sectionA.A1_technicalKnowledge, 15)}
-                    {profile.detailedBreakdown.sectionA.A2_problemSolving && renderSubsectionItem('A2: Problem Solving', profile.detailedBreakdown.sectionA.A2_problemSolving, 10)}
-                    {profile.detailedBreakdown.sectionA.A3_practicalApplication && renderSubsectionItem('A3: Practical Application', profile.detailedBreakdown.sectionA.A3_practicalApplication, 5)}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Section B: Experience */}
-            {profile.detailedBreakdown?.sectionB && (
-              <AccordionItem value="sectionB" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
-                <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Section B: Experience & Achievements</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-blue-700">{profile.sectionB ?? '-'}<span className="text-xs font-normal text-gray-500">/25</span></span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    {profile.detailedBreakdown.sectionB.B1_experienceDepth && renderSubsectionItem('B1: Experience Depth', profile.detailedBreakdown.sectionB.B1_experienceDepth, 10)}
-                    {profile.detailedBreakdown.sectionB.B2_achievementCommunication && renderSubsectionItem('B2: Achievement Communication', profile.detailedBreakdown.sectionB.B2_achievementCommunication, 10)}
-                    {profile.detailedBreakdown.sectionB.B3_careerProgression && renderSubsectionItem('B3: Career Progression', profile.detailedBreakdown.sectionB.B3_careerProgression, 5)}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Section C: Communication */}
-            {profile.detailedBreakdown?.sectionC && (
-              <AccordionItem value="sectionC" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
-                <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Section C: Communication & Soft Skills</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-blue-700">{profile.sectionC ?? '-'}<span className="text-xs font-normal text-gray-500">/20</span></span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    {profile.detailedBreakdown.sectionC.C1_communicationClarity && renderSubsectionItem('C1: Communication Clarity', profile.detailedBreakdown.sectionC.C1_communicationClarity, 10)}
-                    {profile.detailedBreakdown.sectionC.C2_listeningSkills && renderSubsectionItem('C2: Listening Skills', profile.detailedBreakdown.sectionC.C2_listeningSkills, 5)}
-                    {profile.detailedBreakdown.sectionC.C3_softSkillsEvidence && renderSubsectionItem('C3: Soft Skills Evidence', profile.detailedBreakdown.sectionC.C3_softSkillsEvidence, 5)}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Section D: Cultural Fit */}
-            {profile.detailedBreakdown?.sectionD && (
-              <AccordionItem value="sectionD" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
-                <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Section D: Cultural Fit & Values</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-blue-700">{profile.sectionD ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    {profile.detailedBreakdown.sectionD.D1_valueAlignment && renderSubsectionItem('D1: Value Alignment', profile.detailedBreakdown.sectionD.D1_valueAlignment, 5)}
-                    {profile.detailedBreakdown.sectionD.D2_teamFit && renderSubsectionItem('D2: Team Fit', profile.detailedBreakdown.sectionD.D2_teamFit, 5)}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Section E: Leadership */}
-            {profile.detailedBreakdown?.sectionE && (
-              <AccordionItem value="sectionE" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
-                <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Section E: Leadership & Growth</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-blue-700">{profile.sectionE ?? '-'}<span className="text-xs font-normal text-gray-500">/10</span></span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    {profile.detailedBreakdown.sectionE.E1_leadershipPotential && renderSubsectionItem('E1: Leadership Potential', profile.detailedBreakdown.sectionE.E1_leadershipPotential, 5)}
-                    {profile.detailedBreakdown.sectionE.E2_growthMindset && renderSubsectionItem('E2: Growth Mindset', profile.detailedBreakdown.sectionE.E2_growthMindset, 5)}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Section F: Modifiers */}
-            {profile.detailedBreakdown?.sectionF && (
-              <AccordionItem value="sectionF" className="bg-white dark:bg-slate-800 rounded border dark:border-gray-600 overflow-hidden">
-                <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Section F: Bonus & Penalties</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-lg font-bold ${(profile.sectionF ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        {(profile.sectionF ?? 0) >= 0 ? '+' : ''}{profile.sectionF ?? '0'}
-                      </span>
-                      <span className="text-xs text-gray-500">pts</span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    {profile.detailedBreakdown.sectionF.bonusPoints?.appliedBonuses?.map((bonus: any, i: number) => (
-                      <div key={i} className="text-xs text-green-600">+ {bonus.condition}: {bonus.points} pts</div>
-                    ))}
-                    {profile.detailedBreakdown.sectionF.penalties?.appliedPenalties?.map((penalty: any, i: number) => (
-                      <div key={i} className="text-xs text-red-600">{penalty.issue}: {penalty.points} pts</div>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-          </Accordion>
-        </div>
-      )}
-
-      {/* Quick Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-700 text-center">
-          <div className="text-2xl font-bold text-green-700">
-            {profile.strengthsHighlights?.length || 0}
-          </div>
-          <div className="text-xs text-green-600">Strengths Found</div>
-        </div>
-        <div className="p-3 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-700 text-center">
-          <div className="text-2xl font-bold text-red-700">
-            {profile.improvementAreas?.length || 0}
-          </div>
-          <div className="text-xs text-red-600">Gaps Identified</div>
-        </div>
-        <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-700 text-center">
-          <div className="text-2xl font-bold text-amber-700">
-            {profile.skillAnalysis?.matchedSkills?.length || 0}
-          </div>
-          <div className="text-xs text-amber-600">Skills Matched</div>
-        </div>
-        <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700 text-center">
-          <div className="text-2xl font-bold text-purple-700">
-            {profile.quantifiedAchievements?.length || 0}
-          </div>
-          <div className="text-xs text-purple-600">Achievements</div>
-        </div>
-      </div>
-
-      {/* Transcript Analysis - Green Flags (V5 structure) */}
-      {profile.transcript_analysis?.green_flags_detected && profile.transcript_analysis.green_flags_detected.length > 0 && (
-        <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
-            <CheckCircle className="h-4 w-4" />
-            Green Flags Detected ({profile.transcript_analysis.green_flags_detected.length})
-          </h5>
-          <div className="space-y-2">
-            {profile.transcript_analysis.green_flags_detected.map((flag: any, i: number) => (
-              <div key={i} className="p-2 bg-white dark:bg-slate-800 rounded border border-green-100 dark:border-green-800">
-                <div className="text-sm font-medium text-green-800 dark:text-green-300">
-                  {flag.description || flag}
-                </div>
-                {flag.evidence && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    <span className="font-medium">Evidence:</span> {flag.evidence}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Strengths & Gaps */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Strengths - Support both V5 and legacy */}
-        <div className="p-3 bg-gradient-to-b from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
-            <CheckCircle className="h-4 w-4" />
-            Strengths ({profile.strengthsHighlights?.length || profile.transcript_analysis?.green_flags_detected?.length || 0})
-          </h5>
-          {(() => {
-            // Support both V5 (transcript_analysis.green_flags_detected) and legacy (strengthsHighlights)
-            const strengths = profile.strengthsHighlights ||
-              profile.transcript_analysis?.green_flags_detected?.map((f: any) => ({ strength: f.description || f, evidence: f.evidence })) || [];
-
-            if (strengths.length > 0) {
-              return (
-                <div className="space-y-2">
-                  {strengths.map((item: any, i: number) => (
-                    <div key={i} className="p-2 bg-white dark:bg-slate-800 rounded border border-green-100 dark:border-green-800">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-green-800 dark:text-green-300">{item.strength || item}</div>
-                          {item.evidence && (
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                              <span className="font-medium">Evidence:</span> {item.evidence}
-                            </div>
-                          )}
-                          {item.relevanceToJob && (
-                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                              <span className="font-medium">Job Relevance:</span> {item.relevanceToJob}
-                            </div>
-                          )}
-                        </div>
-                        {item.impact && (
-                          <Badge variant="outline" className={`text-xs ml-2 ${item.impact === 'HIGH' ? 'bg-green-100 text-green-700 border-green-300' :
-                            item.impact === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
-                              'bg-gray-100 text-gray-600 border-gray-300'
-                            }`}>
-                            {item.impact}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
+      // Check if this key matches any of our search keys
+      if (keys.some(searchKey => lowerKey.includes(searchKey.toLowerCase()))) {
+        if (Array.isArray(value) && value.length > 0) {
+          value.forEach((item: any) => {
+            const itemStr = typeof item === 'object'
+              ? JSON.stringify(item)
+              : String(item);
+            if (!seen.has(itemStr)) {
+              seen.add(itemStr);
+              result.push(item);
             }
-            return <div className="text-sm text-gray-500 italic">No strengths identified yet</div>;
-          })()}
-        </div>
+          });
+        }
+      }
 
-        {/* Gaps */}
-        <div className="p-3 bg-gradient-to-b from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg border border-red-200 dark:border-red-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800 dark:text-red-300">
-            <AlertTriangle className="h-4 w-4" />
-            Gaps & Concerns ({profile.improvementAreas?.length || 0})
-          </h5>
-          {profile.improvementAreas && profile.improvementAreas.length > 0 ? (
+      // Recursively search nested objects
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        searchInObject(value, depth + 1);
+      }
+    }
+  }
+
+  searchInObject(profile);
+  return result;
+}
+
+// Extract specific data fields from profile
+function extractField(profile: AnyObject, paths: string[]): any {
+  for (const path of paths) {
+    const keys = path.split('.');
+    let value: any = profile;
+    for (const key of keys) {
+      if (value && typeof value === 'object' && key in value) {
+        value = value[key];
+      } else {
+        value = null;
+        break;
+      }
+    }
+    if (value !== null && !isEmpty(value)) return value;
+  }
+  return null;
+}
+
+// Extract skills from multiple locations
+function extractSkills(profile: AnyObject): string[] {
+  const skills = new Set<string>();
+
+  const skillPaths = [
+    'skills',
+    'comprehensiveProfile.skills',
+    'brutallyHonestProfile.skills_and_capabilities.core_hard_skills',
+    'honestProfile.skills',
+  ];
+
+  skillPaths.forEach(path => {
+    const value = extractField(profile, [path]);
+    if (Array.isArray(value)) {
+      value.forEach((skill: any) => {
+        if (typeof skill === 'string') skills.add(skill);
+        else if (skill?.skill) skills.add(skill.skill);
+      });
+    }
+  });
+
+  return Array.from(skills);
+}
+
+// Extract salary information
+function extractSalary(profile: AnyObject): { range?: string; expectation?: string } {
+  return {
+    range: extractField(profile, [
+      'honestProfile.salaryRange',
+      'comprehensiveProfile.brutallyHonestProfile.metadata.salaryExpectation',
+      'brutallyHonestProfile.metadata.salaryExpectation',
+    ]) || undefined,
+    expectation: extractField(profile, [
+      'comprehensiveProfile.brutallyHonestProfile.metadata.salaryExpectation',
+      'brutallyHonestProfile.metadata.salaryExpectation',
+    ]) || undefined,
+  };
+}
+
+// Render FAQ-style item
+function renderFAQItem(question: string, answer: any, index: number): React.ReactNode {
+  return (
+    <AccordionItem key={index} value={`faq-${index}`} className="border-b border-slate-200 dark:border-slate-700">
+      <AccordionTrigger className="hover:no-underline text-left">
+        <div className="flex items-start gap-2 flex-1">
+          <span className="text-primary font-semibold mt-1">Q{index + 1}:</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">{question}</span>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="pt-2">
+        <div className="pl-6 text-slate-600 dark:text-slate-400">
+          {typeof answer === 'object' ? (
             <div className="space-y-2">
-              {profile.improvementAreas.map((item: any, i: number) => (
-                <div key={i} className={`p-2 bg-white dark:bg-slate-800 rounded border ${item.severity === 'CRITICAL' ? 'border-red-300' :
-                  item.severity === 'MAJOR' ? 'border-orange-300' :
-                    'border-yellow-300'
-                  }`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-red-800 dark:text-red-300">{item.gap || item}</div>
-                      {item.reason && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <span className="font-medium">Reason:</span> {item.reason}
-                        </div>
-                      )}
-                      {item.recommendation && (
-                        <div className="text-xs text-primary mt-1">
-                          <span className="font-medium">Recommendation:</span> {item.recommendation}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      {item.severity && (
-                        <Badge variant="outline" className={`text-xs ${item.severity === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-300' :
-                          item.severity === 'MAJOR' ? 'bg-orange-100 text-orange-700 border-orange-300' :
-                            'bg-yellow-100 text-yellow-700 border-yellow-300'
-                          }`}>
-                          {item.severity}
-                        </Badge>
-                      )}
-                      {item.trainable !== undefined && (
-                        <span className={`text-xs ${item.trainable ? 'text-green-600' : 'text-gray-500'}`}>
-                          {item.trainable ? '✓ Trainable' : '✗ Not Trainable'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+              {Object.entries(answer).map(([key, val]) => (
+                <div key={key}>
+                  <span className="font-medium">{key}:</span> {String(val)}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-sm text-gray-500 italic">No gaps identified</div>
+            <p>{String(answer)}</p>
           )}
         </div>
-      </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
 
-      {/* Skill Analysis */}
-      {profile.skillAnalysis && (
-        <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
-            <Star className="h-4 w-4" />
-            Skill Analysis
-          </h5>
+// Component to render profile in structured format (like pitch.tsx)
+function renderStructuredProfile(profile: AnyObject): React.ReactNode {
+  const cleaned = deepClean(profile);
 
-          {/* Skill Depth Summary */}
-          {profile.skillAnalysis.skillDepthSummary && (
-            <div className="grid grid-cols-4 gap-2 mb-3">
-              <div className="text-center p-2 bg-green-100 dark:bg-green-900/50 rounded">
-                <div className="text-lg font-bold text-green-700">{profile.skillAnalysis.skillDepthSummary.expert || 0}</div>
-                <div className="text-xs text-green-600">Expert</div>
-              </div>
-              <div className="text-center p-2 bg-blue-100 dark:bg-blue-900/50 rounded">
-                <div className="text-lg font-bold text-blue-700">{profile.skillAnalysis.skillDepthSummary.proficient || 0}</div>
-                <div className="text-xs text-primary">Proficient</div>
-              </div>
-              <div className="text-center p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded">
-                <div className="text-lg font-bold text-yellow-700">{profile.skillAnalysis.skillDepthSummary.familiar || 0}</div>
-                <div className="text-xs text-yellow-600">Familiar</div>
-              </div>
-              <div className="text-center p-2 bg-gray-100 dark:bg-gray-800 rounded">
-                <div className="text-lg font-bold text-gray-600">{profile.skillAnalysis.skillDepthSummary.listedOnly || 0}</div>
-                <div className="text-xs text-gray-500">Listed Only</div>
-              </div>
-            </div>
-          )}
+  // Extract overall score separately with priority
+  const overallScoreValue = extractOverallScore(cleaned);
 
-          {/* Matched Skills */}
-          {profile.skillAnalysis.matchedSkills && profile.skillAnalysis.matchedSkills.length > 0 && (
-            <div className="mb-2">
-              <span className="text-xs font-medium text-green-700">Matched Skills:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {profile.skillAnalysis.matchedSkills.map((s: any, i: number) => (
-                  <Badge key={i} variant="outline" className={`text-xs ${getSkillDepthColor(s.depth)}`}>
-                    {s.skill} <span className="opacity-70 ml-1">{s.depth}</span>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+  // Extract all other scores (excluding overall to avoid duplication)
+  const allScores = extractAllScores(cleaned);
 
-          {/* Missing Skills */}
-          {profile.skillAnalysis.missingSkills && profile.skillAnalysis.missingSkills.length > 0 && (
-            <div className="mt-2">
-              <span className="text-xs font-medium text-red-700">Missing Skills:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {profile.skillAnalysis.missingSkills.map((s: any, i: number) => (
-                  <Badge key={i} variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                    {s.skill || s}
-                    {s.importance && <span className="opacity-70 ml-1">({s.importance})</span>}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+  // Filter out overall/match scores from allScores since we handle them separately
+  const sectionScores = allScores.filter(s =>
+    s.key.toLowerCase().startsWith('section')
+  );
 
-      {/* Experience Analysis */}
-      {profile.experienceAnalysis && (
-        <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300">
-            <Briefcase className="h-4 w-4" />
-            Experience Analysis
-          </h5>
+  // Get other scores, but exclude duplicates and overall scores
+  const seenNormalized = new Set<string>();
+  const otherScores = allScores.filter(s => {
+    const normalized = s.normalizedKey;
+    // Skip if already seen or if it's an overall/match score
+    if (seenNormalized.has(normalized) ||
+      s.key.toLowerCase().includes('overall') ||
+      s.key.toLowerCase().includes('match')) {
+      return false;
+    }
+    seenNormalized.add(normalized);
+    return true;
+  });
 
-          {profile.experienceAnalysis.experienceSummary && (
-            <p className="text-xs text-gray-700 dark:text-gray-300 mb-3 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-blue-100 dark:border-blue-800">
-              {profile.experienceAnalysis.experienceSummary}
-            </p>
-          )}
+  // Extract AI opinion
+  const aiOpinion = extractAIOpinion(cleaned);
 
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-              <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
-                {profile.experienceAnalysis.totalYears || 0}y
-              </div>
-              <div className="text-xs text-gray-500">Total Experience</div>
-            </div>
-            <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-              <div className="text-lg font-bold text-green-700">
-                {profile.experienceAnalysis.relevantYears || 0}y
-              </div>
-              <div className="text-xs text-gray-500">Relevant</div>
-            </div>
-            <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-              <Badge className={`${getProgressionColor(profile.experienceAnalysis.careerProgression)} text-xs`}>
-                {profile.experienceAnalysis.careerProgression || 'N/A'}
-              </Badge>
-              <div className="text-xs text-gray-500 mt-1">Progression</div>
-            </div>
-          </div>
+  // Extract arrays (no duplicates)
+  const strengths = extractArrayData(cleaned, ['strength', 'highlight', 'green_flag', 'achievement', 'key_highlights']);
+  const redFlags = extractArrayData(cleaned, ['red_flag', 'dealbreaker', 'risk']);
+  let gaps = extractArrayData(cleaned, ['gap', 'concern', 'weakness', 'improvement', 'watchout', 'criticalWeaknesses']);
 
-          {/* Key Projects */}
-          {profile.experienceAnalysis.keyProjects && profile.experienceAnalysis.keyProjects.length > 0 && (
-            <div className="mt-2">
-              <span className="text-xs font-medium text-blue-700">Key Projects Discussed:</span>
-              <div className="space-y-2 mt-1">
-                {profile.experienceAnalysis.keyProjects.slice(0, 3).map((project: any, i: number) => (
-                  <div key={i} className="text-xs p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                    <div className="font-medium">{project.project}</div>
-                    {project.role && <div className="text-gray-500">Role: {project.role}</div>}
-                    {project.impact && <div className="text-green-600">Impact: {project.impact}</div>}
+  // Extract concerns from brutallyHonestProfile and add to gaps
+  const concernsData = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.concerns',
+    'brutallyHonestProfile.concerns',
+  ]);
+
+  // Handle both formats: array of concerns OR object with concerns array
+  if (concernsData) {
+    if (Array.isArray(concernsData)) {
+      // Format 1: concerns is directly an array
+      gaps = [...gaps, ...concernsData];
+    } else if (Array.isArray(concernsData.concerns)) {
+      // Format 2: concerns is an object with concerns array
+      gaps = [...gaps, ...concernsData.concerns];
+    }
+  }
+
+  // Extract specific important fields
+  const skills = extractSkills(cleaned);
+  const salary = extractSalary(cleaned);
+  const workStyle = extractField(cleaned, ['workStyle', 'comprehensiveProfile.workStyle', 'brutallyHonestProfile.work_style_and_collaboration.day_to_day_work_style']);
+  const careerGoals = extractField(cleaned, ['careerGoals', 'comprehensiveProfile.careerGoals', 'brutallyHonestProfile.motivation_and_career_direction.short_term_goals_1_2_years']);
+  const personality = extractField(cleaned, ['personality', 'comprehensiveProfile.personality', 'brutallyHonestProfile.personality_and_values.personality_summary']);
+  const recommendedRole = extractField(cleaned, ['honestProfile.recommendedRole', 'brutallyHonestProfile.recommended_roles_and_pathways.recommended_role_types']);
+  const skillAssessment = extractField(cleaned, ['honestProfile.skillAssessment']);
+  const experienceVerification = extractField(cleaned, ['honestProfile.experienceVerification']);
+
+  // Extract career story
+  const careerStory = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.career_story',
+    'brutallyHonestProfile.career_story',
+  ]);
+
+  // Extract trends
+  const trends = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.trends',
+    'brutallyHonestProfile.trends',
+  ]);
+
+  // Extract concerns (yellow flags, mitigation)
+  const concerns = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.concerns',
+    'brutallyHonestProfile.concerns',
+  ]);
+
+  // Extract interview quality metadata
+  const interviewQuality = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.metadata.interviewQuality',
+    'brutallyHonestProfile.metadata.interviewQuality',
+  ]);
+
+  // Extract identity & background
+  const identity = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.identity_and_background',
+    'brutallyHonestProfile.identity_and_background',
+  ]);
+
+  // Extract achievements
+  const achievements = extractArrayData(cleaned, ['achievement', 'representative_achievements', 'key_milestones']);
+
+  // Extract derived tags
+  const tags = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.derived_tags',
+    'brutallyHonestProfile.derived_tags',
+  ]);
+
+  // Extract risk & stability
+  const riskStability = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.risk_and_stability',
+    'brutallyHonestProfile.risk_and_stability',
+  ]);
+
+  // Extract additional fields from Format 1 (new format)
+  const skillsMatch = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.skills_match',
+    'brutallyHonestProfile.skills_match',
+  ]);
+
+  const overallScoring = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.overall_scoring',
+    'brutallyHonestProfile.overall_scoring',
+  ]);
+
+  const experienceAnalysis = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.experience_analysis',
+    'brutallyHonestProfile.experience_analysis',
+  ]);
+
+  const answerQualityAnalysis = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.answer_quality_analysis',
+    'brutallyHonestProfile.answer_quality_analysis',
+  ]);
+
+  const overallRiskAssessment = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.overall_risk_assessment',
+    'brutallyHonestProfile.overall_risk_assessment',
+  ]);
+
+  const compensationLogistics = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.compensation_and_logistics',
+    'brutallyHonestProfile.compensation_and_logistics',
+  ]);
+
+  const dataQualityNotes = extractField(cleaned, [
+    'comprehensiveProfile.brutallyHonestProfile.data_quality_notes',
+    'brutallyHonestProfile.data_quality_notes',
+  ]);
+
+  // Get all other data (excluding scores and already extracted arrays)
+  const processedKeys = new Set([
+    'overallScore', 'overall_score', 'matchScorePercentage', 'sectionA', 'sectionB', 'sectionC', 'sectionD', 'sectionE', 'sectionF',
+    'strengthsHighlights', 'strengths', 'redFlags', 'improvementAreas', 'gaps', 'concerns',
+    'executive_summary', 'executiveSummary', 'summary', 'profileSummary',
+    'comprehensiveProfile', 'brutallyHonestProfile', 'honestProfile'
+  ]);
+
+  const otherData: Array<{ key: string; value: any }> = [];
+  const seenValues = new Set<string>();
+
+  function extractOtherData(obj: any, prefix = '') {
+    if (!obj || typeof obj !== 'object') return;
+
+    for (const [key, value] of Object.entries(obj)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+
+      // Skip if already processed or empty
+      if (processedKeys.has(key) || isEmpty(value)) continue;
+
+      // Skip if it's a nested object we've already processed
+      if (key === 'comprehensiveProfile' || key === 'brutallyHonestProfile' || key === 'honestProfile') {
+        extractOtherData(value, fullKey);
+        continue;
+      }
+
+      const valueStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      if (!seenValues.has(valueStr) && !isEmpty(value)) {
+        seenValues.add(valueStr);
+        otherData.push({ key: fullKey, value });
+      }
+
+      // Recursively process nested objects (but not too deep)
+      if (typeof value === 'object' && value !== null && !Array.isArray(value) && prefix.split('.').length < 3) {
+        extractOtherData(value, fullKey);
+      }
+    }
+  }
+
+  extractOtherData(cleaned);
+
+  return (
+    <div className="space-y-6">
+      {/* Section 1: Scores Dashboard - Top Priority */}
+      {(overallScoreValue !== null || sectionScores.length > 0 || otherScores.length > 0) && (
+        <Card className="bg-linear-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 border-2 border-primary">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6" />
+              Scores & Evaluation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              {/* Overall Score - Large Display */}
+              {overallScoreValue !== null && (
+                <div className="text-center p-6 bg-white dark:bg-slate-800 rounded-xl border-2 border-primary shadow-lg">
+                  <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                    Overall Score
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Communication Analysis */}
-      {profile.communicationAnalysis && (
-        <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-purple-800 dark:text-purple-300">
-            <MessageSquare className="h-4 w-4" />
-            Communication Analysis
-          </h5>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-              <div className="text-lg font-bold text-purple-700">{profile.communicationAnalysis.overallScore || 0}</div>
-              <div className="text-xs text-gray-500">Overall</div>
-            </div>
-            {profile.communicationAnalysis.clarity && (
-              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-lg font-bold text-purple-700">{profile.communicationAnalysis.clarity.score || 0}</div>
-                <div className="text-xs text-gray-500">Clarity</div>
-              </div>
-            )}
-            {profile.communicationAnalysis.structuredThinking && (
-              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-lg font-bold text-purple-700">{profile.communicationAnalysis.structuredThinking.score || 0}</div>
-                <div className="text-xs text-gray-500">Structure</div>
-              </div>
-            )}
-            {profile.communicationAnalysis.listeningSkills && (
-              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-lg font-bold text-purple-700">{profile.communicationAnalysis.listeningSkills.score || 0}</div>
-                <div className="text-xs text-gray-500">Listening</div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Quantified Achievements */}
-      {profile.quantifiedAchievements && profile.quantifiedAchievements.length > 0 && (
-        <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
-            <Award className="h-4 w-4" />
-            Quantified Achievements ({profile.quantifiedAchievements.length})
-          </h5>
-          <div className="space-y-2">
-            {profile.quantifiedAchievements.map((achievement: any, i: number) => (
-              <div key={i} className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="text-sm">{achievement.achievement}</div>
-                  {achievement.metric && (
-                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded mt-1 inline-block">
-                      {achievement.metric}
-                    </span>
-                  )}
+                  <div className={`text-6xl font-bold ${getScoreColor(overallScoreValue)}`}>
+                    {overallScoreValue}%
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    Weighted Assessment Score
+                  </div>
                 </div>
-                {achievement.category && (
-                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
-                    {achievement.category}
-                  </Badge>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Detailed Profile - Professional Identity (V5 structure) */}
-      {profile.detailed_profile?.professional_identity && (
-        <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300">
-            <User className="h-4 w-4" />
-            Professional Identity
-          </h5>
-          <div className="space-y-2">
-            {profile.detailed_profile.professional_identity.current_role_level && (
-              <div className="text-sm">
-                <span className="font-medium">Current Role:</span> {profile.detailed_profile.professional_identity.current_role_level}
-              </div>
-            )}
-            {profile.detailed_profile.professional_identity.years_experience_indicated && (
-              <div className="text-sm">
-                <span className="font-medium">Years Experience:</span> {profile.detailed_profile.professional_identity.years_experience_indicated}
-              </div>
-            )}
-            {profile.detailed_profile.professional_identity.career_stage && (
-              <div className="text-sm">
-                <span className="font-medium">Career Stage:</span>
-                <Badge variant="outline" className="ml-2 text-xs">
-                  {profile.detailed_profile.professional_identity.career_stage.replace(/_/g, ' ')}
-                </Badge>
-              </div>
-            )}
-            {profile.detailed_profile.professional_identity.identity_summary && (
-              <p className="text-xs text-gray-700 dark:text-gray-300 mt-2">
-                {profile.detailed_profile.professional_identity.identity_summary}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Detailed Profile - Skills Demonstrated (V5 structure) */}
-      {profile.detailed_profile?.skills_demonstrated && (
-        <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-green-800 dark:text-green-300">
-            <Star className="h-4 w-4" />
-            Skills Demonstrated
-          </h5>
-          {profile.detailed_profile.skills_demonstrated.technical_skills && profile.detailed_profile.skills_demonstrated.technical_skills.length > 0 && (
-            <div className="mb-3">
-              <div className="text-xs font-semibold text-green-700 mb-1">Technical Skills</div>
-              <div className="flex flex-wrap gap-1">
-                {profile.detailed_profile.skills_demonstrated.technical_skills.map((skill: any, i: number) => (
-                  <Badge key={i} variant="outline" className={`text-xs ${getSkillDepthColor(skill.demonstrated_level)}`}>
-                    {skill.skill} <span className="opacity-70 ml-1">({skill.demonstrated_level?.replace(/_/g, ' ')})</span>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          {profile.detailed_profile.skills_demonstrated.soft_skills && profile.detailed_profile.skills_demonstrated.soft_skills.length > 0 && (
-            <div>
-              <div className="text-xs font-semibold text-indigo-700 mb-1">Soft Skills</div>
-              <div className="flex flex-wrap gap-1">
-                {profile.detailed_profile.skills_demonstrated.soft_skills.map((skill: any, i: number) => (
-                  <Badge key={i} variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
-                    {skill.skill} <span className="opacity-70 ml-1">({skill.demonstrated_level?.replace(/_/g, ' ')})</span>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Interview Recommendations - Support both V5 and legacy */}
-      {(profile.interviewRecommendations || profile.hiring_guidance) && (
-        <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-lg border border-teal-200 dark:border-teal-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800 dark:text-teal-300">
-            <Target className="h-4 w-4" />
-            Follow-up Recommendations
-          </h5>
-          <div className="space-y-3">
-            {/* V5 structure uses hiring_guidance.suggested_follow_up_questions */}
-            {profile.hiring_guidance?.suggested_follow_up_questions?.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-teal-700 dark:text-teal-300 mb-1">Suggested Follow-up Questions</div>
-                <ul className="space-y-1">
-                  {profile.hiring_guidance.suggested_follow_up_questions.map((item: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-teal-600">→</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {/* Legacy structure uses interviewRecommendations */}
-            {profile.interviewRecommendations?.mustExplore?.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-teal-700 dark:text-teal-300 mb-1">Must Explore in Next Round</div>
-                <ul className="space-y-1">
-                  {profile.interviewRecommendations.mustExplore.map((item: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-teal-600">→</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {profile.interviewRecommendations?.technicalValidation?.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-blue-700 mb-1">Technical Validation Needed</div>
-                <ul className="space-y-1">
-                  {profile.interviewRecommendations.technicalValidation.map((item: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-primary">✓</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {profile.hiring_guidance?.interview_tips_for_next_round?.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-blue-700 mb-1">Interview Tips for Next Round</div>
-                <ul className="space-y-1">
-                  {profile.hiring_guidance.interview_tips_for_next_round.map((item: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-primary">→</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {profile.hiring_guidance?.risk_factors_to_investigate?.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-orange-700 mb-1">Risk Factors to Investigate</div>
-                <ul className="space-y-1">
-                  {profile.hiring_guidance.risk_factors_to_investigate.map((item: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-orange-600">⚠</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Red Flags */}
-      {profile.redFlags && profile.redFlags.length > 0 && (
-        <div className="p-3 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 rounded-lg border border-red-200 dark:border-red-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-red-800 dark:text-red-300">
-            <AlertTriangle className="h-4 w-4" />
-            Red Flags ({profile.redFlags.length})
-          </h5>
-          <div className="space-y-2">
-            {profile.redFlags.map((flag: any, i: number) => (
-              <div key={i} className="p-2 bg-white dark:bg-slate-800 rounded border border-red-200 dark:border-red-700">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className="text-xs">{flag.type || "FLAG"}</Badge>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs ${flag.severity === "HIGH" || flag.severity === "CRITICAL"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-yellow-100 text-yellow-700"
-                      }`}
-                  >
-                    {flag.severity || "MEDIUM"}
-                  </Badge>
-                </div>
-                <div className="text-sm font-medium">{flag.issue}</div>
-                {flag.evidence && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Evidence: {flag.evidence}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Interview Transcript Insights */}
-      {profile.interviewMetadata && (
-        <div className="p-3 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/50 dark:to-gray-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-slate-800 dark:text-slate-300">
-            <MessageSquare className="h-4 w-4" />
-            Interview Transcript Insights
-          </h5>
-
-          {/* Session Details */}
-          {profile.interviewMetadata.sessionDetails && (
-            <div className="mb-4">
-              <h6 className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Session Overview</h6>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
-                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                    {profile.interviewMetadata.sessionDetails.questionsAsked || 0}
-                  </div>
-                  <div className="text-xs text-gray-500">Questions Asked</div>
-                </div>
-                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
-                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                    {profile.interviewMetadata.sessionDetails.responsesProvided || 0}
-                  </div>
-                  <div className="text-xs text-gray-500">Responses</div>
-                </div>
-                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
-                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                    {profile.interviewMetadata.sessionDetails.totalResponseWords || 0}
-                  </div>
-                  <div className="text-xs text-gray-500">Total Words</div>
-                </div>
-                <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 text-center">
-                  <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                    {profile.interviewMetadata.sessionDetails.estimatedSpeakingTimeMinutes || 0}
-                  </div>
-                  <div className="text-xs text-gray-500">Minutes Speaking</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-gray-500">Interview Duration:</span>
-                <Badge variant="outline" className={`text-xs ${profile.interviewMetadata.sessionDetails.interviewDurationCategory === 'COMPREHENSIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                  profile.interviewMetadata.sessionDetails.interviewDurationCategory === 'STANDARD' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    profile.interviewMetadata.sessionDetails.interviewDurationCategory === 'BRIEF' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                      'bg-red-50 text-red-700 border-red-200'
-                  }`}>
-                  {profile.interviewMetadata.sessionDetails.interviewDurationCategory || 'N/A'}
-                </Badge>
-                {profile.interviewMetadata.sessionDetails.averageResponseLength && (
-                  <span className="text-xs text-gray-500 ml-2">
-                    Avg. Response: {profile.interviewMetadata.sessionDetails.averageResponseLength} chars
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Engagement & Quality Analysis */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Engagement Metrics */}
-            {profile.interviewMetadata.engagementMetrics && (
-              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <h6 className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  Engagement Analysis
-                </h6>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Engagement Level</span>
-                    <Badge variant="outline" className={`text-xs ${profile.interviewMetadata.engagementMetrics.engagementLevel === 'HIGH' ? 'bg-green-50 text-green-700 border-green-200' :
-                      profile.interviewMetadata.engagementMetrics.engagementLevel === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                        'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                      {profile.interviewMetadata.engagementMetrics.engagementLevel || 'N/A'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Response Style</span>
-                    <Badge variant="outline" className={`text-xs ${profile.interviewMetadata.engagementMetrics.responseProactiveness === 'PROACTIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                      profile.interviewMetadata.engagementMetrics.responseProactiveness === 'RESPONSIVE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        'bg-gray-50 text-gray-600 border-gray-200'
-                      }`}>
-                      {profile.interviewMetadata.engagementMetrics.responseProactiveness || 'N/A'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Preparation Level</span>
-                    <Badge variant="outline" className={`text-xs ${profile.interviewMetadata.engagementMetrics.preparationLevel === 'HIGH' ? 'bg-green-50 text-green-700 border-green-200' :
-                      profile.interviewMetadata.engagementMetrics.preparationLevel === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                        'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                      {profile.interviewMetadata.engagementMetrics.preparationLevel || 'N/A'}
-                    </Badge>
-                  </div>
-                  {profile.interviewMetadata.engagementMetrics.enthusiasmIndicators && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <span className="text-xs text-gray-500">Enthusiasm: </span>
-                      <span className="text-xs text-gray-700 dark:text-gray-300">
-                        {profile.interviewMetadata.engagementMetrics.enthusiasmIndicators}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Transcript Quality */}
-            {profile.interviewMetadata.transcriptQuality && (
-              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <h6 className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-1">
-                  <FileText className="h-3 w-3" />
-                  Response Quality
-                </h6>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Content Depth</span>
-                    <Badge variant="outline" className={`text-xs ${profile.interviewMetadata.transcriptQuality.contentDepth === 'DEEP' ? 'bg-green-50 text-green-700 border-green-200' :
-                      profile.interviewMetadata.transcriptQuality.contentDepth === 'MODERATE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        profile.interviewMetadata.transcriptQuality.contentDepth === 'SURFACE' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                          'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                      {profile.interviewMetadata.transcriptQuality.contentDepth || 'N/A'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Analysis Quality</span>
-                    <Badge variant="outline" className={`text-xs ${profile.interviewMetadata.transcriptQuality.analysisQuality === 'EXCELLENT' ? 'bg-green-50 text-green-700 border-green-200' :
-                      profile.interviewMetadata.transcriptQuality.analysisQuality === 'GOOD' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        profile.interviewMetadata.transcriptQuality.analysisQuality === 'ADEQUATE' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                          'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                      {profile.interviewMetadata.transcriptQuality.analysisQuality || 'N/A'}
-                    </Badge>
-                  </div>
-                  {profile.interviewMetadata.transcriptQuality.exampleQuality && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <span className="text-xs text-gray-500">Example Quality: </span>
-                      <span className="text-xs text-gray-700 dark:text-gray-300">
-                        {profile.interviewMetadata.transcriptQuality.exampleQuality}
-                      </span>
-                    </div>
-                  )}
-                  {profile.interviewMetadata.transcriptQuality.authenticityIndicators && (
-                    <div className="mt-1">
-                      <span className="text-xs text-gray-500">Authenticity: </span>
-                      <span className="text-xs text-gray-700 dark:text-gray-300">
-                        {profile.interviewMetadata.transcriptQuality.authenticityIndicators}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Assessment Confidence - Check both locations for backward compatibility */}
-          {(profile.assessmentConfidence || profile.interviewMetadata?.assessmentConfidence) && (
-            <div className="mt-3 p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-              <h6 className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2 flex items-center gap-1">
-                <Target className="h-3 w-3" />
-                Assessment Confidence
-              </h6>
-              {(() => {
-                // Use assessmentConfidence directly if available, otherwise fallback to interviewMetadata
-                const assessmentConfidence = profile.assessmentConfidence || profile.interviewMetadata?.assessmentConfidence;
-                return (
-                  <>
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <Badge variant="outline" className={`text-xs ${assessmentConfidence.overallConfidence === 'VERY_HIGH' ||
-                        assessmentConfidence.overallConfidence === 'HIGH' ? 'bg-green-50 text-green-700 border-green-200' :
-                        assessmentConfidence.overallConfidence === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                          'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                        {assessmentConfidence.overallConfidence?.replace('_', ' ') || 'N/A'} Confidence
-                      </Badge>
-                      <Badge variant="outline" className={`text-xs ${assessmentConfidence.dataSufficiency === 'SUFFICIENT' ? 'bg-green-50 text-green-700 border-green-200' :
-                        assessmentConfidence.dataSufficiency === 'ADEQUATE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          assessmentConfidence.dataSufficiency === 'LIMITED' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                            'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                        Data: {assessmentConfidence.dataSufficiency || 'N/A'}
-                      </Badge>
-                    </div>
-                    {assessmentConfidence.dataLimitations &&
-                      assessmentConfidence.dataLimitations.length > 0 && (
-                        <div className="mt-2">
-                          <span className="text-xs font-medium text-orange-600 dark:text-orange-400">Data Limitations:</span>
-                          <ul className="mt-1 space-y-1">
-                            {assessmentConfidence.dataLimitations.map((limitation: string, i: number) => (
-                              <li key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1">
-                                <span className="text-orange-500">⚠</span>
-                                {limitation}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    {assessmentConfidence.confidenceEnhancers &&
-                      assessmentConfidence.confidenceEnhancers.length > 0 && (
-                        <div className="mt-2">
-                          <span className="text-xs font-medium text-green-600 dark:text-green-400">Confidence Enhancers:</span>
-                          <ul className="mt-1 space-y-1">
-                            {assessmentConfidence.confidenceEnhancers.map((enhancer: string, i: number) => (
-                              <li key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1">
-                                <span className="text-green-500">✓</span>
-                                {enhancer}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                  </>
-                );
-              })()}
-            </div>
-          )}
-          <ul className="mt-1 space-y-1">
-            {profile.interviewMetadata.assessmentConfidence.confidenceEnhancers.map((enhancer: string, i: number) => (
-              <li key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1">
-                <span className="text-green-500">✓</span>
-                {enhancer}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Behavioral & Psychological Insights */}
-      {(profile.behavioralIndicators || profile.psycholinguisticAnalysis) && (
-        <div className="p-3 bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 rounded-lg border border-indigo-200 dark:border-indigo-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
-            <Brain className="h-4 w-4" />
-            Behavioral & Psychological Insights
-          </h5>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Emotional Intelligence */}
-            {profile.behavioralIndicators?.emotionalIntelligence && (
-              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <h6 className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Emotional Intelligence</h6>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">EQ Score</span>
-                    <span className={`text-sm font-bold ${getScoreColor(profile.behavioralIndicators.emotionalIntelligence.score || 0)}`}>
-                      {profile.behavioralIndicators.emotionalIntelligence.score || 0}/100
-                    </span>
-                  </div>
-                  {profile.behavioralIndicators.emotionalIntelligence.selfAwareness && (
-                    <div className="text-xs">
-                      <span className="text-gray-500">Self-Awareness:</span>
-                      <span className="text-gray-700 dark:text-gray-300 ml-1">
-                        {profile.behavioralIndicators.emotionalIntelligence.selfAwareness}
-                      </span>
-                    </div>
-                  )}
-                  {profile.behavioralIndicators.emotionalIntelligence.empathy && (
-                    <div className="text-xs">
-                      <span className="text-gray-500">Empathy:</span>
-                      <span className="text-gray-700 dark:text-gray-300 ml-1">
-                        {profile.behavioralIndicators.emotionalIntelligence.empathy}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Work Style */}
-            {profile.behavioralIndicators?.workStyle && (
-              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <h6 className="text-xs font-semibold text-violet-700 dark:text-violet-400 mb-2">Work Style Preferences</h6>
-                <div className="space-y-2">
-                  {profile.behavioralIndicators.workStyle.preferredEnvironment &&
-                    profile.behavioralIndicators.workStyle.preferredEnvironment !== 'Not assessed.' && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Environment</span>
-                        <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">
-                          {profile.behavioralIndicators.workStyle.preferredEnvironment}
-                        </Badge>
-                      </div>
-                    )}
-                  {profile.behavioralIndicators.workStyle.collaborationStyle &&
-                    profile.behavioralIndicators.workStyle.collaborationStyle !== 'Not assessed.' && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Collaboration</span>
-                        <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">
-                          {profile.behavioralIndicators.workStyle.collaborationStyle}
-                        </Badge>
-                      </div>
-                    )}
-                  {profile.behavioralIndicators.workStyle.stressHandling &&
-                    profile.behavioralIndicators.workStyle.stressHandling !== 'Not assessed.' && (
-                      <div className="text-xs">
-                        <span className="text-gray-500">Stress Handling:</span>
-                        <span className="text-gray-700 dark:text-gray-300 ml-1">
-                          {profile.behavioralIndicators.workStyle.stressHandling}
-                        </span>
-                      </div>
-                    )}
-                </div>
-              </div>
-            )}
-
-            {/* Personality Indicators (Big Five) */}
-            {profile.psycholinguisticAnalysis?.personalityIndicators && (
-              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 md:col-span-2">
-                <h6 className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Personality Indicators (Big Five)</h6>
-                <div className="grid grid-cols-5 gap-2">
-                  {['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'].map((trait) => {
-                    const traitData = profile.psycholinguisticAnalysis.personalityIndicators[trait];
-                    if (!traitData) return null;
-                    return (
-                      <div key={trait} className="text-center p-2 bg-gray-50 dark:bg-gray-900/50 rounded">
-                        <div className={`text-sm font-bold ${getScoreColor(traitData.score || 0)}`}>
-                          {traitData.score || 0}
-                        </div>
-                        <div className="text-xs text-gray-500 capitalize">{trait.slice(0, 4)}.</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Cognitive Style */}
-            {profile.psycholinguisticAnalysis?.cognitiveStyle && (
-              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <h6 className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 mb-2">Cognitive Style</h6>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Analytical</span>
-                    <span className={`text-sm font-bold ${getScoreColor(profile.psycholinguisticAnalysis.cognitiveStyle.analyticalThinking || 0)}`}>
-                      {profile.psycholinguisticAnalysis.cognitiveStyle.analyticalThinking || 0}/100
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Creative</span>
-                    <span className={`text-sm font-bold ${getScoreColor(profile.psycholinguisticAnalysis.cognitiveStyle.creativeThinking || 0)}`}>
-                      {profile.psycholinguisticAnalysis.cognitiveStyle.creativeThinking || 0}/100
-                    </span>
-                  </div>
-                  {profile.psycholinguisticAnalysis.cognitiveStyle.decisionMaking &&
-                    profile.psycholinguisticAnalysis.cognitiveStyle.decisionMaking !== 'N/A' && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Decision Making</span>
-                        <Badge variant="outline" className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200">
-                          {profile.psycholinguisticAnalysis.cognitiveStyle.decisionMaking}
-                        </Badge>
-                      </div>
-                    )}
-                </div>
-              </div>
-            )}
-
-            {/* Authenticity */}
-            {profile.psycholinguisticAnalysis?.authenticity && (
-              <div className="p-3 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <h6 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">Response Authenticity</h6>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Authenticity Score</span>
-                    <span className={`text-sm font-bold ${getScoreColor(profile.psycholinguisticAnalysis.authenticity.score || 0)}`}>
-                      {profile.psycholinguisticAnalysis.authenticity.score || 0}/100
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Genuine Responses</span>
-                    <span className={`text-xs ${profile.psycholinguisticAnalysis.authenticity.genuineResponses ? 'text-green-600' : 'text-red-600'}`}>
-                      {profile.psycholinguisticAnalysis.authenticity.genuineResponses ? '✓ Yes' : '✗ No'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Consistent Answers</span>
-                    <span className={`text-xs ${profile.psycholinguisticAnalysis.authenticity.consistencyAcrossAnswers ? 'text-green-600' : 'text-red-600'}`}>
-                      {profile.psycholinguisticAnalysis.authenticity.consistencyAcrossAnswers ? '✓ Yes' : '✗ No'}
-                    </span>
-                  </div>
-                  {profile.psycholinguisticAnalysis.authenticity.contradictions &&
-                    profile.psycholinguisticAnalysis.authenticity.contradictions.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <span className="text-xs font-medium text-red-600">Contradictions Detected:</span>
-                        <ul className="mt-1">
-                          {profile.psycholinguisticAnalysis.authenticity.contradictions.map((c: string, i: number) => (
-                            <li key={i} className="text-xs text-gray-600 dark:text-gray-400">• {c}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Motivation Drivers */}
-          {profile.behavioralIndicators?.motivationDrivers &&
-            profile.behavioralIndicators.motivationDrivers.length > 0 && (
-              <div className="mt-3 p-2 bg-white/60 dark:bg-slate-800/60 rounded border border-indigo-100 dark:border-indigo-800">
-                <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">Motivation Drivers:</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {profile.behavioralIndicators.motivationDrivers.map((driver: string, i: number) => (
-                    <Badge key={i} variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
-                      {driver}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-        </div>
-      )}
-
-      {/* Match Summary */}
-      {profile.matchSummary && (
-        <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-          <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-blue-800 dark:text-blue-300">
-            <FileText className="h-4 w-4" />
-            Match Summary
-          </h5>
-          <p className="text-sm text-slate-700 dark:text-slate-300">{profile.matchSummary}</p>
-        </div>
-      )}
-
-      {/* Recommendation & Reason */}
-      {(profile.recommendation || profile.recommendationReason) && (
-        <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
-          <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
-            <Target className="h-4 w-4" />
-            Recommendation
-          </h5>
-          {profile.recommendation && (
-            <Badge className={`mb-2 ${getRecommendationColor(profile.recommendation)}`}>
-              {profile.recommendation.replace('_', ' ')}
-            </Badge>
-          )}
-          {profile.recommendationReason && (
-            <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">{profile.recommendationReason}</p>
-          )}
-        </div>
-      )}
-
-      {/* Follow-up Questions */}
-      {profile.followUpQuestions && (
-        <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-purple-800 dark:text-purple-300">
-            <MessageSquare className="h-4 w-4" />
-            Follow-up Questions for Final Interview
-          </h5>
-          <div className="space-y-3">
-            {profile.followUpQuestions.technical && profile.followUpQuestions.technical.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Technical Questions</div>
-                <ul className="space-y-1">
-                  {profile.followUpQuestions.technical.map((q: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-blue-600">•</span>
-                      <span>{q}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {profile.followUpQuestions.behavioral && profile.followUpQuestions.behavioral.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1">Behavioral Questions</div>
-                <ul className="space-y-1">
-                  {profile.followUpQuestions.behavioral.map((q: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-purple-600">•</span>
-                      <span>{q}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {profile.followUpQuestions.leadership && profile.followUpQuestions.leadership.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1">Leadership Questions</div>
-                <ul className="space-y-1">
-                  {profile.followUpQuestions.leadership.map((q: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-emerald-600">•</span>
-                      <span>{q}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {profile.followUpQuestions.cultural && profile.followUpQuestions.cultural.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-teal-700 dark:text-teal-300 mb-1">Cultural Fit Questions</div>
-                <ul className="space-y-1">
-                  {profile.followUpQuestions.cultural.map((q: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-teal-600">•</span>
-                      <span>{q}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {profile.followUpQuestions.clarification && profile.followUpQuestions.clarification.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">Clarification Questions</div>
-                <ul className="space-y-1">
-                  {profile.followUpQuestions.clarification.map((q: string, i: number) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <span>{q}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Hiring Recommendation - Next Steps */}
-      {profile.hiringRecommendation?.nextSteps && profile.hiringRecommendation.nextSteps.length > 0 && (
-        <div className="p-3 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
-            <Target className="h-4 w-4" />
-            Recommended Next Steps
-          </h5>
-          <ul className="space-y-1">
-            {profile.hiringRecommendation.nextSteps.map((step: string, i: number) => (
-              <li key={i} className="text-sm flex items-start gap-2">
-                <span className="text-emerald-600">→</span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Leadership Assessment */}
-      {profile.leadershipAssessment && (
-        <div className="p-3 bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 rounded-lg border border-indigo-200 dark:border-indigo-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
-            <TrendingUp className="h-4 w-4" />
-            Leadership Assessment
-          </h5>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {profile.leadershipAssessment.score !== undefined && (
-              <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className={`text-2xl font-bold ${getScoreColor(profile.leadershipAssessment.score)}`}>
-                  {profile.leadershipAssessment.score}%
-                </div>
-                <div className="text-xs text-gray-500">Leadership Score</div>
-              </div>
-            )}
-            {profile.leadershipAssessment.currentLevel && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs text-gray-500 mb-1">Current Level</div>
-                <Badge variant="outline" className="text-xs">{profile.leadershipAssessment.currentLevel}</Badge>
-              </div>
-            )}
-            {profile.leadershipAssessment.potentialLevel && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs text-gray-500 mb-1">Potential Level</div>
-                <Badge variant="outline" className="text-xs">{profile.leadershipAssessment.potentialLevel}</Badge>
-              </div>
-            )}
-            {profile.leadershipAssessment.readinessForPromotion && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs text-gray-500 mb-1">Promotion Readiness</div>
-                <Badge variant="outline" className="text-xs">{profile.leadershipAssessment.readinessForPromotion.replace('_', ' ')}</Badge>
-              </div>
-            )}
-          </div>
-          {profile.leadershipAssessment.strengths && profile.leadershipAssessment.strengths.length > 0 && (
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Strengths</div>
-              <ul className="space-y-1">
-                {profile.leadershipAssessment.strengths.map((s: string, i: number) => (
-                  <li key={i} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
-                    <span className="text-green-600">✓</span>
-                    <span>{s}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {profile.leadershipAssessment.developmentAreas && profile.leadershipAssessment.developmentAreas.length > 0 && (
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-1">Development Areas</div>
-              <ul className="space-y-1">
-                {profile.leadershipAssessment.developmentAreas.map((area: string, i: number) => (
-                  <li key={i} className="text-sm text-orange-700 dark:text-orange-300 flex items-start gap-2">
-                    <span className="text-orange-600">→</span>
-                    <span>{area}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {profile.leadershipAssessment.mentorshipCapability && (
-            <div className="mt-3 p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Mentorship Capability</span>
-                <span className={`text-sm font-bold ${getScoreColor(profile.leadershipAssessment.mentorshipCapability.score || 0)}`}>
-                  {profile.leadershipAssessment.mentorshipCapability.score || 0}%
-                </span>
-              </div>
-              {profile.leadershipAssessment.mentorshipCapability.evidence && (
-                <div className="text-xs text-gray-500 mt-1">{profile.leadershipAssessment.mentorshipCapability.evidence}</div>
               )}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Cultural Fit Analysis - Detailed */}
-      {profile.culturalFitAnalysis && (
-        <div className="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-lg border border-teal-200 dark:border-teal-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-teal-800 dark:text-teal-300">
-            <Users className="h-4 w-4" />
-            Cultural Fit Analysis
-          </h5>
-          {profile.culturalFitAnalysis.score !== undefined && (
-            <div className="text-center p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 mb-3">
-              <div className={`text-3xl font-bold ${getScoreColor(profile.culturalFitAnalysis.score)}`}>
-                {profile.culturalFitAnalysis.score}%
-              </div>
-              <div className="text-xs text-gray-500">Cultural Fit Score</div>
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {profile.culturalFitAnalysis.valueAlignment && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs font-semibold text-teal-700 dark:text-teal-400 mb-2">Value Alignment</div>
-                {profile.culturalFitAnalysis.valueAlignment.score !== undefined && (
-                  <div className={`text-lg font-bold ${getScoreColor(profile.culturalFitAnalysis.valueAlignment.score)} mb-2`}>
-                    {profile.culturalFitAnalysis.valueAlignment.score}%
-                  </div>
-                )}
-                {profile.culturalFitAnalysis.valueAlignment.alignedValues && profile.culturalFitAnalysis.valueAlignment.alignedValues.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {profile.culturalFitAnalysis.valueAlignment.alignedValues.map((value: string, i: number) => (
-                      <Badge key={i} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                        {value}
-                      </Badge>
+              {/* Section Scores */}
+              {sectionScores.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                    Section Scores
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    {sectionScores.map((score) => (
+                      <div key={score.path} className={`text-center p-4 rounded-lg ${getScoreBgColor(score.value)} border border-slate-200 dark:border-slate-700`}>
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          {score.key}
+                        </div>
+                        <div className={`text-3xl font-bold ${getScoreColor(score.value)}`}>
+                          {score.value}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                )}
-                {profile.culturalFitAnalysis.valueAlignment.potentialConflicts && profile.culturalFitAnalysis.valueAlignment.potentialConflicts.length > 0 && (
-                  <div>
-                    <div className="text-xs font-medium text-orange-600 mb-1">Potential Conflicts</div>
-                    <ul className="space-y-1">
-                      {profile.culturalFitAnalysis.valueAlignment.potentialConflicts.map((conflict: string, i: number) => (
-                        <li key={i} className="text-xs text-orange-700">• {conflict}</li>
-                      ))}
-                    </ul>
+                </div>
+              )}
+
+              {/* Other Scores */}
+              {otherScores.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                    Additional Scores
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {otherScores.map((score) => (
+                      <div key={score.path} className={`text-center p-3 rounded-lg ${getScoreBgColor(score.value)} border border-slate-200 dark:border-slate-700`}>
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 truncate" title={score.key}>
+                          {score.key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1')}
+                        </div>
+                        <div className={`text-2xl font-bold ${getScoreColor(score.value)}`}>
+                          {score.value}%
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Opinion Card */}
+      {aiOpinion && (
+        <Card className="bg-linear-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/30 dark:to-blue-900/30 border border-indigo-200 dark:border-indigo-700">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <Brain className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
+              <div>
+                <div className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
+                  AI Opinion
+                </div>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {aiOpinion}
+                </p>
               </div>
-            )}
-            {profile.culturalFitAnalysis.teamDynamics && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs font-semibold text-teal-700 dark:text-teal-400 mb-2">Team Dynamics</div>
-                {profile.culturalFitAnalysis.teamDynamics.score !== undefined && (
-                  <div className={`text-lg font-bold ${getScoreColor(profile.culturalFitAnalysis.teamDynamics.score)} mb-2`}>
-                    {profile.culturalFitAnalysis.teamDynamics.score}%
-                  </div>
-                )}
-                {profile.culturalFitAnalysis.teamDynamics.collaborationStyle && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                    Collaboration: <span className="font-medium">{profile.culturalFitAnalysis.teamDynamics.collaborationStyle}</span>
-                  </div>
-                )}
-                {profile.culturalFitAnalysis.teamDynamics.teamRolePreference && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    Role Preference: <span className="font-medium">{profile.culturalFitAnalysis.teamDynamics.teamRolePreference}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            {profile.culturalFitAnalysis.workEnvironmentFit && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600 md:col-span-2">
-                <div className="text-xs font-semibold text-teal-700 dark:text-teal-400 mb-2">Work Environment Fit</div>
-                {profile.culturalFitAnalysis.workEnvironmentFit.score !== undefined && (
-                  <div className={`text-lg font-bold ${getScoreColor(profile.culturalFitAnalysis.workEnvironmentFit.score)} mb-2`}>
-                    {profile.culturalFitAnalysis.workEnvironmentFit.score}%
-                  </div>
-                )}
-                <div className="flex gap-4">
-                  {profile.culturalFitAnalysis.workEnvironmentFit.preferredPace && (
-                    <div className="text-xs">
-                      <span className="text-gray-500">Pace: </span>
-                      <span className="font-medium">{profile.culturalFitAnalysis.workEnvironmentFit.preferredPace}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 2: Power Points (Strengths) */}
+      {strengths.length > 0 && (
+        <Card className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Star className="w-6 h-6 text-green-600" />
+              Power Points & Strengths ({strengths.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {strengths.map((strength: any, index: number) => {
+                // Check if it's a detailed object with point/reason/evidence (FAQ format)
+                const isDetailedFormat = typeof strength === 'object' &&
+                  strength !== null &&
+                  (strength.point || strength.reason || strength.evidence);
+
+                if (isDetailedFormat) {
+                  // FAQ Style for detailed format
+                  const question = strength.point || strength.strength || strength.description || 'Strength';
+                  const answer = {
+                    reason: strength.reason || 'N/A',
+                    evidence: strength.evidence || 'N/A',
+                    confidence_level_0_100: strength.confidence_level_0_100 || 'N/A',
+                    ...strength
+                  };
+                  return (
+                    <div key={index}>
+                      <Accordion type="multiple" className="w-full">
+                        {renderFAQItem(question, answer, index)}
+                      </Accordion>
                     </div>
-                  )}
-                  {profile.culturalFitAnalysis.workEnvironmentFit.structurePreference && (
-                    <div className="text-xs">
-                      <span className="text-gray-500">Structure: </span>
-                      <span className="font-medium">{profile.culturalFitAnalysis.workEnvironmentFit.structurePreference}</span>
+                  );
+                } else {
+                  // Simple one-line format
+                  const displayText = typeof strength === 'object'
+                    ? (strength.strength || strength.description || strength.highlight || JSON.stringify(strength))
+                    : String(strength);
+
+                  return (
+                    <div key={index} className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                      <div className="flex items-start gap-2">
+                        <Star className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">{displayText}</p>
+                      </div>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 3: Red Flags */}
+      {redFlags.length > 0 && (
+        <Card className="bg-linear-to-r from-red-50 to-rose-50 dark:from-red-900/30 dark:to-rose-900/30 border border-red-200 dark:border-red-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              Red Flags ({redFlags.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {redFlags.map((flag: any, index: number) => {
+                // Check if it's a detailed object with point/reason/evidence (FAQ format)
+                const isDetailedFormat = typeof flag === 'object' &&
+                  flag !== null &&
+                  (flag.point || flag.reason || flag.evidence);
+
+                if (isDetailedFormat) {
+                  // FAQ Style for detailed format
+                  const question = flag.point || flag.issue || flag.type || flag.flag || 'Red Flag';
+                  const answer = {
+                    reason: flag.reason || 'N/A',
+                    evidence: flag.evidence || 'N/A',
+                    severity: flag.severity || 'N/A',
+                    confidence_level_0_100: flag.confidence_level_0_100 || 'N/A',
+                    ...flag
+                  };
+                  return (
+                    <div key={index}>
+                      <Accordion type="multiple" className="w-full">
+                        {renderFAQItem(question, answer, index)}
+                      </Accordion>
+                    </div>
+                  );
+                } else {
+                  // Simple one-line format
+                  const displayText = typeof flag === 'object'
+                    ? (flag.issue || flag.type || flag.flag || JSON.stringify(flag))
+                    : String(flag);
+
+                  return (
+                    <div key={index} className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3 border border-red-200 dark:border-red-700">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">{displayText}</p>
+                      </div>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 4: Gaps & Concerns */}
+      {gaps.length > 0 && (
+        <Card className="bg-linear-to-r from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 border border-orange-200 dark:border-orange-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-orange-600" />
+              Gaps & Concerns ({gaps.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {gaps.map((gap: any, index: number) => {
+                // Check if it's a detailed object with point/reason/evidence (FAQ format)
+                const isDetailedFormat = typeof gap === 'object' &&
+                  gap !== null &&
+                  (gap.point || gap.reason || gap.evidence);
+
+                if (isDetailedFormat) {
+                  // FAQ Style for detailed format
+                  const question = gap.point || gap.gap || gap.concern || gap.weakness || gap.watchout || 'Gap/Concern';
+                  const answer = {
+                    reason: gap.reason || 'N/A',
+                    evidence: gap.evidence || 'N/A',
+                    recommendation: gap.recommendation || 'N/A',
+                    severity: gap.severity || 'N/A',
+                    confidence_level_0_100: gap.confidence_level_0_100 || 'N/A',
+                    ...gap
+                  };
+                  return (
+                    <div key={index}>
+                      <Accordion type="multiple" className="w-full">
+                        {renderFAQItem(question, answer, index)}
+                      </Accordion>
+                    </div>
+                  );
+                } else {
+                  // Simple one-line format
+                  const displayText = typeof gap === 'object'
+                    ? (gap.gap || gap.concern || gap.weakness || gap.watchout || JSON.stringify(gap))
+                    : String(gap);
+
+                  return (
+                    <div key={index} className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
+                      <div className="flex items-start gap-2">
+                        <TrendingUp className="w-4 h-4 text-orange-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">{displayText}</p>
+                      </div>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 5: Salary - Very Important */}
+      {(salary.range || salary.expectation) && (
+        <Card className="bg-linear-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border-2 border-emerald-300 dark:border-emerald-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-emerald-600" />
+              Salary Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {salary.range && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-emerald-200 dark:border-emerald-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Salary Range</span>
+                  </div>
+                  <p className="text-2xl font-bold text-emerald-600">{salary.range}</p>
+                </div>
+              )}
+              {salary.expectation && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-emerald-200 dark:border-emerald-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-5 h-5 text-emerald-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Expected Salary</span>
+                  </div>
+                  <p className="text-lg text-slate-600 dark:text-slate-400">{salary.expectation}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 6: Skills */}
+      {skills.length > 0 && (
+        <Card className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-200 dark:border-blue-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Code className="w-6 h-6 text-blue-600" />
+              Technical Skills ({skills.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {skills.map((skill, index) => (
+                <span key={index} className="px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg text-sm font-medium text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )
+      }
+
+      {/* Section 7: Identity & Background */}
+      {
+        identity && (
+          <Card className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <User className="w-6 h-6 text-purple-600" />
+                Identity & Background
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {identity.full_name && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Full Name</div>
+                      <div className="font-medium">{identity.full_name}</div>
+                    </div>
+                  </div>
+                )}
+                {identity.primary_role && (
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Role</div>
+                      <div className="font-medium">{identity.primary_role}</div>
+                    </div>
+                  </div>
+                )}
+                {identity.years_of_experience !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Experience</div>
+                      <div className="font-medium">{identity.years_of_experience} years</div>
+                    </div>
+                  </div>
+                )}
+                {identity.city && identity.country && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Location</div>
+                      <div className="font-medium">{identity.city}, {identity.country}</div>
+                    </div>
+                  </div>
+                )}
+                {identity.seniority_level && (
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Seniority</div>
+                      <div className="font-medium capitalize">{identity.seniority_level}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {identity.brief_background_summary && (
+                <div className="mt-4 p-3 bg-white dark:bg-slate-800 rounded-lg">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{identity.brief_background_summary}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 8: Work Style & Personality */}
+      {
+        (workStyle || personality || careerGoals) && (
+          <Card className="bg-linear-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 border border-indigo-200 dark:border-indigo-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Users className="w-6 h-6 text-indigo-600" />
+                Work Style & Personality
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {workStyle && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Briefcase className="w-4 h-4 text-indigo-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Work Style</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{workStyle}</p>
+                </div>
+              )}
+              {personality && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Heart className="w-4 h-4 text-indigo-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Personality</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{personality}</p>
+                </div>
+              )}
+              {careerGoals && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-indigo-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Career Goals</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{careerGoals}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 9: Career Story */}
+      {
+        careerStory && (
+          <Card className="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200 dark:border-amber-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <BookOpen className="w-6 h-6 text-amber-600" />
+                Career Story
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {careerStory.narrative && (
+                <div>
+                  <div className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Narrative</div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{careerStory.narrative}</p>
+                </div>
+              )}
+              {careerStory.key_milestones && Array.isArray(careerStory.key_milestones) && careerStory.key_milestones.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="w-4 h-4 text-amber-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Key Milestones</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 pl-4">
+                    {careerStory.key_milestones.map((milestone: string, i: number) => (
+                      <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{milestone}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {careerStory.representative_achievements && Array.isArray(careerStory.representative_achievements) && careerStory.representative_achievements.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Rocket className="w-4 h-4 text-amber-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Representative Achievements</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 pl-4">
+                    {careerStory.representative_achievements.map((achievement: string, i: number) => (
+                      <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{achievement}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 10: Recommended Role & Assessment */}
+      {
+        (recommendedRole || skillAssessment || experienceVerification) && (
+          <Card className="bg-linear-to-r from-slate-50 to-gray-50 dark:from-slate-900/30 dark:to-gray-900/30 border border-slate-200 dark:border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <CheckCircle2 className="w-6 h-6 text-slate-600" />
+                Assessment & Recommendations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {recommendedRole && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Briefcase className="w-4 h-4 text-slate-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Recommended Role</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">
+                    {Array.isArray(recommendedRole) ? recommendedRole.join(', ') : recommendedRole}
+                  </p>
+                </div>
+              )}
+              {skillAssessment && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Code className="w-4 h-4 text-slate-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Skill Assessment</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{skillAssessment}</p>
+                </div>
+              )}
+              {experienceVerification && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-4 h-4 text-slate-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Experience Verification</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{experienceVerification}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 11: Trends */}
+      {
+        trends && (
+          <Card className="bg-linear-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 border border-cyan-200 dark:border-cyan-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <BarChart3 className="w-6 h-6 text-cyan-600" />
+                Trends & Development
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {trends.career_trajectory && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-cyan-200 dark:border-cyan-700">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Career Trajectory</div>
+                    <div className="font-semibold text-cyan-600 capitalize">{trends.career_trajectory}</div>
+                  </div>
+                )}
+                {trends.communication_trend && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-cyan-200 dark:border-cyan-700">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Communication</div>
+                    <div className="font-semibold text-cyan-600">{trends.communication_trend}</div>
+                  </div>
+                )}
+                {trends.skill_development_trend && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-cyan-200 dark:border-cyan-700">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Skill Development</div>
+                    <div className="font-semibold text-cyan-600">{trends.skill_development_trend}</div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 12: Concerns (Yellow Flags & Mitigation) */}
+      {
+        concerns && (concerns.yellow_flags?.length > 0 || concerns.mitigation_strategies?.length > 0) && (
+          <Card className="bg-linear-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-200 dark:border-yellow-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                Concerns & Mitigation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {concerns.yellow_flags && concerns.yellow_flags.length > 0 && (
+                <div>
+                  <div className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Yellow Flags</div>
+                  <ul className="list-disc list-inside space-y-1 pl-4">
+                    {concerns.yellow_flags.map((flag: string, i: number) => (
+                      <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{flag}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {concerns.mitigation_strategies && concerns.mitigation_strategies.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="w-4 h-4 text-yellow-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Mitigation Strategies</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 pl-4">
+                    {concerns.mitigation_strategies.map((strategy: string, i: number) => (
+                      <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{strategy}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 13: Interview Quality */}
+      {
+        interviewQuality && (
+          <Card className="bg-linear-to-r from-teal-50 to-emerald-50 dark:from-teal-900/30 dark:to-emerald-900/30 border border-teal-200 dark:border-teal-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <FileText className="w-6 h-6 text-teal-600" />
+                Interview Quality
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {interviewQuality.qualityScore !== undefined && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-teal-200 dark:border-teal-700 text-center">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Quality Score</div>
+                    <div className={`text-2xl font-bold ${getScoreColor(interviewQuality.qualityScore)}`}>
+                      {interviewQuality.qualityScore}%
+                    </div>
+                  </div>
+                )}
+                {interviewQuality.totalWords !== undefined && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-teal-200 dark:border-teal-700 text-center">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Total Words</div>
+                    <div className="text-2xl font-bold text-teal-600">{interviewQuality.totalWords}</div>
+                  </div>
+                )}
+                {interviewQuality.questionsCount !== undefined && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-teal-200 dark:border-teal-700 text-center">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Questions</div>
+                    <div className="text-2xl font-bold text-teal-600">{interviewQuality.questionsCount}</div>
+                  </div>
+                )}
+                {interviewQuality.dataSufficiency && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-teal-200 dark:border-teal-700 text-center">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Data Sufficiency</div>
+                    <div className={`text-lg font-bold ${interviewQuality.dataSufficiency === 'SUFFICIENT' ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {interviewQuality.dataSufficiency}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 14: Achievements */}
+      {
+        achievements.length > 0 && (
+          <Card className="bg-linear-to-r from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 border border-pink-200 dark:border-pink-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Award className="w-6 h-6 text-pink-600" />
+                Achievements ({achievements.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc list-inside space-y-2 pl-4">
+                {achievements.map((achievement: any, i: number) => (
+                  <li key={i} className="text-sm text-slate-600 dark:text-slate-400">
+                    {typeof achievement === 'object' ? JSON.stringify(achievement) : String(achievement)}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 15: Tags */}
+      {
+        tags && Array.isArray(tags) && tags.length > 0 && (
+          <Card className="bg-linear-to-r from-violet-50 to-purple-50 dark:from-violet-900/30 dark:to-purple-900/30 border border-violet-200 dark:border-violet-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Zap className="w-6 h-6 text-violet-600" />
+                Derived Tags
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag: string, i: number) => (
+                  <span key={i} className="px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg text-sm font-medium text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700 capitalize">
+                    {tag.replace(/_/g, ' ')}
+                  </span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 16: Risk & Stability */}
+      {
+        riskStability && (
+          <Card className="bg-linear-to-r from-slate-50 to-gray-50 dark:from-slate-900/30 dark:to-gray-900/30 border border-slate-200 dark:border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Shield className="w-6 h-6 text-slate-600" />
+                Risk & Stability Assessment
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {riskStability.integrated_risk_view && (
+                <div>
+                  <div className="font-semibold text-slate-700 dark:text-slate-300 mb-1">Integrated Risk View</div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{riskStability.integrated_risk_view}</p>
+                </div>
+              )}
+              {riskStability.stability_overall_assessment && (
+                <div>
+                  <div className="font-semibold text-slate-700 dark:text-slate-300 mb-1">Stability Assessment</div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{riskStability.stability_overall_assessment}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {/* Section 17: Skills Match (Format 1) */}
+      {skillsMatch && Array.isArray(skillsMatch) && skillsMatch.length > 0 && (
+        <Card className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200 dark:border-green-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Code className="w-6 h-6 text-green-600" />
+              Skills Match Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {skillsMatch.map((match: any, index: number) => (
+                <div key={index} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{match.skill}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${match.match_level === 'STRONG' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        match.match_level === 'MODERATE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          match.match_level === 'WEAK' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                      {match.match_level}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">{match.reason}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 italic">Evidence: {match.evidence}</p>
+                  {match.confidence_level_0_100 !== undefined && (
+                    <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                      Confidence: {match.confidence_level_0_100}%
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Predictive Assessment */}
-      {profile.predictiveAssessment && (
-        <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
-          <h5 className="font-medium text-sm mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
-            <TrendingUp className="h-4 w-4" />
-            Predictive Assessment
-          </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {profile.predictiveAssessment.performanceTrajectory && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Performance Trajectory</div>
-                {profile.predictiveAssessment.performanceTrajectory.score !== undefined && (
-                  <div className={`text-2xl font-bold ${getScoreColor(profile.predictiveAssessment.performanceTrajectory.score)} mb-1`}>
-                    {profile.predictiveAssessment.performanceTrajectory.score}%
+      {/* Section 18: Overall Scoring (Format 1) */}
+      {overallScoring && (
+        <Card className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+              Overall Scoring Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {overallScoring.scoring_explanation && (
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{overallScoring.scoring_explanation}</p>
+            )}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {overallScoring.job_core_fit_score_0_100 !== undefined && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700 text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Job Core Fit</div>
+                  <div className={`text-2xl font-bold ${getScoreColor(overallScoring.job_core_fit_score_0_100)}`}>
+                    {overallScoring.job_core_fit_score_0_100}%
                   </div>
-                )}
-                {profile.predictiveAssessment.performanceTrajectory.rampUpWeeks && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Ramp-up: {profile.predictiveAssessment.performanceTrajectory.rampUpWeeks}</div>
-                )}
-                {profile.predictiveAssessment.performanceTrajectory.peakPerformanceMonths && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Peak: {profile.predictiveAssessment.performanceTrajectory.peakPerformanceMonths}</div>
+                </div>
+              )}
+              {overallScoring.final_overall_score_0_100 !== undefined && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700 text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Final Overall</div>
+                  <div className={`text-2xl font-bold ${getScoreColor(overallScoring.final_overall_score_0_100)}`}>
+                    {overallScoring.final_overall_score_0_100}%
+                  </div>
+                </div>
+              )}
+              {overallScoring.answer_quality_score_0_100 !== undefined && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700 text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Answer Quality</div>
+                  <div className={`text-2xl font-bold ${getScoreColor(overallScoring.answer_quality_score_0_100)}`}>
+                    {overallScoring.answer_quality_score_0_100}%
+                  </div>
+                </div>
+              )}
+              {overallScoring.risk_adjustment_score_0_100 !== undefined && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700 text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Risk Adjustment</div>
+                  <div className={`text-2xl font-bold ${getScoreColor(overallScoring.risk_adjustment_score_0_100)}`}>
+                    {overallScoring.risk_adjustment_score_0_100}%
+                  </div>
+                </div>
+              )}
+              {overallScoring.experience_quality_score_0_100 !== undefined && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700 text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Experience Quality</div>
+                  <div className={`text-2xl font-bold ${getScoreColor(overallScoring.experience_quality_score_0_100)}`}>
+                    {overallScoring.experience_quality_score_0_100}%
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 19: Experience Analysis (Format 1) */}
+      {experienceAnalysis && (
+        <Card className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Briefcase className="w-6 h-6 text-purple-600" />
+              Experience Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {experienceAnalysis.ai_reasoning_summary && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-1">Summary</div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{experienceAnalysis.ai_reasoning_summary}</p>
+              </div>
+            )}
+            {experienceAnalysis.relevant_experience_years !== undefined && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-200 dark:border-purple-700 text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Relevant Experience</div>
+                  <div className="text-xl font-bold text-purple-600">{experienceAnalysis.relevant_experience_years} years</div>
+                </div>
+                {experienceAnalysis.irrelevant_or_partial_experience_years !== undefined && (
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-200 dark:border-purple-700 text-center">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Irrelevant/Partial</div>
+                    <div className="text-xl font-bold text-purple-600">{experienceAnalysis.irrelevant_or_partial_experience_years} years</div>
+                  </div>
                 )}
               </div>
             )}
-            {profile.predictiveAssessment.retentionRisk && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Retention Risk</div>
-                {profile.predictiveAssessment.retentionRisk.score !== undefined && (
-                  <div className={`text-2xl font-bold ${getScoreColor(profile.predictiveAssessment.retentionRisk.score)} mb-1`}>
-                    {profile.predictiveAssessment.retentionRisk.score}%
+            {experienceAnalysis.breakdown_by_role && Array.isArray(experienceAnalysis.breakdown_by_role) && experienceAnalysis.breakdown_by_role.length > 0 && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Breakdown by Role</div>
+                <div className="space-y-2">
+                  {experienceAnalysis.breakdown_by_role.map((role: any, i: number) => (
+                    <div key={i} className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-200 dark:border-purple-700">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{role.role}</span>
+                        <span className={`px-2 py-1 rounded text-xs ${role.relevance_level === 'HIGH' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            role.relevance_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                          {role.relevance_level}
+                        </span>
+                      </div>
+                      {role.company && <div className="text-xs text-slate-500 dark:text-slate-400">{role.company}</div>}
+                      {role.duration_months && <div className="text-xs text-slate-500 dark:text-slate-400">{role.duration_months} months</div>}
+                      {role.reason && <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">{role.reason}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 20: Answer Quality Analysis (Format 1) */}
+      {answerQualityAnalysis && Array.isArray(answerQualityAnalysis) && answerQualityAnalysis.length > 0 && (
+        <Card className="bg-linear-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 border border-cyan-200 dark:border-cyan-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <FileText className="w-6 h-6 text-cyan-600" />
+              Answer Quality Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {answerQualityAnalysis.map((analysis: any, index: number) => (
+                <div key={index} className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-cyan-200 dark:border-cyan-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{analysis.question_topic}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${analysis.answer_quality === 'GOOD' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        analysis.answer_quality === 'AVERAGE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                      {analysis.answer_quality}
+                    </span>
                   </div>
-                )}
-                {profile.predictiveAssessment.retentionRisk.riskFactors && profile.predictiveAssessment.retentionRisk.riskFactors.length > 0 && (
-                  <div className="text-xs text-red-600 mb-1">Risk Factors: {profile.predictiveAssessment.retentionRisk.riskFactors.length}</div>
-                )}
-                {profile.predictiveAssessment.retentionRisk.retentionDrivers && profile.predictiveAssessment.retentionRisk.retentionDrivers.length > 0 && (
-                  <div className="text-xs text-green-600">Drivers: {profile.predictiveAssessment.retentionRisk.retentionDrivers.length}</div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">{analysis.evidence}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 italic">AI Reasoning: {analysis.ai_reasoning}</p>
+                  {analysis.depth_level && (
+                    <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                      Depth Level: <span className="font-medium">{analysis.depth_level}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 21: Overall Risk Assessment (Format 1) */}
+      {overallRiskAssessment && (
+        <Card className="bg-linear-to-r from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 border border-orange-200 dark:border-orange-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6 text-orange-600" />
+              Overall Risk Assessment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {overallRiskAssessment.overall_ai_judgment && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-1">AI Judgment</div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{overallRiskAssessment.overall_ai_judgment}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {overallRiskAssessment.retention_risk && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Retention Risk</div>
+                  <div className={`font-semibold ${overallRiskAssessment.retention_risk === 'LOW' ? 'text-green-600' :
+                      overallRiskAssessment.retention_risk === 'MEDIUM' ? 'text-yellow-600' :
+                        'text-red-600'
+                    }`}>
+                    {overallRiskAssessment.retention_risk}
+                  </div>
+                </div>
+              )}
+              {overallRiskAssessment.hire_risk_level && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Hire Risk Level</div>
+                  <div className={`font-semibold ${overallRiskAssessment.hire_risk_level === 'LOW' ? 'text-green-600' :
+                      overallRiskAssessment.hire_risk_level === 'MEDIUM' ? 'text-yellow-600' :
+                        'text-red-600'
+                    }`}>
+                    {overallRiskAssessment.hire_risk_level}
+                  </div>
+                </div>
+              )}
+            </div>
+            {overallRiskAssessment.key_risk_drivers && Array.isArray(overallRiskAssessment.key_risk_drivers) && overallRiskAssessment.key_risk_drivers.length > 0 && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Key Risk Drivers</div>
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  {overallRiskAssessment.key_risk_drivers.map((driver: string, i: number) => (
+                    <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{driver}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 22: Compensation & Logistics (Format 1) */}
+      {compensationLogistics && (
+        <Card className="bg-linear-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-emerald-600" />
+              Compensation & Logistics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {compensationLogistics.notice_period && compensationLogistics.notice_period.value && (
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Notice Period</span>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{compensationLogistics.notice_period.value}</p>
+                {compensationLogistics.notice_period.evidence && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 pl-6 italic">Evidence: {compensationLogistics.notice_period.evidence}</p>
                 )}
               </div>
             )}
-            {profile.predictiveAssessment.growthPotential && (
-              <div className="p-2 bg-white dark:bg-slate-800 rounded border dark:border-gray-600">
-                <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Growth Potential</div>
-                {profile.predictiveAssessment.growthPotential.score !== undefined && (
-                  <div className={`text-2xl font-bold ${getScoreColor(profile.predictiveAssessment.growthPotential.score)} mb-1`}>
-                    {profile.predictiveAssessment.growthPotential.score}%
+            {compensationLogistics.job_search_reason && (
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Target className="w-4 h-4 text-emerald-600" />
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Job Search Reason</span>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{compensationLogistics.job_search_reason.stated_reason}</p>
+                {compensationLogistics.job_search_reason.ai_interpretation && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 pl-6 italic">AI Interpretation: {compensationLogistics.job_search_reason.ai_interpretation}</p>
+                )}
+                {compensationLogistics.job_search_reason.risk_level && (
+                  <div className="mt-1 pl-6">
+                    <span className={`px-2 py-1 rounded text-xs ${compensationLogistics.job_search_reason.risk_level === 'LOW' ? 'bg-green-100 text-green-700' :
+                        compensationLogistics.job_search_reason.risk_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-red-100 text-red-700'
+                      }`}>
+                      Risk: {compensationLogistics.job_search_reason.risk_level}
+                    </span>
                   </div>
                 )}
-                {profile.predictiveAssessment.growthPotential.trajectory12Months && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">{profile.predictiveAssessment.growthPotential.trajectory12Months}</div>
-                )}
-                {profile.predictiveAssessment.growthPotential.leadershipTimeline && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Leadership: {profile.predictiveAssessment.growthPotential.leadershipTimeline}</div>
-                )}
               </div>
+            )}
+            {compensationLogistics.salary_expectation && compensationLogistics.salary_expectation.value && (
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Salary Expectation</span>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400 pl-6">{compensationLogistics.salary_expectation.value}</p>
+              </div>
+            )}
+            {compensationLogistics.background_highlights && Array.isArray(compensationLogistics.background_highlights) && compensationLogistics.background_highlights.length > 0 && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Background Highlights</div>
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  {compensationLogistics.background_highlights.map((highlight: string, i: number) => (
+                    <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{highlight}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 23: Data Quality Notes (Format 1) */}
+      {dataQualityNotes && (
+        <Card className="bg-linear-to-r from-slate-50 to-gray-50 dark:from-slate-900/30 dark:to-gray-900/30 border border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Info className="w-6 h-6 text-slate-600" />
+              Data Quality Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {dataQualityNotes.notes && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-1">Notes</div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{dataQualityNotes.notes}</p>
+              </div>
+            )}
+            {dataQualityNotes.confidence_in_profile_0_100 !== undefined && (
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Confidence in Profile</div>
+                <div className={`text-2xl font-bold ${getScoreColor(dataQualityNotes.confidence_in_profile_0_100)}`}>
+                  {dataQualityNotes.confidence_in_profile_0_100}%
+                </div>
+              </div>
+            )}
+            {dataQualityNotes.major_information_gaps && Array.isArray(dataQualityNotes.major_information_gaps) && dataQualityNotes.major_information_gaps.length > 0 && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Major Information Gaps</div>
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  {dataQualityNotes.major_information_gaps.map((gap: string, i: number) => (
+                    <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{gap}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {dataQualityNotes.inconsistencies_detected && Array.isArray(dataQualityNotes.inconsistencies_detected) && dataQualityNotes.inconsistencies_detected.length > 0 && (
+              <div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Inconsistencies Detected</div>
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  {dataQualityNotes.inconsistencies_detected.map((inconsistency: string, i: number) => (
+                    <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{inconsistency}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section 24: Other Data - Dynamic Cards */}
+      {otherData.length > 0 && (
+        <Card className="bg-linear-to-r from-slate-50 to-gray-50 dark:from-slate-900/30 dark:to-gray-900/30 border border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-slate-800 dark:text-slate-200">
+              Additional Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {otherData.map(({ key, value }, index) => {
+                const displayKey = key.split('.').pop() || key;
+                const formattedKey = displayKey
+                  .replace(/_/g, ' ')
+                  .replace(/([A-Z])/g, ' $1')
+                  .replace(/^./, str => str.toUpperCase())
+                  .trim();
+
+                // Determine card color based on key
+                let cardColor = 'from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30';
+                let borderColor = 'border-blue-200 dark:border-blue-700';
+
+                if (key.toLowerCase().includes('skill')) {
+                  cardColor = 'from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30';
+                  borderColor = 'border-green-200 dark:border-green-700';
+                } else if (key.toLowerCase().includes('experience') || key.toLowerCase().includes('career')) {
+                  cardColor = 'from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30';
+                  borderColor = 'border-purple-200 dark:border-purple-700';
+                } else if (key.toLowerCase().includes('personality') || key.toLowerCase().includes('culture')) {
+                  cardColor = 'from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30';
+                  borderColor = 'border-indigo-200 dark:border-indigo-700';
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className={`bg-linear-to-br ${cardColor} rounded-lg p-4 border ${borderColor}`}
+                  >
+                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      {formattedKey}
+                    </div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">
+                      {Array.isArray(value) ? (
+                        <div className="flex flex-wrap gap-2">
+                          {value.map((item: any, i: number) => (
+                            <span key={i} className="px-2 py-1 bg-white dark:bg-slate-800 rounded text-xs">
+                              {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : typeof value === 'object' && value !== null ? (
+                        <pre className="whitespace-pre-wrap font-mono text-xs bg-white dark:bg-slate-800 p-2 rounded">
+                          {JSON.stringify(value, null, 2)}
+                        </pre>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{String(value)}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )
+      }
+    </div >
+  );
+}
+
+// Helper function to render transcription in different formats
+function renderTranscription(interviewTranscription: any): React.ReactNode {
+  if (!interviewTranscription) {
+    return (
+      <p className="text-sm text-slate-500 italic">
+        Transcription not available for this interview.
+      </p>
+    );
+  }
+
+  // Format 1: Session format with questions and responses arrays
+  if (interviewTranscription.questions && interviewTranscription.responses) {
+    const elements: React.ReactNode[] = [];
+    const questions = interviewTranscription.questions || [];
+    const responses = interviewTranscription.responses || [];
+
+    for (let i = 0; i < Math.max(questions.length, responses.length); i++) {
+      if (questions[i]) {
+        elements.push(
+          <div key={`q-${i}`} className="border-l-2 border-blue-200 pl-3 py-2">
+            <div className="flex items-start gap-2">
+              <span className="text-xs font-medium text-blue-600 dark:text-blue-400 min-w-[80px]">
+                Interviewer:
+              </span>
+              <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">
+                {questions[i].question}
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      if (responses[i]) {
+        elements.push(
+          <div key={`r-${i}`} className="border-l-2 border-green-200 pl-3 py-2 ml-4">
+            <div className="flex items-start gap-2">
+              <span className="text-xs font-medium text-green-600 dark:text-green-400 min-w-[80px]">
+                Candidate:
+              </span>
+              <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">
+                {responses[i].content}
+              </p>
+            </div>
+            {responses[i].timestamp && (
+              <span className="text-xs text-slate-400 ml-[92px] block">
+                {new Date(responses[i].timestamp).toLocaleTimeString()}
+              </span>
             )}
           </div>
+        );
+      }
+    }
+    return elements;
+  }
+
+  // Format 2: Simple array format
+  if (Array.isArray(interviewTranscription)) {
+    return interviewTranscription.map((item: any, index: number) => (
+      <div
+        key={index}
+        className={`border-l-2 pl-3 py-1 ${item.role === 'assistant' ? 'border-blue-200' : 'border-green-200'
+          }`}
+      >
+        <div className="flex items-start gap-2">
+          <span
+            className={`text-xs font-medium min-w-[80px] ${item.role === 'assistant'
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-green-600 dark:text-green-400'
+              }`}
+          >
+            {item.role === 'assistant' ? 'Interviewer' : 'Candidate'}:
+          </span>
+          <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">
+            {item.content}
+          </p>
         </div>
-      )}
-    </div>
+        {item.timestamp && (
+          <span className="text-xs text-slate-400 ml-[92px] block">
+            {new Date(item.timestamp).toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+    ));
+  }
+
+  // Format 3: Plain string format
+  if (typeof interviewTranscription === 'string') {
+    return (
+      <div className="border-l-2 border-slate-200 pl-3 py-2">
+        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+          {interviewTranscription}
+        </p>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// Interview Video and Transcription Component
+interface InterviewVideoAndTranscriptionProps {
+  videoUrl: string;
+  transcription: any;
+}
+
+function InterviewVideoAndTranscription({
+  videoUrl,
+  transcription,
+}: InterviewVideoAndTranscriptionProps) {
+  return (
+    <>
+      <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+            <Play className="w-5 h-5" />
+            Interview Recording & Transcription
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Video Player */}
+            <div>
+              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                Video Recording
+              </h4>
+              <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
+                <HLSVideoPlayer
+                  src={videoUrl}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            </div>
+
+            {/* Transcription */}
+            <div className="flex flex-col">
+              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Interview Transcription
+              </h4>
+              <div className="aspect-video bg-slate-50 dark:bg-slate-800 rounded-lg p-4 overflow-y-auto">
+                <div className="space-y-3">{renderTranscription(transcription)}</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Separator />
+    </>
   );
-};
+}
 
 export default function ApplicantDetailsPage() {
   const { applicantId } = useParams<{ applicantId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Single query to fetch all applicant data including interview video URL and transcription
   const { data: applicant, isLoading } = useQuery<any>({
@@ -1863,91 +1911,37 @@ export default function ApplicantDetailsPage() {
       const response = await fetch(`/api/applicants/detail/${applicantId}`);
       if (!response.ok) throw new Error("Failed to fetch applicant");
       const data = await response.json();
-
-      // Debug: Log the data structure to see what we're getting
-      console.log('📋 Applicant Data Received:', {
-        hasComprehensiveProfile: !!data.comprehensiveProfile,
-        hasHonestProfile: !!data.honestProfile,
-        hasKeyMetrics: !!data.keyMetrics,
-        comprehensiveProfileKeys: data.comprehensiveProfile ? Object.keys(data.comprehensiveProfile) : [],
-        keyMetricsKeys: data.keyMetrics ? Object.keys(data.keyMetrics) : [],
-        honestProfileKeys: data.honestProfile ? Object.keys(data.honestProfile) : [],
-        overallScore: data.keyMetrics?.overallScore || data.comprehensiveProfile?.brutallyHonestProfile?.overallScore,
-        gapSeverityScore: data.keyMetrics?.gapSeverityScore,
-        answerQualityScore: data.keyMetrics?.answerQualityScore,
-        cvConsistencyScore: data.keyMetrics?.cvConsistencyScore,
-      });
-
       return data;
     },
+  });
+
+  // Fetch generated profile from airtable_job_applications table
+  const { data: generatedProfileData } = useQuery<any>({
+    queryKey: ["/api/applicants/generated-profile", applicantId],
+    queryFn: async () => {
+      const response = await fetch(`/api/applicants/${applicantId}/generated-profile`);
+      if (!response.ok) {
+        // If not found, return null instead of throwing error
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error("Failed to fetch generated profile");
+      }
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!applicantId, // Only fetch if applicantId exists
+    retry: false, // Don't retry on 404
   });
 
   // Extract transcription data from the applicant
   const interviewTranscription = applicant?.interviewTranscription;
 
-  const shortlistMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", `/api/applicants/${applicantId}/shortlist`);
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Applicant shortlisted!" });
-      queryClient.invalidateQueries({ queryKey: ["/api/applicants/detail", applicantId] });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to shortlist applicant",
-        variant: "destructive",
-      });
-    },
-  });
+  // Use generatedProfile from the new endpoint if available, otherwise fallback to applicant.generatedProfile
+  const rawGeneratedProfile = generatedProfileData?.generatedProfile || applicant?.generatedProfile;
 
-  const acceptMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", `/api/applicants/${applicantId}/accept`);
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Applicant accepted!" });
-      queryClient.invalidateQueries({ queryKey: ["/api/applicants/detail", applicantId] });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to accept applicant",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const denyMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", `/api/applicants/${applicantId}/deny`);
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Applicant denied" });
-      queryClient.invalidateQueries({ queryKey: ["/api/applicants/detail", applicantId] });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to deny applicant",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const regenerateProfileMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", `/api/applicants/${applicantId}/regenerate-profile`);
-    },
-    onSuccess: () => {
-      // Invalidate queries to refetch applicant data with new profile
-      queryClient.invalidateQueries({ queryKey: ["/api/applicants/detail", applicantId] });
-    },
-    onError: (error) => {
-      console.error("Failed to regenerate profile:", error);
-    },
-  });
+  // Process profile for HR review: clean and group
+  const groupedProfile = rawGeneratedProfile ? groupForHRReview(rawGeneratedProfile) : null;
 
   if (isLoading) {
     return (
@@ -1974,11 +1968,7 @@ export default function ApplicantDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-start justify-between"
-      >
+      <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <Button
             variant="ghost"
@@ -1993,975 +1983,44 @@ export default function ApplicantDetailsPage() {
               {applicant.firstName?.[0] || applicant.email?.[0]?.toUpperCase() || "A"}
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                  {applicant.firstName && applicant.lastName
-                    ? `${applicant.firstName} ${applicant.lastName}`
-                    : applicant.name || applicant.email}
-                </h1>
-                {getStatusBadge(applicant.status)}
-              </div>
+              <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+                {applicant.firstName && applicant.lastName
+                  ? `${applicant.firstName} ${applicant.lastName}`
+                  : applicant.name || applicant.email}
+              </h1>
               <p className="text-slate-500 dark:text-slate-400 mt-1">
                 Applied for: {applicant.jobTitle || "Unknown Position"}
               </p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {applicant.status !== "shortlisted" && applicant.status !== "accepted" && (
-            <Button
-              variant="outline"
-              onClick={() => shortlistMutation.mutate()}
-              disabled={shortlistMutation.isPending}
-            >
-              <Star className="w-4 h-4 mr-2" />
-              Shortlist
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/hiring/interviews/new?applicantId=${applicantId}`)}
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule Interview
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => regenerateProfileMutation.mutate()}
-            disabled={regenerateProfileMutation.isPending}
-          >
-            {regenerateProfileMutation.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Brain className="w-4 h-4 mr-2" />
-            )}
-            Regenerate Profile
-          </Button>
-          {applicant.status === "shortlisted" && (
-            <Button
-              onClick={() => acceptMutation.mutate()}
-              disabled={acceptMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Accept
-            </Button>
-          )}
-          {applicant.status !== "denied" && (
-            <Button
-              variant="outline"
-              onClick={() => denyMutation.mutate()}
-              disabled={denyMutation.isPending}
-              className="text-red-600 border-red-200 hover:bg-red-50"
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              Deny
-            </Button>
-          )}
-        </div>
-      </motion.div>
+      </div>
 
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="space-y-6 pr-4">
-          {/* Basic Info Section */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
-                <User className="h-8 w-8 text-gray-600 dark:text-slate-300" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">
-                  {applicant.firstName && applicant.lastName
-                    ? `${applicant.firstName} ${applicant.lastName}`
-                    : applicant.name || applicant.email}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{applicant.email}</p>
-                {applicant.phone && <p className="text-sm text-slate-500 dark:text-slate-400">{applicant.phone}</p>}
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Check if applicant has completed interview or not */}
-          {(() => {
-            const status = applicant.status?.toLowerCase();
-            // Check if interview is completed - if generatedProfile exists, interview is done
-            const hasCompletedInterview = applicant.generatedProfile || applicant.interviewVideoUrl || status === 'interview_completed';
-            // Pre-interview statuses
-            const isPreInterview = ['applied', 'shortlisted', 'denied', 'declined'].includes(status || '');
-
-            // Helper function to render field value dynamically
-            const renderFieldValue = (key: string, value: any): React.ReactNode => {
-              if (value === null || value === undefined || value === '') {
-                return null;
-              }
-
-              // Handle arrays
-              if (Array.isArray(value)) {
-                if (value.length === 0) return null;
-
-                // Special handling for workExperience array
-                if (key === 'workExperience' || key === 'work_experience') {
-                  return (
-                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                      <CardHeader>
-                        <CardTitle className="text-slate-800 dark:text-slate-200">Work Experience</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {value.map((exp: any, index: number) => (
-                          <div key={index} className="border-l-2 border-primary pl-4 py-2">
-                            <div className="flex items-start justify-between mb-1">
-                              <div>
-                                <h4 className="font-semibold text-slate-800 dark:text-slate-200">
-                                  {exp.position || exp.title || 'Position'} {exp.company && `at ${exp.company}`}
-                                </h4>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">
-                                  {exp.startDate || exp.start_date} - {exp.current ? 'Present' : exp.endDate || exp.end_date || 'N/A'}
-                                  {exp.location && ` • ${exp.location}`}
-                                </p>
-                              </div>
-                              {exp.current && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Current
-                                </Badge>
-                              )}
-                            </div>
-                            {exp.responsibilities && (
-                              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 whitespace-pre-wrap">
-                                {exp.responsibilities}
-                              </p>
-                            )}
-                            {exp.employmentType && (
-                              <Badge variant="outline" className="mt-2 text-xs">
-                                {exp.employmentType}
-                              </Badge>
-                            )}
-                            {exp.yearsAtPosition && (
-                              <Badge variant="outline" className="mt-2 ml-2 text-xs">
-                                {exp.yearsAtPosition}
-                              </Badge>
-                            )}
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
-                // Special handling for education array
-                if (key === 'education') {
-                  return (
-                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                      <CardHeader>
-                        <CardTitle className="text-slate-800 dark:text-slate-200">Education</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {value.map((edu: any, index: number) => (
-                          <div key={index} className="border-l-2 border-blue-200 pl-4 py-2">
-                            <h4 className="font-semibold text-slate-800 dark:text-slate-200">
-                              {edu.degree} {edu.field && `in ${edu.field}`}
-                            </h4>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {edu.institution}
-                              {edu.location && ` • ${edu.location}`}
-                            </p>
-                            {edu.startDate && (
-                              <p className="text-xs text-slate-400 mt-1">
-                                {edu.startDate} - {edu.current ? 'Present' : edu.endDate || 'N/A'}
-                              </p>
-                            )}
-                            {edu.gpa && (
-                              <Badge variant="outline" className="mt-1 text-xs">
-                                GPA: {edu.gpa}
-                              </Badge>
-                            )}
-                            {edu.honors && (
-                              <Badge variant="outline" className="mt-1 ml-2 text-xs">
-                                {edu.honors}
-                              </Badge>
-                            )}
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
-                // Special handling for skills array
-                if (key === 'skills') {
-                  return (
-                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                      <CardHeader>
-                        <CardTitle className="text-slate-800 dark:text-slate-200">Skills</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                          {value.map((skill: string, index: number) => (
-                            <Badge key={index} variant="outline" className="text-sm">
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
-                // Special handling for projects array
-                if (key === 'projects' || key === 'projectExperience' || key === 'project_experience') {
-                  return (
-                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                      <CardHeader>
-                        <CardTitle className="text-slate-800 dark:text-slate-200">Projects</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {value.map((project: any, index: number) => (
-                          <div key={index} className="border-l-2 border-purple-200 pl-4 py-2">
-                            <div className="flex items-start justify-between mb-1">
-                              <div>
-                                <h4 className="font-semibold text-slate-800 dark:text-slate-200">
-                                  {project.name || project.title || project.projectName || 'Project'}
-                                </h4>
-                                {project.company && (
-                                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                                    {project.company}
-                                  </p>
-                                )}
-                                {(project.startDate || project.start_date) && (
-                                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                                    {project.startDate || project.start_date} - {project.current ? 'Present' : project.endDate || project.end_date || 'N/A'}
-                                  </p>
-                                )}
-                              </div>
-                              {project.current && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Current
-                                </Badge>
-                              )}
-                            </div>
-                            {project.description && (
-                              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 whitespace-pre-wrap">
-                                {project.description}
-                              </p>
-                            )}
-                            {project.technologies && Array.isArray(project.technologies) && project.technologies.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {project.technologies.map((tech: string, techIndex: number) => (
-                                  <Badge key={techIndex} variant="outline" className="text-xs">
-                                    {tech}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                            {project.url && (
-                              <a
-                                href={project.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-block"
-                              >
-                                View Project →
-                              </a>
-                            )}
-                            {project.githubUrl && (
-                              <a
-                                href={project.githubUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 ml-4 inline-block"
-                              >
-                                GitHub →
-                              </a>
-                            )}
-                            {project.responsibilities && (
-                              <div className="mt-2">
-                                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Responsibilities:</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-                                  {project.responsibilities}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
-                // Generic array handling
-                return (
-                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-slate-800 dark:text-slate-200 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="list-disc list-inside space-y-1">
-                        {value.map((item: any, index: number) => (
-                          <li key={index} className="text-sm text-slate-600 dark:text-slate-400">
-                            {typeof item === 'object' ? JSON.stringify(item, null, 2) : String(item)}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                );
-              }
-
-              // Handle objects
-              if (typeof value === 'object' && value !== null) {
-                return (
-                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-slate-800 dark:text-slate-200 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <pre className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap overflow-auto">
-                        {JSON.stringify(value, null, 2)}
-                      </pre>
-                    </CardContent>
-                  </Card>
-                );
-              }
-
-              // Handle strings and numbers
-              return (
-                <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-slate-800 dark:text-slate-200 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-                      {String(value)}
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            };
-
-            // Pre-Interview View: Display userProfile data
-            if (isPreInterview && !hasCompletedInterview) {
-              let userProfile = applicant.userProfile;
-              // Parse if it's a string
-              if (typeof userProfile === 'string') {
-                try {
-                  userProfile = JSON.parse(userProfile);
-                } catch (e) {
-                  console.error('Error parsing userProfile:', e);
-                  userProfile = null;
-                }
-              }
-
-              if (!userProfile) {
-                return (
-                  <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                    <CardContent className="p-6">
-                      <div className="text-center py-4 text-slate-500 dark:text-slate-400">
-                        <p className="text-sm">No profile information available.</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              }
-
-              // Get all keys from userProfile and render them dynamically
-              const profileKeys = Object.keys(userProfile);
-
-              // Priority order for display (most important first)
-              const priorityKeys = ['professionalSummary', 'workExperience', 'projects', 'education', 'skills', 'location', 'experienceLevel', 'name', 'email', 'phone'];
-              const sortedKeys = [
-                ...priorityKeys.filter(key => profileKeys.includes(key)),
-                ...profileKeys.filter(key => !priorityKeys.includes(key))
-              ];
-
-              return (
-                <>
-                  {sortedKeys.map((key) => {
-                    const value = userProfile[key];
-                    return <React.Fragment key={key}>{renderFieldValue(key, value)}</React.Fragment>;
-                  })}
-                </>
-              );
-            }
-
-            // Post-Interview View: Continue with existing interview analysis
-            return null;
-          })()}
-
-          {/* Interview Video and Transcription Section - Only show if generatedProfile exists */}
-          {applicant.generatedProfile && applicant.interviewVideoUrl && (
-            <>
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                    <Play className="w-5 h-5" />
-                    Interview Recording & Transcription
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Video Player */}
-                    <div>
-                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Video Recording</h4>
-                      <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
-                        <HLSVideoPlayer
-                          src={applicant.interviewVideoUrl}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Transcription */}
-                    <div>
-                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        Interview Transcription
-                      </h4>
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 h-[calc(100%-3rem)] overflow-y-auto max-h-96 lg:max-h-none">
-                        {interviewTranscription ? (
-                          <div className="space-y-3">
-                            {(() => {
-                              // Handle different transcription formats
-                              if (interviewTranscription.questions && interviewTranscription.responses) {
-                                // Session format with questions and responses arrays
-                                const elements = [];
-                                const questions = interviewTranscription.questions || [];
-                                const responses = interviewTranscription.responses || [];
-
-                                for (let i = 0; i < Math.max(questions.length, responses.length); i++) {
-                                  if (questions[i]) {
-                                    elements.push(
-                                      <div key={`q-${i}`} className="border-l-2 border-blue-200 pl-3 py-2">
-                                        <div className="flex items-start gap-2">
-                                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 min-w-[80px]">
-                                            Interviewer:
-                                          </span>
-                                          <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">
-                                            {questions[i].question}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-
-                                  if (responses[i]) {
-                                    elements.push(
-                                      <div key={`r-${i}`} className="border-l-2 border-green-200 pl-3 py-2 ml-4">
-                                        <div className="flex items-start gap-2">
-                                          <span className="text-xs font-medium text-green-600 dark:text-green-400 min-w-[80px]">
-                                            Candidate:
-                                          </span>
-                                          <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">
-                                            {responses[i].content}
-                                          </p>
-                                        </div>
-                                        {responses[i].timestamp && (
-                                          <span className="text-xs text-slate-400 ml-[92px] block">
-                                            {new Date(responses[i].timestamp).toLocaleTimeString()}
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  }
-                                }
-                                return elements;
-                              } else if (Array.isArray(interviewTranscription)) {
-                                // Simple array format
-                                return interviewTranscription.map((item: any, index: number) => (
-                                  <div key={index} className={`border-l-2 pl-3 py-1 ${item.role === 'assistant' ? 'border-blue-200' : 'border-green-200'
-                                    }`}>
-                                    <div className="flex items-start gap-2">
-                                      <span className={`text-xs font-medium min-w-[80px] ${item.role === 'assistant'
-                                        ? 'text-blue-600 dark:text-blue-400'
-                                        : 'text-green-600 dark:text-green-400'
-                                        }`}>
-                                        {item.role === 'assistant' ? 'Interviewer' : 'Candidate'}:
-                                      </span>
-                                      <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">
-                                        {item.content}
-                                      </p>
-                                    </div>
-                                    {item.timestamp && (
-                                      <span className="text-xs text-slate-400 ml-[92px] block">
-                                        {new Date(item.timestamp).toLocaleTimeString()}
-                                      </span>
-                                    )}
-                                  </div>
-                                ));
-                              } else if (typeof interviewTranscription === 'string') {
-                                // Plain string format
-                                return (
-                                  <div className="border-l-2 border-slate-200 pl-3 py-2">
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-                                      {interviewTranscription}
-                                    </p>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-slate-500 italic">
-                            Transcription not available for this interview.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Separator />
-            </>
-          )}
-
-          {/* Comprehensive Profile Summary Section - Show basic info from comprehensiveProfile */}
-          {applicant.comprehensiveProfile && (() => {
-            const compProfile = applicant.comprehensiveProfile;
-            const hasBasicInfo = compProfile.summary || compProfile.skills?.length > 0 || compProfile.strengths?.length > 0 ||
-              compProfile.personality || compProfile.careerGoals || compProfile.workStyle ||
-              compProfile.matchScorePercentage !== undefined || compProfile.experiencePercentage !== undefined ||
-              compProfile.techSkillsPercentage !== undefined || compProfile.culturalFitPercentage !== undefined;
-
-            if (!hasBasicInfo) return null;
-
-            return (
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                    <FileText className="w-5 h-5 text-blue-500" />
-                    Comprehensive Profile Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {compProfile.summary && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Summary</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.summary}</p>
-                    </div>
-                  )}
-
-                  {(compProfile.matchScorePercentage !== undefined || compProfile.experiencePercentage !== undefined ||
-                    compProfile.techSkillsPercentage !== undefined || compProfile.culturalFitPercentage !== undefined) && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {compProfile.matchScorePercentage !== undefined && (
-                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.matchScorePercentage)}`}>
-                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.matchScorePercentage)}`}>
-                              {compProfile.matchScorePercentage}%
-                            </div>
-                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Overall Match</div>
-                          </div>
-                        )}
-                        {compProfile.techSkillsPercentage !== undefined && (
-                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.techSkillsPercentage)}`}>
-                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.techSkillsPercentage)}`}>
-                              {compProfile.techSkillsPercentage}%
-                            </div>
-                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Technical Skills</div>
-                          </div>
-                        )}
-                        {compProfile.experiencePercentage !== undefined && (
-                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.experiencePercentage)}`}>
-                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.experiencePercentage)}`}>
-                              {compProfile.experiencePercentage}%
-                            </div>
-                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Experience</div>
-                          </div>
-                        )}
-                        {compProfile.culturalFitPercentage !== undefined && (
-                          <div className={`p-3 rounded-lg text-center ${getScoreBgColor(compProfile.culturalFitPercentage)}`}>
-                            <div className={`text-2xl font-bold ${getScoreColor(compProfile.culturalFitPercentage)}`}>
-                              {compProfile.culturalFitPercentage}%
-                            </div>
-                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Cultural Fit</div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                  {compProfile.skills && compProfile.skills.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Skills</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {compProfile.skills.map((skill: string, i: number) => (
-                          <Badge key={i} variant="outline" className="text-xs">{skill}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {compProfile.strengths && compProfile.strengths.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">Strengths</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {compProfile.strengths.map((strength: string, i: number) => (
-                          <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{strength}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {compProfile.personality && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Personality</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.personality}</p>
-                    </div>
-                  )}
-
-                  {compProfile.careerGoals && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Career Goals</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.careerGoals}</p>
-                    </div>
-                  )}
-
-                  {compProfile.workStyle && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Work Style</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{compProfile.workStyle}</p>
-                    </div>
-                  )}
-
-                  {compProfile.experience && compProfile.experience.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Experience</h4>
-                      <div className="space-y-2">
-                        {compProfile.experience.map((exp: any, i: number) => (
-                          <div key={i} className="p-2 bg-gray-50 dark:bg-slate-800 rounded border dark:border-gray-600">
-                            {exp.role && <div className="text-sm font-medium">{exp.role}</div>}
-                            {exp.company && <div className="text-xs text-gray-600 dark:text-gray-400">{exp.company}</div>}
-                            {exp.duration && <div className="text-xs text-gray-500">{exp.duration}</div>}
-                            {exp.description && <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{exp.description}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })()}
-
-          {/* Interview Profile Analysis Section - Only show if generatedProfile exists */}
-          {applicant.generatedProfile && (() => {
-            // Prioritize comprehensiveProfile.brutallyHonestProfile, then brutallyHonestProfile, then generatedProfile
-            const profileToDisplay = applicant.comprehensiveProfile?.brutallyHonestProfile ||
-              applicant.brutallyHonestProfile ||
-              applicant.comprehensiveProfile ||
-              applicant.generatedProfile;
-
-            // If no interview profile exists, don't show anything
-            if (!profileToDisplay) {
-              return null;
-            }
-
-            return (
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                      <Brain className="w-5 h-5 text-purple-500" />
-                      Interview Profile Analysis
-                    </CardTitle>
-                    {(() => {
-                      const overallScore = applicant.keyMetrics?.overallScore ||
-                        applicant.keyMetrics?.scores?.overallScore ||
-                        profileToDisplay?.overallScore ||
-                        profileToDisplay?.scores?.overall_score?.value ||
-                        applicant.generatedProfile?.matchScorePercentage;
-                      if (overallScore !== undefined) {
-                        return (
-                          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${getScoreBgColor(overallScore)}`}>
-                            <span className={`text-3xl font-bold ${getScoreColor(overallScore)}`}>
-                              {overallScore}
-                            </span>
-                            <span className="text-sm text-slate-600 dark:text-slate-400">/100</span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <InterviewProfileAnalysis profile={profileToDisplay} />
-                </CardContent>
-              </Card>
-            );
-          })()}
-
-          {/* Honest Profile Section - Only show if generatedProfile exists */}
-          {applicant.generatedProfile && applicant.honestProfile && (
+          {/* Generated Profile Display - Structured Format */}
+          {rawGeneratedProfile && (
             <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                  <MessageSquare className="w-5 h-5 text-blue-500" />
-                  Honest Assessment
+                <CardTitle className="text-slate-800 dark:text-slate-200">
+                  Generated Profile
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {applicant.honestProfile.profileSummary && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Profile Summary</h4>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.profileSummary}</p>
-                  </div>
-                )}
-
-                {applicant.honestProfile.strengths && applicant.honestProfile.strengths.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">Strengths</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {applicant.honestProfile.strengths.map((strength: string, i: number) => (
-                        <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{strength}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {applicant.honestProfile.criticalWeaknesses && applicant.honestProfile.criticalWeaknesses.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">Critical Weaknesses</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {applicant.honestProfile.criticalWeaknesses.map((weakness: string, i: number) => (
-                        <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{weakness}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {applicant.honestProfile.skillAssessment && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Skill Assessment</h4>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.skillAssessment}</p>
-                  </div>
-                )}
-
-                {applicant.honestProfile.experienceVerification && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Experience Verification</h4>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.experienceVerification}</p>
-                  </div>
-                )}
-
-                {applicant.honestProfile.redFlags && applicant.honestProfile.redFlags.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">Red Flags</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {applicant.honestProfile.redFlags.map((flag: string, i: number) => (
-                        <li key={i} className="text-sm text-slate-600 dark:text-slate-400">{flag}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {applicant.honestProfile.hirabilityScore !== undefined && (
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Hirability Score: </span>
-                      <span className={`text-lg font-bold ${getScoreColor(applicant.honestProfile.hirabilityScore * 10)}`}>
-                        {applicant.honestProfile.hirabilityScore}/10
-                      </span>
-                    </div>
-                    {applicant.honestProfile.recommendedRole && (
-                      <div>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recommended Role: </span>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.recommendedRole}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {applicant.honestProfile.salaryRange && (
-                  <div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Salary Range: </span>
-                    <span className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.salaryRange}</span>
-                  </div>
-                )}
-
-                {applicant.honestProfile.notes && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Notes</h4>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{applicant.honestProfile.notes}</p>
-                  </div>
-                )}
+              <CardContent>
+                <div className="space-y-4">
+                  {renderStructuredProfile(rawGeneratedProfile)}
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Score Cards (if profile has dimension scores) - Only show if generatedProfile exists */}
-          {applicant.generatedProfile && (() => {
-            const profile = applicant.comprehensiveProfile?.brutallyHonestProfile ||
-              applicant.brutallyHonestProfile ||
-              applicant.comprehensiveProfile ||
-              applicant.generatedProfile;
-            const scores = profile?.scores || {};
-            const keyMetricsScores = applicant.keyMetrics?.scores || {};
-            const hasScores =
-              applicant.technicalSkillsScore !== undefined ||
-              applicant.experienceScore !== undefined ||
-              applicant.culturalFitScore !== undefined ||
-              applicant.communicationScore !== undefined ||
-              applicant.selfAwarenessScore !== undefined ||
-              applicant.jobFitScore !== undefined ||
-              profile?.technicalSkillsScore !== undefined ||
-              profile?.experienceScore !== undefined ||
-              profile?.culturalFitScore !== undefined ||
-              profile?.communicationScore !== undefined ||
-              keyMetricsScores.technicalSkillsScore !== undefined ||
-              keyMetricsScores.experienceScore !== undefined ||
-              keyMetricsScores.culturalFitScore !== undefined ||
-              keyMetricsScores.communicationScore !== undefined ||
-              scores.technical_competence !== undefined ||
-              scores.experience_quality !== undefined ||
-              scores.cultural_collaboration_fit !== undefined ||
-              scores.communication_presence !== undefined ||
-              scores.self_awareness_growth !== undefined ||
-              scores.job_specific_fit !== undefined ||
-              profile?.gapSeverityScore !== undefined ||
-              applicant.keyMetrics?.gapSeverityScore !== undefined ||
-              profile?.answerQualityScore !== undefined ||
-              applicant.keyMetrics?.answerQualityScore !== undefined ||
-              profile?.cvConsistencyScore !== undefined ||
-              applicant.keyMetrics?.cvConsistencyScore !== undefined;
-
-            if (!hasScores) return null;
-
-            // Extract scores from keyMetrics, applicant, profile, or V5 structure
-            const technicalScore = applicant.technicalSkillsScore ||
-              keyMetricsScores.technicalSkillsScore ||
-              profile?.technicalSkillsScore ||
-              Math.round(scores.technical_competence?.final_score || scores.technical_competence?.score || 0);
-            const experienceScore = applicant.experienceScore ||
-              keyMetricsScores.experienceScore ||
-              profile?.experienceScore ||
-              Math.round(scores.experience_quality?.final_score || scores.experience_quality?.score || 0);
-            const culturalFitScore = applicant.culturalFitScore ||
-              keyMetricsScores.culturalFitScore ||
-              profile?.culturalFitScore ||
-              Math.round(scores.cultural_collaboration_fit?.final_score || scores.cultural_collaboration_fit?.score || 0);
-            const communicationScore = applicant.communicationScore ||
-              keyMetricsScores.communicationScore ||
-              profile?.communicationScore ||
-              Math.round(scores.communication_presence?.final_score || scores.communication_presence?.score || 0);
-            const selfAwarenessScore = applicant.selfAwarenessScore ||
-              Math.round(scores.self_awareness_growth?.final_score || scores.self_awareness_growth?.score || 0);
-            const jobFitScore = applicant.jobFitScore ||
-              Math.round(scores.job_specific_fit?.final_score || scores.job_specific_fit?.score ||
-                scores.general_employability?.final_score || scores.general_employability?.score || 0);
-
-            return (
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                    <Target className="w-5 h-5 text-blue-500" />
-                    Dimension Scores
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {technicalScore > 0 && (
-                      <div className={`p-4 rounded-lg text-center ${getScoreBgColor(technicalScore)}`}>
-                        <div className={`text-2xl font-bold ${getScoreColor(technicalScore)}`}>
-                          {technicalScore}%
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Technical Skills</div>
-                      </div>
-                    )}
-                    {experienceScore > 0 && (
-                      <div className={`p-4 rounded-lg text-center ${getScoreBgColor(experienceScore)}`}>
-                        <div className={`text-2xl font-bold ${getScoreColor(experienceScore)}`}>
-                          {experienceScore}%
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Experience</div>
-                      </div>
-                    )}
-                    {culturalFitScore > 0 && (
-                      <div className={`p-4 rounded-lg text-center ${getScoreBgColor(culturalFitScore)}`}>
-                        <div className={`text-2xl font-bold ${getScoreColor(culturalFitScore)}`}>
-                          {culturalFitScore}%
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Cultural Fit</div>
-                      </div>
-                    )}
-                    {communicationScore > 0 && (
-                      <div className={`p-4 rounded-lg text-center ${getScoreBgColor(communicationScore)}`}>
-                        <div className={`text-2xl font-bold ${getScoreColor(communicationScore)}`}>
-                          {communicationScore}%
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Communication</div>
-                      </div>
-                    )}
-                    {selfAwarenessScore > 0 && (
-                      <div className={`p-4 rounded-lg text-center ${getScoreBgColor(selfAwarenessScore)}`}>
-                        <div className={`text-2xl font-bold ${getScoreColor(selfAwarenessScore)}`}>
-                          {selfAwarenessScore}%
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Self-Awareness</div>
-                      </div>
-                    )}
-                    {jobFitScore > 0 && (
-                      <div className={`p-4 rounded-lg text-center ${getScoreBgColor(jobFitScore)}`}>
-                        <div className={`text-2xl font-bold ${getScoreColor(jobFitScore)}`}>
-                          {jobFitScore}%
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Job Fit</div>
-                      </div>
-                    )}
-                    {profile?.leadershipScore !== undefined && (
-                      <div className={`p-4 rounded-lg text-center ${getScoreBgColor(profile.leadershipScore)}`}>
-                        <div className={`text-2xl font-bold ${getScoreColor(profile.leadershipScore)}`}>
-                          {profile.leadershipScore}%
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Leadership</div>
-                      </div>
-                    )}
-                    {/* New Quality Metrics */}
-                    {(() => {
-                      const gapSeverityScore = applicant.keyMetrics?.gapSeverityScore || profile?.gapSeverityScore;
-                      const answerQualityScore = applicant.keyMetrics?.answerQualityScore || profile?.answerQualityScore;
-                      const cvConsistencyScore = applicant.keyMetrics?.cvConsistencyScore || profile?.cvConsistencyScore;
-
-                      return (
-                        <>
-                          {gapSeverityScore !== undefined && (
-                            <div className={`p-4 rounded-lg text-center ${getGapSeverityBgColor(gapSeverityScore)}`}>
-                              <div className={`text-2xl font-bold ${getGapSeverityColor(gapSeverityScore)}`}>
-                                {gapSeverityScore}%
-                              </div>
-                              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Gap Severity</div>
-                              <div className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">(Higher = Worse)</div>
-                            </div>
-                          )}
-                          {answerQualityScore !== undefined && (
-                            <div className={`p-4 rounded-lg text-center ${getScoreBgColor(answerQualityScore)}`}>
-                              <div className={`text-2xl font-bold ${getScoreColor(answerQualityScore)}`}>
-                                {answerQualityScore}%
-                              </div>
-                              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Answer Quality</div>
-                            </div>
-                          )}
-                          {cvConsistencyScore !== undefined && (
-                            <div className={`p-4 rounded-lg text-center ${getScoreBgColor(cvConsistencyScore)}`}>
-                              <div className={`text-2xl font-bold ${getScoreColor(cvConsistencyScore)}`}>
-                                {cvConsistencyScore}%
-                              </div>
-                              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">CV Consistency</div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })()}
+          {/* Interview Video and Transcription Section */}
+          {rawGeneratedProfile && applicant.interviewVideoUrl && (
+            <InterviewVideoAndTranscription
+              videoUrl={applicant.interviewVideoUrl}
+              transcription={interviewTranscription}
+            />
+          )}
         </div>
       </ScrollArea>
     </div>
