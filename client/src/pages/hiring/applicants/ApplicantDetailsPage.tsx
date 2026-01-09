@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   Loader2,
@@ -45,6 +46,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { HLSVideoPlayer } from "@/components/HLSVideoPlayer";
 
 // ============================================================================
@@ -1337,9 +1344,9 @@ function renderStructuredProfile(profile: AnyObject): React.ReactNode {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-slate-700 dark:text-slate-300">{match.skill}</span>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${match.match_level === 'STRONG' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        match.match_level === 'MODERATE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          match.match_level === 'WEAK' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      match.match_level === 'MODERATE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        match.match_level === 'WEAK' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       }`}>
                       {match.match_level}
                     </span>
@@ -1456,8 +1463,8 @@ function renderStructuredProfile(profile: AnyObject): React.ReactNode {
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-medium text-slate-700 dark:text-slate-300">{role.role}</span>
                         <span className={`px-2 py-1 rounded text-xs ${role.relevance_level === 'HIGH' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                            role.relevance_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          role.relevance_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                           }`}>
                           {role.relevance_level}
                         </span>
@@ -1490,8 +1497,8 @@ function renderStructuredProfile(profile: AnyObject): React.ReactNode {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-slate-700 dark:text-slate-300">{analysis.question_topic}</span>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${analysis.answer_quality === 'GOOD' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        analysis.answer_quality === 'AVERAGE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      analysis.answer_quality === 'AVERAGE' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       }`}>
                       {analysis.answer_quality}
                     </span>
@@ -1531,8 +1538,8 @@ function renderStructuredProfile(profile: AnyObject): React.ReactNode {
                 <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
                   <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Retention Risk</div>
                   <div className={`font-semibold ${overallRiskAssessment.retention_risk === 'LOW' ? 'text-green-600' :
-                      overallRiskAssessment.retention_risk === 'MEDIUM' ? 'text-yellow-600' :
-                        'text-red-600'
+                    overallRiskAssessment.retention_risk === 'MEDIUM' ? 'text-yellow-600' :
+                      'text-red-600'
                     }`}>
                     {overallRiskAssessment.retention_risk}
                   </div>
@@ -1542,8 +1549,8 @@ function renderStructuredProfile(profile: AnyObject): React.ReactNode {
                 <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-orange-200 dark:border-orange-700">
                   <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Hire Risk Level</div>
                   <div className={`font-semibold ${overallRiskAssessment.hire_risk_level === 'LOW' ? 'text-green-600' :
-                      overallRiskAssessment.hire_risk_level === 'MEDIUM' ? 'text-yellow-600' :
-                        'text-red-600'
+                    overallRiskAssessment.hire_risk_level === 'MEDIUM' ? 'text-yellow-600' :
+                      'text-red-600'
                     }`}>
                     {overallRiskAssessment.hire_risk_level}
                   </div>
@@ -1599,8 +1606,8 @@ function renderStructuredProfile(profile: AnyObject): React.ReactNode {
                 {compensationLogistics.job_search_reason.risk_level && (
                   <div className="mt-1 pl-6">
                     <span className={`px-2 py-1 rounded text-xs ${compensationLogistics.job_search_reason.risk_level === 'LOW' ? 'bg-green-100 text-green-700' :
-                        compensationLogistics.job_search_reason.risk_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
+                      compensationLogistics.job_search_reason.risk_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
                       }`}>
                       Risk: {compensationLogistics.job_search_reason.risk_level}
                     </span>
@@ -1900,6 +1907,705 @@ function InterviewVideoAndTranscription({
   );
 }
 
+// Modal Component for Skills Matched
+function SkillsMatchedModal({
+  isOpen,
+  onClose,
+  title,
+  data,
+  icon: Icon,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  data: any[];
+  icon: React.ElementType;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[70vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0 pb-4">
+          <DialogTitle className="flex items-center gap-2">
+            <Icon className="w-5 h-5" />
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 min-h-0 overflow-y-auto pr-4">
+          <div className="space-y-4">
+            {data.map((item: any, index: number) => (
+              <Card key={index} className="border border-slate-200 dark:border-slate-700">
+                <CardContent className="p-4 space-y-3">
+                  {item.skill && (
+                    <div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Skill:
+                      </div>
+                      <div className="text-base font-bold text-slate-800 dark:text-slate-200">
+                        {item.skill}
+                      </div>
+                    </div>
+                  )}
+                  {item.evidence && (
+                    <div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Evidence:
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {item.evidence.interview ? (
+                            <>
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700 dark:text-slate-300">
+                                <span className="font-medium">Interview:</span> Yes
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-5 h-5 text-red-600" />
+                              <span className="text-sm text-slate-500 dark:text-slate-400">
+                                <span className="font-medium">Interview:</span> No
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {item.evidence.cv ? (
+                            <>
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700 dark:text-slate-300">
+                                <span className="font-medium">CV:</span> Yes
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-5 h-5 text-red-600" />
+                              <span className="text-sm text-slate-500 dark:text-slate-400">
+                                <span className="font-medium">CV:</span> No
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {item.evidence.jobDescription ? (
+                            <>
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700 dark:text-slate-300">
+                                <span className="font-medium">Job Description:</span> Yes
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-5 h-5 text-red-600" />
+                              <span className="text-sm text-slate-500 dark:text-slate-400">
+                                <span className="font-medium">Job Description:</span> No
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Modal Component for Array Data
+function ArrayDataModal({
+  isOpen,
+  onClose,
+  title,
+  data,
+  icon: Icon,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  data: any[];
+  icon: React.ElementType;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[70vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0 pb-4">
+          <DialogTitle className="flex items-center gap-2">
+            <Icon className="w-5 h-5" />
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 min-h-0 overflow-y-auto pr-4">
+          <div className="space-y-4">
+            {data.map((item: any, index: number) => (
+              <Card key={index} className="border border-slate-200 dark:border-slate-700">
+                <CardContent className="p-4 space-y-3">
+                  {item.point && (
+                    <div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Point:
+                      </div>
+                      <div className="text-sm text-slate-600 dark:text-slate-400">
+                        {item.point}
+                      </div>
+                    </div>
+                  )}
+                  {item.evidence && (
+                    <div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Evidence:
+                      </div>
+                      <div className="text-sm text-slate-600 dark:text-slate-400">
+                        {item.evidence}
+                      </div>
+                    </div>
+                  )}
+                  {item.source && (
+                    <div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Source:
+                      </div>
+                      <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                        {item.source.interview && (
+                          <div>
+                            <span className="font-medium">Interview:</span> {item.source.interview}
+                          </div>
+                        )}
+                        {item.source.cv && (
+                          <div>
+                            <span className="font-medium">CV:</span> {item.source.cv}
+                          </div>
+                        )}
+                        {item.source.aiViewPoint && (
+                          <div>
+                            <span className="font-medium">AI View:</span> {item.source.aiViewPoint}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Render Pitch-style Profile (based on images) - React Component
+function PitchProfile({ profile, applicant }: { profile: AnyObject; applicant: any }) {
+  const cleaned = deepClean(profile);
+
+  // State for modals
+  const [openModal, setOpenModal] = useState<string | null>(null);
+
+  // Extract scores
+  const scores = cleaned?.scores || {};
+  const overallScore = scores?.overallScore ?? null;
+  const technicalScore = scores?.technicalSkillsScore ?? null;
+  const experienceScore = scores?.experienceScore ?? null;
+  const culturalScore = scores?.culturalFitScore ?? null;
+
+  // Extract arrays - only if they exist and are not empty
+  const strengths = (cleaned?.strength && Array.isArray(cleaned.strength) && cleaned.strength.length > 0) ? cleaned.strength : null;
+  const gaps = (cleaned?.gap && Array.isArray(cleaned.gap) && cleaned.gap.length > 0) ? cleaned.gap : null;
+  const concerns = (cleaned?.concern && Array.isArray(cleaned.concern) && cleaned.concern.length > 0) ? cleaned.concern : null;
+  const watchouts = (cleaned?.watchout && Array.isArray(cleaned.watchout) && cleaned.watchout.length > 0) ? cleaned.watchout : null;
+  const weaknesses = (cleaned?.weakness && Array.isArray(cleaned.weakness) && cleaned.weakness.length > 0) ? cleaned.weakness : null;
+  const redFlags = (cleaned?.redFlag && Array.isArray(cleaned.redFlag) && cleaned.redFlag.length > 0) ? cleaned.redFlag : null;
+  const resumeContradictions = (cleaned?.resumeContradiction && Array.isArray(cleaned.resumeContradiction) && cleaned.resumeContradiction.length > 0) ? cleaned.resumeContradiction : null;
+  const answers = (cleaned?.answers && Array.isArray(cleaned.answers) && cleaned.answers.length > 0) ? cleaned.answers : null;
+
+  // Extract other fields
+  const recommendedNextSteps = cleaned?.recommendedNextSteps || null;
+  const questionToAskInNextInterview = cleaned?.questionToAskInNextInterview || null;
+  const candidateSalary = cleaned?.candidateSalary || null;
+  const relocationVisa = cleaned?.relocationVisa || null;
+  const skillsMatched = (cleaned?.skillsMatched && Array.isArray(cleaned.skillsMatched) && cleaned.skillsMatched.length > 0) ? cleaned.skillsMatched : null;
+  const aiOpinion = cleaned?.aiOpinion || null;
+  const experienceAnalysis = cleaned?.experienceAnalysis || null;
+  const highlightsOfBackground = cleaned?.highlightsOfBackground || null;
+  const reasonSearchingForJob = cleaned?.reasonSearchingForJob || null;
+  const highlightsOfTransitions = cleaned?.highlightsOfTransitions || null;
+
+  // Helper to check if value should be displayed
+  const shouldDisplay = (value: any): boolean => {
+    if (value === null || value === undefined) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value).length > 0;
+    if (typeof value === 'string') return value.trim().length > 0;
+    return true;
+  };
+
+  // Grid items configuration
+  const gridItems = [
+    { key: 'strengths', label: 'Strengths', data: strengths, icon: Star, colorClass: 'text-green-600' },
+    { key: 'gaps', label: 'Gaps', data: gaps, icon: TrendingDown, colorClass: 'text-orange-600' },
+    { key: 'concerns', label: 'Concerns', data: concerns, icon: AlertTriangle, colorClass: 'text-yellow-600' },
+    { key: 'watchouts', label: 'Watchouts', data: watchouts, icon: Info, colorClass: 'text-blue-600' },
+    { key: 'weaknesses', label: 'Weaknesses', data: weaknesses, icon: XCircle, colorClass: 'text-red-600' },
+    { key: 'redFlags', label: 'Red Flags', data: redFlags, icon: AlertTriangle, colorClass: 'text-red-600' },
+    { key: 'resumeContradictions', label: 'Resume Contradictions', data: resumeContradictions, icon: FileText, colorClass: 'text-orange-600' },
+    { key: 'answers', label: 'Answers', data: answers, icon: MessageSquare, colorClass: 'text-blue-600' },
+    { key: 'skillsMatched', label: 'Skills Matched', data: skillsMatched, icon: Code, colorClass: 'text-purple-600' },
+  ].filter(item => shouldDisplay(item.data));
+
+  return (
+    <div className="space-y-6">
+      {/* Scores Section - First Section */}
+      {(overallScore !== null || technicalScore !== null || experienceScore !== null || culturalScore !== null) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              {/* Overall Score - Large Display */}
+              {overallScore !== null && (
+                <div className="text-center">
+                  <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                    Overall Score
+                  </div>
+                  <div className={`text-6xl font-extrabold ${getScoreColor(overallScore)}`}>
+                    {overallScore}%
+                  </div>
+                </div>
+              )}
+
+              {/* Three Scores in One Row */}
+              {(technicalScore !== null || experienceScore !== null || culturalScore !== null) && (
+                <div className="grid grid-cols-3 gap-4">
+                  {technicalScore !== null && (
+                    <div className="text-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Technical Skills Score
+                      </div>
+                      <div className={`text-3xl font-bold ${getScoreColor(technicalScore)}`}>
+                        {technicalScore}%
+                      </div>
+                    </div>
+                  )}
+                  {experienceScore !== null && (
+                    <div className="text-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Experience Score
+                      </div>
+                      <div className={`text-3xl font-bold ${getScoreColor(experienceScore)}`}>
+                        {experienceScore}%
+                      </div>
+                    </div>
+                  )}
+                  {culturalScore !== null && (
+                    <div className="text-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Cultural Fit Score
+                      </div>
+                      <div className={`text-3xl font-bold ${getScoreColor(culturalScore)}`}>
+                        {culturalScore}%
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Grid System - Two Columns per Row */}
+      {gridItems.length > 0 && (
+        <div className="space-y-4">
+          {Array.from({ length: Math.ceil(gridItems.length / 2) }).map((_, rowIndex) => {
+            const startIndex = rowIndex * 2;
+            const rowItems = gridItems.slice(startIndex, startIndex + 2);
+
+            return (
+              <div key={rowIndex} className="grid grid-cols-2 gap-4">
+                {rowItems.map((item) => {
+                  const Icon = item.icon;
+                  const count = Array.isArray(item.data) ? item.data.length : 0;
+
+                  return (
+                    <Card
+                      key={item.key}
+                      className="border-2 border-slate-200 dark:border-slate-700 cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => setOpenModal(item.key)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Icon className={`w-5 h-5 ${item.colorClass}`} />
+                            <h3 className="font-semibold text-slate-700 dark:text-slate-300">
+                              {item.label}
+                            </h3>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {count}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modals for Grid Items */}
+      {gridItems.map((item) => {
+        const Icon = item.icon;
+        if (item.key === 'skillsMatched') {
+          return (
+            <SkillsMatchedModal
+              key={item.key}
+              isOpen={openModal === item.key}
+              onClose={() => setOpenModal(null)}
+              title={item.label}
+              data={Array.isArray(item.data) ? item.data : []}
+              icon={Icon}
+            />
+          );
+        }
+        return (
+          <ArrayDataModal
+            key={item.key}
+            isOpen={openModal === item.key}
+            onClose={() => setOpenModal(null)}
+            title={item.label}
+            data={Array.isArray(item.data) ? item.data : []}
+            icon={Icon}
+          />
+        );
+      })}
+
+      {/* Recommended Next Steps - FAQ Expandable */}
+      {shouldDisplay(recommendedNextSteps) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardContent className="p-0">
+            <Accordion type="single" collapsible>
+              <AccordionItem value="recommended-next-steps" className="border-none">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      Recommended Next Steps
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {recommendedNextSteps}
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Question to Ask in Next Interview - FAQ Expandable */}
+      {shouldDisplay(questionToAskInNextInterview) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardContent className="p-0">
+            <Accordion type="single" collapsible>
+              <AccordionItem value="question-next-interview" className="border-none">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-purple-600" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      Question to Ask in Next Interview
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {questionToAskInNextInterview}
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Candidate Salary Object */}
+      {shouldDisplay(candidateSalary) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-emerald-600" />
+              Candidate Salary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {candidateSalary.expectedRange && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Expected Range:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                  {candidateSalary.expectedRange}
+                </span>
+              </div>
+            )}
+            {candidateSalary.evidence && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Evidence:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                  {candidateSalary.evidence}
+                </span>
+              </div>
+            )}
+            {candidateSalary.source && (
+              <div className="space-y-2">
+                {candidateSalary.source.interview && (
+                  <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      Interview:
+                    </span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                      {candidateSalary.source.interview}
+                    </span>
+                  </div>
+                )}
+                {candidateSalary.source.cv && (
+                  <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      CV:
+                    </span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                      {candidateSalary.source.cv}
+                    </span>
+                  </div>
+                )}
+                {candidateSalary.source.aiViewPoint && (
+                  <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      AI View:
+                    </span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                      {candidateSalary.source.aiViewPoint}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Relocation Visa Object */}
+      {shouldDisplay(relocationVisa) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              Relocation & Visa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-0">
+            {relocationVisa.currentLocation && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Current Location:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                  {relocationVisa.currentLocation}
+                </span>
+              </div>
+            )}
+            {relocationVisa.jobLocation && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Job Location:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                  {relocationVisa.jobLocation}
+                </span>
+              </div>
+            )}
+            {relocationVisa.hasVisa !== null && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Has Visa:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                  {relocationVisa.hasVisa ? 'Yes' : 'No'}
+                </span>
+              </div>
+            )}
+            {relocationVisa.visaStatus && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Visa Status:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                  {relocationVisa.visaStatus}
+                </span>
+              </div>
+            )}
+            {relocationVisa.willingToRelocate !== null && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Willing to Relocate:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                  {relocationVisa.willingToRelocate ? 'Yes' : 'No'}
+                </span>
+              </div>
+            )}
+            {relocationVisa.relocationTimeline && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Relocation Timeline:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                  {relocationVisa.relocationTimeline}
+                </span>
+              </div>
+            )}
+            {relocationVisa.evidence && (
+              <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                  Evidence:
+                </span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                  {relocationVisa.evidence}
+                </span>
+              </div>
+            )}
+            {relocationVisa.source && (
+              <div className="space-y-0">
+                {relocationVisa.source.interview && (
+                  <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      Interview:
+                    </span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                      {relocationVisa.source.interview}
+                    </span>
+                  </div>
+                )}
+                {relocationVisa.source.cv && (
+                  <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      CV:
+                    </span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                      {relocationVisa.source.cv}
+                    </span>
+                  </div>
+                )}
+                {relocationVisa.source.aiViewPoint && (
+                  <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      AI View:
+                    </span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1 text-right ml-4">
+                      {relocationVisa.source.aiViewPoint}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Opinion */}
+      {shouldDisplay(aiOpinion) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="w-5 h-5 text-purple-600" />
+              AI Opinion
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+              {aiOpinion}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Experience Analysis */}
+      {shouldDisplay(experienceAnalysis) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-blue-600" />
+              Experience Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+              {experienceAnalysis}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Highlights of Background */}
+      {shouldDisplay(highlightsOfBackground) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5 text-amber-600" />
+              Highlights of Background
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+              {highlightsOfBackground}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reason Searching for Job */}
+      {shouldDisplay(reasonSearchingForJob) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-indigo-600" />
+              Reason Searching for Job
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+              {reasonSearchingForJob}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Highlights of Transitions */}
+      {shouldDisplay(highlightsOfTransitions) && (
+        <Card className="border-2 border-slate-200 dark:border-slate-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-teal-600" />
+              Highlights of Transitions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+              {highlightsOfTransitions}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function ApplicantDetailsPage() {
   const { applicantId } = useParams<{ applicantId: string }>();
   const navigate = useNavigate();
@@ -1940,8 +2646,8 @@ export default function ApplicantDetailsPage() {
   // Use generatedProfile from the new endpoint if available, otherwise fallback to applicant.generatedProfile
   const rawGeneratedProfile = generatedProfileData?.generatedProfile || applicant?.generatedProfile;
 
-  // Process profile for HR review: clean and group
-  const groupedProfile = rawGeneratedProfile ? groupForHRReview(rawGeneratedProfile) : null;
+  // Check if interview is incomplete (lackOfAnswers)
+  const isIncompleteInterview = rawGeneratedProfile?.lackOfAnswers === true;
 
   if (isLoading) {
     return (
@@ -1978,44 +2684,46 @@ export default function ApplicantDetailsPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-semibold">
-              {applicant.firstName?.[0] || applicant.email?.[0]?.toUpperCase() || "A"}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                {applicant.firstName && applicant.lastName
-                  ? `${applicant.firstName} ${applicant.lastName}`
-                  : applicant.name || applicant.email}
-              </h1>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">
-                Applied for: {applicant.jobTitle || "Unknown Position"}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="space-y-6 pr-4">
-          {/* Generated Profile Display - Structured Format */}
-          {rawGeneratedProfile && (
-            <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+          {/* Case 1: Incomplete Interview */}
+          {isIncompleteInterview && (
+            <Card className="bg-white dark:bg-slate-900 border-2 border-orange-200 dark:border-orange-700">
               <CardHeader>
-                <CardTitle className="text-slate-800 dark:text-slate-200">
-                  Generated Profile
+                <CardTitle className="text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <AlertTriangle className="w-6 h-6 text-orange-600" />
+                  Interview Incomplete
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {renderStructuredProfile(rawGeneratedProfile)}
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-700">
+                    <p className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-2">
+                      AI Thoughts About Candidate:
+                    </p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {rawGeneratedProfile?.aiThoughtsAboutCandidate || 'The candidate did not complete the interview. Insufficient data for assessment.'}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
+          {/* Case 2: Complete Interview - Pitch Profile */}
+          {!isIncompleteInterview && rawGeneratedProfile && (
+            <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <CardContent className="p-6">
+                <PitchProfile profile={rawGeneratedProfile} applicant={applicant} />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Interview Video and Transcription Section */}
-          {rawGeneratedProfile && applicant.interviewVideoUrl && (
+          {!isIncompleteInterview && applicant.interviewVideoUrl && (
             <InterviewVideoAndTranscription
               videoUrl={applicant.interviewVideoUrl}
               transcription={interviewTranscription}
