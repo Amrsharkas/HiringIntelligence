@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +53,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { HLSVideoPlayer } from "@/components/HLSVideoPlayer";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 // ============================================================================
 // HR-Focused Profile Processing Utilities
@@ -2609,6 +2611,8 @@ function PitchProfile({ profile, applicant }: { profile: AnyObject; applicant: a
 export default function ApplicantDetailsPage() {
   const { applicantId } = useParams<{ applicantId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Single query to fetch all applicant data including interview video URL and transcription
   const { data: applicant, isLoading } = useQuery<any>({
@@ -2649,6 +2653,52 @@ export default function ApplicantDetailsPage() {
   // Check if interview is incomplete (lackOfAnswers)
   const isIncompleteInterview = rawGeneratedProfile?.lackOfAnswers === true;
 
+  // Shortlist mutation
+  const shortlistMutation = useMutation({
+    mutationFn: async (applicantId: string) => {
+      await apiRequest("POST", `/api/applicants/${applicantId}/shortlist`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Applicant shortlisted successfully!"
+      });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants/detail", applicantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to shortlist applicant",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Deny mutation
+  const denyMutation = useMutation({
+    mutationFn: async (applicantId: string) => {
+      await apiRequest("POST", `/api/applicants/${applicantId}/deny`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Applicant denied successfully"
+      });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants/detail", applicantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applicants"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to deny applicant",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -2683,6 +2733,34 @@ export default function ApplicantDetailsPage() {
             className="mt-1"
           >
             <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              {applicant?.applicantName || applicant?.name || "Applicant Details"}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {applicant?.jobTitle || "Job Application"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => applicantId && shortlistMutation.mutate(applicantId)}
+            disabled={shortlistMutation.isPending || applicant?.status === "shortlisted"}
+            className="border-green-200 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/20"
+          >
+            <Star className="w-4 h-4 mr-2" />
+            {shortlistMutation.isPending ? "Shortlisting..." : "Shortlist"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => applicantId && denyMutation.mutate(applicantId)}
+            disabled={denyMutation.isPending || applicant?.status === "denied"}
+            className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            <XCircle className="w-4 h-4 mr-2" />
+            {denyMutation.isPending ? "Denying..." : "Deny"}
           </Button>
         </div>
       </div>
