@@ -113,6 +113,7 @@ export default function ResumesPage() {
   const [selectedJobFilter, setSelectedJobFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [scoreSortOrder, setScoreSortOrder] = useState<"scoreDesc" | "scoreAsc">("scoreDesc");
   const [exportingAll, setExportingAll] = useState(false);
   const [exportingProfileId, setExportingProfileId] = useState<string | null>(null);
   const [callDialogOpen, setCallDialogOpen] = useState(false);
@@ -126,7 +127,7 @@ export default function ResumesPage() {
   const [callPhoneNumber, setCallPhoneNumber] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Phone validation helper (E.164 format)
   const isValidE164 = (phone: string) => /^\+[1-9]\d{1,14}$/.test(phone);
@@ -188,12 +189,14 @@ export default function ResumesPage() {
     data: ResumeProfile[];
     pagination: any;
   }>({
-    queryKey: ["/api/resume-profiles", currentPage, itemsPerPage, debouncedSearch, selectedJobFilter],
+    queryKey: ["/api/resume-profiles", currentPage, itemsPerPage, debouncedSearch, selectedJobFilter, scoreSortOrder],
     queryFn: async () => {
+      const sortOrder = scoreSortOrder === "scoreAsc" ? "asc" : "desc";
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
-        sortBy: "date",
+        sortBy: "score",
+        sortOrder,
       });
 
       if (debouncedSearch) {
@@ -840,6 +843,20 @@ export default function ResumesPage() {
               </SelectContent>
             </Select>
 
+            {/* Score Sort */}
+            <Select
+              value={scoreSortOrder}
+              onValueChange={(value) => setScoreSortOrder(value as "scoreDesc" | "scoreAsc")}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="scoreDesc">Score: High to Low</SelectItem>
+                <SelectItem value="scoreAsc">Score: Low to High</SelectItem>
+              </SelectContent>
+            </Select>
+
             {/* Delete All */}
             {profiles.length > 0 && (
               <AlertDialog>
@@ -1022,7 +1039,7 @@ export default function ResumesPage() {
                             </>
                           )}
                           {/* Call button - only show for invited candidates */}
-                          {row.jobId  && (
+                          {row.jobId && (
                             <DropdownMenuItem
                               onClick={() => openCallDialog(row)}
                               className="text-green-600 dark:text-green-400"

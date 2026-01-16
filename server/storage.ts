@@ -917,6 +917,7 @@ export class DatabaseStorage implements IStorage {
     page: number = 1,
     limit: number = 10,
     sortBy: string = 'score',
+    sortOrder: string = 'desc',
     search?: string,
     status?: string,
     jobId?: string
@@ -942,11 +943,13 @@ export class DatabaseStorage implements IStorage {
       )`;
     }
 
+    const numericJobId = jobId ? parseInt(jobId, 10) : null;
+
     // Add jobId filter
-    if (jobId) {
+    if (Number.isFinite(numericJobId)) {
       whereConditions += ` AND EXISTS (
         SELECT 1 FROM resume_job_scores rjs
-        WHERE rjs.profile_id = rp.id AND rjs.job_id = ${parseInt(jobId)}
+        WHERE rjs.profile_id = rp.id AND rjs.job_id = ${numericJobId}
       )`;
     }
 
@@ -968,9 +971,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Build ORDER BY
-    let orderBy = 'rp.created_at DESC';
+    const normalizedSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    let orderBy = `rp.created_at ${normalizedSortOrder}`;
     if (sortBy === 'score') {
-      orderBy = 'COALESCE(max_scores.max_score, 0) DESC, rp.created_at DESC';
+      orderBy = `COALESCE(max_scores.max_score, 0) ${normalizedSortOrder}, rp.created_at DESC`;
     }
 
     const query = sql.raw(`
@@ -986,6 +990,7 @@ export class DatabaseStorage implements IStorage {
           profile_id,
           MAX(overall_score) as max_score
         FROM resume_job_scores
+        ${Number.isFinite(numericJobId) ? `WHERE job_id = ${numericJobId}` : ''}
         GROUP BY profile_id
       ) max_scores ON rp.id = max_scores.profile_id
       WHERE ${whereConditions}

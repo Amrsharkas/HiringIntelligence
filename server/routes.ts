@@ -6322,7 +6322,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
   app.get('/api/resume-profiles', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { jobId, page = 1, limit = 10, sortBy = 'score', search, status } = req.query;
+      const { jobId, page = 1, limit = 10, sortBy = 'score', sortOrder = 'desc', search, status } = req.query;
       const organization = await storage.getOrganizationByUser(userId);
 
       if (!organization) {
@@ -6354,6 +6354,7 @@ Be specific, avoid generic responses, and base analysis on the actual profile da
         validPage,
         validLimit,
         sortBy,
+        sortOrder,
         search,
         status,
         jobId

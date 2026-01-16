@@ -302,12 +302,12 @@ ${data.companyName} Hiring Team
         console.warn('📧 Skipping invitation email: SendGrid not configured');
         return false;
       }
-      const subject = `Your Application with ${params.companyName} – Next Steps`;
+      const subject = `Your Application with Orange – Next Steps`;
 
       const html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 640px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #111827;">Dear ${params.applicantName},</h2>
-          <p>Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the <strong>${params.jobTitle}</strong> position.</p>
+          <p>Thank you for applying to Orange. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the <strong>${params.jobTitle}</strong> position.</p>
           <p>As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.</p>
           <p>Please use the link below to complete your interview:</p>
           <div style="margin: 24px 0; text-align: center;">
@@ -320,7 +320,7 @@ ${data.companyName} Hiring Team
             <p style="color: #92400e; margin: 8px 0 0 0;">The link will expire ${this.getExpirationDateTime()} by 11:59 pm.</p>
           </div>
           <p>We look forward to learning more about you.</p>
-          <p>Best regards,<br>The Plato Team<br><em>(On behalf of ${params.companyName})</em></p>
+          <p>Best regards,<br>The Plato Team<br><em>(On behalf of Orange)</em></p>
         </div>`;
 
       const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
@@ -331,7 +331,7 @@ ${data.companyName} Hiring Team
         subject,
         text: `Dear ${params.applicantName},
 
-Thank you for applying to ${params.companyName}. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the ${params.jobTitle} position.
+Thank you for applying to Orange. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the ${params.jobTitle} position.
 
 As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.
 
@@ -345,7 +345,7 @@ We look forward to learning more about you.
 
 Best regards,
 The Plato Team
-(On behalf of ${params.companyName})`,
+(On behalf of Orange)`,
         html,
       });
       console.log(`✅ Invitation email sent to ${params.applicantEmail}`);
@@ -374,7 +374,7 @@ The Plato Team
         ? 'Your interview invitation expires soon!'
         : 'Don\'t forget to complete your interview!';
 
-      const subject = `Reminder: Complete Your AI Interview for ${params.jobTitle} at ${params.companyName}`;
+      const subject = `Reminder: Complete Your AI Interview for ${params.jobTitle} at Orange`;
 
       const html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 640px; margin: 0 auto; padding: 20px;">
@@ -382,7 +382,7 @@ The Plato Team
           <div style="margin: 16px 0; padding: 12px 16px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
             <p style="color: #92400e; margin: 0; font-weight: 600;">${urgencyText}</p>
           </div>
-          <p>This is a friendly reminder that you have a pending AI interview for the <strong>${params.jobTitle}</strong> position at ${params.companyName}.</p>
+          <p>This is a friendly reminder that you have a pending AI interview for the <strong>${params.jobTitle}</strong> position at Orange.</p>
           <p>Please complete your interview using the link below:</p>
           <div style="margin: 24px 0; text-align: center;">
             <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Complete Your Interview</a>
@@ -390,7 +390,7 @@ The Plato Team
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
           <p style="word-break: break-all; color: #2563eb;">${params.invitationLink}</p>
           <p>We look forward to learning more about you.</p>
-          <p>Best regards,<br>The Plato Team<br><em>(On behalf of ${params.companyName})</em></p>
+          <p>Best regards,<br>The Plato Team<br><em>(On behalf of Orange)</em></p>
         </div>`;
 
       const fromEmail = (process.env.SENDGRID_FROM || 'noreply@platohiring.com').trim();
@@ -404,7 +404,7 @@ The Plato Team
 
 ${urgencyText}
 
-This is a friendly reminder that you have a pending AI interview for the ${params.jobTitle} position at ${params.companyName}.
+This is a friendly reminder that you have a pending AI interview for the ${params.jobTitle} position at Orange.
 
 Please complete your interview using the link below:
 
@@ -414,7 +414,7 @@ We look forward to learning more about you.
 
 Best regards,
 The Plato Team
-(On behalf of ${params.companyName})`,
+(On behalf of Orange)`,
         html,
       });
 

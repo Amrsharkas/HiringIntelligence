@@ -296,49 +296,36 @@ const resumeProcessingWorker = new Worker(
 const emailWorker = new Worker(
   'email-sending',
   async (job) => {
-    const { to, subject, template, data } = job.data;
+    if (job.name === 'send-email') {
+      const { to, subject, template, data } = job.data;
 
-    console.log(`Sending email to ${to} with subject: ${subject}`);
-
-    try {
-      let result;
-
-      switch (template) {
-        case 'interview-scheduled':
-          result = await emailService.sendInterviewScheduledEmail(data);
-          break;
-        default:
-          throw new Error(`Unknown email template: ${template}`);
+      if (!template) {
+        console.warn(`Email job ${job.id} missing template, skipping`);
+        return { success: false, reason: 'missing_template' };
       }
 
-      console.log(`Successfully sent email to ${to}`);
-      return { success: true, result };
-    } catch (error) {
-      console.error(`Error sending email to ${to}:`, error);
-      throw error;
-    }
-  },
-  {
-    connection: redisConnection,
-    concurrency: 15, // Increased concurrency for better email throughput
-    settings: {
-      lockDuration: 180000, // 3 minutes
-      maxStalledCount: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 2000,
-      },
-    },
-    jobOptions: {
-      timeout: 120000, // 2 minutes timeout
-    }
-  }
-);
+      console.log(`Sending email to ${to} with subject: ${subject}`);
 
-// Interview invitation email worker
-const interviewInvitationWorker = new Worker(
-  'email-sending',
-  async (job) => {
+      try {
+        let result;
+
+        switch (template) {
+          case 'interview-scheduled':
+            result = await emailService.sendInterviewScheduledEmail(data);
+            break;
+          default:
+            console.warn(`Unknown email template: ${template}`);
+            return { success: false, reason: 'unknown_template' };
+        }
+
+        console.log(`Successfully sent email to ${to}`);
+        return { success: true, result };
+      } catch (error) {
+        console.error(`Error sending email to ${to}:`, error);
+        throw error;
+      }
+    }
+
     if (job.name === 'send-interview-invitation') {
       const { applicantName, applicantEmail, jobTitle, companyName, invitationLink, matchScore, matchSummary } = job.data;
 
@@ -361,7 +348,9 @@ const interviewInvitationWorker = new Worker(
         console.error(`Error sending interview invitation email to ${applicantEmail}:`, error);
         throw error;
       }
-    } else if (job.name === 'send-interview-reminder') {
+    }
+
+    if (job.name === 'send-interview-reminder') {
       const { applicantName, applicantEmail, jobTitle, companyName, invitationLink, matchId, reminderType } = job.data;
 
       console.log(`Processing interview reminder (${reminderType}) for ${applicantEmail}`);
@@ -404,6 +393,9 @@ const interviewInvitationWorker = new Worker(
         throw error;
       }
     }
+
+    console.warn(`Unhandled email job type: ${job.name}`);
+    return { success: false, reason: 'unsupported_job' };
   },
   {
     connection: redisConnection,
@@ -594,7 +586,6 @@ const setupWorkerEvents = (worker: Worker, workerName: string) => {
 
 setupWorkerEvents(resumeProcessingWorker, 'Resume Processing Worker');
 setupWorkerEvents(emailWorker, 'Email Worker');
-setupWorkerEvents(interviewInvitationWorker, 'Interview Invitation Worker');
 setupWorkerEvents(candidateMatchingWorker, 'Candidate Matching Worker');
 setupWorkerEvents(voiceCallWorker, 'Voice Call Worker');
 setupWorkerEvents(interviewReminderWorker, 'Interview Reminder Worker');
@@ -605,7 +596,6 @@ process.on('SIGINT', async () => {
   await Promise.all([
     resumeProcessingWorker.close(),
     emailWorker.close(),
-    interviewInvitationWorker.close(),
     candidateMatchingWorker.close(),
     voiceCallWorker.close(),
     interviewReminderWorker.close(),
@@ -619,7 +609,6 @@ process.on('SIGTERM', async () => {
   await Promise.all([
     resumeProcessingWorker.close(),
     emailWorker.close(),
-    interviewInvitationWorker.close(),
     candidateMatchingWorker.close(),
     voiceCallWorker.close(),
     interviewReminderWorker.close(),
