@@ -279,7 +279,6 @@ ${data.companyName} Hiring Team
 
   private getExpirationDateTime(): string {
     const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + 2);
     const options: Intl.DateTimeFormatOptions = {
       weekday: 'long',
       month: 'long',
@@ -309,6 +308,10 @@ ${data.companyName} Hiring Team
           <h2 style="color: #111827;">Dear ${params.applicantName},</h2>
           <p>Thank you for applying to Orange. After reviewing your resume, we are pleased to inform you that you have been identified as a strong potential candidate for the <strong>${params.jobTitle}</strong> position.</p>
           <p>As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.</p>
+          <div style="margin: 16px 0; padding: 12px 16px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <p style="color: #92400e; margin: 0; font-weight: 600;">We apologize for the hassle and any confusion caused by recent bugs.</p>
+          </div>
+          <p style="color: #b45309; font-weight: 600;">Please note: the interview cannot be opened on mobile devices. Use a desktop or laptop.</p>
           <p>Please use the link below to complete your interview:</p>
           <div style="margin: 24px 0; text-align: center;">
             <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Start Your Interview</a>
@@ -317,7 +320,8 @@ ${data.companyName} Hiring Team
           <p style="word-break: break-all; color: #2563eb;">${params.invitationLink}</p>
           <div style="margin-top: 24px; padding: 16px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
             <p style="color: #92400e; margin: 0; font-weight: 600;">Important:</p>
-            <p style="color: #92400e; margin: 8px 0 0 0;">The link will expire ${this.getExpirationDateTime()} by 11:59 pm.</p>
+            <p style="color: #92400e; margin: 8px 0 0 0;">The link will expire today by 11:59 pm.</p>
+            <p style="color: #92400e; margin: 8px 0 0 0;">If you face any bugs, contact us at 01022330092 or raef@platohiring.com.</p>
           </div>
           <p>We look forward to learning more about you.</p>
           <p>Best regards,<br>The Plato Team<br><em>(On behalf of Orange)</em></p>
@@ -335,11 +339,16 @@ Thank you for applying to Orange. After reviewing your resume, we are pleased to
 
 As the next step in our hiring process, we invite you to complete a short AI-powered interview through our platform. This will allow us to get to know you better and assess your fit for the role.
 
+We apologize for the hassle and any confusion caused by recent bugs.
+
+Please note: the interview cannot be opened on mobile devices. Use a desktop or laptop.
+
 Please use the link below to complete your interview:
 
 ${params.invitationLink}
 
-IMPORTANT: The link will expire ${this.getExpirationDateTime()} by 11:59 pm.
+IMPORTANT: The link will expire today by 11:59 pm.
+If you face any bugs, contact us at 01022330092 or raef@platohiring.com.
 
 We look forward to learning more about you.
 
@@ -383,12 +392,17 @@ The Plato Team
             <p style="color: #92400e; margin: 0; font-weight: 600;">${urgencyText}</p>
           </div>
           <p>This is a friendly reminder that you have a pending AI interview for the <strong>${params.jobTitle}</strong> position at Orange.</p>
+          <div style="margin: 16px 0; padding: 12px 16px; background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <p style="color: #92400e; margin: 0; font-weight: 600;">We apologize for the hassle and any confusion caused by recent bugs.</p>
+          </div>
+          <p style="color: #b45309; font-weight: 600;">Please note: the interview cannot be opened on mobile devices. Use a desktop or laptop.</p>
           <p>Please complete your interview using the link below:</p>
           <div style="margin: 24px 0; text-align: center;">
             <a href="${params.invitationLink}" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Complete Your Interview</a>
           </div>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
           <p style="word-break: break-all; color: #2563eb;">${params.invitationLink}</p>
+          <p style="color: #92400e; margin-top: 12px;">Need help? Contact 01022330092 or raef@platohiring.com for bugs.</p>
           <p>We look forward to learning more about you.</p>
           <p>Best regards,<br>The Plato Team<br><em>(On behalf of Orange)</em></p>
         </div>`;
@@ -405,6 +419,10 @@ The Plato Team
 ${urgencyText}
 
 This is a friendly reminder that you have a pending AI interview for the ${params.jobTitle} position at Orange.
+
+We apologize for the hassle and any confusion caused by recent bugs.
+
+Please note: the interview cannot be opened on mobile devices. Use a desktop or laptop.
 
 Please complete your interview using the link below:
 
